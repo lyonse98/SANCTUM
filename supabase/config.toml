@@ -1,0 +1,11 @@
+[functions.chat-proxy]
+verify_jwt = false
+
+[functions.feedback-submit]
+verify_jwt = true
+
+[functions.daily-reflection]
+verify_jwt = false
+
+[functions.analytics-track]
+verify_jwt = false

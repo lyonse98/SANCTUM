@@ -1,0 +1,564 @@
+export interface CatechismEntry {
+  id: string;
+  question: string;
+  answer: string;
+  scripture: string;
+  tradition: string;
+  opposingView: string;
+  defense: string;
+}
+
+export interface ObjectionEntry {
+  id: string;
+  question: string;
+  shortAnswer: string;
+  scripture: string;
+  tradition: string;
+  deeper: string;
+}
+
+export const PILLARS = [
+  { id: 'creed', label: 'The Creed', desc: 'What we believe' },
+  { id: 'sacraments', label: 'Sacraments', desc: 'How grace enters' },
+  { id: 'commandments', label: 'Commandments', desc: 'How we live' },
+  { id: 'prayer', label: 'Prayer', desc: 'How we commune' },
+  { id: 'anthropology', label: 'Human Dignity', desc: 'Who we are' },
+] as const;
+
+export type PillarId = (typeof PILLARS)[number]['id'];
+
+export const CATECHISM: Record<PillarId, CatechismEntry[]> = {
+  creed: [
+    {
+      id: 'creed-god',
+      question: 'Why is there one God in three Persons?',
+      answer:
+        'God is one divine essence in three distinct Persons — Father, Son, and Holy Spirit. Each Person is fully God, not a third of God. The Trinity is not three gods but one God in three relations of knowing and loving. The Father eternally generates the Son; the Spirit eternally proceeds from the Father (and the Son, as the West adds). The distinction is in the relations, not in the essence. This is the central mystery of Christian faith, revealed by Christ Himself — not discovered by philosophy.',
+      scripture:
+        '"Go therefore and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit." — Matthew 28:19. "In the beginning was the Word, and the Word was with God, and the Word was God." — John 1:1',
+      tradition:
+        'The Council of Nicaea (325 AD) gave us the Creed we still profess, defending the full divinity of Christ against Arianism. The Council of Constantinople (381 AD) affirmed the divinity of the Holy Spirit. St. Augustine wrote: "In the Trinity we find the origin of all things, the beauty of all things, and the order of all things." St. Thomas Aquinas: "The Father is God, the Son is God, and the Holy Spirit is God; and yet there are not three gods but one God."',
+      opposingView:
+        'Muslims and Jews argue the Trinity is polytheism in disguise — three gods dressed up as one. Unitarians and some liberal Protestants say the doctrine was invented at Nicaea, not taught by Christ. Skeptics say it is a logical contradiction (1+1+1=3, not 1).',
+      defense:
+        'The Trinity is not 1+1+1=3 — that is tritheism. It is 1x1x1=1: one essence, three Persons. The distinction is relational, not essential. Christ revealed it: "The Father and I are one" (John 10:30) and "The Spirit of truth who proceeds from the Father" (John 15:26). Nicaea did not invent the Trinity — it defended what Scripture already taught against a novel heresy. The word "Trinity" (Tertullian, c. 200 AD) is shorthand for a reality already present in the New Testament.',
+    },
+    {
+      id: 'creed-incarnation',
+      question: 'Why did God become man?',
+      answer:
+        'The Word became flesh for four reasons, as St. Athanasius summarized: to share in our nature that we might share in His; to reveal God\'s love in a way we could see and touch; to defeat death by dying; and to model the virtuous life. Christ is one Person (the divine Word) in two natures (divine and human) — without mixing, change, division, or separation (Chalcedon, 451 AD). He did not stop being God; He took on our humanity and will keep it forever.',
+      scripture:
+        '"And the Word became flesh and dwelt among us, and we have seen his glory, glory as of the only Son from the Father." — John 1:14. "Though he was in the form of God, he did not count equality with God a thing to be grasped, but emptied himself, taking the form of a servant." — Philippians 2:6-7',
+      tradition:
+        'St. Athanasius: "He became what we are that we might become what He is." The Council of Chalcedon (451 AD) defined the two natures of Christ in one Person against both Nestorianism (two Persons) and Monophysitism (one nature). St. Leo the Great\'s Tome was read at Chalcedon: "He who was true God was also true man."',
+      opposingView:
+        'Muslims teach that God has no son — incarnation is beneath divine dignity. Some liberal theologians argue the Incarnation is a myth borrowed from pagan dying-and-rising god stories. Jehovah\'s Witnesses say Christ was created — Michael the Archangel — not eternal God.',
+      defense:
+        'The pagan parallels are superficial: those gods die and rise in seasonal cycles; Christ dies once for all in history. The early Church did not borrow from mystery religions — it was born in Judaism, which strictly opposed such ideas. The Incarnation is not beneath God — it is the supreme act of humility. A God who refuses to enter His own creation would be less, not more. As for Christ being created: John 1:1 says the Word "was" God — imperfect tense, eternal. Colossians 1:16 says all things were created through Him — including angels.',
+    },
+    {
+      id: 'creed-resurrection',
+      question: 'Did Christ truly rise from the dead?',
+      answer:
+        'The Resurrection is a historical event, not a myth or a symbol. The evidence: the empty tomb that no one could produce a body from; the post-Resurrection appearances to over 500 witnesses, including skeptics and enemies (Paul, Thomas); the sudden transformation of the apostles from cowards hiding behind locked doors to martyrs preaching openly; and the existence of the Church itself, which has no natural explanation if the Resurrection is false. The tomb was guarded by Roman soldiers. The first witnesses were women — whose testimony was not admissible in court, which means the Gospel writers were not inventing a story they thought would be credible.',
+      scripture:
+        '"If Christ has not been raised, then our preaching is in vain and your faith is in vain." — 1 Corinthians 15:14. "He presented himself alive to them after his suffering by many proofs, appearing to them during forty days." — Acts 1:3',
+      tradition:
+        'St. Paul lists over 500 witnesses (1 Cor 15:6), most still alive when he wrote — meaning his readers could verify. St. Thomas Aquinas argued: the transformation of the apostles from cowards to martyrs is itself evidence. Men die for what they believe; they do not die for what they know to be a lie. The early martyrs did not die for a metaphor.',
+      opposingView:
+        'Skeptics propose the Swoon Theory (Jesus didn\'t really die), the Hallucination Theory (the apostles hallucinated), the Wrong Tomb Theory (the women went to the wrong tomb), or the Legend Theory (the story grew over decades). Muslims teach that Jesus was not crucified at all — someone else took His place.',
+      defense:
+        'The Swoon Theory fails: Roman executioners knew how to kill, and the spear wound confirmed death. A half-dead Jesus crawling from a tomb would inspire pity, not worship. The Hallucination Theory fails: 500 people do not hallucinate the same thing at once, and hallucinations do not convert skeptics like Paul or James. The Wrong Tomb fails: the authorities could have gone to the right tomb and produced the body. The Legend Theory fails: 1 Corinthians 15 was written within 20 years of the event — too soon for legend to replace fact. The Islamic view contradicts all historical scholarship, including secular.',
+    },
+    {
+      id: 'creed-church',
+      question: 'Why do we need the Church? Can\'t I just have a personal relationship with Jesus?',
+      answer:
+        'Christ founded the Church — He did not leave us a book, a feeling, or a private relationship. He established a visible community with authority to teach, sanctify, and govern. The Church is Christ\'s Body (1 Cor 12), His Bride (Eph 5), and the "pillar and bulwark of truth" (1 Tim 3:15). Scripture itself was given to us through the Church, not the other way around. A personal relationship with Christ is essential — but Christ never intended it to be solitary. He placed that relationship in a community with sacraments, shepherds, and a visible head.',
+      scripture:
+        '"You are Peter, and on this rock I will build my Church, and the gates of hell shall not prevail against it." — Matthew 16:18. "If he refuses to listen to them, tell it to the Church." — Matthew 18:17',
+      tradition:
+        'St. Cyprian of Carthage: "He can no longer have God for his Father, who has not the Church for his mother." The Church compiled and canonized Scripture through apostolic authority, guided by the Holy Spirit. St. Irenaeus (c. 180 AD): "Where the Church is, there is the Spirit of God; and where the Spirit of God is, there is the Church and every grace."',
+      opposingView:
+        'Many Protestants argue that the Church is an invisible fellowship of all believers, and that institutional structure is a later corruption. Secular critics say the Church is a human power structure that controls people. Some spiritual-but-not-religious people say organized religion is unnecessary — God is everywhere.',
+      defense:
+        'Christ did not found an invisible abstraction. He called twelve apostles, appointed Peter as their head, gave them authority to bind and loose, and promised the Spirit would guide them. An invisible Church with no authority cannot teach, cannot settle disputes (Acts 15), cannot administer sacraments, and cannot preserve a canon of Scripture. The "invisible church" idea was invented in the 16th century — no Church Father taught it. God is everywhere, but He chose to meet us through specific, tangible means. The Church is not a replacement for Christ — she is His Body.',
+    },
+    {
+      id: 'creed-original-sin',
+      question: 'What is original sin and why does it matter?',
+      answer:
+        'Original sin is not a personal act you committed — it is the wounded condition we inherit from the first humans\' break with God. We are born into a world already fractured: our will is weakened, our intellect is darkened, and our desires are disordered. We did not choose this wound, but we suffer its effects. Baptism removes the guilt of original sin, but the effects (concupiscence) remain — the lifelong struggle toward holiness. Original sin explains why even with good intentions, we do the wrong we do not want to do (Rom 7).',
+      scripture:
+        '"Therefore as sin came into the world through one man and death through sin, and so death spread to all men because all men sinned." — Romans 5:12. "Behold, I was brought forth in iniquity, and in sin did my mother conceive me." — Psalm 51:5',
+      tradition:
+        'St. Augustine articulated the doctrine against Pelagius, who taught that humans can achieve salvation by their own efforts without grace. The Council of Orange (529 AD) condemned Pelagianism: grace is necessary for every act of salvation. The Council of Trent (1546) defined that original sin is transmitted by propagation, not imitation.',
+      opposingView:
+        'Secular humanists argue that "original sin" is a harmful doctrine that makes people feel guilty for being human. Pelagians (ancient and modern) say humans are basically good and can choose the good by nature. Some Protestants deny that original sin is inherited — they say we only sin by imitation, not by nature.',
+      defense:
+        'Original sin is not about making people feel guilty — it is about telling the truth about the human condition. Every philosophy and every parent observes that humans do not need to be taught selfishness; it comes naturally. We must be taught generosity. If humans are basically good, why do we need laws, courts, and correction? The doctrine of original sin is the most empirically verifiable doctrine of the faith — just read the news. The question is not whether we are wounded, but whether there is a Physician.',
+    },
+    {
+      id: 'creed-final-judgment',
+      question: 'What happens after death? Heaven, hell, and the last judgment.',
+      answer:
+        'At the moment of death, each soul faces a particular judgment — an immediate encounter with Christ that reveals whether we chose love or self. Those who die in God\'s grace and friendship, perfectly purified, enter heaven. Those who die in God\'s friendship but still imperfectly purified enter purgatory — the final purification. Those who die in mortal sin, having freely rejected God, enter hell. At the end of time, Christ will return to judge the living and the dead, and our bodies will be reunited with our souls. Hell is not God\'s punishment imposed from outside — it is the logical consequence of a free choice to reject love. God does not send anyone to hell; we go there by our own choices.',
+      scripture:
+        '"It is appointed for men to die once, and after that comes judgment." — Hebrews 9:27. "These will go away into eternal punishment, but the righteous into eternal life." — Matthew 25:46',
+      tradition:
+        'St. John of the Cross: "At the evening of life, we shall be judged on love." The Catechism teaches that hell is a state of definitive self-exclusion from communion with God (CCC 1033). St. Augustine: "God did not create hell; He created it for the devil and his angels. Humans choose to go there."',
+      opposingView:
+        'Universalists argue that a loving God would never permit eternal punishment — everyone will eventually be saved. Annihilationists say the wicked are simply destroyed, not tormented forever. Secular people say the afterlife is a fairy tale to cope with death. Some argue hell is a medieval invention to control people through fear.',
+      defense:
+        'Universalism contradicts Christ\'s own words — He spoke of hell more than anyone in Scripture, and He did not speak of it as temporary. Love that cannot be rejected is not love — it is coercion. God respects our freedom, even when we use it to reject Him. Annihilationism contradicts Matthew 25:46, which uses the same word "eternal" for both heaven and hell. The afterlife is not a fairy tale — it is the logical completion of a life lived for or against God. Hell is not a control mechanism; it is the truth about freedom. A God who forced everyone into heaven would have destroyed human freedom — and with it, love.',
+    },
+  ],
+  sacraments: [
+    {
+      id: 'sac-eucharist',
+      question: 'Is the Eucharist truly Christ\'s Body and Blood?',
+      answer:
+        'The Eucharist is not a symbol, a memorial, or a metaphor. At the Last Supper, Christ said "This IS my Body" — not "this represents my Body." Through transubstantiation, the substance of bread and wine becomes Christ\'s Body, Blood, Soul, and Divinity, while the appearances (accidents) of bread and wine remain. Christ is wholly present under each form — the smallest crumb of the host contains the whole Christ. The Eucharist is not a repeated sacrifice but the re-presentation of the one sacrifice of Calvary — the same victim, the same priest, made present on the altar.',
+      scripture:
+        '"Whoever eats my flesh and drinks my blood has eternal life, and I will raise him up on the last day." — John 6:54. "This is my body, which is given for you." — Luke 22:19. "Whoever eats and drinks without discerning the body eats and drinks judgment upon himself." — 1 Corinthians 11:29',
+      tradition:
+        'St. Ignatius of Antioch (c. 110 AD) wrote: "The Eucharist is the flesh of our Savior Jesus Christ, which suffered for our sins." St. Justin Martyr (c. 150 AD): "We call this food Eucharist... the flesh and blood of that Jesus who was made flesh." St. Cyril of Jerusalem (c. 350 AD): "Do not doubt whether this is truly the Body and Blood of Christ." Every Church Father taught the Real Presence. The symbolic view did not exist until the 11th century (Berengar) and was not mainstream until the Reformation.',
+      opposingView:
+        'Most Protestants (following Zwingli and Calvin) say the Eucharist is a symbol or a memorial only. Some Lutherans teach consubstantiation — Christ is present "in, with, and under" the elements but the substance of bread remains. Skeptics say transubstantiation is a medieval philosophical invention using Aristotelian categories.',
+      defense:
+        'If it is a symbol, why did Christ let disciples walk away over this teaching (John 6:66) without calling them back to say "it\'s just a symbol"? Why did Paul warn of judgment for receiving unworthily — you do not get condemned for mishandling a symbol. The early Church risked death to celebrate the Eucharist — Roman authorities accused them of cannibalism, which makes no sense if they believed it was a symbol. Transubstantiation uses philosophical language to describe what the Church already believed for centuries before the term was coined. The belief came first; the philosophy came later to explain it.',
+    },
+    {
+      id: 'sac-confession',
+      question: 'Why confess sins to a priest?',
+      answer:
+        'Christ gave His apostles the power to forgive sins: "If you forgive the sins of any, they are forgiven." The priest acts in the person of Christ (in persona Christi) — it is Christ who forgives through the priest. Confession also provides the humility of speaking sin aloud, hearing absolution, and receiving counsel. The sacrament confers sanctifying grace, strengthens against future sin, and heals the wounds sin causes in the soul and in the Church. The seal of confession is absolute — the priest cannot reveal what is confessed, even under penalty of death.',
+      scripture:
+        '"He breathed on them and said to them, \'Receive the Holy Spirit. If you forgive the sins of any, they are forgiven; if you retain the sins of any, they are retained.\'" — John 20:22-23. "Confess your sins to one another and pray for one another that you may be healed." — James 5:16',
+      tradition:
+        'St. Augustine: "God has made the Church a ship, and the priest is the pilot." The early Church practiced public confession for serious sins; private confession developed over time, but the sacrament of reconciliation has always existed. The Council of Trent (1551) defined the necessity of confession for mortal sins. St. John Vianney: "The priest is not the master of God\'s forgiveness but its servant."',
+      opposingView:
+        'Protestants argue we should confess directly to God — no priest needed. Some say the priest\'s power to forgive was given only to the original apostles, not passed on. Secular critics say confession is psychologically harmful — it induces guilt and shame.',
+      defense:
+        'You should confess to God directly — and Christ gave us the sacrament as the ordinary way He chose to forgive. He could have said "just pray" but instead He breathed on the apostles and gave them authority. If the power was only for the apostles, then so was baptism, preaching, and the Eucharist — yet Protestants practice those. The power was given to the office, not just the men. As for psychology: studies show that the act of confession — speaking shame aloud to a non-judgmental listener and hearing words of absolution — is deeply healing. Shame thrives in secrecy and dies in the light.',
+    },
+    {
+      id: 'sac-baptism',
+      question: 'Why baptize infants?',
+      answer:
+        'Baptism is the gateway to the life of grace and the door to all other sacraments. In the early Church, entire households were baptized — including children (Acts 16:15, 33; 18:8). Circumcision was administered to infants on the eighth day; baptism replaces circumcision (Col 2:11-12). Grace is a free gift, not earned by understanding. Parents bring their children to Christ, as they were brought to Him physically in the Gospels. To delay baptism until a child can "decide for themselves" is to treat grace as something earned by intellectual assent — but grace is always a gift.',
+      scripture:
+        '"Let the little children come to me, and do not hinder them, for the kingdom of God belongs to such as these." — Mark 10:14. "Repent and be baptized every one of you in the name of Jesus Christ for the forgiveness of your sins... For the promise is for you and for your children." — Acts 2:38-39',
+      tradition:
+        'The Didache (c. 80 AD) and the practice of the early Church confirm infant baptism. St. Irenaeus (c. 180 AD) wrote that infants are "born anew to God." St. Cyprian (c. 250 AD): even newborns should be baptized, for they are not excluded from the mercy and grace of God. Original sin requires baptism for entry into the life of grace.',
+      opposingView:
+        'Baptists and many evangelicals argue that baptism requires personal faith and should be reserved for adults or older children who can make a conscious decision. Some say infant baptism is unbiblical because the New Testament always shows adults believing first, then being baptized.',
+      defense:
+        'The New Testament shows whole-household baptisms (Acts 16:15, 33; 18:8; 1 Cor 1:16) — the text does not say "adults only." If baptism requires conscious faith, then we should not give children any spiritual care until they can decide — but parents feed, educate, and love their children before they can consent. Why withhold grace? In the Old Covenant, infants entered on the eighth day through circumcision; in the New Covenant, which is greater, they enter through baptism. The objection assumes faith is purely intellectual — but faith is also a relationship, and infants can be in a relationship before they can articulate it.',
+    },
+    {
+      id: 'sac-confirmation',
+      question: 'What is Confirmation and why is it separate from Baptism?',
+      answer:
+        'Confirmation completes the grace of Baptism. In Baptism, we are born again; in Confirmation, we are strengthened with the gifts of the Holy Spirit for mission. The apostles received the Spirit at Pentecost — not a second conversion, but an empowerment for witness. Confirmation imprints an indelible spiritual mark — the character — which configures the recipient to Christ as His witness. In the East, Confirmation is given with Baptism; in the West, it is delayed to allow the person to consciously embrace the faith. The difference is pastoral, not doctrinal.',
+      scripture:
+        '"When the apostles at Jerusalem heard that Samaria had received the word of God, they sent to them Peter and John, who came down and prayed for them that they might receive the Holy Spirit; for it had not yet fallen on any of them, but they had only been baptized in the name of the Lord Jesus." — Acts 8:14-16',
+      tradition:
+        'The Council of Trent defined Confirmation as a distinct sacrament that imprints a character. St. Thomas Aquinas: "In Baptism we are regenerated to life; in Confirmation we are equipped for battle." The anointing with chrism signifies the gift of the Spirit and consecration to Christ\'s mission.',
+      opposingView:
+        'Many Protestants see no separate sacrament of Confirmation — they view it as part of Baptism or as a human ceremony. Pentecostals argue that the "baptism of the Holy Spirit" is a separate experience marked by speaking in tongues.',
+      defense:
+        'Acts 8 clearly shows a gap between Baptism and the reception of the Spirit through the laying on of hands — this is the biblical basis for a distinct sacrament. The Pentecostal experience of the Spirit is real but need not be normative for all — Paul himself says not all speak in tongues (1 Cor 12:30). Confirmation is not about a second conversion but about strengthening for mission — the Spirit gives many gifts, not just tongues.',
+    },
+    {
+      id: 'sac-matrimony',
+      question: 'What makes marriage a sacrament?',
+      answer:
+        'Marriage between two baptized persons is a sacrament — a channel of grace. Christ elevated marriage to a sacrament at Cana (John 2). The spouses confer the sacrament on each other; the priest is the Church\'s witness. The marriage bond is indissoluble because it images Christ\'s covenant with the Church — which cannot be broken. The two ends of marriage are the good of the spouses and the procreation and education of children. These ends are not in competition; they are two aspects of one total self-gift.',
+      scripture:
+        '"What therefore God has joined together, let not man put asunder." — Mark 10:9. "This mystery is a profound one, and I am saying that it refers to Christ and the Church." — Ephesians 5:32',
+      tradition:
+        'St. Paul calls marriage a "great mystery" (mysterion = sacramentum) referring to Christ and the Church. The Council of Trent (1563) defined the sacramental nature of marriage against Reformation challenges. St. John Chrysostom: "Marriage is a mystery of love. Not just the love of man and woman, but the love of Christ for His Church."',
+      opposingView:
+        'Protestants generally do not see marriage as a sacrament in the technical sense — they see it as a created ordinance, good and holy, but not a means of grace. Secular society treats marriage as a legal contract that can be dissolved at will. Some argue the Church\'s refusal to remarry divorcees is cruel and unmerciful.',
+      defense:
+        'St. Paul explicitly calls marriage a "mysterion" — the Greek word the Church uses for sacrament. If marriage is merely a contract, then divorce is just breach of contract. But Christ said "what God has joined" — marriage is not just a human agreement but a divine act. The Church\'s refusal to remarry divorcees is not cruelty — it is fidelity to Christ\'s words. The Church does offer the possibility of annulment, which determines whether a valid marriage existed in the first place. That is not "Catholic divorce" — it is a declaration that something essential was missing from the start.',
+    },
+    {
+      id: 'sac-anointing',
+      question: 'What is the Anointing of the Sick?',
+      answer:
+        'Anointing of the Sick is the sacrament for those who are seriously ill, facing surgery, or near death. It is not only for the dying — it is for anyone in serious need of healing, whether physical, spiritual, or emotional. The priest anoints the forehead and hands with oil of the sick, praying for healing and strength. The sacrament forgives sins, strengthens the soul against despair, unites the person\'s suffering to Christ\'s passion, and may restore physical health if that serves salvation. It can be received more than once.',
+      scripture:
+        '"Is any among you sick? Let him call for the elders of the Church, and let them pray over him, anointing him with oil in the name of the Lord; and the prayer of faith will save the sick man, and the Lord will raise him up; and if he has committed sins, he will be forgiven." — James 5:14-15',
+      tradition:
+        'The Council of Trent defined Anointing as a sacrament instituted by Christ. The early Church practiced it alongside prayer and fasting. St. Thomas Aquinas: "This sacrament is given as a remedy against the remnants of sin and against the weakness of the soul."',
+      opposingView:
+        'Some Protestants see anointing as a symbolic prayer practice, not a sacrament. Some faith-healing traditions argue that if healing does not occur, it is because of a lack of faith. Secular people see it as a psychological comfort with no real effect.',
+      defense:
+        'James 5 is explicit: the prayer of faith "will save the sick man." This is not a guarantee of physical healing — it is a sacrament of grace. The faith-healing objection is cruel: it blames the sick person for not being healed. But Paul himself had a thorn in the flesh that was not removed (2 Cor 12:7-9). Physical healing is not always God\'s will — but spiritual strengthening always is. The sacrament works regardless of the level of faith; it depends on God\'s grace, not human merit.',
+    },
+  ],
+  commandments: [
+    {
+      id: 'cmd-life',
+      question: 'What does the Church teach about the sanctity of life?',
+      answer:
+        'Human life is sacred from conception to natural death because every person is made in God\'s image (imago Dei). Abortion, euthanasia, and the deliberate taking of innocent life are gravely contrary to the moral law. The defense of life is not a political position — it is a demand of the Gospel. The Church also opposes the death penalty in practice (though not in principle for extreme cases), war except in strict just-war conditions, and any treatment of persons as means to an end. Every person — born or unborn, healthy or disabled, young or old, guilty or innocent — has inviolable dignity that no state, no court, and no majority can revoke.',
+      scripture:
+        '"Before I formed you in the womb I knew you, and before you were born I consecrated you." — Jeremiah 1:5. "Your eyes saw my unformed substance; in your book were written, every one of them, the days that were formed for me." — Psalm 139:16',
+      tradition:
+        'The Didache (c. 80 AD) explicitly condemns abortion: "You shall not murder a child by abortion nor kill that which is born." Tertullian, Basil, Chrysostom, and Augustine all condemned abortion. The Church has defended life from the beginning — this is not a modern political stance but an ancient moral truth. Pope St. John Paul II: "A nation that kills its own children is a nation without hope."',
+      opposingView:
+        'Pro-choice advocates argue that a fetus is not a person, that bodily autonomy includes the right to end a pregnancy, and that the Church\'s position harms women. Some argue that euthanasia is a compassionate choice for the terminally ill. Some argue that the death penalty is justice, not murder.',
+      defense:
+        'The question is not "when does life begin?" — science answers that: at conception, a new organism with its own DNA exists. The question is "when does the human being acquire dignity?" — and the Christian answer is: at the moment of existence, because dignity is not earned but given by God. Bodily autonomy is real but does not extend to ending another body. The Church does not oppose helping women — she opposes killing children. The Church supports pregnancy resource centers, adoption, and material support. On euthanasia: compassion does not mean killing — it means accompanying. On the death penalty: the Church teaches that if non-lethal means are sufficient to protect society, they must be used (CCC 2267).',
+    },
+    {
+      id: 'cmd-marriage',
+      question: 'What is the Church\'s teaching on marriage and family?',
+      answer:
+        'Marriage is the lifelong, exclusive union of one man and one woman, ordered toward the good of the spouses and the procreation and education of children. The family is the domestic Church — the first place where faith is lived, virtues are formed, and love is learned. The breakdown of marriage wounds children, society, and the Church. The Church teaches that the sexual act has two inseparable meanings: unitive (love-giving) and procreative (life-giving). Separating these — through contraception, IVF, or non-marital sex — distorts the meaning of the act.',
+      scripture:
+        '"So they are no longer two but one flesh. What therefore God has joined together, let not man put asunder." — Matthew 19:6. "Male and female he created them. And God blessed them. And God said to them, \'Be fruitful and multiply.\'" — Genesis 1:27-28',
+      tradition:
+        'St. John Chrysostom called the family "a little Church." The Catechism teaches that the family is "the original cell of social life" (CCC 2207). Pope St. John Paul II\'s Theology of the Body articulates the meaning of the body, sex, and marriage as a visible image of God\'s own self-gift.',
+      opposingView:
+        'Modern secular culture argues that marriage is a social construct that can be redefined, that sexual identity is fluid, and that the Church\'s teaching is oppressive and exclusionary. Some argue that the Church\'s opposition to contraception is outdated and harmful, especially in the context of overpopulation and women\'s health.',
+      defense:
+        'Marriage is not a social construct — it is a pre-political reality rooted in the nature of the human person as male and female. Every culture in history has recognized marriage between man and woman; the redefinition is novel, not the definition. The Church does not define marriage — she receives it from creation and elevates it by grace. On contraception: the Church\'s teaching was not invented by Humanae Vitae — it was the universal Christian position until 1930 (Lambeth Conference). Every Protestant denomination opposed contraception until the 20th century. The question is not whether the teaching is popular but whether it is true.',
+    },
+    {
+      id: 'cmd-poor',
+      question: 'What is our duty to the poor?',
+      answer:
+        'We have a preferential option for the poor — not as a political slogan but as a Gospel demand. Christ identified Himself with the poor: "Whatever you did for the least of these, you did for me." This is not optional charity — it is a demand of justice. The goods of the earth are meant for all; private property is legitimate but not absolute. We will be judged by how we treated the least. The Church\'s social teaching includes the dignity of work, the right to a living wage, solidarity, and subsidiarity — but above all, the personal obligation to see Christ in the poor and to act.',
+      scripture:
+        '"Truly, I say to you, as you did it to one of the least of these my brothers, you did it to me." — Matthew 25:40. "If anyone has the world\'s goods and sees his brother in need, yet closes his heart against him, how does God\'s love abide in him?" — 1 John 3:17',
+      tradition:
+        'St. Basil the Great: "The bread in your cupboard belongs to the hungry man; the coat hanging unused in your closet belongs to the man who needs it; the shoes rotting in your closet belong to the man who has no shoes." St. Francis kissed the leper. St. Lawrence brought the poor to the prefect and said, "These are the treasures of the Church." Pope Francis: "The Church is a field hospital."',
+      opposingView:
+        'Some argue that charity should be private, not institutional, and that the Church should not engage in politics or structural critique. Others argue that welfare should be handled by the state, not the Church. Some libertarians say property rights are absolute and redistribution is theft.',
+      defense:
+        'The Church has always done both: personal charity and structural justice. The early Church ran hospitals, orphanages, and food programs — the first organized charity in history. The state cannot replace the Church\'s personal love — but the Church can and must speak truth to power about unjust structures. Property is not absolute: St. Thomas Aquinas taught that in cases of extreme need, taking what is necessary to survive is not theft (ST II-II, Q. 66). The right to property is ordered to the common good. Solidarity is not optional — it is a virtue.',
+    },
+    {
+      id: 'cmd-truth',
+      question: 'What is the Eighth Commandment — living in truth?',
+      answer:
+        'We are called to truth in all things — in speech, in media, in relationships. Lying, detraction (revealing another\'s faults without necessity), calumny (lying about another), and rash judgment wound charity and justice. In an age of misinformation, the command to bear true witness is more urgent than ever. Truth is not subjective; it is a Person: Jesus Christ, who said "I am the Truth." The Eighth Commandment also commands us to defend truth in the public square, to protect the reputation of others, and to avoid complicity in lies — including through silence when we should speak.',
+      scripture:
+        '"Therefore, having put away falsehood, let each one of you speak the truth with his neighbor." — Ephesians 4:25. "You shall not bear false witness against your neighbor." — Exodus 20:16',
+      tradition:
+        'St. Thomas Aquinas taught that truth is the proper end of speech. The Catechism warns against "lying, perjury, detraction, calumny, and rash judgment" (CCC 2479). St. Augustine wrote two entire books against lying (De Mendacio and Contra Mendacium), concluding that no lie is ever justified — even to save a life. Kant later arrived at a similar position from reason alone.',
+      opposingView:
+        'Many argue that "white lies" are harmless or even virtuous when they protect feelings or save lives. Utilitarians say truth should be subordinated to outcomes. Postmodernists argue that truth is a social construct — there is no objective truth, only narratives and power.',
+      defense:
+        'The postmodern position is self-refuting: "there is no objective truth" is itself a truth claim. If truth is a construct, then so is the statement that it is. The utilitarian position reduces persons to means — lying to someone manipulates them, even for "good" outcomes. The "white lie" seems harmless until you ask: who decides which lies are white? The Church\'s position is demanding but coherent: truth is good in itself because God is Truth. In extreme cases (e.g., hiding someone from a murderer), the Church permits mental reservation — strictly true statements that are misleading to the hearer — but not outright falsehood.',
+    },
+    {
+      id: 'cmd-social',
+      question: 'What does the Church teach about social justice?',
+      answer:
+        'Catholic Social Teaching is not a political platform — it is the application of the Gospel to society. Its principles: the dignity of the human person; the common good; solidarity (we are responsible for one another); subsidiarity (decisions should be made at the lowest effective level); the preferential option for the poor; the dignity of work and the rights of workers; and care for creation. It does not fit neatly into left or right: it challenges both unbridled capitalism and collectivism. It insists that the economy exists for the person, not the person for the economy.',
+      scripture:
+        '"Open your mouth for the mute, for the rights of all who are destitute. Open your mouth, judge righteously, defend the rights of the poor and needy." — Proverbs 31:8-9. "The laborer deserves his wages." — 1 Timothy 5:18',
+      tradition:
+        'Pope Leo XIII\'s Rerum Novarum (1891) launched modern Catholic Social Teaching in response to the Industrial Revolution. Pope St. John Paul II\'s Laborem Exercens (1981) emphasized the priority of labor over capital. Pope Benedict XVI: "Charity in truth is the principal driving force behind the development of every person and all humanity" (Caritas in Veritate, 2009).',
+      opposingView:
+        'Some on the right say the Church should stay out of economics — that\'s politics, not faith. Some on the left say the Church\'s teaching is not radical enough — it does not endorse socialism or revolution. Some argue that Catholic Social Teaching is too vague to be actionable.',
+      defense:
+        'The Church has always spoken to social questions — from the prophets to the apostles to the Fathers. Economics is not morally neutral; it is a human activity with moral consequences. The Church does not endorse a specific policy but gives principles that must be applied prudently. The reason it does not fit left or right is that it is not a political ideology — it is a moral framework. The principles are clear; the application requires prudence and discernment in each situation.',
+    },
+  ],
+  prayer: [
+    {
+      id: 'pray-our',
+      question: 'Why is the Our Father the perfect prayer?',
+      answer:
+        'Christ gave us the Our Father in response to the disciples\' request: "Lord, teach us to pray." It contains seven petitions: three oriented to God (hallowed be Thy name, Thy kingdom come, Thy will be done) and four to our needs (daily bread, forgiveness, temptation, deliverance). St. Thomas Aquinas called it "the most perfect of prayers" because it contains all that we rightly desire — and in the right order: God first, then our needs. It teaches us to call God "Father" — a revolutionary intimacy that no ancient religion dared claim. It also teaches us to say "our" — not "my" — because we are saved as a people, not as isolated individuals.',
+      scripture:
+        '"Pray then like this: Our Father who art in heaven, hallowed be thy name." — Matthew 6:9. "Lord, teach us to pray, as John taught his disciples." — Luke 11:1',
+      tradition:
+        'Tertullian called it "the summary of the whole Gospel." St. Cyprian: "What a prayer the Lord Himself taught us, the prayer of our Advocate!" St. Thomas Aquinas: "In this prayer not only do we ask for all that we can rightly desire, but also in the order in which we should desire it."',
+      opposingView:
+        'Some argue that rote prayer is inferior to spontaneous, heartfelt prayer — that repeating words from a book is mechanical and dead. Some Protestants object to saying prayers from memory rather than praying "from the Spirit."',
+      defense:
+        'Christ Himself gave us a rote prayer — are we to say He was wrong? The Our Father is not mechanical repetition; it is a form that, when prayed with attention, shapes the heart. Memorized prayer is like a riverbed — it gives shape and direction to the water of the heart. Spontaneous prayer is good, but it can become self-centered and repetitive in its own way. The Our Father draws us out of ourselves and into God\'s will. The best prayer uses both: the forms the Church gives us and the spontaneous cry of the heart.',
+    },
+    {
+      id: 'pray-mary',
+      question: 'Why pray to Mary and the saints?',
+      answer:
+        'We do not worship Mary or the saints — worship (latria) belongs to God alone. We ask them to pray for us, just as we ask a friend on earth to pray for us. The saints are alive in Christ: "He is not God of the dead, but of the living." The communion of saints means we are united with them in Christ — death does not sever the Body. Mary, as Christ\'s mother, has unique intercessory power — as seen at Cana, where Christ performed His first miracle at her request. To honor Mary is not to compete with Christ — it is to honor His mother, which is to honor Him.',
+      scripture:
+        '"And the smoke of the incense rose with the prayers of the saints from the hand of the angel before God." — Revelation 8:4. "He is not God of the dead, but of the living." — Mark 12:27',
+      tradition:
+        'St. Jerome: "If the apostles and martyrs are still living, they can pray for others. If they are dead, they cannot." The early Church venerated martyrs from the first century — the catacombs have prayers asking the martyrs to intercede. The communion of saints is in the Apostles\' Creed. St. Bernard of Clairvaux: "If you cannot run by yourself, run by the hand of Mary."',
+      opposingView:
+        'Many Protestants argue that praying to saints is unbiblical — we have one mediator, Christ (1 Tim 2:5). Some say it is necromancy, forbidden in Deuteronomy 18. Others say it distracts from Christ and borders on idolatry.',
+      defense:
+        '1 Timothy 2:5 says Christ is the one mediator between God and humanity — and this is true. But if that means we cannot ask anyone to pray for us, then we cannot ask a friend to pray for us either. Intercessory prayer does not compete with Christ\'s mediation — it participates in it. The saints are not dead — Christ says they are alive. Asking them to pray is not necromancy (which seeks to summon the dead for hidden knowledge) — it is asking living members of the Body of Christ to intercede. The saints do not answer prayer — God does. They pray with us and for us.',
+    },
+    {
+      id: 'pray-rosary',
+      question: 'What is the Rosary and why pray it?',
+      answer:
+        'The Rosary is a meditation on the life of Christ through the eyes of Mary. It is not vain repetition — it is a rhythm of prayer that quiets the mind and opens the heart. Each decade meditates on a mystery from Christ\'s life: Joyful, Sorrowful, Glorious, and Luminous. The repetition of the Hail Mary is like breathing — it creates space for contemplation. The Rosary is Christ-centered: every mystery is about Him. Mary is the lens, not the subject. The Rosary has been called the "school of Mary" — she teaches us to ponder Christ as she did.',
+      scripture:
+        '"But Mary kept all these things, pondering them in her heart." — Luke 2:19. "My soul magnifies the Lord." — Luke 1:46',
+      tradition:
+        'Our Lady gave the Rosary to St. Dominic in the 13th century. St. John Paul II called it his "favorite prayer" and added the Luminous Mysteries in 2002. Padre Pio called it "the weapon of our times." Pope Pius XII: "There is no surer means of calling down God\'s blessings upon the family." The Battle of Lepanto (1571) was attributed to the Rosary.',
+      opposingView:
+        'Some Protestants cite Matthew 6:7 — "when you pray, do not heap up empty phrases" — as a condemnation of the Rosary\'s repetition. Others say the Rosary focuses too much on Mary and not enough on Christ.',
+      defense:
+        'Matthew 6:7 condemns "vain" repetition — repetition that is empty, not repetition itself. Christ repeated His prayer in Gethsemane three times (Matt 26:44). The angels in heaven repeat "Holy, holy, holy" ceaselessly (Rev 4:8). Repetition is not the problem — inattention is. The Rosary is not about Mary — it is about Christ through Mary. Every mystery is from His life. The Hail Mary itself is Scripture: "Hail, full of grace, the Lord is with you" (Luke 1:28) and "Blessed are you among women" (Luke 1:42). We are praying the Bible.',
+    },
+    {
+      id: 'pray-liturgical',
+      question: 'What is liturgical prayer and why does it matter?',
+      answer:
+        'The Liturgy of the Hours sanctifies the entire day — it is the prayer of the Church, not a private devotion. Priests, religious, and laity pray it. The Psalms are its heart. Christ Himself prayed the Psalms — they were His prayer book. Liturgical prayer joins us to the worship of heaven and to the whole Church across time and space. When you pray the Psalms, you pray with David, with Christ, with the apostles, and with every saint. The Mass is the highest form of liturgical prayer — the source and summit of the Christian life.',
+      scripture:
+        '"Seven times a day I praise you for your righteous rules." — Psalm 119:164. "They devoted themselves to the apostles\' teaching and fellowship, to the breaking of bread and the prayers." — Acts 2:42',
+      tradition:
+        'St. Benedict organized the hours of prayer in his Rule. The Second Vatican Council called the Liturgy "the summit toward which the activity of the Church is directed" (Sacrosanctum Concilium 10). St. Robert Bellarmine: "The Liturgy is the most powerful prayer because it is the prayer of Christ Himself, Head and Body."',
+      opposingView:
+        'Some argue that liturgical prayer is rigid and lifeless compared to spontaneous worship. Some Protestants prefer "free" worship without set forms. Others say the Liturgy of the Hours is too complex for ordinary people.',
+      defense:
+        'Liturgy is not rigid — it is disciplined, like a musical score. The best musicians improvise within a structure, not without one. Spontaneous prayer can be beautiful, but it can also become self-expression rather than worship. Liturgy ensures that we pray not just what we feel but what is true — the Psalms give us words for every human experience: joy, grief, anger, trust, despair. The Liturgy of the Hours has been simplified for lay use — you can pray Morning and Evening Prayer in 10-15 minutes each. The structure frees the heart from having to invent prayer every day.',
+    },
+    {
+      id: 'pray-contemplation',
+      question: 'What is contemplative prayer?',
+      answer:
+        'Contemplative prayer is the prayer of silence and presence. It is not about talking to God but about being with God. St. Teresa of Avila defined it as "a close sharing between friends; it means taking time frequently to be alone with Him who we know loves us." In contemplation, we let go of words and images and rest in God\'s presence. This does not replace vocal prayer — it grows out of it. The Rosary, Lectio Divina, and Eucharistic adoration all lead naturally into contemplation. The goal of all prayer is union with God, and contemplation is the deepest form of that union on earth.',
+      scripture:
+        '"Be still, and know that I am God." — Psalm 46:10. "When you pray, go into your room and shut the door and pray to your Father who is in secret; and your Father who sees in secret will reward you." — Matthew 6:6',
+      tradition:
+        'St. John of the Cross: "The soul that walks in love neither rests nor grows tired." The Cloud of Unknowing (14th century) teaches that we reach God by letting go of all images and resting in a "cloud of unknowing." St. Teresa of Avila\'s Interior Castle describes the soul\'s journey through seven mansions to union with God. Thomas Merton: "Contemplation is the highest expression of man\'s intellectual and spiritual life."',
+      opposingView:
+        'Some evangelicals are suspicious of contemplative prayer, associating it with Eastern meditation or New Age practices. Some argue it is self-emptying rather than God-focused. Others say it is only for monks and nuns, not ordinary people.',
+      defense:
+        'Christian contemplation is not Eastern meditation — it is not about emptying the mind but about filling it with God\'s presence. It is rooted in Scripture: "Be still and know that I am God." It is Christ-centered — we contemplate Christ, not nothingness. The objection that it is only for monks misunderstands the vocation to holiness: every baptized person is called to prayer, and contemplation is simply the deepest form of prayer. The saints who taught it — Teresa, John of the Cross, Francis de Sales — wrote for ordinary people, not just for cloistered religious.',
+    },
+  ],
+  anthropology: [
+    {
+      id: 'anth-dignity',
+      question: 'What is human dignity and where does it come from?',
+      answer:
+        'Human dignity is not earned, not granted by the state, not measured by productivity or intelligence. It is given by God at the moment of creation: every person is made in God\'s image (imago Dei). This means every human being — from conception to natural death, regardless of ability, age, race, sex, or contribution — has inviolable worth that no power on earth can revoke. Dignity is not a quality we have; it is what we are. The human person is the only creature on earth that God has willed for its own sake (CCC 356).',
+      scripture:
+        '"So God created man in his own image, in the image of God he created him; male and female he created them." — Genesis 1:27. "What is man that you are mindful of him, and the son of man that you care for him? Yet you have made him little less than a god, crowned him with glory and honor." — Psalm 8:4-5',
+      tradition:
+        'St. John Paul II: "The dignity of the human person is rooted in his creation in the image and likeness of God." Vatican II: "The root reason for human dignity lies in man\'s vocation to communion with God" (Gaudium et Spes 19). St. Thomas Aquinas: "The human person is the most perfect thing in the universe."',
+      opposingView:
+        'Utilitarian philosophers argue that dignity is based on the capacity for rational thought and autonomous choice — so those who lack these (the unborn, the severely disabled, the comatose) have reduced or no dignity. Some transhumanists argue that dignity is a fiction and that humans are just another animal to be upgraded or discarded. Materialists say we are collections of atoms with no inherent worth.',
+      defense:
+        'If dignity is based on capacity, then it is not dignity — it is a ranking. The moment you tie worth to ability, you have justified every atrocity: the weak, the disabled, the elderly, the unwanted become less than persons. History shows this: every genocide began by dehumanizing the victims. The Christian view is the only foundation that protects everyone: dignity is given by God, not earned by us. If there is no God, then dignity is a social convention — and conventions can be changed. The Christian view is the most inclusive anthropology ever proposed.',
+    },
+    {
+      id: 'anth-freedom',
+      question: 'What is true freedom?',
+      answer:
+        'The world defines freedom as the absence of constraint — doing whatever you want. The Church defines freedom as the capacity to choose the good — doing what you were made for. True freedom is not the ability to choose evil; it is the ability to choose love. A person addicted to sin is not free — even if they "chose" it. Christ said: "You will know the truth, and the truth will make you free" (John 8:32). Freedom is for excellence, not for self-destruction. The more we choose the good, the freer we become; the more we choose sin, the more enslaved we become.',
+      scripture:
+        '"For freedom Christ has set us free; stand firm therefore, and do not submit again to a yoke of slavery." — Galatians 5:1. "Everyone who commits sin is a slave to sin." — John 8:34',
+      tradition:
+        'St. Thomas Aquinas: "Freedom is the ability to choose the good." St. Augustine: "Free will is not the ability to sin but the ability not to sin — and in heaven, the ability not to sin will be perfected." Vatican II: "Human freedom is genuine when it is ordered to the true good" (Gaudium et Spes 17).',
+      opposingView:
+        'Libertarians and secular culture argue that freedom means maximum individual autonomy — no external authority should constrain personal choice. Some argue that moral laws are oppressive and that "doing what you want" is the highest good. Postmodernists say freedom is liberation from all norms and structures.',
+      defense:
+        'The "do whatever you want" view of freedom is self-refuting: the addict "does what he wants" but is not free. The more we yield to disordered desires, the less free we become. True freedom requires a telos — a purpose. A train is free when it runs on tracks, not when it derails. The Church does not restrict freedom; she reveals its proper end. The most free people are the saints — not because they can do anything, but because they can love perfectly.',
+    },
+    {
+      id: 'anth-suffering',
+      question: 'Why does God allow suffering?',
+      answer:
+        'This is the hardest question, and the Church does not give a glib answer. The Church says: God did not create suffering — it entered the world through the misuse of freedom. God permits suffering because He respects freedom, and He can bring good out of it — but He does not cause it. Christ did not explain suffering; He entered it. He suffered with us and for us. The Cross is God\'s answer: not a theory but a presence. Suffering, united to Christ\'s, becomes redemptive — not meaningless. "In my flesh I complete what is lacking in Christ\'s afflictions for the sake of his body, the Church" (Col 1:24). The resurrection promises that suffering will not have the last word.',
+      scripture:
+        '"My God, my God, why have you forsaken me?" — Psalm 22:1. "In the world you have tribulation; but be of good cheer, I have overcome the world." — John 16:33. "We rejoice in our sufferings, knowing that suffering produces endurance, and endurance produces character, and character produces hope." — Romans 5:3-4',
+      tradition:
+        'St. John Paul II wrote an entire encyclical on suffering (Salvifici Doloris, 1984): "Suffering is, in itself, an evil; but it can become a good if it is united to the suffering of Christ." St. Thomas Aquinas: "God permits evil in order to draw forth some greater good." Julian of Norwich: "All shall be well, and all shall be well, and all manner of thing shall be well."',
+      opposingView:
+        'Atheists argue that suffering disproves a loving God — if God is all-powerful and all-good, He would prevent suffering. Buddhists say suffering is caused by attachment and the solution is detachment. Some argue that the Christian answer ("God has a reason") is cold comfort to those in agony.',
+      defense:
+        'The atheist argument assumes that God\'s only goal is to minimize suffering — but God\'s goal is love, and love requires freedom, and freedom allows suffering. A world without suffering would be a world without freedom — a world of puppets. The Buddhist answer is to eliminate attachment, but the Christian answer is to enter suffering with Christ and let it be transformed. The Christian answer is not a theory — it is a Person. Christ on the Cross says: "I am here with you. I have not abandoned you." No other religion has a God who suffers.',
+    },
+    {
+      id: 'anth-body',
+      question: 'What does the Church teach about the body?',
+      answer:
+        'The body is not a prison for the soul, a tool to be used, or a canvas for self-expression. The body is a temple of the Holy Spirit (1 Cor 6:19), made for resurrection, and destined for glory. The body expresses the person — it is not separate from the person. This is why the Church cares about what we do with our bodies: sex, food, dress, death. The Theology of the Body (St. John Paul II) teaches that the body, in its masculinity and femininity, is a visible image of God\'s own self-gift. The body is a sacrament — a visible sign of an invisible reality.',
+      scripture:
+        '"Do you not know that your body is a temple of the Holy Spirit within you, which you have from God? You are not your own; you were bought with a price. So glorify God in your body." — 1 Corinthians 6:19-20. "The body is not meant for immorality, but for the Lord, and the Lord for the body." — 1 Corinthians 6:13',
+      tradition:
+        'St. John Paul II\'s Theology of the Body (1979-1984) is the most comprehensive articulation of Catholic anthropology of the body. St. Thomas Aquinas: "The soul is the form of the body" — they are not two things but one person. The Church has always rejected the Gnostic/Platonic view that the body is inferior or evil. The resurrection of the body is in the Creed.',
+      opposingView:
+        'Modern culture treats the body as a canvas — something to modify, augment, or redesign at will. Some transhumanists see the body as a limitation to be overcome by technology. Some Gnostic strains in modern thought see the body as irrelevant to the "real self" — the mind or consciousness. Some feminists argue that the Church\'s body teaching is controlling, especially regarding women\'s bodies.',
+      defense:
+        'If the body is a canvas, then the person is a project — and projects can fail, be discarded, or be judged. The Christian view: the body is a gift, not a project. You do not create yourself; you receive yourself. The transhumanist dream is a new Gnosticism — the mind freed from the body. But we are not minds with bodies; we are embodied persons. The body is not a limitation — it is the medium through which we encounter reality, love, and God. The Church\'s teaching on the body is not controlling — it is liberating, because it tells us the truth: you are not what you make of yourself; you are what God made you to be.',
+    },
+  ],
+};
+
+export const OBJECTIONS: ObjectionEntry[] = [
+  {
+    id: 'obj-saints',
+    question: 'Why do Catholics pray to saints instead of going straight to God?',
+    shortAnswer:
+      'We go to God directly AND we ask the saints to pray with us — just as you would ask a friend to pray for you. The saints are alive in Christ, not dead and gone. Asking them to pray is not replacing Christ as mediator — it is participating in the communion of the Body of Christ.',
+    scripture:
+      '"He is not God of the dead, but of the living." — Mark 12:27. "The prayer of a righteous man has great power in its effects." — James 5:16. "The smoke of the incense rose with the prayers of the saints from the hand of the angel before God." — Revelation 8:4',
+    tradition:
+      'St. Paul asks others to pray for him repeatedly (Eph 6:19, Col 4:3). If intercession works on earth, why not in heaven? The saints are part of the Body of Christ — death does not sever that bond. The early Church venerated martyrs from the first century — the catacombs have prayers asking the martyrs to intercede.',
+    deeper:
+      'The objection assumes the saints are dead. But Christ says they are alive. If you ask your pastor to pray for you, you are not replacing God — you are multiplying prayer. The saints do the same, from closer to the throne. The real question is: why would you NOT ask the greatest prayer warriors in heaven to pray for you?',
+  },
+  {
+    id: 'obj-mary',
+    question: 'Why does Mary get so much attention? Isn\'t that idolatry?',
+    shortAnswer:
+      'Mary is not worshipped — she is honored. Worship (latria) belongs to God alone. We give Mary honor (dulia) as Christ honored her, and hyperdulia as His mother. She always points to her Son: "Do whatever He tells you." If you honor your own mother, why would you not honor Christ\'s?',
+    scripture:
+      '"All generations will call me blessed." — Luke 1:48. "Do whatever He tells you." — John 2:5. "Hail, full of grace, the Lord is with you." — Luke 1:28',
+    tradition:
+      'Every Protestant who says "Mary was blessed" is fulfilling Luke 1:48. The question is not whether to honor her, but how much. The early Church honored Mary from the beginning — the Sub Tuum Praesidium prayer (c. 250 AD) already asks her protection. St. Maximilian Kolbe: "Never be afraid of loving Mary too much, since you can never love her more than Jesus did."',
+    deeper:
+      'Mary is the Ark of the New Covenant. In Revelation 12, the woman clothed with the sun gives birth to the male child who will rule the nations. She is not God — she is His mother. And a mother\'s intercession is powerful. The wedding at Cana shows this: Mary brings a need to Jesus, and He responds — not because the time was right, but because His mother asked. Honoring Mary does not diminish Christ — it magnifies Him, because it honors the woman He chose to bear Him.',
+  },
+  {
+    id: 'obj-pope',
+    question: 'Where does the Pope get his authority? That\'s not in the Bible.',
+    shortAnswer:
+      'It is in the Bible. Christ renamed Simon as "Rock" (Kepha/Peter) and said "on this rock I will build my Church." He gave him the keys of the kingdom and the power to bind and loose. The papacy is the continuation of that authority through an unbroken line of succession from Peter to the present day.',
+    scripture:
+      '"You are Peter, and on this rock I will build my Church... I will give you the keys of the kingdom of heaven, and whatever you bind on earth shall be bound in heaven." — Matthew 16:18-19. "Feed my lambs... Feed my sheep." — John 21:15-17',
+    tradition:
+      'In Isaiah 22, the "key of David" is passed to a royal steward — the one who governs in the king\'s name. Christ uses this exact image. The early Church recognized Peter\'s primacy: Clement of Rome (c. 96 AD) already exercises apostolic authority from Rome. Irenaeus (c. 180 AD) lists the popes from Peter to his day as a sign of apostolic continuity. Tertullian: "The Church of Rome, in which the apostolic authority has always been exercised."',
+    deeper:
+      'Every organization needs a visible head. Christ did not leave His Church as a loose collection of independent congregations. He gave one man the keys. The Pope is the steward of the King — not the King Himself. The papacy is not a human invention; it is the continuation of Christ\'s own appointment. The fact that there have been bad popes does not disprove the office — Judas was an apostle, and that did not invalidate the apostolate. The office is from Christ; the man may be unworthy.',
+  },
+  {
+    id: 'obj-purgatory',
+    question: 'Purgatory isn\'t in the Bible — where did that come from?',
+    shortAnswer:
+      'Purgatory is in the Bible. Paul speaks of being saved "as through fire." Christ speaks of forgiveness "in the age to come." Nothing unclean enters heaven (Rev 21:27), so purification must happen. Purgatory is that purification — the final stage of sanctification before we see God face to face.',
+    scripture:
+      '"If anyone\'s work is burned up, he will suffer loss, though he himself will be saved, but only as through fire." — 1 Corinthians 3:15. "Whoever speaks against the Holy Spirit will not be forgiven, either in this age or in the age to come." — Matthew 12:32. "Nothing unclean will ever enter it." — Revelation 21:27',
+    tradition:
+      '2 Maccabees 12:46: "It is a holy and wholesome thought to pray for the dead, that they may be loosed from sins." The early Church prayed for the dead — inscriptions in the catacombs ask for prayers for the departed. Why pray for the dead if they are already in heaven or hell? Tertullian, Cyprian, and Augustine all taught a post-death purification. The Councils of Florence (1439) and Trent (1563) defined the doctrine.',
+    deeper:
+      'Purgatory is not a "third place" between heaven and hell. It is the final stage of sanctification — the last act of God\'s purifying love before we see Him face to face. It is the completion of the work begun in baptism and continued in our earthly struggles. If you die with an attachment to sin but oriented toward God, you are saved — but you are not yet ready for the Beatific Vision. Purgatory is the hospital where the last wounds of sin are healed. It is not a punishment; it is a mercy.',
+  },
+  {
+    id: 'obj-eucharist',
+    question: 'The Eucharist is just a symbol — right?',
+    shortAnswer:
+      'No. Christ said "This IS my Body" — not "this symbolizes my Body." When many disciples left over this teaching (John 6), He did not call them back and say "it\'s just a symbol." He let them walk. Every Church Father for 1,000 years taught the Real Presence. The symbolic view was invented at the Reformation.',
+    scripture:
+      '"My flesh is food indeed, and my blood is drink indeed." — John 6:55. "This is my body, which is given for you." — Luke 22:19. "Whoever eats and drinks without discerning the body eats and drinks judgment upon himself." — 1 Corinthians 11:29',
+    tradition:
+      'St. Ignatius of Antioch (c. 110 AD): "The Eucharist is the flesh of our Savior Jesus Christ." St. Justin Martyr (c. 150 AD): "We call this food Eucharist... the flesh and blood of that Jesus who was made flesh." St. Cyril of Jerusalem (c. 350 AD): "Do not doubt whether this is truly the Body and Blood of Christ." Every Church Father taught the Real Presence. The symbolic view did not exist until the 11th century (Berengar) and was not mainstream until the Reformation.',
+    deeper:
+      'If it is a symbol, why did the early Church risk death to celebrate it? Why did Paul warn of judgment for receiving it unworthily? You do not get condemned for eating a symbol carelessly. The Real Presence has been the universal teaching from the beginning. The question is: did Christ mean what He said? If He did not, then what else did He not mean? The Eucharist is the test case for whether we take Christ at His word.',
+  },
+  {
+    id: 'obj-sola',
+    question: 'Why not "Scripture alone"? Isn\'t that what the early Church did?',
+    shortAnswer:
+      'The early Church had no New Testament for decades. They had apostolic teaching — oral tradition. Scripture itself says to hold to tradition, both written and unwritten. "Scripture alone" is itself a tradition of men — it is not found in Scripture. The Bible is a Church book: she wrote it, compiled it, preserved it, and interprets it.',
+    scripture:
+      '"So then, brothers, stand firm and hold to the traditions that you were taught by us, either by our spoken word or by our letter." — 2 Thessalonians 2:15. "I commend you because you remember me in everything and maintain the traditions even as I have delivered them to you." — 1 Corinthians 11:2',
+    tradition:
+      'The canon of Scripture was determined by the Church — through councils and papal authority. If you trust the Church to give you the right books, why not trust her to interpret them? Sola Scriptura was invented in the 16th century; no Church Father taught it. St. Irenaeus (c. 180 AD): "We should not seek among others the truth that is easy to receive from the Church, for the apostles deposited in it, as in a rich bank, all that pertains to the truth."',
+    deeper:
+      'The Bible is a Church book. She wrote it, compiled it, preserved it, and interprets it. To take the book and reject the authority that gave it to you is like taking a letter and ignoring the sender. Scripture and tradition flow from the same source: the apostolic authority Christ established. The question is not "Bible or tradition?" — it is "whose interpretation?" Every Protestant who reads the Bible is interpreting it through a tradition, whether they admit it or not.',
+  },
+  {
+    id: 'obj-confession',
+    question: 'Why can\'t I just confess my sins directly to God?',
+    shortAnswer:
+      'You should confess to God directly — and Christ gave us the sacrament of confession as the ordinary way He chose to forgive. He gave the apostles the power to forgive sins. Confession is not instead of God; it is how God chose to meet us. He works through physical, tangible means — water, oil, bread, and the spoken word of absolution.',
+    scripture:
+      '"If you forgive the sins of any, they are forgiven; if you retain the sins of any, they are retained." — John 20:23. "Confess your sins to one another and pray for one another that you may be healed." — James 5:16',
+    tradition:
+      'St. James: "Confess your sins to one another" (James 5:16). The early Church practiced public confession. Speaking sin aloud breaks its power. Hearing absolution heals. The priest is not a barrier to God — he is the instrument God chose. St. John Vianney: "The priest is not the master of God\'s forgiveness but its servant."',
+    deeper:
+      'Christ could have said "just pray to the Father." Instead, He breathed on the apostles and gave them authority to forgive. He works through physical, tangible means — water, oil, bread, and the spoken word of absolution. That is how God has always worked: through the material to reach the spiritual. Confession is not about the priest — it is about Christ, who chose to forgive through the priest. The sacrament also provides what private prayer cannot: the audible words "I absolve you," the counsel of a wise confessor, and the grace of the sacrament itself.',
+  },
+  {
+    id: 'obj-protestant',
+    question: 'Aren\'t we all just Christians? Why does denomination matter?',
+    shortAnswer:
+      'We are all Christians insofar as we are baptized and believe in Christ. But Christ prayed "that they may be one" — not "that they may have 40,000 denominations." Unity is not optional; it is Christ\'s will. The question is: which Church has the fullness of what Christ founded — the sacraments, the apostolic authority, and the unity He prayed for?',
+    scripture:
+      '"There is one body and one Spirit... one Lord, one faith, one baptism." — Ephesians 4:4-5. "I do not pray for these only, but also for those who believe in me through their word, that they may all be one; even as you, Father, are in me, and I in you." — John 17:20-21',
+    tradition:
+      'For 1,000 years, there was one Church. The Great Schism (1054) and the Reformation (1517) fractured it. Each fracture was over authority — who has the final say? Christ gave that authority to Peter and his successors. The Catholic Church is the only Church that can trace its authority back to the apostles in an unbroken line.',
+    deeper:
+      'If denomination does not matter, then truth does not matter. But Christ is the Truth. He did not found a movement — He founded a Church. The question is not "are you saved?" but "where is the Church Christ founded?" We believe it subsists in the Catholic Church, which preserves the fullness of faith, sacraments, and apostolic authority. We respect our separated brothers and sisters and recognize real grace in their communities — but we also believe that unity is Christ\'s will and that the fullness of that unity is found in the Catholic Church.',
+  },
+  {
+    id: 'obj-science',
+    question: 'Doesn\'t science disprove religion?',
+    shortAnswer:
+      'No. Science studies the natural world — how things work. Religion answers why there is anything at all and what it means. They are different questions, not competing answers. The Big Bang was first proposed by a Catholic priest (Fr. Lemaitre). The father of modern genetics was an Augustinian friar (Mendel). The Church has always taught that faith and reason are two wings of the same truth.',
+    scripture:
+      '"The heavens declare the glory of God; the sky proclaims his handiwork." — Psalm 19:1. "Ever since the creation of the world his invisible nature, namely, his eternal power and deity, has been clearly perceived in the things that have been made." — Romans 1:20',
+    tradition:
+      'St. John Paul II: "Faith and reason are like two wings on which the human spirit rises to the contemplation of truth." The Church founded the university system. St. Albert the Great, Roger Bacon, and Fr. Georges Lemaitre (Big Bang) were all Catholic scientists. The Galileo affair is often misrepresented — the Church supported Copernican astronomy; the issue was Galileo\'s insistence on reinterpreting Scripture against the consensus of his time.',
+    deeper:
+      'Science cannot answer "why is there something rather than nothing?" — that is a philosophical question. Science presupposes the rationality of the universe but cannot prove it. The Church does not fear science; she embraces it as the study of God\'s creation. The conflict thesis — that religion and science are at war — is a 19th-century myth rejected by modern historians of science. The real conflict is not between faith and science but between faith and scientism — the claim that only science can give truth, which is itself not a scientific claim.',
+  },
+  {
+    id: 'obj-evil',
+    question: 'If God is good and all-powerful, why is there evil?',
+    shortAnswer:
+      'God did not create evil — He created freedom, and freedom makes evil possible. A world without the possibility of evil would be a world without love — a world of puppets. God permits evil because He respects freedom, and He can bring good out of it. The Cross is God\'s answer: not a theory but a presence. He entered evil and defeated it from within.',
+    scripture:
+      '"I form light and create darkness; I make well-being and create woe; I am the Lord, who does all these things." — Isaiah 45:7. "We know that in everything God works for good with those who love him." — Romans 8:28',
+    tradition:
+      'St. Augustine: "God judged it better to bring good out of evil than to permit no evil to exist." St. Thomas Aquinas: "The permission of evil is part of God\'s providence, for He would not allow evil if He were not so good as to bring good out of it." C.S. Lewis (a Protestant, but the argument is shared): "God whispers to us in our pleasures, speaks in our conscience, but shouts in our pains."',
+    deeper:
+      'The atheist objection assumes that God\'s only goal is to minimize suffering. But God\'s goal is love, and love requires freedom. A world with free creatures who can choose love is better than a world of determined creatures who cannot — even though freedom allows evil. The real question is not "why does God allow evil?" but "what does God do about evil?" And the answer is: He enters it. The Cross. No other religion has a God who suffers with His creatures. The resurrection promises that evil will not have the last word.',
+  },
+  {
+    id: 'obj-religion',
+    question: 'Isn\'t religion just a crutch for weak people?',
+    shortAnswer:
+      'If God is real, then seeking Him is not a crutch — it is sanity. If God is not real, then everything is a crutch: pleasure, success, relationships, distraction. The question is not whether religion is a crutch but whether it is true. A man with a broken leg needs a crutch — that does not mean the leg is not broken.',
+    scripture:
+      '"The fool says in his heart, \'There is no God.\'" — Psalm 14:1. "If in this life only we have hoped in Christ, we are of all men most to be pitied." — 1 Corinthians 15:19',
+    tradition:
+      'St. Thomas Aquinas: "The greatest kindness one can show to the sick is to lead them to the physician." Freud said religion is wish fulfillment — but if God exists, then the desire for God is not a wish but a recognition. C.S. Lewis: "Creatures are not born with desires unless satisfaction for those desires exists." The desire for God is evidence that God exists, just as hunger is evidence of food.',
+    deeper:
+      'The "crutch" objection cuts both ways. If atheism is true, then the atheist\'s confidence in reason, meaning, and purpose are also crutches — projections onto an indifferent universe. The real question is: is Christianity true? If it is, then it is not a crutch but the truth. If it is not, then nothing else is either — because without God, there is no meaning, no purpose, no morality, just matter in motion. The crutch objection is a psychological claim, not a philosophical one. It does not answer the question of truth.',
+  },
+  {
+    id: 'obj-atheism',
+    question: 'How can you believe in God when there\'s no evidence?',
+    shortAnswer:
+      'There is evidence — it depends on what you count as evidence. The existence of the universe, its fine-tuning, the rationality of nature, consciousness, moral truth, beauty, and the historical evidence for Christ\'s Resurrection are all evidence. The question is not "is there evidence?" but "is the evidence sufficient?" And that depends on your presuppositions.',
+    scripture:
+      '"The fool says in his heart, \'There is no God.\'" — Psalm 14:1. "Ever since the creation of the world his invisible nature, namely, his eternal power and deity, has been clearly perceived in the things that have been made." — Romans 1:20',
+    tradition:
+      'St. Thomas Aquinas gave five proofs for God\'s existence (the Five Ways): from motion, from causality, from contingency, from degrees of perfection, and from design. They are not "proofs" in the mathematical sense but philosophical arguments that show that the existence of the universe requires a first cause, a necessary being, and an ultimate source of order. The Church teaches that God can be known by reason alone (Vatican I, 1870).',
+    deeper:
+      'The demand for "evidence" often means "scientific evidence" — but science studies the natural world, and God is not a natural object. You would not look for the author of a book inside the book. The evidence for God is philosophical, historical, and existential: Why is there something rather than nothing? Why is the universe rational and orderly? Why does consciousness exist? Why do we experience moral truth? Why did the apostles die for what they claimed to have seen? The Resurrection is historical evidence. The fine-tuning of the universe is scientific evidence that points beyond science. The question is not whether evidence exists — it is whether you are willing to follow it where it leads.',
+  },
+  {
+    id: 'obj-sex-abuse',
+    question: 'How can you stay Catholic after the abuse scandals?',
+    shortAnswer:
+      'The scandal is real, devastating, and the Church\'s greatest shame. But Judas did not invalidate Christ, and bad priests do not invalidate the Church. The Church is holy not because her members are holy, but because Christ is holy and the sacraments are His. Leaving the Church because of Judas means giving Judas the power to take Christ from you.',
+    scripture:
+      '"Woe to the man by whom the Son of Man is betrayed! It would have been better for that man if he had not been born." — Matthew 26:24. "You are Peter, and on this rock I will build my Church, and the gates of hell shall not prevail against it." — Matthew 16:18',
+    tradition:
+      'St. Francis de Sales: "While the Church on earth is always in need of reform, she remains the Bride of Christ." The Church has always had sinners — Peter denied Christ, Judas betrayed Him, many bishops failed. The Reformers were right that the Church needed reform; they were wrong that the solution was to leave. The solution is to stay and reform. Pope Benedict XVI and Pope Francis have taken significant steps to address the crisis, though much remains to be done.',
+    deeper:
+      'The scandal is not an argument against the Church — it is an argument for the Church. The fact that we know about it is because the Church teaches that it is wrong. The secular world has no equivalent moral framework to condemn it. If there is no God, then the abuse is just biology — one organism using another. The moral outrage you feel is evidence that there is a moral law — and a moral law requires a Lawgiver. The scandal is devastating, and the Church must answer for it. But the answer is not to abandon Christ\'s Body — it is to purify it. Christ said the gates of hell would not prevail. He did not say they would not try.',
+  },
+];

@@ -1,0 +1,21 @@
+{
+  "projectId": "71419010",
+  "functions": {
+    "analytics-track": {
+      "hasChanged": false,
+      "hash": "48b44c144b620e458f52745c6069db9b29872bf1939a8b190c3fab5090b9d188"
+    },
+    "chat-proxy": {
+      "hasChanged": false,
+      "hash": "882eee5df2ed984136f0f77a6c682d9948afbf30df5d36fb344f6481bfcb8aa3"
+    },
+    "daily-reflection": {
+      "hasChanged": false,
+      "hash": "e4bf77f8a19553b4e3d6adfe31c2dd8bb181b241c272e4b29346888b69ece58b"
+    },
+    "feedback-submit": {
+      "hasChanged": false,
+      "hash": "5e3afa74339ebf9f5aef2049721d4284a80dde1082b0751e11b5562c84e8912c"
+    }
+  }
+}
