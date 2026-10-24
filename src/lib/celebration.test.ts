@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isPersonCelebration, shouldMirrorCelebration } from './celebration';
+import { isPersonCelebration, resolveCelebrationName, shouldMirrorCelebration } from './celebration';
 
 describe('saint-of-the-day mirroring rule', () => {
   it('mirrors a saint memorial (the Oct 24, 2026 case)', () => {
@@ -30,5 +30,30 @@ describe('saint-of-the-day mirroring rule', () => {
     expect(shouldMirrorCelebration(null)).toBe(false);
     expect(shouldMirrorCelebration(undefined)).toBe(false);
     expect(shouldMirrorCelebration('')).toBe(false);
+  });
+});
+
+describe('celebration resolution (bundle vs direct)', () => {
+  const today = '2026-10-24';
+  it('a fresh bundle wins', () => {
+    expect(resolveCelebrationName({
+      bundleCelebration: 'Saint Anthony Mary Claret, Bishop', bundleDate: today, todayKey: today,
+      directCelebration: 'Someone Else',
+    })).toBe('Saint Anthony Mary Claret, Bishop');
+  });
+  it('a stale bundle is ignored in favor of the direct path', () => {
+    expect(resolveCelebrationName({
+      bundleCelebration: 'Yesterday’s Saint', bundleDate: '2026-10-23', todayKey: today,
+      directCelebration: 'Saint Anthony Mary Claret, Bishop',
+    })).toBe('Saint Anthony Mary Claret, Bishop');
+  });
+  it('no bundle falls back to the direct path', () => {
+    expect(resolveCelebrationName({
+      bundleCelebration: null, bundleDate: null, todayKey: today,
+      directCelebration: 'Saint Anthony Mary Claret, Bishop',
+    })).toBe('Saint Anthony Mary Claret, Bishop');
+  });
+  it('nothing anywhere resolves to null (card keeps its local saint)', () => {
+    expect(resolveCelebrationName({ todayKey: today })).toBeNull();
   });
 });

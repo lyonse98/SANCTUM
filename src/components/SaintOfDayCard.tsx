@@ -3,7 +3,8 @@ import { ExternalLink, Quote } from 'lucide-react';
 import { SAINTS, type SaintOfDay } from '@/data/saints';
 import { getFeastForDate } from '@/data/feastDays';
 import { fetchReadingsBundle } from '@/lib/readingsBundle';
-import { isPersonCelebration, shouldMirrorCelebration } from '@/lib/celebration';
+import { isPersonCelebration, resolveCelebrationName, shouldMirrorCelebration } from '@/lib/celebration';
+import { fetchDailyReadings } from '@/lib/readings';
 import type { PersonaTheme } from '@/types';
 
 function getSaintForDay(date: Date = new Date()): SaintOfDay | null {
@@ -77,8 +78,23 @@ export function SaintOfDayCard({ t }: SaintOfDayCardProps) {
     let active = true;
     void (async () => {
       const bundle = await fetchReadingsBundle();
-      if (!active || !bundle?.citations.celebration) return;
-      const celebration = bundle.citations.celebration;
+      if (!active) return;
+      // The bundle is the fast path, not the only path: when it is missing, stale,
+      // or silent about today, ask the direct readings path — the same one the
+      // readings header uses — so the card and the header can never disagree.
+      const now = new Date();
+      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      let celebration = resolveCelebrationName({
+        bundleCelebration: bundle?.citations.celebration,
+        bundleDate: bundle?.citations.date,
+        todayKey,
+      });
+      if (!celebration) {
+        const direct = await fetchDailyReadings();
+        if (!active) return;
+        celebration = direct?.celebration ?? null;
+      }
+      if (!celebration) return;
       if (!shouldMirrorCelebration(celebration)) return;
       if (namesMatch(celebration, localSaint.name)) return;
       const mmdd = `${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;

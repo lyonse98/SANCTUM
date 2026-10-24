@@ -27,3 +27,22 @@ export function shouldMirrorCelebration(name: string | null | undefined): boolea
   if (!name) return false;
   return !isPlainWeekdayCelebration(name);
 }
+
+/**
+ * Which celebration the card may mirror. The server bundle wins only when it is
+ * actually today's bundle — a stale bundle (served when the function is unreachable)
+ * carries a previous day's celebration, and mirroring that would swap one wrong
+ * saint for another. Otherwise the direct readings path answers, the same path the
+ * readings header uses.
+ */
+export function resolveCelebrationName(opts: {
+  bundleCelebration?: string | null;
+  bundleDate?: string | null;
+  todayKey: string;
+  directCelebration?: string | null;
+}): string | null {
+  if (opts.bundleCelebration && opts.bundleDate === opts.todayKey) {
+    return opts.bundleCelebration;
+  }
+  return opts.directCelebration ?? null;
+}
