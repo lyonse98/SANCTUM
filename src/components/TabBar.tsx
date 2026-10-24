@@ -50,8 +50,8 @@ export function TabBar({
 }: TabBarProps) {
   return (
     <nav
-      className="relative z-20 flex-shrink-0 border-t backdrop-blur-md"
-      style={{ backgroundColor: `${cardColor}F2`, borderColor, paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="relative z-20 flex-shrink-0 border-t"
+      style={{ backgroundColor: cardColor, borderColor, paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Main areas of Sanctum"
     >
       <div className="flex max-w-2xl mx-auto items-end">

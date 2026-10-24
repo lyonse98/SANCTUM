@@ -4,6 +4,9 @@
 
 @layer base {
   html {
+    /* The ribbon's colour — any strip the system paints at the window's edge
+       (home-indicator zone, overscroll) reads as part of the bar, not a gap. */
+    background-color: #FAF6EE;
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
     color-scheme: light;
