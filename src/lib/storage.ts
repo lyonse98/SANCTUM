@@ -61,3 +61,35 @@ export function saveSettings(settings: Settings): void {
     // ignore
   }
 }
+
+/**
+ * The panic wipe. Removes EVERY key this app has ever written — all of them live under the
+ * `sanctum_` prefix (chat history, settings, persona, terms flag, daily counters, email
+ * reminder record + unsubscribe token, analytics session, visit counts, examen streak,
+ * rule of life, confession notes, and every content cache) — plus the service worker's
+ * Cache Storage. If a future feature stores anything under a different prefix, this
+ * function must be extended in the same commit; the wipe test guards the prefix rule.
+ */
+export function wipeAllSanctumData(): void {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith('sanctum_'))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+  try {
+    Object.keys(sessionStorage)
+      .filter((k) => k.startsWith('sanctum_'))
+      .forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+  try {
+    if (typeof caches !== 'undefined') {
+      void caches.keys().then((keys) => keys.forEach((k) => void caches.delete(k)));
+    }
+  } catch {
+    // ignore
+  }
+}

@@ -25,7 +25,7 @@ import { FeedbackProvider, useFeedback } from '@/components/FeedbackProvider';
 import { streamChat } from '@/lib/llm';
 import { detectCrisisLevel } from '@/lib/crisis';
 import { track, trackNow, type EventProperty } from '@/lib/analytics';
-import { loadHistory, saveHistory, clearHistory, clearAllHistory, loadSettings, saveSettings } from '@/lib/storage';
+import { loadHistory, saveHistory, clearHistory, wipeAllSanctumData, loadSettings, saveSettings } from '@/lib/storage';
 import { savePersonaId } from '@/lib/personaStorage';
 import { getPersona, PERSONAS } from '@/personas';
 import { getRemainingMessages, incrementDailyMessageCount, isAtMessageCap, DAILY_MESSAGE_CAP } from '@/lib/messageCap';
@@ -303,20 +303,19 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     [feedback, tab],
   );
 
+  // Incognito is a separate, memory-only conversation. Turning it on PAUSES the saved
+  // thread (untouched on disk); turning it off discards the incognito thread and the
+  // history effect restores the saved one. It never deletes saved history.
   const handleToggleIncognito = useCallback(() => {
     setIncognito((prev) => {
       const next = !prev;
-      if (next) {
-        if (personaId) clearHistory(personaId);
-      } else if (personaId) {
-        const slim: Message[] = messages.map((m) => ({ role: m.role, content: m.content }));
-        saveHistory(personaId, slim);
-      }
+      if (next) setMessages([]);
       return next;
     });
-  }, [messages, personaId]);
+  }, []);
 
   const handleSelectPersona = useCallback((p: Persona, initialMessage?: string) => {
+    if (incognito) setMessages([]);
     setPersonaId(p.id);
     savePersonaId(p.id);
     setIntroActive(true);
@@ -324,7 +323,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     if (initialMessage) {
       setPendingInitialMessage(initialMessage);
     }
-  }, []);
+  }, [incognito]);
 
   const handleSwitchPersona = useCallback(() => {
     setPersonaId(null);
@@ -348,7 +347,9 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     if (isStreaming) {
       abortRef.current?.abort();
     }
-    clearAllHistory();
+    wipeAllSanctumData();
+    setSettings(loadSettings());
+    setRemainingMessages(getRemainingMessages());
     setMessages([]);
     setPersonaId(null);
     setIncognito(false);
@@ -386,7 +387,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           All data cleared. You are safe.
         </p>
         <button
-          onClick={() => setPanicActive(false)}
+          onClick={() => { setPanicActive(false); setTermsAccepted(hasAcceptedTerms()); }}
           className="px-6 py-2.5 rounded-lg text-sm font-medium border transition-all"
           style={{ backgroundColor: '#FBF8F3', borderColor: '#DCD3C5', color: '#3A352E' }}
         >
@@ -553,7 +554,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           style={{ backgroundColor: t.accentRgba(0.05), borderColor: t.border }}
         >
           <p className="text-[11px] text-center" style={{ color: t.textDim }}>
-            Incognito mode — history stays in memory only and will not be saved.
+            Incognito mode — this conversation is not saved. Your saved conversation is paused, untouched.
           </p>
         </div>
       )}
