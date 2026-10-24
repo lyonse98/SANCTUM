@@ -1,20 +1,72 @@
-const HARD_CRISIS_KEYWORDS = [
+/**
+ * Crisis detection. Two layers:
+ *
+ * HARD — the conversation stops and the full-screen crisis card shows. Detection must be
+ * high-precision: a false alarm on ordinary speech ("I'm going to kill it in this
+ * presentation") teaches a man to route around the safety net, so high-risk verbs require
+ * a self-directed object, and only unambiguous phrases match on their own.
+ *
+ * SOFT — a gentleness flag is sent with the request so the companion responds with extra
+ * care. Low precision is acceptable here; nothing visible changes.
+ *
+ * Both layers match against NORMALIZED text (lowercased, curly apostrophes straightened,
+ * punctuation collapsed) so "don't" / "dont" / "don’t" are the same input.
+ * The phrase test set in crisis.test.ts is the contract: change the lists, run the tests.
+ */
+
+function normalize(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .replace(/[^a-z0-9' ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Phrases that are unambiguous on their own, matched against normalized text. */
+const HARD_PHRASES = [
   'suicide',
+  'suicidal',
   'kill myself',
-  'want to die',
-  'end it all',
   'end my life',
   'take my life',
+  'want to die',
+  'wanna die',
   'better off dead',
+  'better off without me',
   'no reason to live',
-  'dont want to live',
+  'no point in living',
+  'no point to live',
   "don't want to live",
-  'going to kill',
+  'dont want to live',
+  'do not want to live',
+  "don't want to be here anymore",
+  'dont want to be here anymore',
+  'do not want to be here anymore',
+  'wish i was dead',
+  'wish i were dead',
+  'wishing i was dead',
+  'wishing i were dead',
+  'wish i was not alive',
+  'end it all',
+  'ending it all',
   'hurt myself',
+  'hurting myself',
+  'harming myself',
+  'self harm',
   'cutting myself',
-  'overdose',
-  'jump off',
-  'hang myself',
+  'end my suffering',
+  'overdose myself',
+  'overdosing',
+];
+
+/** Patterns where a high-risk word only counts with a self-directed object or a concrete means. */
+const HARD_PATTERNS: RegExp[] = [
+  /\b(kill|hang|shoot|stab|drown|strangle)\s+(myself|me)\b/,
+  /\bjump\s+(off|from)\s+(a\s+|the\s+)?(bridge|building|roof|cliff|window|balcony)\b/,
+  /\bhang\s+myself\b/,
+  /\b(take|took|taking)\s+all\s+(my|the)\s+pills\b/,
+  /\bslit\s+my\s+wrists\b/,
 ];
 
 const SOFT_DISTRESS_KEYWORDS = [
@@ -46,9 +98,10 @@ export function detectCrisis(input: string): boolean {
 }
 
 export function detectCrisisLevel(input: string): CrisisLevel {
-  const lower = input.toLowerCase();
-  if (HARD_CRISIS_KEYWORDS.some((kw) => lower.includes(kw))) return 'hard';
-  if (SOFT_DISTRESS_KEYWORDS.some((kw) => lower.includes(kw))) return 'soft';
+  const text = normalize(input);
+  if (HARD_PHRASES.some((kw) => text.includes(kw))) return 'hard';
+  if (HARD_PATTERNS.some((re) => re.test(text))) return 'hard';
+  if (SOFT_DISTRESS_KEYWORDS.some((kw) => text.includes(kw))) return 'soft';
   return null;
 }
 
