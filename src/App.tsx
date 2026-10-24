@@ -108,7 +108,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [churchLectio, setChurchLectio] = useState(false);
   const [workshopTool, setWorkshopTool] = useState<string | null>(null);
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(null);
-  const [pendingGospelMessage, setPendingGospelMessage] = useState<string | null>(null);
+  const [pendingGospelContext, setPendingGospelContext] = useState<string | null>(null);
   const [season] = useState(() => getCurrentSeason());
   const seasonAccent = useMemo(() => getSeasonAccentColor(), []);
   const seasonTheme = useMemo(() => getSeasonTheme(), []);
@@ -167,11 +167,67 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const persistHistory = useCallback(
     (msgs: ChatMessage[]) => {
       if (!incognito && personaId) {
-        const slim: Message[] = msgs.map((m) => ({ role: m.role, content: m.content }));
+        const slim: Message[] = msgs.filter((m) => !m.kind).map((m) => ({ role: m.role, content: m.content }));
         saveHistory(personaId, slim);
       }
     },
     [incognito, personaId],
+  );
+
+  // One streaming round-trip: appends the assistant's reply to baseMessages and
+  // persists. Shared by ordinary sends and gospel reflection so the two can never
+  // drift apart in streaming, error, or persistence behavior.
+  const streamReply = useCallback(
+    (apiMessages: Message[], baseMessages: ChatMessage[], context: { personaId: string; season?: string; distress?: boolean }) => {
+      setIsStreaming(true);
+      setStreamingContent('');
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      let accumulated = '';
+
+      streamChat(
+        apiMessages,
+        {
+          onToken: (token) => {
+            accumulated += token;
+            setStreamingContent(accumulated);
+          },
+          onDone: () => {
+            const assistantMsg: ChatMessage = {
+              id: genId(),
+              role: 'assistant',
+              content: accumulated || '(No response received.)',
+              timestamp: Date.now(),
+            };
+            const finalMessages = [...baseMessages, assistantMsg];
+            setMessages(finalMessages);
+            persistHistory(finalMessages);
+            setIsStreaming(false);
+            setStreamingContent('');
+            abortRef.current = null;
+          },
+          onError: (error) => {
+            const errorMsg: ChatMessage = {
+              id: genId(),
+              role: 'assistant',
+              content: error,
+              timestamp: Date.now(),
+            };
+            const finalMessages = [...baseMessages, errorMsg];
+            setMessages(finalMessages);
+            persistHistory(finalMessages);
+            setIsStreaming(false);
+            setStreamingContent('');
+            abortRef.current = null;
+          },
+        },
+        controller.signal,
+        context,
+      );
+    },
+    [persistHistory],
   );
 
   const handleSend = useCallback(
@@ -202,58 +258,38 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       const newCount = incrementDailyMessageCount();
       setRemainingMessages(Math.max(0, DAILY_MESSAGE_CAP - newCount));
 
-      const recentMessages = newMessages.slice(-MAX_HISTORY_TURNS);
+      const recentMessages = newMessages.filter((m) => !m.kind).slice(-MAX_HISTORY_TURNS);
       const apiMessages: Message[] = recentMessages.map((m) => ({ role: m.role, content: m.content }));
 
-      setIsStreaming(true);
-      setStreamingContent('');
-
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      let accumulated = '';
-
-      streamChat(
-        apiMessages,
-        {
-          onToken: (token) => {
-            accumulated += token;
-            setStreamingContent(accumulated);
-          },
-          onDone: () => {
-            const assistantMsg: ChatMessage = {
-              id: genId(),
-              role: 'assistant',
-              content: accumulated || '(No response received.)',
-              timestamp: Date.now(),
-            };
-            const finalMessages = [...newMessages, assistantMsg];
-            setMessages(finalMessages);
-            persistHistory(finalMessages);
-            setIsStreaming(false);
-            setStreamingContent('');
-            abortRef.current = null;
-          },
-          onError: (error) => {
-            const errorMsg: ChatMessage = {
-              id: genId(),
-              role: 'assistant',
-              content: error,
-              timestamp: Date.now(),
-            };
-            const finalMessages = [...newMessages, errorMsg];
-            setMessages(finalMessages);
-            persistHistory(finalMessages);
-            setIsStreaming(false);
-            setStreamingContent('');
-            abortRef.current = null;
-          },
-        },
-        controller.signal,
-        { personaId: persona.id, season: season.name, distress: crisisLevel === 'soft' },
-      );
+      streamReply(apiMessages, newMessages, {
+        personaId: persona.id,
+        season: season.name,
+        distress: crisisLevel === 'soft',
+      });
     },
-    [messages, isStreaming, persistHistory, persona, season],
+    [messages, isStreaming, persona, season, streamReply],
+  );
+
+  // Reflect on a gospel card. The readings reach the model as context for this one
+  // reply — they were never a message the man typed, so nothing renders as one, and
+  // reflecting does not consume his daily message allowance.
+  const handleGospelReflect = useCallback(
+    (cardId: string) => {
+      if (isStreaming || !persona) return;
+      const card = messages.find((m) => m.id === cardId && m.kind === 'gospel');
+      if (!card || card.reflected) return;
+      const marked = messages.map((m) => (m.id === cardId ? { ...m, reflected: true } : m));
+      setMessages(marked);
+      const history: Message[] = marked
+        .filter((m) => !m.kind)
+        .slice(-MAX_HISTORY_TURNS)
+        .map((m) => ({ role: m.role, content: m.content }));
+      streamReply([...history, { role: 'user', content: card.content }], marked, {
+        personaId: persona.id,
+        season: season.name,
+      });
+    },
+    [messages, isStreaming, persona, season, streamReply],
   );
 
   const handleAcceptTerms = useCallback(() => {
@@ -407,8 +443,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       content = (
         <CompanionSelect
           onSelect={(p) => {
-            handleSelectPersona(p, pendingGospelMessage ?? undefined);
-            setPendingGospelMessage(null);
+            handleSelectPersona(p);
           }}
           onBack={() => setTab('today')}
           utilities={utilities}
@@ -423,7 +458,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           onConsumeTab={() => setChurchTab(null)}
           utilities={utilities}
           onReflectWithCompanion={(message) => {
-            setPendingGospelMessage(message);
+            setPendingGospelContext(message);
             setTab('companions');
           }}
           autoOpenLectio={churchLectio}
@@ -460,7 +495,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           />
           <HomeScreen
             onReflectWithCompanion={(message) => {
-              setPendingGospelMessage(message);
+              setPendingGospelContext(message);
               setTab('companions');
             }}
             onOpenExamen={() => { setWorkshopTool('examen'); setTab('workshop'); }}
@@ -512,6 +547,15 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         const msg = pendingInitialMessage;
         setPendingInitialMessage(null);
         setTimeout(() => handleSend(msg), 100);
+      } else if (pendingGospelContext) {
+        const context = pendingGospelContext;
+        setPendingGospelContext(null);
+        setTimeout(() => {
+          setMessages((prev) => [
+            ...prev,
+            { id: genId(), role: 'user', kind: 'gospel', content: context, timestamp: Date.now() },
+          ]);
+        }, 50);
       }
     }} />;
   }
@@ -584,7 +628,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       <PresetChips presets={persona.presets} onSelect={handlePreset} disabled={isStreaming} />
 
-      <ChatFeed messages={messages} isStreaming={isStreaming} streamingContent={streamingContent} persona={persona} crisisActive={false} onOpenTool={openToolLink} />
+      <ChatFeed messages={messages} isStreaming={isStreaming} streamingContent={streamingContent} persona={persona} crisisActive={false} onOpenTool={openToolLink} onReflectGospel={handleGospelReflect} />
 
       <ChatInput onSend={handleSend} onStop={handleStop} isStreaming={isStreaming} persona={persona} remainingMessages={remainingMessages} />
 

@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  BookOpen,
+  Check,
   ExternalLink,
   Share2,
+  Sparkles,
   Wrench,
 } from 'lucide-react';
 import type { ChatMessage, Persona } from '@/types';
@@ -93,9 +96,10 @@ interface ChatFeedProps {
   crisisActive?: boolean;
   onCrisisDismiss?: () => void;
   onOpenTool?: (tool: string) => void;
+  onReflectGospel?: (cardId: string) => void;
 }
 
-export function ChatFeed({ messages, isStreaming, streamingContent, persona, crisisActive, onCrisisDismiss, onOpenTool }: ChatFeedProps) {
+export function ChatFeed({ messages, isStreaming, streamingContent, persona, crisisActive, onCrisisDismiss, onOpenTool, onReflectGospel }: ChatFeedProps) {
   const endRef = useRef<HTMLDivElement>(null);
   const t = persona.theme;
   const [shareContent, setShareContent] = useState<string | null>(null);
@@ -147,6 +151,9 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
       )}
       {messages.map((msg) => {
         if (msg.role === 'assistant' && msg.content === '__CRISIS__') return null;
+        if (msg.kind === 'gospel') {
+          return <GospelContextCard key={msg.id} message={msg} persona={persona} onReflect={onReflectGospel} />;
+        }
         return <MessageBubble key={msg.id} message={msg} persona={persona} onShare={setShareContent} onOpenTool={onOpenTool} />;
       })}
       {isStreaming && (
@@ -252,6 +259,59 @@ function MessageBubble({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The day's readings, shown as what they are: context the app brought to the
+ * conversation, not words the man typed. Reflection happens only on his tap,
+ * and (unlike an ordinary message) costs none of his daily allowance.
+ */
+function GospelContextCard({
+  message,
+  persona,
+  onReflect,
+}: {
+  message: ChatMessage;
+  persona: Persona;
+  onReflect?: (cardId: string) => void;
+}) {
+  const t = persona.theme;
+  return (
+    <div
+      className="rounded-xl border-2 px-4 py-3 animate-fade-in"
+      style={{ backgroundColor: `${t.accent}0D`, borderColor: t.accentRgba(0.4) }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <BookOpen className="w-3.5 h-3.5" style={{ color: t.accent }} />
+        <span className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: t.accent }}>
+          Today&rsquo;s Readings &middot; Context
+        </span>
+      </div>
+      <div
+        className="text-[11px] leading-relaxed whitespace-pre-wrap max-h-36 overflow-y-auto chat-scroll pr-1"
+        style={{ color: t.textMuted }}
+      >
+        {message.content}
+      </div>
+      {message.reflected ? (
+        <div className="flex items-center gap-1.5 mt-3" style={{ color: t.textDim }}>
+          <Check className="w-3.5 h-3.5" />
+          <span className="text-[10px] font-bold uppercase tracking-wide">Reflected with {persona.name}</span>
+        </div>
+      ) : (
+        <button
+          onClick={() => onReflect?.(message.id)}
+          className="w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-lg border-2 transition-all active:scale-[0.98]"
+          style={{ backgroundColor: t.accentRgba(0.14), borderColor: t.accent, color: t.accent }}
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span className="text-[11px] font-bold uppercase tracking-wide">
+            Reflect with {persona.name}
+          </span>
+        </button>
+      )}
     </div>
   );
 }

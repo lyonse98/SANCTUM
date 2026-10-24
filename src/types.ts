@@ -14,6 +14,12 @@ export interface ChatMessage {
   role: Role;
   content: string;
   timestamp: number;
+  /** 'gospel' marks a system card carrying today's readings as context. It is not a
+   *  message the user typed: it is excluded from persisted history and from the API
+   *  history of ordinary sends, and is passed to the model only when he taps Reflect. */
+  kind?: 'gospel';
+  /** True once the man has tapped Reflect on a gospel card. */
+  reflected?: boolean;
 }
 
 export interface PresetChip {
