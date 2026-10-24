@@ -469,7 +469,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     } else if (tab === 'workshop') {
       content = (
         <WorkshopPage
-          persona={PERSONAS[0]}
           onBack={() => setTab('today')}
           initialTool={workshopTool}
           onConsumeTool={() => setWorkshopTool(null)}

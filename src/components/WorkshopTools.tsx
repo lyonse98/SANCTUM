@@ -20,7 +20,7 @@ import { BreathPacer } from '@/components/BreathPacer';
 import { RuleOfLife } from '@/components/RuleOfLife';
 
 interface WorkshopToolsProps {
-  persona: Persona;
+  theme: PersonaTheme;
   initialTool?: string | null;
   onConsumeTool?: () => void;
 }
@@ -59,9 +59,9 @@ const ORDINARY_DAY: Tool[] = [
 const ALL_TOOLS = [...HARD_MOMENT, ...ORDINARY_DAY];
 const VALID_TOOLS = ALL_TOOLS.map((tool) => tool.id);
 
-export function WorkshopTools({ persona, initialTool, onConsumeTool }: WorkshopToolsProps) {
+export function WorkshopTools({ theme, initialTool, onConsumeTool }: WorkshopToolsProps) {
   const [activeTool, setActiveTool] = useState<ToolId>('breathing');
-  const t = persona.theme;
+  const t = theme;
 
   useEffect(() => {
     if (!initialTool) return;

@@ -1,11 +1,10 @@
 import { ArrowLeft, Wrench, X } from 'lucide-react';
-import type { Persona, PersonaTheme, UtilityActions } from '@/types';
+import type { PersonaTheme, UtilityActions } from '@/types';
 import { WorkshopTools } from '@/components/WorkshopTools';
 import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 
 interface WorkshopPageProps {
-  persona: Persona;
   onBack: () => void;
   utilities: UtilityActions;
   initialTool?: string | null;
@@ -13,7 +12,7 @@ interface WorkshopPageProps {
   seasonTheme: PersonaTheme;
 }
 
-export function WorkshopPage({ persona, onBack, initialTool, onConsumeTool, utilities, seasonTheme }: WorkshopPageProps) {
+export function WorkshopPage({ onBack, initialTool, onConsumeTool, utilities, seasonTheme }: WorkshopPageProps) {
   const t = seasonTheme;
 
   return (
@@ -63,7 +62,7 @@ export function WorkshopPage({ persona, onBack, initialTool, onConsumeTool, util
         {/* Tools */}
         <div className="w-full">
           <WorkshopTools
-            persona={persona}
+            theme={seasonTheme}
             initialTool={initialTool}
             onConsumeTool={onConsumeTool}
           />
