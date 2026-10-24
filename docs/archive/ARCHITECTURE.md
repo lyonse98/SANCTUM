@@ -1,3 +1,5 @@
+> **ARCHIVED — superseded.** This document describes an earlier version of Sanctum and is kept for history only. The code is the spec now; privacy wording lives in `src/lib/privacyCopy.ts` and the fix plan in the repo workspace notes.
+
 # Sanctum — Technical Architecture & Review Blueprint
 
 **App type:** Vite + React 18 + TypeScript single-page app (PWA-capable), Tailwind CSS, lucide-react icons.

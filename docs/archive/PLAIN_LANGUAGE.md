@@ -1,3 +1,5 @@
+> **ARCHIVED — superseded.** This document describes an earlier version of Sanctum and is kept for history only. The code is the spec now; privacy wording lives in `src/lib/privacyCopy.ts` and the fix plan in the repo workspace notes.
+
 # Sanctum — Plain-Language Overview
 
 ## What This App Is
