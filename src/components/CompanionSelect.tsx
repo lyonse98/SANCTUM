@@ -101,6 +101,9 @@ export function CompanionSelect({ onSelect, onBack, utilities, theme }: Companio
                       src={persona.portrait}
                       alt={persona.name}
                       loading="lazy"
+                      decoding="async"
+                      width={760}
+                      height={415}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       style={{ filter: 'contrast(1.1) saturate(0.9)' }}
                     />

@@ -42,6 +42,7 @@ export function CompanionAvatar({ personaId, theme, size = 64, animate = false }
         src={portrait}
         alt={persona?.name ?? 'Companion'}
         loading="lazy"
+        decoding="async"
         onLoad={() => setLoaded(true)}
         className="w-full h-full object-cover"
         style={{ filter: 'contrast(1.08) saturate(0.92)' }}

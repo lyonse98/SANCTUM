@@ -10,32 +10,32 @@ interface SeasonVisual {
 const VISUALS: Record<LiturgicalSeason, SeasonVisual> = {
   advent: {
     photo:
-      'https://images.pexels.com/photos/14745924/pexels-photo-14745924.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+      '/backdrops/advent.webp',
     icon: Flame,
   },
   christmas: {
     photo:
-      'https://images.pexels.com/photos/29928471/pexels-photo-29928471.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+      '/backdrops/christmas.webp',
     icon: Star,
   },
   lent: {
     photo:
-      'https://images.pexels.com/photos/15846818/pexels-photo-15846818.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+      '/backdrops/lent.webp',
     icon: Cross,
   },
   easter: {
     photo:
-      'https://images.pexels.com/photos/10615213/pexels-photo-10615213.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+      '/backdrops/easter.webp',
     icon: Sunrise,
   },
   'ordinary-1': {
     photo:
-      'https://images.pexels.com/photos/7568326/pexels-photo-7568326.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+      '/backdrops/ordinary.webp',
     icon: Sprout,
   },
   'ordinary-2': {
     photo:
-      'https://images.pexels.com/photos/7568326/pexels-photo-7568326.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
+      '/backdrops/ordinary.webp',
     icon: Sprout,
   },
 };

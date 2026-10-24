@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
 import {
   Church,
   HeartHandshake,
@@ -9,7 +9,20 @@ import { PresetChips } from '@/components/PresetChips';
 import { ChatFeed } from '@/components/ChatFeed';
 import { ChatInput } from '@/components/ChatInput';
 import { HomeScreen } from '@/components/HomeScreen';
-import { WorkshopPage } from '@/components/WorkshopPage';
+
+// Code-split the tab subtrees a first visit does not need, so the initial bundle
+// carries Today + chat and the rest loads on first navigation to its tab.
+const CompanionSelect = lazy(() => import('@/components/CompanionSelect').then((m) => ({ default: m.CompanionSelect })));
+const PocketChurchPage = lazy(() => import('@/components/PocketChurchPage').then((m) => ({ default: m.PocketChurchPage })));
+const WorkshopPage = lazy(() => import('@/components/WorkshopPage').then((m) => ({ default: m.WorkshopPage })));
+
+function TabFallback() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin opacity-40" />
+    </div>
+  );
+}
 import { WelcomeBackPrompt } from '@/components/WelcomeBackPrompt';
 import { TermsModal, hasAcceptedTerms } from '@/components/TermsModal';
 import { TermsPage } from '@/components/TermsPage';
@@ -17,8 +30,7 @@ import { CrisisModal } from '@/components/CrisisCard';
 import { FindHelpPage } from '@/components/FindHelpPage';
 import { AboutSanctumPage } from '@/components/AboutSanctumPage';
 import { PersonaIntro } from '@/components/PersonaIntro';
-import { CompanionSelect } from '@/components/CompanionSelect';
-import { PocketChurchPage, type ChurchTab } from '@/components/PocketChurchPage';
+import type { ChurchTab } from '@/components/PocketChurchPage';
 import { TabBar } from '@/components/TabBar';
 import { EmailReminderModal } from '@/components/EmailReminderModal';
 import { ShareInviteModal } from '@/components/ShareInviteModal';
@@ -468,7 +480,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
     return (
       <div className="fixed inset-0 flex flex-col" style={{ backgroundColor: areaTheme.bg }}>
-        <div className="relative flex-1 overflow-hidden">{content}</div>
+        <div className="relative flex-1 overflow-hidden"><Suspense fallback={<TabFallback />}>{content}</Suspense></div>
 
         <TabBar
           active={tab}

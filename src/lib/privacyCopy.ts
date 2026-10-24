@@ -24,7 +24,7 @@ export const PRIVACY_SERVER_INTRO =
   'Four things can be held on a server, and nothing else:';
 
 export const PRIVACY_THIRD_PARTY =
-  'The daily readings and Scripture text are fetched from outside Catholic and Bible data services, and seasonal photos from a photo host. Those services see the request the way any website visit is seen.';
+  'The daily readings and Scripture text are fetched from outside Catholic and Bible data services. Those services see the request the way any website visit is seen.';
 
 /** Short line for footers. */
 export const PRIVACY_SHORT =
