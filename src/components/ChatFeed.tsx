@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { COMPANION_PORTRAYAL_LINE } from '@/lib/privacyCopy';
 import {
   BookOpen,
   Check,
@@ -137,6 +138,9 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
           <span>{persona.tagline}</span>
           <div className="w-8 h-px" style={{ backgroundColor: `${t.borderLight}66` }} />
         </div>
+        <p className="mt-4 text-[11px] leading-relaxed max-w-[260px]" style={{ color: t.textDim }}>
+          {COMPANION_PORTRAYAL_LINE}
+        </p>
         <p className="mt-6 text-sm italic" style={{ color: t.accent }}>
           "I'm here, brother. Speak when you're ready."
         </p>

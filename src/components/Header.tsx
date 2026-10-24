@@ -7,6 +7,7 @@ import {
   Shield,
   Home,
 } from 'lucide-react';
+import { COMPANION_PORTRAYAL_SHORT } from '@/lib/privacyCopy';
 import { CompanionAvatar } from '@/components/CompanionAvatar';
 import { PERSONAS } from '@/personas';
 import type { Persona } from '@/types';
@@ -92,7 +93,7 @@ export function Header({
                   className="text-[9px] uppercase tracking-[0.2em] font-medium stamped"
                   style={{ color: t.textDim }}
                 >
-                  {persona.title}
+                  {persona.title} {'\u00B7'} {COMPANION_PORTRAYAL_SHORT}
                 </span>
                 <ChevronDown
                   className={`w-2.5 h-2.5 transition-transform duration-200 ${switcherOpen ? 'rotate-180' : ''}`}

@@ -37,3 +37,10 @@ export const PRIVACY_SHARE =
 /** Analytics section copy for Settings. */
 export const ANALYTICS_COPY =
   'Off by default. If you turn this on, Sanctum sends anonymous usage events \u2014 which screen, which tool, which companion \u2014 so we can see which parts men actually use. No message text, no email, no identity, ever.';
+
+/** Portrayal framing — shown where a man meets the companions, not buried in Terms. */
+export const COMPANION_PORTRAYAL_LINE =
+  'AI voices written from their lives and writings \u2014 portrayals to pray with, not the saints themselves.';
+
+/** Short form for the chat header. */
+export const COMPANION_PORTRAYAL_SHORT = 'AI portrayal';

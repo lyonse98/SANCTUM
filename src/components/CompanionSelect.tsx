@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Compass, Users } from 'lucide-react';
 import { PERSONAS } from '@/personas';
 import { CompanionRouter } from '@/components/CompanionRouter';
+import { COMPANION_PORTRAYAL_LINE } from '@/lib/privacyCopy';
 import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import type { Persona, PersonaId, PersonaTheme, UtilityActions } from '@/types';
@@ -48,6 +49,10 @@ export function CompanionSelect({ onSelect, onBack, utilities, theme }: Companio
 
         <p className="text-sm leading-relaxed text-center max-w-sm mx-auto mb-5" style={{ color: defaultTheme.textMuted }}>
           Each one has walked the road you're on. Answer three quick questions to find your fit, or pick a voice yourself.
+        </p>
+
+        <p className="text-[11px] leading-relaxed text-center max-w-sm mx-auto -mt-3 mb-5" style={{ color: defaultTheme.textDim }}>
+          {COMPANION_PORTRAYAL_LINE}
         </p>
 
         {/* Three-question quiz */}
