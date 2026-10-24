@@ -6,6 +6,7 @@ import { TodayHero } from '@/components/TodayHero';
 import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
 import type { UtilityActions } from '@/types';
+import { PRIVACY_SHORT } from '@/lib/privacyCopy';
 
 interface HomeScreenProps {
   onReflectWithCompanion: (message: string) => void;
@@ -54,7 +55,7 @@ export function HomeScreen({ onReflectWithCompanion, onOpenExamen, utilities }: 
         <UtilitiesRow t={seasonTheme} utilities={utilities} className="mb-4" />
 
         <p className="text-[11px] text-forge-text-dim text-center mt-4 leading-relaxed max-w-xs">
-          Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US). We do not store your conversations — your message is sent to our AI provider for the reply and then discarded.
+          Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US). {PRIVACY_SHORT}
         </p>
       </div>
     </div>

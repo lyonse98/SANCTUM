@@ -40,12 +40,12 @@ export function AboutSanctumPage({ t, accent, onClose }: AboutSanctumPageProps) 
     {
       icon: Users,
       title: 'What it keeps',
-      body: 'Nothing he writes to a companion leaves his device. There is no account, no name, and no history on a server. The only thing ever stored remotely is an email address, and only if he asks for a daily reminder.',
+      body: 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a man writes lives only in his own browser. The only things ever held remotely are a scrambled anti-abuse counter, an email address if he asks for the daily reminder, a feedback note if he sends one, and anonymous usage counts if he turns them on.',
     },
     {
       icon: BookOpen,
       title: 'What it costs',
-      body: 'Nothing. There is no account, no advertising, and nothing to buy. No one is tracked and nothing is sold.',
+      body: 'Nothing. There is no account, no advertising, and nothing to buy, and nothing about a man is sold.',
     },
   ];
 

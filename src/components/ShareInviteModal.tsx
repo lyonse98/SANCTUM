@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X, Link2, Check, Share2, Lock, Church } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
+import { PRIVACY_SHARE } from '@/lib/privacyCopy';
 
 interface ShareInviteModalProps {
   open: boolean;
@@ -162,7 +163,7 @@ export function ShareInviteModal({ open, t, onClose }: ShareInviteModalProps) {
             style={{ color: t.textDim }}
           >
             <Lock className="w-3 h-3 flex-shrink-0 mt-0.5" />
-            <span>No account, no server storage. What a man writes stays on his own device.</span>
+            <span>{PRIVACY_SHARE}</span>
           </p>
         </div>
       </div>

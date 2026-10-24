@@ -78,7 +78,7 @@ export function TodayHero({ t, accent }: TodayHeroProps) {
 
         <div className="flex items-center justify-center gap-2 flex-wrap mb-4">
           <span className="text-[10px] text-forge-text-dim stamped flex items-center gap-1">
-            <Lock className="w-3 h-3" /> On-Device Privacy
+            <Lock className="w-3 h-3" /> Nothing Stored on a Server
           </span>
           <span className="text-forge-text-dim text-[10px]">•</span>
           <span className="text-[10px] text-forge-text-dim stamped flex items-center gap-1">

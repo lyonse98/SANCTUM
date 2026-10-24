@@ -27,21 +27,21 @@ function getSessionId(): string {
   }
 }
 
-/** Analytics is opt-in. Defaults to on (the app's privacy text discloses it), but a man
- *  can turn it off in Settings. When off, track() is a no-op. */
+/** Analytics is strictly opt-in. It defaults to OFF: no event fires and no session id is
+ *  created until a man turns it on in Settings. When off, track() is a no-op. */
 export function isAnalyticsEnabled(): boolean {
   try {
-    const raw = localStorage.getItem(ANALYTICS_ENABLED_KEY);
-    if (raw === null) return true; // default opt-in
-    return raw === 'true';
+    return localStorage.getItem(ANALYTICS_ENABLED_KEY) === 'true';
   } catch {
-    return true;
+    return false;
   }
 }
 
 export function setAnalyticsEnabled(enabled: boolean): void {
   try {
     localStorage.setItem(ANALYTICS_ENABLED_KEY, enabled ? 'true' : 'false');
+    // Turning analytics off also forgets the session id, so nothing lingers to be reused.
+    if (!enabled) localStorage.removeItem(SESSION_KEY);
   } catch {
     // ignore
   }
@@ -113,7 +113,6 @@ export function track(name: EventName, property?: EventProperty): void {
 /** Fire immediately (for events that should not wait for the 2s debounce, e.g. app_open). */
 export function trackNow(name: EventName, property?: EventProperty): void {
   if (!isAnalyticsEnabled()) return;
-  void flush();
   pending.push({ name, property });
   void flush();
 }

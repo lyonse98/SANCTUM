@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Scroll, Heart, HandHeart } from 'lucide-react';
+import { PRIVACY_PARAGRAPH } from '@/lib/privacyCopy';
 
 const STORAGE_KEY = 'sanctum_terms_accepted';
 
@@ -74,10 +75,7 @@ export function TermsModal({ onAccept }: TermsModalProps) {
           </div>
 
           <p className="text-[11px] leading-relaxed text-center" style={{ color: '#756D61' }}>
-            We do not store your conversations or what you write. To generate a companion's reply,
-            your message is sent to our AI provider and then discarded — it is not kept on a server.
-            The only things that can reach one are an email address for the daily Gospel and a
-            feedback note you choose to send.
+{PRIVACY_PARAGRAPH}
           </p>
         </div>
 

@@ -3,6 +3,7 @@ import { X, Check, ShieldAlert, Lock, MessageSquare, BarChart3 } from 'lucide-re
 import type { Settings } from '@/types';
 import { useFeedback } from '@/components/FeedbackProvider';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '@/lib/analytics';
+import { PRIVACY_PARAGRAPH, ANALYTICS_COPY } from '@/lib/privacyCopy';
 
 interface SettingsModalProps {
   open: boolean;
@@ -115,9 +116,7 @@ export function SettingsModal({ open, onClose, settings, onSave }: SettingsModal
                     Usage Analytics
                   </p>
                   <p className="text-[11px] leading-relaxed mb-2" style={{ color: textMuted }}>
-                    Help us understand which parts of Sanctum men actually use. We collect anonymous,
-                    metadata-only events — which screen, which tool, which companion. No message text,
-                    no email, no identity. You can turn this off anytime.
+{ANALYTICS_COPY}
                   </p>
                   <button
                     onClick={() => {
@@ -161,11 +160,7 @@ export function SettingsModal({ open, onClose, settings, onSave }: SettingsModal
                     Your Privacy
                   </p>
                   <p className="text-[11px] leading-relaxed" style={{ color: textMuted }}>
-                    We do not store your conversations or what you write. To generate a companion's reply,
-                    your message is sent to our AI provider and then discarded. Your chat history lives
-                    only in your browser. Clearing your history removes it permanently. Two things can
-                    reach a server, and only if you choose them: an email address for the daily Gospel,
-                    and a feedback note you send us.
+{PRIVACY_PARAGRAPH}
                   </p>
                 </div>
               </div>
