@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Heart, Download, X } from 'lucide-react';
 import { PERSONAS } from '@/personas';
-import { recordVisit, shouldShowInstallPrompt, markInstallPrompted } from '@/lib/retention';
+import { recordVisit, shouldShowInstallPrompt, snoozeInstallPrompt, clearInstallValueMoment } from '@/lib/retention';
+import { InstallInstructions } from '@/components/InstallInstructions';
+import { canNativeInstall, subscribeInstallChanges } from '@/lib/install';
 
 interface WelcomeBackPromptProps {
   onOpenCompanions: () => void;
@@ -27,10 +29,16 @@ export function WelcomeBackPrompt({ onOpenCompanions, onOpenWorkshop }: WelcomeB
   }, []);
 
   const dismissWelcome = () => setWelcomeBack(false);
-  const dismissInstall = () => {
+  const dismissInstall = (days: number) => {
     setShowInstall(false);
-    markInstallPrompted();
+    snoozeInstallPrompt(days);
+    clearInstallValueMoment();
   };
+
+  // If the browser offers a native prompt mid-view, or the install lands, refresh/close.
+  useEffect(() => subscribeInstallChanges(() => {
+    if (shouldShowInstallPrompt()) setShowInstall(true);
+  }), []);
 
   return (
     <>
@@ -63,7 +71,8 @@ export function WelcomeBackPrompt({ onOpenCompanions, onOpenWorkshop }: WelcomeB
         </div>
       )}
 
-      {/* Install prompt */}
+      {/* Install prompt — platform-specific steps, a real one-tap button on
+          Android/Chrome, and a dismissal that snoozes instead of banning forever. */}
       {showInstall && (
         <div
           className="fixed bottom-0 left-0 right-0 z-40 flex justify-center px-4 animate-slide-up"
@@ -76,30 +85,48 @@ export function WelcomeBackPrompt({ onOpenCompanions, onOpenWorkshop }: WelcomeB
               <Download className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: t.accent }} />
               <div className="flex-1">
                 <p className="text-sm font-bold font-display" style={{ color: t.textBright }}>
-                  Add Sanctum to your Home Screen
-                </p>
-                <p className="text-[11px] leading-relaxed mt-1" style={{ color: t.textDim }}>
-                  It works like an app — offline tools, your companions, one tap away.
-                </p>
-                <p className="text-[10px] leading-relaxed mt-1.5" style={{ color: t.textDim }}>
-                  <span className="font-bold">iPhone:</span> Share button → Add to Home Screen. <span className="font-bold">Android:</span> Menu → Install app.
+                  Keep Sanctum one tap away
                 </p>
               </div>
               <button
-                onClick={dismissInstall}
+                onClick={() => dismissInstall(14)}
                 className="p-1 rounded transition-opacity hover:opacity-70 flex-shrink-0"
                 style={{ color: t.textDim }}
+                aria-label="Not now"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <button
-              onClick={dismissInstall}
-              className="w-full py-2.5 rounded-lg text-xs font-bold transition-all active:scale-95"
-              style={{ backgroundColor: t.accentRgba(0.15), color: t.accent, border: `1px solid ${t.accentRgba(0.3)}` }}
-            >
-              Got it
-            </button>
+            <InstallInstructions
+              tokens={{
+                accent: t.accent,
+                accentSoft: t.accentRgba(0.15),
+                border: t.border,
+                textBright: t.textBright,
+                text: t.text,
+                textMuted: t.textMuted,
+                textDim: t.textDim,
+              }}
+              onInstalled={() => { setShowInstall(false); clearInstallValueMoment(); }}
+            />
+            {!canNativeInstall() && (
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => dismissInstall(30)}
+                  className="flex-1 py-2.5 rounded-lg text-xs font-bold transition-all active:scale-95"
+                  style={{ backgroundColor: t.accentRgba(0.15), color: t.accent, border: `1px solid ${t.accentRgba(0.3)}` }}
+                >
+                  Got it
+                </button>
+                <button
+                  onClick={() => dismissInstall(14)}
+                  className="px-4 py-2.5 rounded-lg text-xs font-medium transition-all active:scale-95"
+                  style={{ color: t.textDim }}
+                >
+                  Not now
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

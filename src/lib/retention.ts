@@ -1,6 +1,10 @@
+import { isStandaloneDisplay, isInstalledFlagSet } from './install';
+
 const LAST_VISIT_KEY = 'sanctum_last_visit';
 const VISIT_COUNT_KEY = 'sanctum_visit_count';
-const INSTALL_PROMPTED_KEY = 'sanctum_install_prompted';
+const INSTALL_PROMPTED_KEY = 'sanctum_install_prompted'; // legacy: meant "never ask again"
+const INSTALL_SNOOZE_KEY = 'sanctum_install_snooze_until';
+const INSTALL_VALUE_KEY = 'sanctum_install_value_moment';
 const EXAMEN_STREAK_KEY = 'sanctum_examen_streak';
 const EXAMEN_LAST_KEY = 'sanctum_examen_last_date';
 
@@ -44,8 +48,19 @@ export function recordVisit(): { isFirstVisit: boolean; isReturning: boolean; vi
 
 export function shouldShowInstallPrompt(): boolean {
   try {
-    const prompted = localStorage.getItem(INSTALL_PROMPTED_KEY) === 'true';
-    if (prompted) return false;
+    // Already installed or launched from the home screen: never ask.
+    if (isStandaloneDisplay() || isInstalledFlagSet()) return false;
+    // A dismissal is a snooze, not a life sentence.
+    const snoozeUntil = parseInt(localStorage.getItem(INSTALL_SNOOZE_KEY) ?? '0', 10) || 0;
+    if (Date.now() < snoozeUntil) return false;
+    // Migrate the legacy "prompted forever" flag into a single 14-day snooze.
+    if (localStorage.getItem(INSTALL_PROMPTED_KEY) === 'true') {
+      snoozeInstallPrompt(14);
+      localStorage.removeItem(INSTALL_PROMPTED_KEY);
+      return false;
+    }
+    // A man who just finished an examen has felt the value — ask now, whatever visit it is.
+    if (localStorage.getItem(INSTALL_VALUE_KEY) === 'true') return true;
     const raw = localStorage.getItem(VISIT_COUNT_KEY);
     const count = raw ? parseInt(raw, 10) : 0;
     return count >= 3;
@@ -54,9 +69,26 @@ export function shouldShowInstallPrompt(): boolean {
   }
 }
 
-export function markInstallPrompted(): void {
+/** Hide the install prompt for a while. "Got it" rests longer than "Not now". */
+export function snoozeInstallPrompt(days: number): void {
   try {
-    localStorage.setItem(INSTALL_PROMPTED_KEY, 'true');
+    localStorage.setItem(INSTALL_SNOOZE_KEY, String(Date.now() + days * 86400000));
+  } catch { /* ignore */ }
+}
+
+export function markInstallPrompted(): void {
+  snoozeInstallPrompt(14);
+}
+
+export function markInstallValueMoment(): void {
+  try {
+    localStorage.setItem(INSTALL_VALUE_KEY, 'true');
+  } catch { /* ignore */ }
+}
+
+export function clearInstallValueMoment(): void {
+  try {
+    localStorage.removeItem(INSTALL_VALUE_KEY);
   } catch { /* ignore */ }
 }
 
@@ -85,6 +117,7 @@ export function recordExamenComplete(): { streak: number; isNew: boolean } {
     localStorage.setItem(EXAMEN_STREAK_KEY, String(streak));
     localStorage.setItem(EXAMEN_LAST_KEY, today);
   } catch { /* ignore */ }
+  markInstallValueMoment();
 
   return { streak, isNew: true };
 }

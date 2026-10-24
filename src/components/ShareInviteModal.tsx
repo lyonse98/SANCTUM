@@ -165,6 +165,10 @@ export function ShareInviteModal({ open, t, onClose }: ShareInviteModalProps) {
             <Lock className="w-3 h-3 flex-shrink-0 mt-0.5" />
             <span>{PRIVACY_SHARE}</span>
           </p>
+          <p className="text-[11px] mt-2 text-center leading-relaxed" style={{ color: t.textDim }}>
+            Sending it to a phone? Tell him: open the link, tap Share &rarr; &ldquo;Add to Home Screen&rdquo;,
+            and Sanctum lives on his home screen like an app.
+          </p>
         </div>
       </div>
     </div>

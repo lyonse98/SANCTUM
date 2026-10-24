@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, ShieldAlert, Lock, MessageSquare, BarChart3 } from 'lucide-react';
+import { X, ShieldAlert, Lock, MessageSquare, BarChart3, Download } from 'lucide-react';
 import { useFeedback } from '@/components/FeedbackProvider';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '@/lib/analytics';
 import { PRIVACY_PARAGRAPH, ANALYTICS_COPY } from '@/lib/privacyCopy';
+import { InstallModal } from '@/components/InstallInstructions';
 
 interface SettingsModalProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface SettingsModalProps {
 export function SettingsModal({ open, onClose, onOpenTerms }: SettingsModalProps) {
   const feedback = useFeedback();
   const [analyticsOn, setAnalyticsOn] = useState(() => isAnalyticsEnabled());
+  const [installOpen, setInstallOpen] = useState(false);
 
   useEffect(() => {
     if (open) setAnalyticsOn(isAnalyticsEnabled());
@@ -112,6 +114,19 @@ export function SettingsModal({ open, onClose, onOpenTerms }: SettingsModalProps
 
           <div className="pt-1 space-y-2">
             <button
+              onClick={() => setInstallOpen(true)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-medium border transition-all"
+              style={{
+                backgroundColor: borderRgba50,
+                borderColor: borderRgba50,
+                color: textMuted,
+              }}
+            >
+              <Download className="w-3.5 h-3.5" />
+              Add Sanctum to your Home Screen
+            </button>
+
+            <button
               onClick={() => { onClose(); feedback?.openFeedback('settings'); }}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-medium border transition-all"
               style={{
@@ -139,6 +154,21 @@ export function SettingsModal({ open, onClose, onOpenTerms }: SettingsModalProps
           </div>
         </div>
       </div>
+      {installOpen && (
+        <InstallModal
+          cardBackground={card}
+          tokens={{
+            accent,
+            accentSoft: borderRgba50,
+            border,
+            textBright,
+            text: `var(--p-text)`,
+            textMuted,
+            textDim,
+          }}
+          onClose={() => setInstallOpen(false)}
+        />
+      )}
     </div>
   );
 }
