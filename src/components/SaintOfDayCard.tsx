@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ExternalLink, Quote } from 'lucide-react';
 import { SAINTS, type SaintOfDay } from '@/data/saints';
 import { getFeastForDate } from '@/data/feastDays';
+import { fetchReadingsBundle } from '@/lib/readingsBundle';
 import type { PersonaTheme } from '@/types';
 
 function getSaintForDay(date: Date = new Date()): SaintOfDay | null {
@@ -48,8 +49,53 @@ interface SaintOfDayCardProps {
   t: PersonaTheme;
 }
 
+function normalizeSaintName(name: string): string {
+  return name.toLowerCase().replace(/^(st\.|saint|blessed)\s+/i, '').replace(/[^a-z ]/g, '').trim();
+}
+
+function namesMatch(a: string, b: string): boolean {
+  const na = normalizeSaintName(a);
+  const nb = normalizeSaintName(b);
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+
+/** Person-like celebrations (a saint's feast) vs day/season names ("29th Sunday..."). */
+function isPersonCelebration(name: string): boolean {
+  return /^(st\.|saint|blessed|our lady|all saints|all souls|the holy)/i.test(name.trim());
+}
+
 export function SaintOfDayCard({ t }: SaintOfDayCardProps) {
-  const saint = useMemo(() => getSaintForDay() ?? getSaintFromFeast() ?? getFallbackSaint(), []);
+  const localSaint = useMemo(() => getSaintForDay() ?? getSaintFromFeast() ?? getFallbackSaint(), []);
+  const [celebrationSaint, setCelebrationSaint] = useState<SaintOfDay | null>(null);
+
+  // One saint per day, and the lectionary's celebration wins: the readings header and
+  // this card used to name two different saints for the same day (Oct 24, 2026: the
+  // lectionary said St. Anthony Mary Claret, the local list said St. Kaleb of Ethiopia).
+  // When the celebration names a person, the card shows that name — with the local
+  // entry's bio only when it is the same saint.
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const bundle = await fetchReadingsBundle();
+      if (!active || !bundle?.citations.celebration) return;
+      const celebration = bundle.citations.celebration;
+      if (!isPersonCelebration(celebration)) return;
+      if (namesMatch(celebration, localSaint.name)) return;
+      const mmdd = `${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+      const richer = SAINTS.find((entry) => namesMatch(entry.name, celebration));
+      setCelebrationSaint(
+        richer ?? {
+          name: celebration,
+          feastDate: mmdd,
+          shortBio: 'Named in today’s liturgical calendar.',
+          struggles: [],
+        },
+      );
+    })();
+    return () => { active = false; };
+  }, [localSaint]);
+
+  const saint = celebrationSaint ?? localSaint;
   const url = wikiUrl(saint.name);
   const initial = saint.name === 'All Saints' || saint.name === 'All Souls'
     ? saint.name.charAt(0)

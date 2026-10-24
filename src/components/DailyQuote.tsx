@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { DAILY_QUOTES } from '@/data/quotes';
 import { fetchDailyReadings, type DailyReadings } from '@/lib/readings';
+import { fetchReadingsBundle } from '@/lib/readingsBundle';
 import { getFeastForDate, type FeastRank } from '@/data/feastDays';
 import {
   fetchPassageVerses,
@@ -59,10 +60,23 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
   const [loadingAll, setLoadingAll] = useState(false);
   const [preparing, setPreparing] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [staleDate, setStaleDate] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     (async () => {
+      // Primary path: the server-assembled, day-cached bundle.
+      const bundle = await fetchReadingsBundle();
+      if (!active) return;
+      if (bundle) {
+        setReadings(bundle.citations);
+        setGospelVerses(bundle.gospelVerses);
+        setAllTexts(bundle.texts);
+        if (bundle.stale) setStaleDate(bundle.staleDate ?? bundle.citations.date);
+        setLoading(false);
+        return;
+      }
+      // Fallback: the old direct path (client calls the lectionary + Bible APIs itself).
       const citations = await fetchDailyReadings();
       if (!active) return;
       setReadings(citations);
@@ -212,6 +226,12 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
         </div>
       )}
 
+      {!loading && staleDate && (
+        <p className="text-[10px] mb-3" style={{ color: t.textDim }}>
+          Showing the readings for {new Date(`${staleDate}T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} — today&rsquo;s could not be loaded.
+        </p>
+      )}
+
       {loading && (
         <div className="flex items-center gap-2" style={{ color: t.textDim }}>
           <Loader2 className="w-3 h-3 animate-spin" />
@@ -357,6 +377,9 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
               </p>
               <p className="text-sm leading-relaxed" style={{ color: t.textBright }}>
                 {allTexts.gospel.text}
+              </p>
+              <p className="text-[9px] mt-1.5" style={{ color: t.textDim }}>
+                Text: {allTexts.gospel.translation === 'douayrheims' ? 'Douay-Rheims' : 'World English Bible'} (public domain).
               </p>
             </div>
           )}
