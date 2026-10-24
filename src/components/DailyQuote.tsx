@@ -311,7 +311,10 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
             borderColor: t.accent,
             color: t.accent,
             boxShadow: `0 8px 22px -10px ${t.accent}99`,
-          }}
+            // The pulse takes the seasonal accent too — the keyframes' fallback
+            // orange used to clash with the card every season but autumn.
+            ['--cta-accent' as string]: t.accentRgba(0.55),
+          } as React.CSSProperties}
         >
           {preparing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
           <span className="text-sm font-bold uppercase tracking-wide">

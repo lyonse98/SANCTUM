@@ -3,6 +3,7 @@ import { ExternalLink, Quote } from 'lucide-react';
 import { SAINTS, type SaintOfDay } from '@/data/saints';
 import { getFeastForDate } from '@/data/feastDays';
 import { fetchReadingsBundle } from '@/lib/readingsBundle';
+import { isPersonCelebration, shouldMirrorCelebration } from '@/lib/celebration';
 import type { PersonaTheme } from '@/types';
 
 function getSaintForDay(date: Date = new Date()): SaintOfDay | null {
@@ -59,27 +60,26 @@ function namesMatch(a: string, b: string): boolean {
   return na === nb || na.includes(nb) || nb.includes(na);
 }
 
-/** Person-like celebrations (a saint's feast) vs day/season names ("29th Sunday..."). */
-function isPersonCelebration(name: string): boolean {
-  return /^(st\.|saint|blessed|our lady|all saints|all souls|the holy)/i.test(name.trim());
-}
+
 
 export function SaintOfDayCard({ t }: SaintOfDayCardProps) {
   const localSaint = useMemo(() => getSaintForDay() ?? getSaintFromFeast() ?? getFallbackSaint(), []);
   const [celebrationSaint, setCelebrationSaint] = useState<SaintOfDay | null>(null);
 
-  // One saint per day, and the lectionary's celebration wins: the readings header and
-  // this card used to name two different saints for the same day (Oct 24, 2026: the
+  // One observance per day, and the lectionary's celebration wins: the readings header
+  // and this card used to name two different saints for the same day (Oct 24, 2026: the
   // lectionary said St. Anthony Mary Claret, the local list said St. Kaleb of Ethiopia).
-  // When the celebration names a person, the card shows that name — with the local
-  // entry's bio only when it is the same saint.
+  // Erik's rule: mirror whatever the day's memorial, feast, or solemnity is — saint or
+  // not — and only when the day has no named observance (a plain weekday or an
+  // ordinary Sunday) fall back to the local saint lists. A mirrored celebration borrows
+  // the local entry's bio only when it is genuinely the same saint.
   useEffect(() => {
     let active = true;
     void (async () => {
       const bundle = await fetchReadingsBundle();
       if (!active || !bundle?.citations.celebration) return;
       const celebration = bundle.citations.celebration;
-      if (!isPersonCelebration(celebration)) return;
+      if (!shouldMirrorCelebration(celebration)) return;
       if (namesMatch(celebration, localSaint.name)) return;
       const mmdd = `${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
       const richer = SAINTS.find((entry) => namesMatch(entry.name, celebration));
@@ -87,7 +87,9 @@ export function SaintOfDayCard({ t }: SaintOfDayCardProps) {
         richer ?? {
           name: celebration,
           feastDate: mmdd,
-          shortBio: 'Named in today’s liturgical calendar.',
+          shortBio: isPersonCelebration(celebration)
+            ? 'Named in today’s liturgical calendar.'
+            : 'The Church’s celebration for today.',
           struggles: [],
         },
       );
@@ -128,7 +130,7 @@ export function SaintOfDayCard({ t }: SaintOfDayCardProps) {
           </div>
           <div className="flex-1 min-w-0">
             <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: t.accent }}>
-              Saint of the Day
+              {celebrationSaint && !isPersonCelebration(saint.name) ? 'Today’s Celebration' : 'Saint of the Day'}
             </span>
             <h3 className="text-base font-bold font-display leading-tight mt-0.5" style={{ color: t.textBright }}>
               {saint.name}

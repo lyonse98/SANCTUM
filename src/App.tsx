@@ -634,7 +634,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       <div
         className="px-4 py-2 border-t text-center"
-        style={{ borderColor: `${t.border}4D`, backgroundColor: `${t.bg}80`, paddingBottom: 'calc(env(safe-area-inset-bottom) + 30px)' }}
+        style={{ borderColor: `${t.border}4D`, backgroundColor: `${t.bg}80`, paddingBottom: 'calc(env(safe-area-inset-bottom) + 46px)' }}
       >
         <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
           Sanctum — a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US).{' '}
