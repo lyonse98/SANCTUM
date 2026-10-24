@@ -10,6 +10,7 @@ interface SettingsModalProps {
   onClose: () => void;
   settings: Settings;
   onSave: (settings: Settings) => void;
+  onOpenTerms?: () => void;
 }
 
 const GEMINI_MODELS = [
@@ -18,7 +19,7 @@ const GEMINI_MODELS = [
   { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
 ];
 
-export function SettingsModal({ open, onClose, settings, onSave }: SettingsModalProps) {
+export function SettingsModal({ open, onClose, settings, onSave, onOpenTerms }: SettingsModalProps) {
   const feedback = useFeedback();
   const [local, setLocal] = useState<Settings>(settings);
   const [saved, setSaved] = useState(false);
@@ -182,10 +183,7 @@ export function SettingsModal({ open, onClose, settings, onSave }: SettingsModal
             </button>
 
             <button
-              onClick={() => {
-                localStorage.removeItem('sanctum_terms_accepted');
-                window.location.reload();
-              }}
+              onClick={() => { onClose(); onOpenTerms?.(); }}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-medium border transition-all"
               style={{
                 backgroundColor: borderRgba50,

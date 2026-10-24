@@ -1,8 +1,8 @@
 {
-  "name": "Chapel",
-  "short_name": "Chapel",
-  "description": "A private Catholic spiritual companion for men — rugged, warm, and built for the fight.",
-  "start_url": "/#chapel",
+  "name": "Sanctum",
+  "short_name": "Sanctum",
+  "description": "A private Catholic spiritual companion for men \u2014 rugged, warm, and built for the fight.",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#EFEAE2",
   "theme_color": "#EFEAE2",

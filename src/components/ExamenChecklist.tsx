@@ -176,7 +176,7 @@ export function ExamenChecklist({ t }: ExamenChecklistProps) {
       )}
 
       <p className="text-[11px] text-center leading-relaxed mt-3" style={{ color: t.textDim }}>
-        St. Ignatius' five-step examen, anchored in today's Gospel. Resets each night so you start fresh.
+        St. Ignatius' six-step examen, anchored in today's Gospel. Resets each night so you start fresh.
       </p>
     </div>
   );

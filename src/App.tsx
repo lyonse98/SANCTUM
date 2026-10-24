@@ -12,6 +12,7 @@ import { HomeScreen } from '@/components/HomeScreen';
 import { WorkshopPage } from '@/components/WorkshopPage';
 import { WelcomeBackPrompt } from '@/components/WelcomeBackPrompt';
 import { TermsModal, hasAcceptedTerms } from '@/components/TermsModal';
+import { TermsPage } from '@/components/TermsPage';
 import { CrisisModal } from '@/components/CrisisCard';
 import { FindHelpPage } from '@/components/FindHelpPage';
 import { AboutSanctumPage } from '@/components/AboutSanctumPage';
@@ -372,10 +373,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     return <TermsModal onAccept={handleAcceptTerms} />;
   }
 
-  if (showTerms) {
-    return <TermsModal onAccept={handleAcceptTerms} />;
-  }
-
   if (hardCrisis && persona) {
     return <CrisisModal theme={persona.theme} onFindHelp={() => { setHardCrisis(false); setTab('help'); }} />;
   }
@@ -486,12 +483,16 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         {showAbout && (
           <AboutSanctumPage t={areaTheme} accent={seasonAccent} onClose={() => setShowAbout(false)} />
         )}
+        {showTerms && (
+          <TermsPage t={areaTheme} accent={seasonAccent} onClose={() => setShowTerms(false)} />
+        )}
 
         <SettingsModal
           open={settingsOpen}
           onClose={() => setSettingsOpen(false)}
           settings={settings}
           onSave={handleSaveSettings}
+          onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
         />
         <ShareInviteModal
           open={shareInviteOpen}
@@ -545,7 +546,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         onClear={handleClear}
         onOpenSettings={() => setSettingsOpen(true)}
         onPanic={handlePanic}
-        onGoHome={handleSwitchPersona}
+        onGoHome={() => handleChangeTab('today')}
       />
 
       {incognito && (
@@ -587,7 +588,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       <div
         className="px-4 py-2 border-t text-center"
-        style={{ borderColor: `${t.border}4D`, backgroundColor: `${t.bg}80`, paddingBottom: 'env(safe-area-inset-bottom)' }}
+        style={{ borderColor: `${t.border}4D`, backgroundColor: `${t.bg}80`, paddingBottom: 'calc(env(safe-area-inset-bottom) + 30px)' }}
       >
         <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
           Sanctum — a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US).{' '}
@@ -625,6 +626,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         onClose={() => setSettingsOpen(false)}
         settings={settings}
         onSave={handleSaveSettings}
+        onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
       />
 
       {showCapModal && (
@@ -637,6 +639,9 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       {showAbout && (
         <AboutSanctumPage t={t} accent={seasonAccent} onClose={() => setShowAbout(false)} />
+      )}
+      {showTerms && (
+        <TermsPage t={t} accent={seasonAccent} onClose={() => setShowTerms(false)} />
       )}
 
       <EmailReminderModal open={emailOpen} t={t} onClose={() => setEmailOpen(false)} />

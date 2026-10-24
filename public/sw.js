@@ -1,4 +1,4 @@
-const CACHE_NAME = 'workshop-v8';
+const CACHE_NAME = 'sanctum-v1';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/favicon.svg', '/apple-touch-icon.png', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (event) => {
