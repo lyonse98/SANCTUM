@@ -1,7 +1,6 @@
-import type { Message, Settings } from '@/types';
+import type { Message } from '@/types';
 
 const STORAGE_PREFIX = 'sanctum_chat_history_';
-const SETTINGS_KEY = 'sanctum_settings';
 const MAX_MESSAGES = 20;
 
 export function loadHistory(personaId: string): Message[] {
@@ -36,27 +35,6 @@ export function clearAllHistory(): void {
     Object.keys(localStorage)
       .filter((k) => k.startsWith(STORAGE_PREFIX))
       .forEach((k) => localStorage.removeItem(k));
-  } catch {
-    // ignore
-  }
-}
-
-export function loadSettings(): Settings {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return { model: 'gemini-3.8-flash' };
-    const parsed = JSON.parse(raw) as Partial<Settings>;
-    const VALID_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-2.5-pro'];
-    const saved = parsed.model ?? 'gemini-3.8-flash';
-    return { model: VALID_MODELS.includes(saved) ? saved : 'gemini-3.8-flash' };
-  } catch {
-    return { model: 'gemini-3.8-flash' };
-  }
-}
-
-export function saveSettings(settings: Settings): void {
-  try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {
     // ignore
   }

@@ -1,4 +1,4 @@
-import type { Message, Settings } from '@/types';
+import type { Message } from '@/types';
 
 interface StreamCallbacks {
   onToken: (token: string) => void;
@@ -27,14 +27,40 @@ export interface ChatContext {
   distress?: boolean;
 }
 
+export interface ChatTiming {
+  personaId: string;
+  firstTokenMs: number | null;
+  totalMs: number;
+  at: number;
+}
+
+/** Recent reply timings, kept in memory only — the field-measurement hook for latency
+ *  work (read via the console). Nothing is sent anywhere; timings are numbers, not text. */
+const chatTimings: ChatTiming[] = [];
+export function getChatTimings(): ChatTiming[] {
+  return [...chatTimings];
+}
+
 export async function streamChat(
   messages: Message[],
-  settings: Settings,
   callbacks: StreamCallbacks,
   signal?: AbortSignal,
   context?: ChatContext,
 ): Promise<void> {
   let receivedAny = false;
+  const startedAt = performance.now();
+  let firstTokenAt: number | null = null;
+  const recordTiming = () => {
+    const timing: ChatTiming = {
+      personaId: context?.personaId ?? '',
+      firstTokenMs: firstTokenAt === null ? null : Math.round(firstTokenAt - startedAt),
+      totalMs: Math.round(performance.now() - startedAt),
+      at: Date.now(),
+    };
+    chatTimings.push(timing);
+    if (chatTimings.length > 50) chatTimings.shift();
+    console.info('[Sanctum] chat timing', timing);
+  };
   try {
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-proxy`;
     const res = await fetch(apiUrl, {
@@ -45,7 +71,6 @@ export async function streamChat(
       },
       body: JSON.stringify({
         messages,
-        model: settings.model,
         // The companion's instructions live on the server and are selected by id; the browser
         // never sends prompt text, so nobody can swap out the safety rules with a crafted call.
         personaId: context?.personaId ?? '',
@@ -57,12 +82,14 @@ export async function streamChat(
 
     if (!res.ok) {
       console.error(`chat-proxy request failed with status ${res.status}`);
+      recordTiming();
       callbacks.onError(friendlyError(res.status));
       return;
     }
 
     const reader = res.body?.getReader();
     if (!reader) {
+      recordTiming();
       callbacks.onError(GENERIC_FAILURE);
       return;
     }
@@ -75,23 +102,28 @@ export async function streamChat(
       const chunk = decoder.decode(value, { stream: true });
       if (chunk) {
         receivedAny = true;
+        if (firstTokenAt === null) firstTokenAt = performance.now();
         callbacks.onToken(chunk);
       }
     }
 
+    recordTiming();
     callbacks.onDone();
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
+      recordTiming();
       callbacks.onDone();
       return;
     }
     // If we already streamed partial text, treat it as a completed response
     // rather than showing an error — the connection dropped but the content is usable.
     if (receivedAny) {
+      recordTiming();
       callbacks.onDone();
       return;
     }
     console.error('streamChat failed:', err);
+    recordTiming();
     callbacks.onError(GENERIC_FAILURE);
   }
 }

@@ -38,13 +38,13 @@ import { FeedbackProvider, useFeedback } from '@/components/FeedbackProvider';
 import { streamChat } from '@/lib/llm';
 import { detectCrisisLevel } from '@/lib/crisis';
 import { track, trackNow, type EventProperty } from '@/lib/analytics';
-import { loadHistory, saveHistory, clearHistory, wipeAllSanctumData, loadSettings, saveSettings } from '@/lib/storage';
+import { loadHistory, saveHistory, clearHistory, wipeAllSanctumData } from '@/lib/storage';
 import { savePersonaId } from '@/lib/personaStorage';
 import { getPersona, PERSONAS } from '@/personas';
 import { getRemainingMessages, incrementDailyMessageCount, isAtMessageCap, DAILY_MESSAGE_CAP } from '@/lib/messageCap';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
-import type { ChatMessage, Message, Settings, PresetChip, Persona, PersonaId, PersonaTheme, TabId, UtilityActions } from '@/types';
+import type { ChatMessage, Message, PresetChip, Persona, PersonaId, PersonaTheme, TabId, UtilityActions } from '@/types';
 
 const MAX_HISTORY_TURNS = 8;
 
@@ -93,7 +93,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [hardCrisis, setHardCrisis] = useState(false);
   const persona: Persona | null = useMemo(() => (personaId ? getPersona(personaId) : null), [personaId]);
 
-  const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [incognito, setIncognito] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -216,7 +215,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       streamChat(
         apiMessages,
-        settings,
         {
           onToken: (token) => {
             accumulated += token;
@@ -255,7 +253,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         { personaId: persona.id, season: season.name, distress: crisisLevel === 'soft' },
       );
     },
-    [messages, isStreaming, settings, persistHistory, persona, season],
+    [messages, isStreaming, persistHistory, persona, season],
   );
 
   const handleAcceptTerms = useCallback(() => {
@@ -297,11 +295,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     },
     [handleSend],
   );
-
-  const handleSaveSettings = useCallback((s: Settings) => {
-    setSettings(s);
-    saveSettings(s);
-  }, []);
 
   // The five utilities are handed to each page so they sit at the foot of the screen he is on,
   // rather than in a second bar stacked on top of the tab ribbon.
@@ -361,7 +354,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       abortRef.current?.abort();
     }
     wipeAllSanctumData();
-    setSettings(loadSettings());
     setRemainingMessages(getRemainingMessages());
     setMessages([]);
     setPersonaId(null);
@@ -502,8 +494,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         <SettingsModal
           open={settingsOpen}
           onClose={() => setSettingsOpen(false)}
-          settings={settings}
-          onSave={handleSaveSettings}
           onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
         />
         <ShareInviteModal
@@ -636,8 +626,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        settings={settings}
-        onSave={handleSaveSettings}
         onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
       />
 

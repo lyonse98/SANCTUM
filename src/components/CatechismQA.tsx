@@ -46,7 +46,6 @@ export function CatechismQA({ t }: CatechismQAProps) {
 
     streamChat(
       apiMessages,
-      { model: 'gemini-3.8-flash' },
       {
         onToken: (token) => {
           accumulated += token;

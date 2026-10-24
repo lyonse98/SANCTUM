@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Check, ShieldAlert, Lock, MessageSquare, BarChart3 } from 'lucide-react';
-import type { Settings } from '@/types';
+import { X, ShieldAlert, Lock, MessageSquare, BarChart3 } from 'lucide-react';
 import { useFeedback } from '@/components/FeedbackProvider';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '@/lib/analytics';
 import { PRIVACY_PARAGRAPH, ANALYTICS_COPY } from '@/lib/privacyCopy';
@@ -8,41 +7,18 @@ import { PRIVACY_PARAGRAPH, ANALYTICS_COPY } from '@/lib/privacyCopy';
 interface SettingsModalProps {
   open: boolean;
   onClose: () => void;
-  settings: Settings;
-  onSave: (settings: Settings) => void;
   onOpenTerms?: () => void;
 }
 
-const GEMINI_MODELS = [
-  { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash (Latest)' },
-  { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash' },
-  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-];
-
-export function SettingsModal({ open, onClose, settings, onSave, onOpenTerms }: SettingsModalProps) {
+export function SettingsModal({ open, onClose, onOpenTerms }: SettingsModalProps) {
   const feedback = useFeedback();
-  const [local, setLocal] = useState<Settings>(settings);
-  const [saved, setSaved] = useState(false);
   const [analyticsOn, setAnalyticsOn] = useState(() => isAnalyticsEnabled());
 
   useEffect(() => {
-    if (open) {
-      setLocal(settings);
-      setSaved(false);
-      setAnalyticsOn(isAnalyticsEnabled());
-    }
-  }, [open, settings]);
+    if (open) setAnalyticsOn(isAnalyticsEnabled());
+  }, [open ]);
 
   if (!open) return null;
-
-  const handleSave = () => {
-    onSave(local);
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      onClose();
-    }, 800);
-  };
 
   const getVar = (name: string) => `var(${name})`;
   const card = getVar('--p-card');
@@ -72,41 +48,7 @@ export function SettingsModal({ open, onClose, settings, onSave, onOpenTerms }: 
         </div>
 
         <div className="px-5 py-5 space-y-5">
-          <div>
-            <label className="text-[10px] font-semibold uppercase tracking-[0.15em] mb-2 block stamped" style={{ color: textMuted }}>
-              Model
-            </label>
-            <select
-              value={local.model}
-              onChange={(e) => setLocal({ ...local, model: e.target.value })}
-              className="w-full text-sm rounded-lg px-3 py-2.5 focus:outline-none transition-colors border"
-              style={{ backgroundColor: borderRgba50, borderColor: borderRgba50, color: `var(--p-text)` }}
-            >
-              {GEMINI_MODELS.map((m) => (
-                <option key={m.value} value={m.value} style={{ backgroundColor: card }}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </div>
 
-          <button
-            onClick={handleSave}
-            className="w-full py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2"
-            style={
-              saved
-                ? { backgroundColor: 'rgba(63,91,63,0.2)', color: '#5A7A5A', border: '1px solid rgba(90,122,90,0.4)' }
-                : { backgroundColor: accent, color: '#ffffff' }
-            }
-          >
-            {saved ? (
-              <>
-                <Check className="w-4 h-4" /> Saved
-              </>
-            ) : (
-              'Save Settings'
-            )}
-          </button>
 
           <div className="pt-2 space-y-3">
             <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>

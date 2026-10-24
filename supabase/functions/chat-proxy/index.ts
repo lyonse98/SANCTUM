@@ -37,7 +37,10 @@ const DEFAULT_MODEL = "gemini-3.8-flash";
 const MAX_MESSAGES = 8;
 const MAX_MESSAGE_CHARS = 8000;
 const MAX_TOTAL_CHARS = 60000;
-const MAX_OUTPUT_TOKENS = 8192;
+// Output caps sized to the house style: companions answer in ~90 words (~150 tokens),
+// Aquinas in 150-250 words. The old 8192 cap paid for runaway generations nobody saw.
+const MAX_OUTPUT_TOKENS = 1024;
+const MAX_OUTPUT_TOKENS_AQUINAS = 1536;
 
 // Server-side quota per caller (hashed IP).
 const RATE_WINDOW_SECONDS = 60;
@@ -172,7 +175,19 @@ function normalizeMessages(raw: unknown[]): { role: string; content: string }[] 
   return recent;
 }
 
-function buildBody(messages: { role: string; content: string }[], personaPrompt: string) {
+// Gemini 3.x Flash models think at MEDIUM by default and bill thinking tokens as output.
+// A ~90-word companion reply is simple instruction-following: LOW minimises latency and
+// cost (Google's own guidance for chat). MINIMAL is not supported on 3.8 Flash (400s), so
+// LOW is the floor. temperature/topP/topK are deprecated and ignored on 3.6+, so they are
+// no longer sent at all.
+const FLASH3_MODELS = new Set(["gemini-3.8-flash", "gemini-3.6-flash"]);
+
+function buildBody(
+  messages: { role: string; content: string }[],
+  personaPrompt: string,
+  model: string,
+  maxOutputTokens: number,
+) {
   return {
     contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.content }] })),
     systemInstruction: {
@@ -185,7 +200,10 @@ function buildBody(messages: { role: string; content: string }[], personaPrompt:
     // No googleSearch: with live search the model invents plausible podcast and article titles
     // and presents them as real. Without it, it stays inside Scripture, the tradition, and the
     // works it actually knows.
-    generationConfig: { temperature: 0.8, maxOutputTokens: MAX_OUTPUT_TOKENS },
+    generationConfig: {
+      maxOutputTokens,
+      ...(FLASH3_MODELS.has(model) ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
+    },
   };
 }
 
@@ -362,7 +380,8 @@ Deno.serve(async (req: Request) => {
     // then escalate to the caller's chosen model, but only within the allowlist.
     const geminiModel = messages.length <= 2 ? DEFAULT_MODEL : resolveModel(payload.model);
     const streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
-    const body = buildBody(messages, personaPrompt);
+    const maxOutputTokens = personaId === "aquinas" ? MAX_OUTPUT_TOKENS_AQUINAS : MAX_OUTPUT_TOKENS;
+    const body = buildBody(messages, personaPrompt, geminiModel, maxOutputTokens);
 
     const upstreamRes = await fetch(streamUrl, {
       method: "POST",

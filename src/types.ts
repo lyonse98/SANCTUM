@@ -23,10 +23,6 @@ export interface PresetChip {
   prompt: string;
 }
 
-export interface Settings {
-  model: string;
-}
-
 export interface PersonaTheme {
   bg: string;
   bgGradient: string;
