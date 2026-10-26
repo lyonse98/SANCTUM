@@ -86,7 +86,7 @@ export function CatechismQA({ t }: CatechismQAProps) {
             Ask Aquinas
           </h3>
           <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
-            Type your question about the faith. Answered in the voice of St. Thomas Aquinas.
+            St. Thomas Aquinas — AI portrayal. Type your question about the faith.
           </p>
         </div>
       </div>

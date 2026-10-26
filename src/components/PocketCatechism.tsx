@@ -23,6 +23,8 @@ interface PocketCatechismProps {
   t: PersonaTheme;
 }
 
+const TEACHING_COUNT = PILLARS.reduce((n, p) => n + CATECHISM[p.id].length, 0);
+
 export function PocketCatechism({ t }: PocketCatechismProps) {
   const [mode, setMode] = useState<'pillars' | 'objections' | 'ask'>('pillars');
   const [activePillar, setActivePillar] = useState<PillarId>('creed');
@@ -55,14 +57,15 @@ export function PocketCatechism({ t }: PocketCatechismProps) {
       </div>
 
       <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textDim }}>
-        The faith in plain language — or ask your own question.
+        The faith in plain language — {TEACHING_COUNT} core teachings, answers to common
+        objections, or ask Aquinas a question.
       </p>
 
       {/* Mode toggle */}
       <div className="flex gap-1.5 mb-3">
         {modeBtn('pillars', 'The Faith')}
         {modeBtn('objections', 'Objections')}
-        {modeBtn('ask', 'Ask')}
+        {modeBtn('ask', 'Ask Aquinas')}
       </div>
 
       {mode === 'ask' ? (
