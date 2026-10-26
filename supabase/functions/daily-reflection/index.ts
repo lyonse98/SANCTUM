@@ -1,7 +1,8 @@
 // Generates the daily "Reflect" and "Challenge" prompts from the day's readings.
 //
 // ARCHITECTURE: checks the `daily_reflections` table first. If the row exists (generated
-// by an earlier call or a cron job), it returns it instantly with no Gemini call. If not,
+// by an earlier call or the nightly pre-generation cron), it returns it instantly with
+// no Gemini call. If not,
 // it fetches the day's readings citations from the lectionary API, calls Gemini to write
 // the reflection, stores the result in the table, and returns it. The first user of the
 // day pays the latency; every subsequent user gets the cached row.
@@ -309,7 +310,15 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: input }] }],
         systemInstruction: { parts: [{ text: PROMPT }] },
-        generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+        // Gemini 3.x Flash thinks at MEDIUM by default and bills thinking as output.
+        // Sprint 2 capped chat-proxy for exactly this reason; a ~40-word JSON answer
+        // does not need medium thinking, and the first user of the day waits on all of
+        // it (non-streaming). Measured Oct 26, 2026: 13.4s cold vs ~1s cached.
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1024,
+          thinkingConfig: { thinkingLevel: "low" },
+        },
       }),
     });
 
