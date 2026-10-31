@@ -118,7 +118,7 @@ function serviceHeaders(): Record<string, string> {
   };
 }
 
-async function rest(path: string, init: RequestInit): Promise<Response> {
+function rest(path: string, init: RequestInit): Promise<Response> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   return fetch(`${supabaseUrl}/rest/v1/${path}`, {
     ...init,
