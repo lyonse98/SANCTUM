@@ -9,9 +9,9 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
-// The service worker stays registered so the app keeps working offline. It no longer
-// schedules anything: on-device reminders were removed until Sanctum ships as a real
-// phone app. The daily Gospel is delivered by email instead.
+// The service worker stays registered so the app keeps working offline, and it is what
+// receives the daily reminder's push. The poke itself is sent by the server — on-device
+// alarms were removed because a phone only runs them when it chooses to.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
