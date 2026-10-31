@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test": "vitest run",
     "sync:prompts": "node scripts/sync-server-prompts.mjs",
-    "check:prompts": "node scripts/sync-server-prompts.mjs --check"
+    "check:prompts": "node scripts/sync-server-prompts.mjs --check",
+    "sync:push": "node scripts/sync-push-core.mjs",
+    "check:push": "node scripts/sync-push-core.mjs --check"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
