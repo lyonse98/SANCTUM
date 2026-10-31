@@ -17,11 +17,12 @@ export const PRIVACY_SERVER_LIST: string[] = [
   'A scrambled (hashed) network identifier with message counters, kept only to limit abuse. It cannot be turned back into your address.',
   'Anonymous usage events \u2014 which screen, which tool, which companion \u2014 only if you turn analytics on in Settings. They never include message text, an email, or an identity, and analytics is off by default.',
   'An email address, only if you subscribe to the daily email. It is used for that email and nothing else.',
+  'A notification subscription, only if you turn on the daily reminder: an anonymous address for this device\u2019s notifications, the part of Sanctum you chose to be reminded about, and a time of day. It carries no name and no identity, and it is used for that reminder and nothing else.',
   'A feedback note, only if you choose to send one, along with the name of the screen you sent it from.',
 ];
 
 export const PRIVACY_SERVER_INTRO =
-  'Four things can be held on a server, and nothing else:';
+  'Five things can be held on a server, and nothing else:';
 
 export const PRIVACY_THIRD_PARTY =
   'The daily readings and Scripture text are fetched from outside Catholic and Bible data services. Those services see the request the way any website visit is seen.';

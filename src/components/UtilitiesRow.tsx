@@ -3,7 +3,7 @@ import {
   Share2,
   MessageSquarePlus,
   Info,
-  Mail,
+  Bell,
   type LucideIcon,
 } from 'lucide-react';
 import type { PersonaTheme, UtilityActions } from '@/types';
@@ -19,7 +19,7 @@ const ITEMS: { key: keyof UtilityActions; label: string; icon: LucideIcon; hint:
   { key: 'onShareInvite', label: 'Share', icon: Share2, hint: 'Share Sanctum with a friend' },
   { key: 'onOpenSettings', label: 'Settings', icon: SettingsIcon, hint: 'Settings' },
   { key: 'onOpenFeedback', label: 'Feedback', icon: MessageSquarePlus, hint: 'Send feedback or report a bug' },
-  { key: 'onOpenReminder', label: 'Reminder', icon: Mail, hint: 'Get the day’s Gospel by email each morning' },
+  { key: 'onOpenReminder', label: 'Reminder', icon: Bell, hint: 'A daily notification that opens the part of Sanctum you chose' },
 ];
 
 /**

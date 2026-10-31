@@ -32,7 +32,8 @@ import { AboutSanctumPage } from '@/components/AboutSanctumPage';
 import { PersonaIntro } from '@/components/PersonaIntro';
 import type { ChurchTab } from '@/components/PocketChurchPage';
 import { TabBar } from '@/components/TabBar';
-import { EmailReminderModal } from '@/components/EmailReminderModal';
+import { ReminderModal } from '@/components/ReminderModal';
+import { FOCUS_ROUTES, parseFocusParam } from '@/lib/pushCore';
 import { ShareInviteModal } from '@/components/ShareInviteModal';
 import { FeedbackProvider, useFeedback } from '@/components/FeedbackProvider';
 import { streamChat } from '@/lib/llm';
@@ -96,7 +97,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [incognito, setIncognito] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [emailOpen, setEmailOpen] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
   const [shareInviteOpen, setShareInviteOpen] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
@@ -340,7 +341,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       onShareInvite: () => setShareInviteOpen(true),
       onOpenFeedback: () => feedback?.openFeedback(tab),
       onOpenAbout: () => setShowAbout(true),
-      onOpenReminder: () => setEmailOpen(true),
+      onOpenReminder: () => setReminderOpen(true),
     }),
     [feedback, tab],
   );
@@ -408,6 +409,20 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   useEffect(() => {
     if (termsAccepted) trackNow('app_open', 'today');
   }, [termsAccepted]);
+
+  // A tap on the daily reminder lands here with ?focus=… — walk to the surface that
+  // holds what the man chose to be reminded about, then clean the URL so a refresh
+  // does not walk him there again. The Gospel case keeps the #daily-gospel fragment,
+  // which the Today screen itself honours by scrolling the readings into view.
+  useEffect(() => {
+    const focus = parseFocusParam(window.location.search);
+    if (!focus) return;
+    const route = FOCUS_ROUTES[focus];
+    if (route.workshopTool) setWorkshopTool(route.workshopTool);
+    if (route.churchTab) setChurchTab(route.churchTab as ChurchTab);
+    setTab(route.tab);
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+  }, []);
 
   if (!termsAccepted) {
     return <TermsModal onAccept={handleAcceptTerms} />;
@@ -535,7 +550,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           t={areaTheme}
           onClose={() => setShareInviteOpen(false)}
         />
-        <EmailReminderModal open={emailOpen} t={areaTheme} onClose={() => setEmailOpen(false)} />
+        <ReminderModal open={reminderOpen} t={areaTheme} onClose={() => setReminderOpen(false)} />
       </div>
     );
   }
@@ -687,7 +702,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         <TermsPage t={t} accent={seasonAccent} onClose={() => setShowTerms(false)} />
       )}
 
-      <EmailReminderModal open={emailOpen} t={t} onClose={() => setEmailOpen(false)} />
+      <ReminderModal open={reminderOpen} t={t} onClose={() => setReminderOpen(false)} />
 
       <TabBar
         active="companions"
