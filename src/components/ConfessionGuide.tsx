@@ -1,6 +1,12 @@
 import { useState, useCallback } from 'react';
 import { Scroll, Check, Trash2, ChevronDown } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
+import {
+  BEATITUDES,
+  loadExaminationLens,
+  saveExaminationLens,
+  type ExaminationLens,
+} from '@/lib/beatitudes';
 
 interface ConfessionGuideProps {
   t: PersonaTheme;
@@ -150,6 +156,13 @@ function saveNotes(notes: Record<string, boolean>) {
 export function ConfessionGuide({ t }: ConfessionGuideProps) {
   const [notes, setNotes] = useState<Record<string, boolean>>(() => loadNotes());
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [lens, setLens] = useState<ExaminationLens>(() => loadExaminationLens());
+
+  const chooseLens = useCallback((next: ExaminationLens) => {
+    setLens(next);
+    saveExaminationLens(next);
+    setExpanded(null);
+  }, []);
 
   const toggle = useCallback((id: string) => {
     setNotes((prev) => {
@@ -193,10 +206,41 @@ export function ConfessionGuide({ t }: ConfessionGuideProps) {
         </p>
       </div>
 
+      {/* The lens choice — the law, or the blessings. Two options only; the rest
+          of the tool (duties of state, your notes, the way out) is the same either way. */}
+      <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: t.accent }}>
+        Examine by:
+      </p>
+      <div className="flex gap-1.5 mb-4" role="group" aria-label="Examination lens">
+        {(
+          [
+            { id: 'commandments', label: 'The Ten Commandments' },
+            { id: 'beatitudes', label: 'The Beatitudes' },
+          ] as { id: ExaminationLens; label: string }[]
+        ).map((option) => (
+          <button
+            key={option.id}
+            onClick={() => chooseLens(option.id)}
+            aria-pressed={lens === option.id}
+            className="flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all border"
+            style={
+              lens === option.id
+                ? { backgroundColor: t.accentRgba(0.15), color: t.accent, borderColor: t.accentRgba(0.4) }
+                : { backgroundColor: `${t.border}40`, color: t.textDim, borderColor: `${t.border}80` }
+            }
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
       <p className="text-[11px] leading-relaxed mb-4" style={{ color: t.textDim }}>
-        Examine your conscience by the Ten Commandments and your duties of state. Tap anything that applies — it stays private on your device.
+        {lens === 'commandments'
+          ? 'Examine your conscience by the Ten Commandments and your duties of state. Tap anything that applies — it stays private on your device.'
+          : 'Examine your conscience by the Beatitudes — the shape of the blessed life, and where you refused it. Tap anything that applies — it stays private on your device.'}
       </p>
 
+      {lens === 'commandments' && (
       <div className="space-y-1.5 mb-4">
         {COMMANDMENTS.map((cmd) => {
           const id = `cmd-${cmd.num}`;
@@ -235,6 +279,51 @@ export function ConfessionGuide({ t }: ConfessionGuideProps) {
           );
         })}
       </div>
+      )}
+
+      {lens === 'beatitudes' && (
+      <div className="space-y-1.5 mb-4">
+        {BEATITUDES.map((b, bi) => {
+          const id = `beat-${bi}`;
+          const isOpen = expanded === id;
+          const beatChecked = b.questions.filter((_, qi) => notes[`${id}-${qi}`]).length;
+          return (
+            <div key={b.ref}>
+              <button onClick={() => setExpanded(isOpen ? null : id)}
+                className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg border transition-all text-left"
+                style={isOpen ? { backgroundColor: t.accentRgba(0.08), borderColor: t.accentRgba(0.3) } : { backgroundColor: `${t.border}40`, borderColor: `${t.border}4D` }}>
+                <span className="text-[10px] font-bold flex-shrink-0 mt-0.5 px-1.5 py-0.5 rounded whitespace-nowrap" style={{ backgroundColor: t.accentRgba(0.15), color: t.accent }}>{b.ref.replace('Matthew', 'Mt')}</span>
+                <span className="text-[11px] font-medium leading-snug flex-1" style={{ color: isOpen ? t.text : t.textMuted }}>{b.verse}</span>
+                {beatChecked > 0 && <span className="text-[10px] tabular-nums flex-shrink-0" style={{ color: t.accent }}>{beatChecked}</span>}
+                <ChevronDown className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: t.textDim }} />
+              </button>
+              {isOpen && (
+                <div className="mt-1 ml-7 space-y-1 animate-fade-in">
+                  <p className="text-[11px] italic leading-snug px-2.5 py-1.5" style={{ color: t.accent }}>
+                    {b.framing}
+                  </p>
+                  {b.questions.map((q, qi) => {
+                    const qid = `${id}-${qi}`;
+                    const isChecked = notes[qid] || false;
+                    return (
+                      <button key={qi} onClick={() => toggle(qid)}
+                        className="w-full flex items-start gap-2 px-2.5 py-2 rounded-lg transition-all text-left"
+                        style={isChecked ? { backgroundColor: t.accentRgba(0.06) } : {}}>
+                        <div className="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+                          style={isChecked ? { backgroundColor: t.accent, borderColor: t.accent, color: '#fff' } : { borderColor: t.borderLight, color: 'transparent' }}>
+                          {isChecked && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
+                        </div>
+                        <span className="text-[11px] leading-snug" style={isChecked ? { color: t.text, textDecoration: 'line-through', opacity: 0.6 } : { color: t.textMuted }}>{q}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      )}
 
       <div className="pt-3 border-t" style={{ borderColor: `${t.border}4D` }}>
         <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: t.accent }}>Duties of State</p>

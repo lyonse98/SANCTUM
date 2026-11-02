@@ -35,6 +35,7 @@ const KNOWN_KEYS = [
   'sanctum_rule_of_life',
   'sanctum_rule_checks',
   'sanctum_confession_notes',
+  'sanctum_confession_lens',
   'sanctum_readings_2026-10-24',
   'sanctum_reflection_2026-10-24',
   'sanctum_passage_john-1',
