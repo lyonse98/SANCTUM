@@ -12,9 +12,9 @@
  * - Zone 1 is verbatim: the Gospel, the reflection, and the challenge are assembled
  *   byte-for-byte from the stored bundle and are never altered here. Personality lives
  *   only in the framing (Zone 2/3), selected from the bank below — never improvised.
- * - The bank is human-approved text. Lines Erik has not yet approved on paper are marked
- *   DRAFT (see `DRAFT_BANK_LINES`) — launch gates on his approval (spec §5.3); the code
- *   does not.
+ * - The bank is human-approved text. The lines written for the audio build are listed
+ *   in `DRAFT_BANK_LINES` (their drafting registry); Erik approved every one of them as
+ *   written on Nov 2, 2026, clearing the spec §5.3 launch gate.
  * - There is NO fallback voice. If a day cannot render in the man's own voice, it does
  *   not render (Erik, Nov 2, 2026). This module has no concept of a substitute voice.
  * - Time-of-day lives only in the two heads (AM/PM). The main segment is time-neutral
@@ -638,8 +638,8 @@ export function bookChapterSpoken(citation: string): string | null {
 // approved by Erik Nov 2, 2026), split into AM/PM sets per spec §5.3 — morning-leaning
 // lines sit in AM; time-neutral approved lines may sit in both. Lines marked
 // `// DRAFT §5.3` are new text written for this build (the PM sets, the sober sets, and
-// slots bank v2 never had). They are listed in DRAFT_BANK_LINES and gate the LAUNCH on
-// Erik's paper approval — not the code.
+// slots bank v2 never had). They are listed in DRAFT_BANK_LINES; Erik approved them all
+// as written on Nov 2, 2026 (spec §5.3 gate cleared).
 
 export interface PauseBeats {
   afterScene: number;
@@ -952,11 +952,11 @@ export const GOSPEL_INTRO = 'A reading from the holy Gospel according to {evange
 export const GOSPEL_CLOSE = 'The Gospel of the Lord.';
 export const ACCLAMATION = 'Praise to you, Lord Jesus Christ.';
 
-// ── The draft registry — every line awaiting Erik's paper approval (§5.3) ─────
+// ── The draft registry — every line written for this build (§5.3) ─────
 //
 // Built by reference into the bank above, so the registry can never quote a line the
-// bank doesn't actually speak. Launch gates on Erik approving these; the render does
-// not distinguish them. The dry-run tool prints this list for his paper check.
+// bank doesn't actually speak. Erik approved every line as written on Nov 2, 2026;
+// the render does not distinguish them. The dry-run tool prints this list.
 
 export interface DraftBankLine {
   persona: NarratorId;
