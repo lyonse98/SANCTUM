@@ -30,8 +30,9 @@ first time it is needed).
    Nov 2, 2026) — no row at all means the card shows nothing.
 2. `last_error` holds a short stage/code string only (bundle|tts|assemble|encode|upload),
    never payloads or script text.
-3. `attempts` is the renderer's own guard: a date is never rendered more than 3 times,
-   ever (spec §9 cost ceiling).
+3. `attempts` is the renderer's own cost guard: scheduled runs stop at the retry
+   window (a failed day at 2 attempts is done; 3 is the hard cap) — only Erik's
+   key-guarded force path can render a day again (spec §8.2).
 */
 CREATE TABLE IF NOT EXISTS daily_audio (
   date            date PRIMARY KEY,
