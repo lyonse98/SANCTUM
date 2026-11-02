@@ -7,6 +7,7 @@ import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
 import type { UtilityActions } from '@/types';
 import { PRIVACY_SHORT } from '@/lib/privacyCopy';
+import { MISSION_LINE, MISSION_ATTRIBUTION } from '@/lib/mission';
 
 interface HomeScreenProps {
   onReflectWithCompanion: (message: string) => void;
@@ -34,6 +35,17 @@ export function HomeScreen({ onReflectWithCompanion, onOpenExamen, utilities }: 
     <div className="absolute inset-0 overflow-y-auto chat-scroll bg-forge-bg">
       <SeasonBackdrop />
       <div className="relative z-10 min-h-full flex flex-col items-center px-5 py-8 pb-16 max-w-2xl mx-auto">
+        {/* The thesis, inscribed over the door — quiet, static, the same every day.
+            It frames everything below it without competing with the day's content. */}
+        <div className="w-full text-center mb-5">
+          <p className="font-display italic text-[13px] leading-snug text-forge-text-muted">
+            {MISSION_LINE}
+          </p>
+          <p className="text-[9px] uppercase tracking-[0.25em] text-forge-text-dim mt-1">
+            {MISSION_ATTRIBUTION}
+          </p>
+        </div>
+
         <div className="w-full mb-6">
           <TodayHero t={seasonTheme} accent={seasonAccent} />
         </div>

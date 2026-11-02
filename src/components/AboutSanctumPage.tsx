@@ -1,5 +1,6 @@
 import { ArrowLeft, X, Church, ShieldCheck, HeartHandshake, Users, BookOpen } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
+import { MISSION_LINE, MISSION_ATTRIBUTION, MISSION_SENTENCE } from '@/lib/mission';
 
 interface AboutSanctumPageProps {
   t: PersonaTheme;
@@ -82,6 +83,25 @@ export function AboutSanctumPage({ t, accent, onClose }: AboutSanctumPageProps) 
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Why Sanctum exists */}
+        <div className="w-full text-center px-4 mb-6 animate-fade-in">
+          <p
+            className="text-[10px] font-bold font-display uppercase tracking-[0.25em] mb-2"
+            style={{ color: a }}
+          >
+            Why Sanctum exists
+          </p>
+          <p className="font-display italic text-base leading-snug" style={{ color: t.textBright }}>
+            {MISSION_LINE}
+          </p>
+          <p className="text-[9px] uppercase tracking-[0.25em] mt-1.5" style={{ color: t.textDim }}>
+            {MISSION_ATTRIBUTION}
+          </p>
+          <p className="text-sm leading-relaxed mt-3" style={{ color: t.text }}>
+            {MISSION_SENTENCE}
+          </p>
         </div>
 
         {/* Opening */}

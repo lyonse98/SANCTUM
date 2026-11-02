@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Scroll, Heart, HandHeart } from 'lucide-react';
 import { PRIVACY_PARAGRAPH } from '@/lib/privacyCopy';
+import { MISSION_LINE, MISSION_ATTRIBUTION } from '@/lib/mission';
 
 const STORAGE_KEY = 'sanctum_terms_accepted';
 
@@ -47,6 +48,13 @@ export function TermsModal({ onAccept }: TermsModalProps) {
           </h2>
           <p className="text-xs leading-relaxed" style={{ color: '#635C51' }}>
             You're stepping into a quiet space. A few things to know before you enter.
+          </p>
+          {/* Why this place exists — the thesis, read once at the door. */}
+          <p className="font-display italic text-[13px] leading-snug mt-4" style={{ color: '#4A443C' }}>
+            {MISSION_LINE}
+          </p>
+          <p className="text-[9px] uppercase tracking-[0.25em] mt-1" style={{ color: '#A39A8A' }}>
+            {MISSION_ATTRIBUTION}
           </p>
         </div>
 
