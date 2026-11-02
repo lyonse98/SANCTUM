@@ -18,7 +18,12 @@ export interface ReadingsBundle {
 
 const BUNDLE_KEY = 'sanctum_readings_bundle';
 
-function isoDate(date: Date): string {
+/**
+ * The local-time date key every readings path keys the day by (the bundle request,
+ * the fallback citations, and — in DailyQuote — the parallel reflection fetch).
+ * One rule, shared: local getters, padded YYYY-MM-DD.
+ */
+export function isoDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
