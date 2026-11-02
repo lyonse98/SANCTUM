@@ -13,7 +13,9 @@
     "sync:prompts": "node scripts/sync-server-prompts.mjs",
     "check:prompts": "node scripts/sync-server-prompts.mjs --check",
     "sync:push": "node scripts/sync-push-core.mjs",
-    "check:push": "node scripts/sync-push-core.mjs --check"
+    "check:push": "node scripts/sync-push-core.mjs --check",
+    "sync:audio": "node scripts/sync-narrator-core.mjs",
+    "check:audio": "node scripts/sync-narrator-core.mjs --check"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
