@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Sparkles,
   Target,
@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { DAILY_QUOTES } from '@/data/quotes';
 import { fetchDailyReadings, type DailyReadings } from '@/lib/readings';
-import { fetchReadingsBundle } from '@/lib/readingsBundle';
+import { fetchReadingsBundle, isoDate } from '@/lib/readingsBundle';
 import { getFeastForDate, type FeastRank } from '@/data/feastDays';
 import {
   fetchPassageVerses,
@@ -23,7 +23,12 @@ import {
   type ReadingTexts,
 } from '@/lib/bible';
 import { pickKeyVerse, type KeyVerse } from '@/lib/keyVerse';
-import { fetchReflection, type Reflection } from '@/lib/reflection';
+import {
+  fetchReflection,
+  nextReflectionFetch,
+  reflectionDisplay,
+  type Reflection,
+} from '@/lib/reflection';
 import { ListenBar } from '@/components/ListenBar';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
 import type { PersonaTheme } from '@/types';
@@ -99,25 +104,49 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
     () => (gospelVerses ? pickKeyVerse(gospelVerses) : null),
     [gospelVerses],
   );
+  // The day's date key, computed locally at mount with the very helper the readings
+  // bundle keys its request by — so the reflection fetch below targets the same day
+  // the bundle will, without waiting for the bundle to say so.
+  const [localDateKey] = useState(() => isoDate(new Date()));
   const [reflection, setReflection] = useState<Reflection | null>(null);
-  const [reflectionLoading, setReflectionLoading] = useState(false);
+  const [reflectionFor, setReflectionFor] = useState<string | null>(null);
+  const [reflectionBusyFor, setReflectionBusyFor] = useState<string | null>(null);
+  const reflectionFetchSeq = useRef(0);
 
-  // The reflection is generated server-side from the day's readings, the way a homily
-  // would read them — not yanked from a single verse. The server fetches the readings
-  // and generates the reflection once per day, caching it for all subsequent users.
+  // The reflection is pre-generated server-side from the day's readings, the way a
+  // homily would read them — not yanked from a single verse — and it answers fast.
+  // The readings bundle can be slow (its fallback assembles the day from third-party
+  // APIs in sequence), so the reflection fetch fires in parallel with the readings
+  // load, keyed to the locally computed date, instead of waiting behind it. When the
+  // bundle does resolve, its date is authoritative: if it differs (a midnight edge,
+  // or a stale bundle), the reflection realigns to the bundle's date — the reflection
+  // shown always matches the Gospel shown. The coordination rules live with the
+  // fetcher (nextReflectionFetch / reflectionDisplay in lib/reflection).
   useEffect(() => {
-    let active = true;
-    if (!readings) return;
-    if (reflection || reflectionLoading) return;
-    setReflectionLoading(true);
+    const want = nextReflectionFetch(
+      { settledFor: reflectionFor, inFlightFor: reflectionBusyFor },
+      localDateKey,
+      readings?.date ?? null,
+    );
+    if (!want) return;
+    const seq = ++reflectionFetchSeq.current;
+    setReflectionBusyFor(want);
     void (async () => {
-      const result = await fetchReflection(readings.date);
-      if (!active) return;
+      const result = await fetchReflection(want);
+      if (reflectionFetchSeq.current !== seq) return;
       setReflection(result);
-      setReflectionLoading(false);
+      setReflectionFor(want);
+      setReflectionBusyFor(null);
     })();
-    return () => { active = false; };
-  }, [readings, reflection, reflectionLoading]);
+  }, [localDateKey, readings, reflectionFor, reflectionBusyFor]);
+
+  // What the reflection block may show right now: the settled reflection once it
+  // belongs to the day on display, a pending state while a fetch (or the realigning
+  // fetch) is outstanding — never another date's reflection.
+  const shown = reflectionDisplay(
+    { settledFor: reflectionFor, inFlightFor: reflectionBusyFor, value: reflection },
+    readings?.date ?? null,
+  );
 
   const loadAllTexts = async (): Promise<ReadingTexts | null> => {
     if (allTexts) return allTexts;
@@ -186,7 +215,7 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
 
   // The two quiet buttons below the main action share a row only when both are present, so a lone
   // button fills the width instead of sitting in half of it.
-  const hasShare = Boolean(keyVerse || reflection);
+  const hasShare = Boolean(keyVerse || shown.value);
   const hasExamen = Boolean(onOpenExamen);
 
   return (
@@ -275,23 +304,25 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
         </>
       )}
 
-      {/* Reflect and challenge — server-generated from the day's readings, the way a homily would. */}
-      {!loading && (reflection || reflectionLoading) && (
+      {/* Reflect and challenge — pre-generated server-side from the day's readings.
+          Renders on the reflection's own state, fetched in parallel with the readings:
+          a slow readings path no longer holds a ready reflection hostage. */}
+      {(shown.value || shown.pending) && (
         <div className="space-y-2 mb-3">
-          {reflectionLoading && !reflection ? (
+          {shown.pending && !shown.value ? (
             <div className="flex items-center gap-2" style={{ color: t.textDim }}>
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               <span className="text-[10px]">Preparing today&rsquo;s reflection&hellip;</span>
             </div>
-          ) : reflection ? (
+          ) : shown.value ? (
             <>
               <div className="flex items-start gap-2.5">
                 <Sparkles className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.accent, opacity: 0.7 }} />
                 <div>
                   <p className="text-[9px] uppercase tracking-widest font-bold mb-0.5" style={{ color: t.textDim }}>
-                    Reflect{reflection.facet ? ` \u00b7 ${reflection.facet}` : ''}
+                    Reflect{shown.value.facet ? ` \u00b7 ${shown.value.facet}` : ''}
                   </p>
-                  <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>{reflection.reflect}</p>
+                  <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>{shown.value.reflect}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
@@ -300,7 +331,7 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
                   <p className="text-[9px] uppercase tracking-widest font-bold mb-0.5" style={{ color: t.textDim }}>
                     Challenge
                   </p>
-                  <p className="text-xs leading-relaxed" style={{ color: t.text }}>{reflection.challenge}</p>
+                  <p className="text-xs leading-relaxed" style={{ color: t.text }}>{shown.value.challenge}</p>
                 </div>
               </div>
             </>
@@ -466,7 +497,7 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
         season={readings?.season}
         celebration={readings?.celebration}
         keyVerse={keyVerse}
-        reflection={reflection}
+        reflection={shown.value}
         onClose={() => setShareOpen(false)}
       />
     </div>
