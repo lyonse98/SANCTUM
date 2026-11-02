@@ -24,6 +24,7 @@ import {
 } from '@/lib/bible';
 import { pickKeyVerse, type KeyVerse } from '@/lib/keyVerse';
 import { fetchReflection, type Reflection } from '@/lib/reflection';
+import { ListenBar } from '@/components/ListenBar';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
 import type { PersonaTheme } from '@/types';
 
@@ -237,6 +238,13 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
           <Loader2 className="w-3 h-3 animate-spin" />
           <span className="text-[10px]">Loading today&rsquo;s Gospel&hellip;</span>
         </div>
+      )}
+
+      {/* The day's Gospel, read aloud — renders only when the audio row is ready
+          (or one plain line when the day's render failed). Fetches independently
+          and fails silently; it can never block the text below. */}
+      {!loading && readings?.date && (
+        <ListenBar t={t} dateKey={readings.date} citation={readings.gospel ?? null} />
       )}
 
       {/* The verse to sit with — the heart of the passage, shown up front */}

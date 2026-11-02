@@ -45,3 +45,11 @@ export const COMPANION_PORTRAYAL_LINE =
 
 /** Short form for the chat header. */
 export const COMPANION_PORTRAYAL_SHORT = 'AI portrayal';
+
+/**
+ * The narrator disclosure (Narrator Charter §2) — shown on the first-listen card in
+ * the Gospel card, in About, and as the credits line in Terms & Privacy. The audio
+ * player collects nothing, so every sentence above remains literally true unchanged.
+ */
+export const NARRATOR_DISCLOSURE_LINE =
+  'Sanctum\u2019s narrators are created personas \u2014 AI-voiced characters, written to be the brothers reading next to you. They aren\u2019t real men, and they never pretend to be \u2014 least of all priests.';

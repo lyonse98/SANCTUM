@@ -1,4 +1,5 @@
-const CACHE_NAME = 'sanctum-v2';
+const CACHE_NAME = 'sanctum-v3';
+const AUDIO_CACHE_NAME = 'sanctum-audio-v1';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/favicon.svg', '/apple-touch-icon.png', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -11,7 +12,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k !== CACHE_NAME && k !== AUDIO_CACHE_NAME).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -68,8 +69,49 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+// The daily Gospel audio lives in the public daily-audio bucket on the Supabase origin
+// — cross-origin, which the handler below ignores entirely. This branch runs FIRST:
+// those files are cache-first in their own cache, so after a day's first play its audio
+// replays offline (the driveway test). Entries for dates older than 7 days are pruned
+// whenever a new date is cached; the static bell has no date in its path and stays.
+const AUDIO_PATH_MARKER = '/storage/v1/object/public/daily-audio/';
+
+function pruneAudioCache(cache) {
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const cutoffKey = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`;
+  return cache.keys().then((requests) =>
+    Promise.all(
+      requests
+        .filter((request) => {
+          const match = new URL(request.url).pathname.match(/daily-audio\/(\d{4}-\d{2}-\d{2})\//);
+          return match && match[1] < cutoffKey;
+        })
+        .map((request) => cache.delete(request))
+    )
+  ).catch(() => {});
+}
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+
+  if (event.request.method === 'GET' && url.pathname.includes(AUDIO_PATH_MARKER)) {
+    event.respondWith(
+      caches.open(AUDIO_CACHE_NAME).then((cache) =>
+        cache.match(event.request).then((cached) => {
+          if (cached) return cached;
+          return fetch(event.request).then((res) => {
+            if (res.ok) {
+              const copy = res.clone();
+              cache.put(event.request, copy).then(() => pruneAudioCache(cache)).catch(() => {});
+            }
+            return res;
+          });
+        })
+      )
+    );
+    return;
+  }
+
   if (url.origin !== location.origin) return;
 
   const isNavigation = event.request.mode === 'navigate';

@@ -1,6 +1,7 @@
 import { ArrowLeft, X, Church, ShieldCheck, HeartHandshake, Users, BookOpen } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
 import { MISSION_LINE, MISSION_ATTRIBUTION, MISSION_SENTENCE } from '@/lib/mission';
+import { NARRATOR_DISCLOSURE_LINE } from '@/lib/privacyCopy';
 
 interface AboutSanctumPageProps {
   t: PersonaTheme;
@@ -171,6 +172,20 @@ export function AboutSanctumPage({ t, accent, onClose }: AboutSanctumPageProps) 
             It costs him nothing, asks for no account, keeps no record of what he writes, and hands him
             to real help when he needs more than a conversation. If you would like to see exactly what a
             companion is and is not allowed to say, the boundaries are the same ones written on this page.
+          </p>
+        </div>
+
+        {/* The voices a man hears — named as what they are, beside the companion copy. */}
+        <div
+          className="w-full rounded-2xl border p-5 mt-6 animate-fade-in"
+          style={{ backgroundColor: `${a}0D`, borderColor: `${a}33` }}
+        >
+          <h2 className="text-sm font-bold font-display uppercase tracking-wide mb-2" style={{ color: t.textBright }}>
+            The Gospel, read aloud
+          </h2>
+          <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
+            Every morning the day&rsquo;s Gospel and reflection can be listened to as well as
+            read, in a brother&rsquo;s voice that changes with the weekday. {NARRATOR_DISCLOSURE_LINE}
           </p>
         </div>
 

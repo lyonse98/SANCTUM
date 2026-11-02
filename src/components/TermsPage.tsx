@@ -1,6 +1,7 @@
 import { ArrowLeft, X, Scroll, Heart, ShieldCheck, Database } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
 import {
+  NARRATOR_DISCLOSURE_LINE,
   PRIVACY_PARAGRAPH,
   PRIVACY_SERVER_INTRO,
   PRIVACY_SERVER_LIST,
@@ -133,6 +134,10 @@ export function TermsPage({ t, accent, onClose }: TermsPageProps) {
             );
           })}
         </div>
+
+        <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>
+          {NARRATOR_DISCLOSURE_LINE}
+        </p>
 
         <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>
           Using Sanctum means accepting these terms. The panic button in any conversation wipes
