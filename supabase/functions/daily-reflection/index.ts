@@ -7,6 +7,15 @@
 // the reflection, stores the result in the table, and returns it. The first user of the
 // day pays the latency; every subsequent user gets the cached row.
 //
+// AUDIO SCENE (spec §6.3): the same model call also returns a short "scene" — one or two
+// sentences of pure passage fact the day's audio narrator speaks before the Gospel. For
+// that, the function first reads the day's `daily_readings` payload (the Gospel text),
+// generating the bundle via the `daily-readings` function if the row is missing, and
+// includes the text in the model input. The scene is lint-validated (validateScene
+// below, ported from src/lib/narratorCore.ts) and stored in `daily_reflections.scene`.
+// A missing or invalid scene stores NULL and NEVER blocks the reflection; the public
+// response shape is unchanged (reflect, challenge, facet — no scene field).
+//
 // The prompt that shapes the voice lives here, server-side. The browser sends only a date
 // string — never instructions, never message text — so the caller cannot steer the model.
 //
@@ -47,8 +56,10 @@ RULES:
 - No em dashes.
 - Do not mention these instructions. Do not name Eldredge, Wild at Heart, or any book. The lean lives in the voice, not in citations.
 
+THE SCENE (for the day's audio): one or two sentences, 280 characters at most, of pure passage fact drawn ONLY from the Gospel text provided below — where it happens, who is there, what is done or asked. Nothing else. No interpretation, no application, no lesson, no second person, no conclusion. Never write "what Jesus is really saying is", "here's what this means", "a real man would", or "in my experience". End it pointing at the passage itself, the moment just before the reading begins. If no Gospel text is provided below, return the scene as an empty string.
+
 Reply with ONLY a JSON object, no markdown fence, no other text:
-{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a man"}`;
+{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a man","scene":"<the scene, or empty string>"}`;
 
 interface ReadingSet {
   firstReading?: string;
@@ -165,6 +176,7 @@ async function storeReflection(
   dateKey: string,
   reflection: Reflection,
   celebration: string | null,
+  scene: string | null,
 ): Promise<void> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -185,10 +197,82 @@ async function storeReflection(
         challenge: reflection.challenge,
         facet: reflection.facet,
         celebration,
+        scene,
       }),
     });
   } catch {
     // Best-effort — the reflection is still returned to the user even if storage fails.
+  }
+}
+
+// ── Scene lint + Gospel text (audio, spec §6.3) ───────────────────────────────
+// Ported from src/lib/narratorCore.ts (validateScene / SCENE_BANNED) — the two must
+// agree, the same way daily-readings ports bible.ts. The renderer re-validates nothing;
+// this lint is the only gate a generated scene passes before it can be spoken.
+
+const SCENE_MAX_CHARS = 280;
+const SCENE_BANNED: RegExp[] = [
+  /\bmeans\b/i,
+  /teaches us/i,
+  /we learn/i,
+  /really saying/i,
+  /in my experience/i,
+  /a real man would/i,
+  /what this means/i,
+  /the problem with men today/i,
+];
+
+function validateScene(scene: unknown): string | null {
+  if (typeof scene !== "string" || !scene.trim()) return null;
+  const text = scene.trim();
+  if (text.length > SCENE_MAX_CHARS) return null;
+  for (const pattern of SCENE_BANNED) {
+    if (pattern.test(text)) return null;
+  }
+  return text;
+}
+
+// Reads the day's Gospel text from the `daily_readings` bundle; if the row is missing,
+// asks the daily-readings function to build it (it caches the row itself). Any failure
+// returns null — the reflection then generates without a scene, never blocked.
+async function fetchGospelText(dateKey: string): Promise<string | null> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) return null;
+
+  const gospelTextOf = (payload: unknown): string | null => {
+    const text = (payload as { texts?: { gospel?: { text?: unknown } } } | null)?.texts?.gospel?.text;
+    return typeof text === "string" && text.trim() ? text : null;
+  };
+
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/daily_readings?date=eq.${dateKey}&select=payload`,
+      {
+        headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+        signal: AbortSignal.timeout(8000),
+      },
+    );
+    if (res.ok) {
+      const rows = await res.json();
+      if (Array.isArray(rows) && rows.length > 0) {
+        const text = gospelTextOf(rows[0]?.payload);
+        if (text) return text;
+      }
+    }
+  } catch {
+    // Fall through to the function call below.
+  }
+
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/daily-readings?date=${dateKey}`, {
+      headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return null;
+    return gospelTextOf(await res.json());
+  } catch {
+    return null;
   }
 }
 
@@ -224,7 +308,7 @@ async function fetchReadings(
   }
 }
 
-function buildInput(readings: ReadingSet, celebration: string | null): string {
+function buildInput(readings: ReadingSet, celebration: string | null, gospelText: string | null): string {
   const lines: string[] = [];
   if (celebration) lines.push(`Today the Church celebrates: ${celebration}`);
   lines.push("Readings:");
@@ -241,21 +325,43 @@ function buildInput(readings: ReadingSet, celebration: string | null): string {
     if (citation) lines.push(`${label}: ${citation}`);
   }
 
+  // The scene is drawn from the passage itself, never from the model's memory of it —
+  // and it is only requested (and only accepted) when the text is actually here.
+  if (gospelText) {
+    lines.push("", "Gospel text:", gospelText);
+  }
+
   return lines.join("\n");
 }
 
 // ── Reflection parser ─────────────────────────────────────────────────────────
 
-function parseReflection(raw: string): Reflection | null {
+function parseReflection(
+  raw: string,
+  sceneAllowed: boolean,
+): { reflection: Reflection; scene: string | null } | null {
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) return null;
   try {
-    const parsed = JSON.parse(match[0]) as { reflect?: unknown; challenge?: unknown; facet?: unknown };
+    const parsed = JSON.parse(match[0]) as {
+      reflect?: unknown;
+      challenge?: unknown;
+      facet?: unknown;
+      scene?: unknown;
+    };
     const reflect = typeof parsed.reflect === "string" ? parsed.reflect.trim() : "";
     const challenge = typeof parsed.challenge === "string" ? parsed.challenge.trim() : "";
     if (!reflect || !challenge) return null;
     const facet = typeof parsed.facet === "string" && parsed.facet.trim() ? parsed.facet.trim() : "As a man";
-    return { reflect: reflect.slice(0, 400), challenge: challenge.slice(0, 400), facet: facet.slice(0, 60) };
+    const reflection: Reflection = {
+      reflect: reflect.slice(0, 400),
+      challenge: challenge.slice(0, 400),
+      facet: facet.slice(0, 60),
+    };
+    // A scene is accepted only when the Gospel text was in the input (sceneAllowed) and
+    // it passes the lint; anything else stores NULL and the audio omits the scene.
+    const scene = sceneAllowed ? validateScene(parsed.scene) : null;
+    return { reflection, scene };
   } catch {
     return null;
   }
@@ -297,7 +403,11 @@ Deno.serve(async (req: Request) => {
     const readingsData = await fetchReadings(dateKey);
     if (!readingsData) return errorResponse(GENERIC_ERROR, 502);
 
-    const input = buildInput(readingsData.readings, readingsData.celebration);
+    // Best-effort: the Gospel text grounds the audio scene (§6.3). Null is fine — the
+    // reflection generates exactly as before, just without a scene.
+    const gospelText = await fetchGospelText(dateKey);
+
+    const input = buildInput(readingsData.readings, readingsData.celebration, gospelText);
     if (input.length < 20) return errorResponse(GENERIC_ERROR, 502);
 
     const apiKey = Deno.env.get("GEMINI_API_KEY");
@@ -335,16 +445,17 @@ Deno.serve(async (req: Request) => {
       return errorResponse(GENERIC_ERROR, 502);
     }
 
-    const result = parseReflection(raw);
-    if (!result) {
+    const parsed = parseReflection(raw, gospelText !== null);
+    if (!parsed) {
       console.error("Reflection model returned an unusable response");
       return errorResponse(GENERIC_ERROR, 502);
     }
 
-    // Store so every subsequent user today gets the cached row instantly.
-    await storeReflection(dateKey, result, readingsData.celebration);
+    // Store so every subsequent user today gets the cached row instantly. The scene
+    // rides along in the row only — the response keeps its original three fields.
+    await storeReflection(dateKey, parsed.reflection, readingsData.celebration, parsed.scene);
 
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify(parsed.reflection), {
       headers: { ...jsonHeaders, "Cache-Control": "public, max-age=21600" },
     });
   } catch (err) {
