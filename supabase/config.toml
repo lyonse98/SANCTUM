@@ -16,5 +16,8 @@ verify_jwt = false
 [functions.corpus-retrieve]
 verify_jwt = false
 
+[functions.corpus-ingest]
+verify_jwt = false
+
 [functions.audio-render]
 verify_jwt = false
