@@ -15,7 +15,12 @@
     "sync:push": "node scripts/sync-push-core.mjs",
     "check:push": "node scripts/sync-push-core.mjs --check",
     "sync:audio": "node scripts/sync-narrator-core.mjs",
-    "check:audio": "node scripts/sync-narrator-core.mjs --check"
+    "check:audio": "node scripts/sync-narrator-core.mjs --check",
+    "corpus:chunk": "node scripts/corpus/ingest.mjs chunk",
+    "corpus:report": "node scripts/corpus/ingest.mjs report",
+    "corpus:embed": "node scripts/corpus/ingest.mjs embed",
+    "corpus:load": "node scripts/corpus/ingest.mjs load",
+    "corpus:eval": "node scripts/corpus/eval/runner.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

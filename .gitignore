@@ -21,3 +21,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Corpus ingest caches and chunk/embedding output (manifest.jsonl is the committed record)
+scripts/corpus/raw/
+scripts/corpus/out/
