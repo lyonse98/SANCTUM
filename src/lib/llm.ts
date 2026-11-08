@@ -1,9 +1,13 @@
 import type { Message } from '@/types';
+import { SourcesTrailerParser, type ChatSource } from '@/lib/chatSources';
 
 interface StreamCallbacks {
   onToken: (token: string) => void;
   onDone: () => void;
   onError: (error: string) => void;
+  /** Structured citations for a grounded Aquinas answer (corpus spec §9.1).
+   *  Only CatechismQA passes this; when it is absent the stream is untouched. */
+  onSources?: (sources: ChatSource[]) => void;
 }
 
 // User-facing copy only: backend error text is never shown to the user, so nothing
@@ -48,6 +52,12 @@ export async function streamChat(
   context?: ChatContext,
 ): Promise<void> {
   let receivedAny = false;
+  const trailerParser = new SourcesTrailerParser(!!callbacks.onSources);
+  const flushTrailer = () => {
+    const fin = trailerParser.finish();
+    if (fin.text) callbacks.onToken(fin.text);
+    if (fin.sources) callbacks.onSources?.(fin.sources);
+  };
   const startedAt = performance.now();
   let firstTokenAt: number | null = null;
   const recordTiming = () => {
@@ -103,14 +113,17 @@ export async function streamChat(
       if (chunk) {
         receivedAny = true;
         if (firstTokenAt === null) firstTokenAt = performance.now();
-        callbacks.onToken(chunk);
+        const emit = trailerParser.push(chunk);
+        if (emit) callbacks.onToken(emit);
       }
     }
 
+    flushTrailer();
     recordTiming();
     callbacks.onDone();
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
+      flushTrailer();
       recordTiming();
       callbacks.onDone();
       return;
@@ -118,6 +131,7 @@ export async function streamChat(
     // If we already streamed partial text, treat it as a completed response
     // rather than showing an error — the connection dropped but the content is usable.
     if (receivedAny) {
+      flushTrailer();
       recordTiming();
       callbacks.onDone();
       return;

@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
-import { Send, Loader2, BookOpen, Sparkles } from 'lucide-react';
+import { Send, Loader2, BookOpen, Sparkles, ChevronRight } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
 import { streamChat } from '@/lib/llm';
+import type { ChatSource } from '@/lib/chatSources';
 
 interface CatechismQAProps {
   t: PersonaTheme;
@@ -11,6 +12,45 @@ interface QAMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** Citations the answer actually used, returned with the answer (corpus §9.1). */
+  sources?: ChatSource[];
+}
+
+/** The sources list under a grounded answer: one small line per citation,
+ *  tap to read the passage (public-domain texts in full; Catechism and other
+ *  Vatican/USCCB texts as the short excerpt the server sent). */
+function AnswerSources({ sources, t }: { sources: ChatSource[]; t: PersonaTheme }) {
+  const [openLabel, setOpenLabel] = useState<string | null>(null);
+  return (
+    <div className="mt-2 pt-2 border-t" style={{ borderColor: `${t.border}55` }}>
+      <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
+        Sources
+      </p>
+      <div className="space-y-1">
+        {sources.map((s) => (
+          <div key={s.label}>
+            <button
+              onClick={() => setOpenLabel(openLabel === s.label ? null : s.label)}
+              className="flex items-center gap-1 text-left transition-all active:scale-[0.99]"
+            >
+              <ChevronRight
+                className="w-3 h-3 flex-shrink-0 transition-transform"
+                style={{ color: t.accent, transform: openLabel === s.label ? 'rotate(90deg)' : undefined }}
+              />
+              <span className="text-[11px] font-medium" style={{ color: t.accent }}>
+                {s.label}
+              </span>
+            </button>
+            {openLabel === s.label && (
+              <p className="text-[11px] leading-relaxed mt-1 ml-4 whitespace-pre-wrap" style={{ color: t.textMuted }}>
+                {s.excerpt}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -55,6 +95,15 @@ export function CatechismQA({ t }: CatechismQAProps) {
               return prev.map((m) => m.id === assistantId ? { ...m, content: accumulated } : m);
             }
             return [...prev, { id: assistantId, role: 'assistant', content: accumulated }];
+          });
+        },
+        onSources: (sources) => {
+          setMessages((prev) => {
+            const existing = prev.find((m) => m.id === assistantId);
+            if (existing) {
+              return prev.map((m) => (m.id === assistantId ? { ...m, sources } : m));
+            }
+            return [...prev, { id: assistantId, role: 'assistant' as const, content: '', sources }];
           });
         },
         onDone: () => {
@@ -135,6 +184,9 @@ export function CatechismQA({ t }: CatechismQAProps) {
                 <p className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: msg.role === 'user' ? t.text : t.textMuted }}>
                   {msg.content}
                 </p>
+                {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
+                  <AnswerSources sources={msg.sources} t={t} />
+                )}
               </div>
             ))}
             {isLoading && messages[messages.length - 1]?.role === 'user' && (
