@@ -1,0 +1,21 @@
+{
+ "id": "catena-aurea",
+ "title": "Catena Aurea — Commentary on the Four Gospels",
+ "author": "St. Thomas Aquinas (compiler)",
+ "year": 1843,
+ "source_name": "archive.org — Oxford edition (1841–45), djvu OCR text",
+ "source_url": "https://archive.org/search?query=catena+aurea",
+ "license_tier": "A",
+ "authority_tier": 5,
+ "language": "en",
+ "shelf_tags": [
+  "gospel-commentary"
+ ],
+ "companion_shelves": [
+  "aquinas"
+ ],
+ "version": 1,
+ "ingest_status": "staged",
+ "chunk_count": 4655,
+ "content_hash": "b0c0e902eb478033480bba6f053b5178928adabd95fddca4b00655a22a72bc40"
+}

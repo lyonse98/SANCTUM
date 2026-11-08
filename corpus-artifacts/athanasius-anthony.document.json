@@ -1,0 +1,20 @@
+{
+ "id": "athanasius-anthony",
+ "title": "Life of Anthony",
+ "author": "St. Athanasius",
+ "year": 1892,
+ "source_name": "CCEL — ThML (Ellershaw translation, NPNF Series II, Vol. IV)",
+ "source_url": "https://ccel.org/ccel/schaff/npnf204.xml",
+ "license_tier": "A",
+ "authority_tier": 5,
+ "language": "en",
+ "shelf_tags": [
+  "saints",
+  "monastic"
+ ],
+ "companion_shelves": [],
+ "version": 1,
+ "ingest_status": "staged",
+ "chunk_count": 147,
+ "content_hash": "5be1821986252acf35953816d361de916a390c095b44bd477f8095a56b603453"
+}

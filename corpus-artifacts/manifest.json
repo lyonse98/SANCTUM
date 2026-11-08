@@ -1,0 +1,883 @@
+{
+ "version": 1,
+ "part_size": 250,
+ "works": [
+  {
+   "id": "ccc",
+   "phase": 0,
+   "document": {
+    "id": "ccc",
+    "title": "Catechism of the Catholic Church",
+    "author": "Holy See",
+    "year": 1997,
+    "source_name": "scborromeo.org (St. Charles Borromeo Catholic Church) — text: Libreria Editrice Vaticana, 2nd edition",
+    "source_url": "https://www.scborromeo.org/ccc/ccc_toc.htm",
+    "license_tier": "B",
+    "authority_tier": 2,
+    "language": "en",
+    "shelf_tags": [
+     "catechism"
+    ],
+    "companion_shelves": [],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 2865,
+    "content_hash": "10eabdb2d5f8f9a480fca7123dcf7ecbf7e7815705ea67ecdfb31ad02f908cb0"
+   },
+   "chunk_count": 2865,
+   "parts": [
+    {
+     "file": "ccc.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 166014
+    },
+    {
+     "file": "ccc.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 177410
+    },
+    {
+     "file": "ccc.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 190743
+    },
+    {
+     "file": "ccc.part-004.jsonl",
+     "chunks": 250,
+     "first_ordinal": 750,
+     "bytes": 184428
+    },
+    {
+     "file": "ccc.part-005.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1000,
+     "bytes": 181552
+    },
+    {
+     "file": "ccc.part-006.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1250,
+     "bytes": 184749
+    },
+    {
+     "file": "ccc.part-007.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1500,
+     "bytes": 181068
+    },
+    {
+     "file": "ccc.part-008.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1750,
+     "bytes": 157007
+    },
+    {
+     "file": "ccc.part-009.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2000,
+     "bytes": 167792
+    },
+    {
+     "file": "ccc.part-010.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2250,
+     "bytes": 171398
+    },
+    {
+     "file": "ccc.part-011.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2500,
+     "bytes": 174431
+    },
+    {
+     "file": "ccc.part-012.jsonl",
+     "chunks": 115,
+     "first_ordinal": 2750,
+     "bytes": 83370
+    }
+   ]
+  },
+  {
+   "id": "sanctum-curated",
+   "phase": 0,
+   "document": {
+    "id": "sanctum-curated",
+    "title": "Sanctum Curated Shelf — Catechism Entries & Objections",
+    "author": "Sanctum (Erik-reviewed)",
+    "year": 2026,
+    "source_name": "Sanctum",
+    "source_url": "src/data/catechism.ts (repo)",
+    "license_tier": "A",
+    "authority_tier": 8,
+    "language": "en",
+    "shelf_tags": [],
+    "companion_shelves": [],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 39,
+    "content_hash": "30b0d5f3aaa1c82604577246145a1cd22222291a8245d8d61b0f0f3726413b2f"
+   },
+   "chunk_count": 39,
+   "parts": [
+    {
+     "file": "sanctum-curated.part-001.jsonl",
+     "chunks": 39,
+     "first_ordinal": 0,
+     "bytes": 60835
+    }
+   ]
+  },
+  {
+   "id": "scripture-web",
+   "phase": 0,
+   "document": {
+    "id": "scripture-web",
+    "title": "World English Bible — Anchor Passages",
+    "author": "World English Bible (public domain)",
+    "year": 2020,
+    "source_name": "bible.helloao.org (Free Bible API) — WEB Catholic/Protestant editions",
+    "source_url": "https://bible.helloao.org/api",
+    "license_tier": "A",
+    "authority_tier": 1,
+    "language": "en",
+    "shelf_tags": [
+     "scripture"
+    ],
+    "companion_shelves": [],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 1168,
+    "content_hash": "2eac5b7134ce35792731cc30a6e718c99086d6c05f1c73d481982d41280226a2"
+   },
+   "chunk_count": 1168,
+   "parts": [
+    {
+     "file": "scripture-web.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 169678
+    },
+    {
+     "file": "scripture-web.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 190666
+    },
+    {
+     "file": "scripture-web.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 177434
+    },
+    {
+     "file": "scripture-web.part-004.jsonl",
+     "chunks": 250,
+     "first_ordinal": 750,
+     "bytes": 180152
+    },
+    {
+     "file": "scripture-web.part-005.jsonl",
+     "chunks": 168,
+     "first_ordinal": 1000,
+     "bytes": 100567
+    }
+   ]
+  },
+  {
+   "id": "summa",
+   "phase": 1,
+   "document": {
+    "id": "summa",
+    "title": "Summa Theologiae",
+    "author": "St. Thomas Aquinas",
+    "year": 1920,
+    "source_name": "New Advent — Fathers of the English Dominican Province translation",
+    "source_url": "https://www.newadvent.org/summa/",
+    "license_tier": "A",
+    "authority_tier": 4,
+    "language": "en",
+    "shelf_tags": [
+     "theology"
+    ],
+    "companion_shelves": [
+     "aquinas"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 3234,
+    "content_hash": "ec9a04a9fcdfaecbd74686ada0ae100c9a12abeed2fab4916b1418c5037bcc99"
+   },
+   "chunk_count": 3234,
+   "parts": [
+    {
+     "file": "summa.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 1199504
+    },
+    {
+     "file": "summa.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 1276355
+    },
+    {
+     "file": "summa.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 1057825
+    },
+    {
+     "file": "summa.part-004.jsonl",
+     "chunks": 250,
+     "first_ordinal": 750,
+     "bytes": 1084558
+    },
+    {
+     "file": "summa.part-005.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1000,
+     "bytes": 1262579
+    },
+    {
+     "file": "summa.part-006.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1250,
+     "bytes": 1092501
+    },
+    {
+     "file": "summa.part-007.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1500,
+     "bytes": 1063961
+    },
+    {
+     "file": "summa.part-008.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1750,
+     "bytes": 1128827
+    },
+    {
+     "file": "summa.part-009.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2000,
+     "bytes": 1330607
+    },
+    {
+     "file": "summa.part-010.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2250,
+     "bytes": 1229217
+    },
+    {
+     "file": "summa.part-011.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2500,
+     "bytes": 1260528
+    },
+    {
+     "file": "summa.part-012.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2750,
+     "bytes": 1041897
+    },
+    {
+     "file": "summa.part-013.jsonl",
+     "chunks": 234,
+     "first_ordinal": 3000,
+     "bytes": 1237561
+    }
+   ]
+  },
+  {
+   "id": "catena-aurea",
+   "phase": 1,
+   "document": {
+    "id": "catena-aurea",
+    "title": "Catena Aurea — Commentary on the Four Gospels",
+    "author": "St. Thomas Aquinas (compiler)",
+    "year": 1843,
+    "source_name": "archive.org — Oxford edition (1841–45), djvu OCR text",
+    "source_url": "https://archive.org/search?query=catena+aurea",
+    "license_tier": "A",
+    "authority_tier": 5,
+    "language": "en",
+    "shelf_tags": [
+     "gospel-commentary"
+    ],
+    "companion_shelves": [
+     "aquinas"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 4655,
+    "content_hash": "b0c0e902eb478033480bba6f053b5178928adabd95fddca4b00655a22a72bc40"
+   },
+   "chunk_count": 4655,
+   "parts": [
+    {
+     "file": "catena-aurea.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 434728
+    },
+    {
+     "file": "catena-aurea.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 502013
+    },
+    {
+     "file": "catena-aurea.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 493419
+    },
+    {
+     "file": "catena-aurea.part-004.jsonl",
+     "chunks": 250,
+     "first_ordinal": 750,
+     "bytes": 509658
+    },
+    {
+     "file": "catena-aurea.part-005.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1000,
+     "bytes": 454591
+    },
+    {
+     "file": "catena-aurea.part-006.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1250,
+     "bytes": 447466
+    },
+    {
+     "file": "catena-aurea.part-007.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1500,
+     "bytes": 460800
+    },
+    {
+     "file": "catena-aurea.part-008.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1750,
+     "bytes": 467716
+    },
+    {
+     "file": "catena-aurea.part-009.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2000,
+     "bytes": 461658
+    },
+    {
+     "file": "catena-aurea.part-010.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2250,
+     "bytes": 451338
+    },
+    {
+     "file": "catena-aurea.part-011.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2500,
+     "bytes": 438714
+    },
+    {
+     "file": "catena-aurea.part-012.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2750,
+     "bytes": 417107
+    },
+    {
+     "file": "catena-aurea.part-013.jsonl",
+     "chunks": 250,
+     "first_ordinal": 3000,
+     "bytes": 372383
+    },
+    {
+     "file": "catena-aurea.part-014.jsonl",
+     "chunks": 250,
+     "first_ordinal": 3250,
+     "bytes": 375595
+    },
+    {
+     "file": "catena-aurea.part-015.jsonl",
+     "chunks": 250,
+     "first_ordinal": 3500,
+     "bytes": 392152
+    },
+    {
+     "file": "catena-aurea.part-016.jsonl",
+     "chunks": 250,
+     "first_ordinal": 3750,
+     "bytes": 465399
+    },
+    {
+     "file": "catena-aurea.part-017.jsonl",
+     "chunks": 250,
+     "first_ordinal": 4000,
+     "bytes": 458938
+    },
+    {
+     "file": "catena-aurea.part-018.jsonl",
+     "chunks": 250,
+     "first_ordinal": 4250,
+     "bytes": 451631
+    },
+    {
+     "file": "catena-aurea.part-019.jsonl",
+     "chunks": 155,
+     "first_ordinal": 4500,
+     "bytes": 266072
+    }
+   ]
+  },
+  {
+   "id": "confessions-augustine",
+   "phase": 1,
+   "document": {
+    "id": "confessions-augustine",
+    "title": "Confessions",
+    "author": "St. Augustine of Hippo",
+    "year": 1887,
+    "source_name": "New Advent — Pusey translation (revised), NPNF",
+    "source_url": "https://www.newadvent.org/fathers/1101.htm",
+    "license_tier": "A",
+    "authority_tier": 4,
+    "language": "en",
+    "shelf_tags": [
+     "autobiography",
+     "prayer"
+    ],
+    "companion_shelves": [
+     "augustine"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 892,
+    "content_hash": "1587e754d9b32147bbf1829c187788d57e060aa060e22732229341b632a3017c"
+   },
+   "chunk_count": 892,
+   "parts": [
+    {
+     "file": "confessions-augustine.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 277513
+    },
+    {
+     "file": "confessions-augustine.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 273597
+    },
+    {
+     "file": "confessions-augustine.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 266479
+    },
+    {
+     "file": "confessions-augustine.part-004.jsonl",
+     "chunks": 142,
+     "first_ordinal": 750,
+     "bytes": 142397
+    }
+   ]
+  },
+  {
+   "id": "city-of-god-augustine",
+   "phase": 1,
+   "document": {
+    "id": "city-of-god-augustine",
+    "title": "City of God",
+    "author": "St. Augustine of Hippo",
+    "year": 1871,
+    "source_name": "New Advent — Dods translation (NPNF)",
+    "source_url": "https://www.newadvent.org/fathers/1201.htm",
+    "license_tier": "A",
+    "authority_tier": 4,
+    "language": "en",
+    "shelf_tags": [
+     "history",
+     "doctrine"
+    ],
+    "companion_shelves": [
+     "augustine"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 3490,
+    "content_hash": "06adc53ede7a84b01af0a7f72c9b72675e41185233796bd63b87ff12805bf56b"
+   },
+   "chunk_count": 3490,
+   "parts": [
+    {
+     "file": "city-of-god-augustine.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 254585
+    },
+    {
+     "file": "city-of-god-augustine.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 251240
+    },
+    {
+     "file": "city-of-god-augustine.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 259011
+    },
+    {
+     "file": "city-of-god-augustine.part-004.jsonl",
+     "chunks": 250,
+     "first_ordinal": 750,
+     "bytes": 258364
+    },
+    {
+     "file": "city-of-god-augustine.part-005.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1000,
+     "bytes": 250951
+    },
+    {
+     "file": "city-of-god-augustine.part-006.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1250,
+     "bytes": 251689
+    },
+    {
+     "file": "city-of-god-augustine.part-007.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1500,
+     "bytes": 253247
+    },
+    {
+     "file": "city-of-god-augustine.part-008.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1750,
+     "bytes": 262553
+    },
+    {
+     "file": "city-of-god-augustine.part-009.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2000,
+     "bytes": 255600
+    },
+    {
+     "file": "city-of-god-augustine.part-010.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2250,
+     "bytes": 259397
+    },
+    {
+     "file": "city-of-god-augustine.part-011.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2500,
+     "bytes": 264030
+    },
+    {
+     "file": "city-of-god-augustine.part-012.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2750,
+     "bytes": 260621
+    },
+    {
+     "file": "city-of-god-augustine.part-013.jsonl",
+     "chunks": 250,
+     "first_ordinal": 3000,
+     "bytes": 265416
+    },
+    {
+     "file": "city-of-god-augustine.part-014.jsonl",
+     "chunks": 240,
+     "first_ordinal": 3250,
+     "bytes": 255275
+    }
+   ]
+  },
+  {
+   "id": "enchiridion-augustine",
+   "phase": 1,
+   "document": {
+    "id": "enchiridion-augustine",
+    "title": "Enchiridion (Handbook on Faith, Hope, and Love)",
+    "author": "St. Augustine of Hippo",
+    "year": 1887,
+    "source_name": "New Advent — Shaw translation (NPNF)",
+    "source_url": "https://www.newadvent.org/fathers/1302.htm",
+    "license_tier": "A",
+    "authority_tier": 4,
+    "language": "en",
+    "shelf_tags": [
+     "doctrine"
+    ],
+    "companion_shelves": [
+     "augustine"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 289,
+    "content_hash": "bc3e6026be6152fe3d082116ca54d0a3f2885d9f77dad4070aa1482d0fa2b4dc"
+   },
+   "chunk_count": 289,
+   "parts": [
+    {
+     "file": "enchiridion-augustine.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 239741
+    },
+    {
+     "file": "enchiridion-augustine.part-002.jsonl",
+     "chunks": 39,
+     "first_ordinal": 250,
+     "bytes": 35061
+    }
+   ]
+  },
+  {
+   "id": "chrysostom-matthew",
+   "phase": 1,
+   "document": {
+    "id": "chrysostom-matthew",
+    "title": "Homilies on the Gospel of Matthew",
+    "author": "St. John Chrysostom",
+    "year": 1888,
+    "source_name": "New Advent — NPNF Series I, Vol. X",
+    "source_url": "https://www.newadvent.org/fathers/2001.htm",
+    "license_tier": "A",
+    "authority_tier": 5,
+    "language": "en",
+    "shelf_tags": [
+     "gospel-commentary"
+    ],
+    "companion_shelves": [],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 2932,
+    "content_hash": "e42bcce09ea1021675cbb41a442389717a8e67461f62c0607ae87ef18115760c"
+   },
+   "chunk_count": 2932,
+   "parts": [
+    {
+     "file": "chrysostom-matthew.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 289735
+    },
+    {
+     "file": "chrysostom-matthew.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 287501
+    },
+    {
+     "file": "chrysostom-matthew.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 283591
+    },
+    {
+     "file": "chrysostom-matthew.part-004.jsonl",
+     "chunks": 250,
+     "first_ordinal": 750,
+     "bytes": 284748
+    },
+    {
+     "file": "chrysostom-matthew.part-005.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1000,
+     "bytes": 275385
+    },
+    {
+     "file": "chrysostom-matthew.part-006.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1250,
+     "bytes": 283460
+    },
+    {
+     "file": "chrysostom-matthew.part-007.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1500,
+     "bytes": 279750
+    },
+    {
+     "file": "chrysostom-matthew.part-008.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1750,
+     "bytes": 275996
+    },
+    {
+     "file": "chrysostom-matthew.part-009.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2000,
+     "bytes": 283392
+    },
+    {
+     "file": "chrysostom-matthew.part-010.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2250,
+     "bytes": 274274
+    },
+    {
+     "file": "chrysostom-matthew.part-011.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2500,
+     "bytes": 281759
+    },
+    {
+     "file": "chrysostom-matthew.part-012.jsonl",
+     "chunks": 182,
+     "first_ordinal": 2750,
+     "bytes": 206166
+    }
+   ]
+  },
+  {
+   "id": "chrysostom-john",
+   "phase": 1,
+   "document": {
+    "id": "chrysostom-john",
+    "title": "Homilies on the Gospel of John",
+    "author": "St. John Chrysostom",
+    "year": 1889,
+    "source_name": "New Advent — NPNF Series I, Vol. XIV",
+    "source_url": "https://www.newadvent.org/fathers/2401.htm",
+    "license_tier": "A",
+    "authority_tier": 5,
+    "language": "en",
+    "shelf_tags": [
+     "gospel-commentary"
+    ],
+    "companion_shelves": [],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 1949,
+    "content_hash": "8c3074c884d8b979e5d985026631f2f49bcfa6e4babe71bf90c6c5254617aada"
+   },
+   "chunk_count": 1949,
+   "parts": [
+    {
+     "file": "chrysostom-john.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 291693
+    },
+    {
+     "file": "chrysostom-john.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 282001
+    },
+    {
+     "file": "chrysostom-john.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 281727
+    },
+    {
+     "file": "chrysostom-john.part-004.jsonl",
+     "chunks": 250,
+     "first_ordinal": 750,
+     "bytes": 280485
+    },
+    {
+     "file": "chrysostom-john.part-005.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1000,
+     "bytes": 280749
+    },
+    {
+     "file": "chrysostom-john.part-006.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1250,
+     "bytes": 276034
+    },
+    {
+     "file": "chrysostom-john.part-007.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1500,
+     "bytes": 285031
+    },
+    {
+     "file": "chrysostom-john.part-008.jsonl",
+     "chunks": 199,
+     "first_ordinal": 1750,
+     "bytes": 225015
+    }
+   ]
+  },
+  {
+   "id": "athanasius-incarnation",
+   "phase": 1,
+   "document": {
+    "id": "athanasius-incarnation",
+    "title": "On the Incarnation of the Word",
+    "author": "St. Athanasius",
+    "year": 1892,
+    "source_name": "CCEL — ThML (Robertson translation, NPNF Series II, Vol. IV)",
+    "source_url": "https://ccel.org/ccel/schaff/npnf204.xml",
+    "license_tier": "A",
+    "authority_tier": 5,
+    "language": "en",
+    "shelf_tags": [
+     "christology"
+    ],
+    "companion_shelves": [],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 241,
+    "content_hash": "9f8d97ae170d0d8da9f2f1b2237c9ae48e97e8f2a11928cdd3b5b3989fdcf73b"
+   },
+   "chunk_count": 241,
+   "parts": [
+    {
+     "file": "athanasius-incarnation.part-001.jsonl",
+     "chunks": 241,
+     "first_ordinal": 0,
+     "bytes": 227364
+    }
+   ]
+  },
+  {
+   "id": "athanasius-anthony",
+   "phase": 1,
+   "document": {
+    "id": "athanasius-anthony",
+    "title": "Life of Anthony",
+    "author": "St. Athanasius",
+    "year": 1892,
+    "source_name": "CCEL — ThML (Ellershaw translation, NPNF Series II, Vol. IV)",
+    "source_url": "https://ccel.org/ccel/schaff/npnf204.xml",
+    "license_tier": "A",
+    "authority_tier": 5,
+    "language": "en",
+    "shelf_tags": [
+     "saints",
+     "monastic"
+    ],
+    "companion_shelves": [],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 147,
+    "content_hash": "5be1821986252acf35953816d361de916a390c095b44bd477f8095a56b603453"
+   },
+   "chunk_count": 147,
+   "parts": [
+    {
+     "file": "athanasius-anthony.part-001.jsonl",
+     "chunks": 147,
+     "first_ordinal": 0,
+     "bytes": 179899
+    }
+   ]
+  }
+ ],
+ "total_chunks": 21901,
+ "content_hash": "c9fa190712b83d9189a5c732214dd082bbe193863f604ca0e835415789550e8c"
+}

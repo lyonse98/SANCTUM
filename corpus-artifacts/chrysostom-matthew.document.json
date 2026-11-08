@@ -1,0 +1,19 @@
+{
+ "id": "chrysostom-matthew",
+ "title": "Homilies on the Gospel of Matthew",
+ "author": "St. John Chrysostom",
+ "year": 1888,
+ "source_name": "New Advent — NPNF Series I, Vol. X",
+ "source_url": "https://www.newadvent.org/fathers/2001.htm",
+ "license_tier": "A",
+ "authority_tier": 5,
+ "language": "en",
+ "shelf_tags": [
+  "gospel-commentary"
+ ],
+ "companion_shelves": [],
+ "version": 1,
+ "ingest_status": "staged",
+ "chunk_count": 2932,
+ "content_hash": "e42bcce09ea1021675cbb41a442389717a8e67461f62c0607ae87ef18115760c"
+}

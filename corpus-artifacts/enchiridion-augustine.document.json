@@ -1,0 +1,21 @@
+{
+ "id": "enchiridion-augustine",
+ "title": "Enchiridion (Handbook on Faith, Hope, and Love)",
+ "author": "St. Augustine of Hippo",
+ "year": 1887,
+ "source_name": "New Advent — Shaw translation (NPNF)",
+ "source_url": "https://www.newadvent.org/fathers/1302.htm",
+ "license_tier": "A",
+ "authority_tier": 4,
+ "language": "en",
+ "shelf_tags": [
+  "doctrine"
+ ],
+ "companion_shelves": [
+  "augustine"
+ ],
+ "version": 1,
+ "ingest_status": "staged",
+ "chunk_count": 289,
+ "content_hash": "bc3e6026be6152fe3d082116ca54d0a3f2885d9f77dad4070aa1482d0fa2b4dc"
+}

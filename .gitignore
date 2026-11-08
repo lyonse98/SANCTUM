@@ -22,6 +22,8 @@ dist-ssr
 *.sw?
 .env
 
-# Corpus ingest caches and chunk/embedding output (manifest.jsonl is the committed record)
+# Corpus ingest caches and chunk/embedding output (manifest.jsonl is the committed record).
+# corpus-artifacts/ at the repo root is the opposite: COMMITTED on purpose — it is the
+# published form of the chunk output that the corpus-ingest edge function fetches.
 scripts/corpus/raw/
 scripts/corpus/out/

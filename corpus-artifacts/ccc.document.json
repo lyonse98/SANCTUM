@@ -1,0 +1,19 @@
+{
+ "id": "ccc",
+ "title": "Catechism of the Catholic Church",
+ "author": "Holy See",
+ "year": 1997,
+ "source_name": "scborromeo.org (St. Charles Borromeo Catholic Church) — text: Libreria Editrice Vaticana, 2nd edition",
+ "source_url": "https://www.scborromeo.org/ccc/ccc_toc.htm",
+ "license_tier": "B",
+ "authority_tier": 2,
+ "language": "en",
+ "shelf_tags": [
+  "catechism"
+ ],
+ "companion_shelves": [],
+ "version": 1,
+ "ingest_status": "staged",
+ "chunk_count": 2865,
+ "content_hash": "10eabdb2d5f8f9a480fca7123dcf7ecbf7e7815705ea67ecdfb31ad02f908cb0"
+}
