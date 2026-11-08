@@ -149,6 +149,25 @@ function verseText(item) {
 
 const WEBP_NAME = { 'Esther (Greek)': 'Esther', 'Daniel (Greek)': 'Daniel' };
 
+// The chapter API is addressed by book ID (1CO, SIR, DAG…), not by name —
+// name URLs resolve only for some books, which silently 404s every
+// space-named book (1 Corinthians, Wisdom of Solomon, …). Resolve name → ID
+// from the API's own books index (cached after the first fetch).
+const bookIdMaps = new Map();
+async function bookIds(translation) {
+  if (!bookIdMaps.has(translation)) {
+    const raw = await fetchCached(
+      `https://bible.helloao.org/api/${translation}/books.json`,
+      `anchors/books-${translation}.json`,
+      { minIntervalMs: 0 },
+    );
+    const map = new Map();
+    for (const b of JSON.parse(raw).books ?? []) map.set(b.name, b.id);
+    bookIdMaps.set(translation, map);
+  }
+  return bookIdMaps.get(translation);
+}
+
 async function fetchChapter(apiBook, chapter) {
   const webpBook = WEBP_NAME[apiBook] ?? apiBook;
   // Esther: prefer the Hebrew text (eng_webp) — the CCC's Esther references
@@ -159,9 +178,11 @@ async function fetchChapter(apiBook, chapter) {
       ? [['eng_webp', webpBook], ['eng_webc', apiBook]]
       : [['eng_webc', apiBook], ['eng_webp', webpBook]];
   for (const [translation, name] of order) {
-    const url = `https://bible.helloao.org/api/${translation}/${encodeURIComponent(name)}/${chapter}.json`;
+    const id = (await bookIds(translation)).get(name);
+    if (!id) continue;
+    const url = `https://bible.helloao.org/api/${translation}/${id}/${chapter}.json`;
     try {
-      const raw = await fetchCached(url, `anchors/${translation}-${name.replace(/\s+/g, '_')}-${chapter}.json`, { minIntervalMs: 120 });
+      const raw = await fetchCached(url, `anchors/${translation}-${id}-${chapter}.json`, { minIntervalMs: 120 });
       const data = JSON.parse(raw);
       const verses = new Map();
       for (const item of data.chapter?.content ?? []) {
