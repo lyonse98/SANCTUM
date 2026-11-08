@@ -1,5 +1,15 @@
 import { PERSONA_PROMPTS, isPersonaId } from "./personas.ts";
-import { buildAquinasPrompt } from "./aquinas.ts";
+import { buildAquinasCorpusPrompt, buildAquinasPrompt } from "./aquinas.ts";
+import {
+  AQUINAS_CITATION_NOTE,
+  COMPANION_CORPUS_RULES,
+  SOURCES_TRAILER_SENTINEL,
+  buildSourcesBlock,
+  corpusEnabled,
+  extractUsedCitations,
+  retrieveCorpus,
+  type CorpusResult,
+} from "./corpus.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -194,7 +204,15 @@ function buildBody(
   personaPrompt: string,
   model: string,
   maxOutputTokens: number,
+  corpusBlock?: string,
 ) {
+  // The corpus block, when present, sits between the grounding and the safety
+  // preamble: late enough to govern how retrieved passages are used, never after
+  // the safety rules. When it is absent the composed instruction is byte-for-byte
+  // the pre-corpus string.
+  const instructionParts = [personaPrompt, SCRIPTURE_GROUNDING];
+  if (corpusBlock) instructionParts.push(corpusBlock);
+  instructionParts.push(SAFETY_PREAMBLE);
   return {
     contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.content }] })),
     systemInstruction: {
@@ -202,7 +220,7 @@ function buildBody(
       // style rules come LAST. Instructions nearest the end carry the most weight, and the
       // persona sections are written as bullets — leaving them last made the model mirror
       // that shape back as a listicle instead of talking like a man.
-      parts: [{ text: `${personaPrompt}\n\n${SCRIPTURE_GROUNDING}\n\n${SAFETY_PREAMBLE}` }],
+      parts: [{ text: instructionParts.join("\n\n") }],
     },
     // No googleSearch: with live search the model invents plausible podcast and article titles
     // and presents them as real. Without it, it stays inside Scripture, the tradition, and the
@@ -370,7 +388,40 @@ Deno.serve(async (req: Request) => {
     if (personaId !== "aquinas" && !isPersonaId(personaId)) {
       return errorResponse("Unknown companion.", 400);
     }
-    let personaPrompt = personaId === "aquinas" ? buildAquinasPrompt() : PERSONA_PROMPTS[personaId];
+    const isAquinas = personaId === "aquinas";
+
+    // ── Corpus retrieval (spec §§8.4, 9.1, 9.2) ─────────────────────────────
+    // Behind the CORPUS_ENABLED flag: unset/false and none of this runs — the
+    // prompts below are exactly the pre-corpus ones. When on, retrieval is one
+    // extra server-side call with a 400 ms hard cap; any failure returns null
+    // and the conversation proceeds exactly as it does today (fail-open).
+    const corpusOn = corpusEnabled();
+    let corpusResults: CorpusResult[] | null = null;
+    if (corpusOn) {
+      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+      const query = lastUser?.content ?? "";
+      if (query) {
+        corpusResults = isAquinas
+          ? await retrieveCorpus({
+              query,
+              purpose: "aquinas-qa",
+              authorityTiers: [1, 2, 3, 4, 5, 8],
+              k: 8,
+            })
+          : await retrieveCorpus({
+              query,
+              purpose: "companion-chat",
+              companion: personaId as string,
+              k: 5,
+            });
+      }
+    }
+
+    let personaPrompt = isAquinas
+      ? corpusOn
+        ? buildAquinasCorpusPrompt()
+        : buildAquinasPrompt()
+      : PERSONA_PROMPTS[personaId];
 
     const seasonName = typeof payload.season === "string" ? payload.season : "";
     const seasonThemes = Object.prototype.hasOwnProperty.call(SEASON_THEMES, seasonName)
@@ -383,12 +434,22 @@ Deno.serve(async (req: Request) => {
       personaPrompt += DISTRESS_NOTE;
     }
 
+    // The corpus block (usage rules + the retrieved passages themselves) rides
+    // only when retrieval returned material for this request. Without it, an
+    // enabled-but-silent shelf leaves the conversation exactly as it is today.
+    let corpusBlock: string | undefined;
+    if (corpusResults && corpusResults.length > 0) {
+      corpusBlock = isAquinas
+        ? `${AQUINAS_CITATION_NOTE}\n\n${buildSourcesBlock(corpusResults)}`
+        : `${COMPANION_CORPUS_RULES}\n\n${buildSourcesBlock(corpusResults, 1000)}`;
+    }
+
     // Model tiering: use the fast/cheap model for the first exchange (<=2 messages),
     // then escalate to the caller's chosen model, but only within the allowlist.
     const geminiModel = messages.length <= 2 ? DEFAULT_MODEL : resolveModel(payload.model);
     const streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
     const maxOutputTokens = personaId === "aquinas" ? MAX_OUTPUT_TOKENS_AQUINAS : MAX_OUTPUT_TOKENS;
-    const body = buildBody(messages, personaPrompt, geminiModel, maxOutputTokens);
+    const body = buildBody(messages, personaPrompt, geminiModel, maxOutputTokens, corpusBlock);
 
     const upstreamRes = await fetch(streamUrl, {
       method: "POST",
@@ -412,6 +473,24 @@ Deno.serve(async (req: Request) => {
     let buffer = "";
     let streamClosed = false;
     let sentAnyTokens = false;
+
+    // Aquinas answers grounded in retrieved passages get a sources trailer
+    // (§9.1): the answer text is accumulated as it streams so the citations it
+    // actually used can be computed mechanically (§5.3 rule 3) and appended
+    // after the final token. Companions never accumulate and never trailer —
+    // their citations stay inline in the text.
+    const citationResults =
+      isAquinas && corpusResults && corpusResults.length > 0 ? corpusResults : null;
+    let fullAnswer = "";
+    const enqueueTrailer = (controller: ReadableStreamDefaultController) => {
+      if (!citationResults || !fullAnswer) return;
+      const used = extractUsedCitations(fullAnswer, citationResults);
+      if (used.length > 0) {
+        controller.enqueue(
+          new TextEncoder().encode(`${SOURCES_TRAILER_SENTINEL}${JSON.stringify(used)}`),
+        );
+      }
+    };
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -439,6 +518,7 @@ Deno.serve(async (req: Request) => {
                 const token = json.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (token) {
                   sentAnyTokens = true;
+                  if (citationResults) fullAnswer += token;
                   controller.enqueue(new TextEncoder().encode(token));
                 }
               } catch {
@@ -447,6 +527,7 @@ Deno.serve(async (req: Request) => {
             }
             if (streamClosed) break;
           }
+          enqueueTrailer(controller);
           controller.close();
         } catch (streamErr) {
           console.error("Stream failed:", streamErr instanceof Error ? streamErr.message : String(streamErr));
@@ -457,13 +538,16 @@ Deno.serve(async (req: Request) => {
           }
           // If we already sent partial text, just close — the client keeps what it got.
           if (sentAnyTokens) {
+            enqueueTrailer(controller);
             controller.close();
             return;
           }
           // Nothing was sent yet — fall back to a non-streaming request for the full response.
           try {
             const fullText = await nonStreamGemini(geminiModel, apiKey, body);
+            if (citationResults) fullAnswer = fullText;
             controller.enqueue(new TextEncoder().encode(fullText));
+            enqueueTrailer(controller);
             controller.close();
           } catch (fallbackErr) {
             console.error(
