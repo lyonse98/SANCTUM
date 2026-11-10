@@ -876,8 +876,586 @@
      "bytes": 179899
     }
    ]
+  },
+  {
+   "id": "bible-web-full",
+   "phase": 2,
+   "document": {
+    "id": "bible-web-full",
+    "title": "World English Bible — Complete (Catholic Edition)",
+    "author": "World English Bible (public domain)",
+    "year": 2020,
+    "source_name": "bible.helloao.org (Free Bible API) — WEB Catholic edition (eng_webc), all 73 books",
+    "source_url": "https://bible.helloao.org/api",
+    "license_tier": "A",
+    "authority_tier": 1,
+    "language": "en",
+    "shelf_tags": [
+     "scripture"
+    ],
+    "companion_shelves": [],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 4988,
+    "content_hash": "2cad84f025f44d69690cc1490ff0c3b4b50a9845ed3d80ef73db95c0dd799d3f"
+   },
+   "chunk_count": 4988,
+   "parts": [
+    {
+     "file": "bible-web-full.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 308873
+    },
+    {
+     "file": "bible-web-full.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 300831
+    },
+    {
+     "file": "bible-web-full.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 310387
+    },
+    {
+     "file": "bible-web-full.part-004.jsonl",
+     "chunks": 250,
+     "first_ordinal": 750,
+     "bytes": 305114
+    },
+    {
+     "file": "bible-web-full.part-005.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1000,
+     "bytes": 305311
+    },
+    {
+     "file": "bible-web-full.part-006.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1250,
+     "bytes": 307329
+    },
+    {
+     "file": "bible-web-full.part-007.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1500,
+     "bytes": 304358
+    },
+    {
+     "file": "bible-web-full.part-008.jsonl",
+     "chunks": 250,
+     "first_ordinal": 1750,
+     "bytes": 301948
+    },
+    {
+     "file": "bible-web-full.part-009.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2000,
+     "bytes": 277418
+    },
+    {
+     "file": "bible-web-full.part-010.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2250,
+     "bytes": 288919
+    },
+    {
+     "file": "bible-web-full.part-011.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2500,
+     "bytes": 302519
+    },
+    {
+     "file": "bible-web-full.part-012.jsonl",
+     "chunks": 250,
+     "first_ordinal": 2750,
+     "bytes": 306704
+    },
+    {
+     "file": "bible-web-full.part-013.jsonl",
+     "chunks": 250,
+     "first_ordinal": 3000,
+     "bytes": 293991
+    },
+    {
+     "file": "bible-web-full.part-014.jsonl",
+     "chunks": 250,
+     "first_ordinal": 3250,
+     "bytes": 307578
+    },
+    {
+     "file": "bible-web-full.part-015.jsonl",
+     "chunks": 250,
+     "first_ordinal": 3500,
+     "bytes": 316178
+    },
+    {
+     "file": "bible-web-full.part-016.jsonl",
+     "chunks": 250,
+     "first_ordinal": 3750,
+     "bytes": 304943
+    },
+    {
+     "file": "bible-web-full.part-017.jsonl",
+     "chunks": 250,
+     "first_ordinal": 4000,
+     "bytes": 293877
+    },
+    {
+     "file": "bible-web-full.part-018.jsonl",
+     "chunks": 250,
+     "first_ordinal": 4250,
+     "bytes": 306873
+    },
+    {
+     "file": "bible-web-full.part-019.jsonl",
+     "chunks": 250,
+     "first_ordinal": 4500,
+     "bytes": 304603
+    },
+    {
+     "file": "bible-web-full.part-020.jsonl",
+     "chunks": 238,
+     "first_ordinal": 4750,
+     "bytes": 298615
+    }
+   ]
+  },
+  {
+   "id": "story-of-a-soul-therese",
+   "phase": 2,
+   "document": {
+    "id": "story-of-a-soul-therese",
+    "title": "Story of a Soul (L'Histoire d'une Âme) — with her Counsels, Letters, and Poems",
+    "author": "St. Thérèse of Lisieux",
+    "year": 1912,
+    "source_name": "Project Gutenberg #16772 — T. N. Taylor translation, from \"Soeur Thérèse of Lisieux\" (Burns, Oates & Washbourne, 1912; 8th ed. 1922)",
+    "source_url": "https://www.gutenberg.org/cache/epub/16772/pg16772.txt",
+    "license_tier": "A",
+    "authority_tier": 4,
+    "language": "en",
+    "shelf_tags": [
+     "autobiography",
+     "saints"
+    ],
+    "companion_shelves": [
+     "therese",
+     "therese-women"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 709,
+    "content_hash": "dd001a3bdbbd8502589d812dabad93d595e5bad0e74ff314a691cfccd71430b3"
+   },
+   "chunk_count": 709,
+   "parts": [
+    {
+     "file": "story-of-a-soul-therese.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 283601
+    },
+    {
+     "file": "story-of-a-soul-therese.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 284395
+    },
+    {
+     "file": "story-of-a-soul-therese.part-003.jsonl",
+     "chunks": 209,
+     "first_ordinal": 500,
+     "bytes": 243613
+    }
+   ]
+  },
+  {
+   "id": "life-teresa",
+   "phase": 2,
+   "document": {
+    "id": "life-teresa",
+    "title": "The Life of St. Teresa of Jesus",
+    "author": "St. Teresa of Avila",
+    "year": 1870,
+    "source_name": "CCEL — ThML (David Lewis translation, 1870)",
+    "source_url": "https://ccel.org/ccel/teresa/life.xml",
+    "license_tier": "A",
+    "authority_tier": 4,
+    "language": "en",
+    "shelf_tags": [
+     "autobiography",
+     "prayer"
+    ],
+    "companion_shelves": [
+     "teresa"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 880,
+    "content_hash": "d9489e520b0974eeaf5a9214727670a00843d20e2ad4065e87a09b91c94c7e13"
+   },
+   "chunk_count": 880,
+   "parts": [
+    {
+     "file": "life-teresa.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 277248
+    },
+    {
+     "file": "life-teresa.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 286905
+    },
+    {
+     "file": "life-teresa.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 299309
+    },
+    {
+     "file": "life-teresa.part-004.jsonl",
+     "chunks": 130,
+     "first_ordinal": 750,
+     "bytes": 143189
+    }
+   ]
+  },
+  {
+   "id": "interior-castle-teresa",
+   "phase": 2,
+   "document": {
+    "id": "interior-castle-teresa",
+    "title": "The Interior Castle (The Mansions)",
+    "author": "St. Teresa of Avila",
+    "year": 1912,
+    "source_name": "CCEL — ThML (Benedictines of Stanbrook translation, 1912)",
+    "source_url": "https://ccel.org/ccel/teresa/castle2.xml",
+    "license_tier": "A",
+    "authority_tier": 4,
+    "language": "en",
+    "shelf_tags": [
+     "prayer",
+     "mysticism"
+    ],
+    "companion_shelves": [
+     "teresa"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 449,
+    "content_hash": "f5940d5a0ccdb9f3ea89e40ccde034963fef37f7dc7e827b7a7ef022a6133a07"
+   },
+   "chunk_count": 449,
+   "parts": [
+    {
+     "file": "interior-castle-teresa.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 297231
+    },
+    {
+     "file": "interior-castle-teresa.part-002.jsonl",
+     "chunks": 199,
+     "first_ordinal": 250,
+     "bytes": 232768
+    }
+   ]
+  },
+  {
+   "id": "dialogue-catherine",
+   "phase": 2,
+   "document": {
+    "id": "dialogue-catherine",
+    "title": "The Dialogue of the Seraphic Virgin Catherine of Siena",
+    "author": "St. Catherine of Siena",
+    "year": 1896,
+    "source_name": "archive.org — Algar Thorold translation (Kegan Paul, Trench, Trübner, 1896), djvu text",
+    "source_url": "https://archive.org/download/seraphicvirginca00cathuoft/seraphicvirginca00cathuoft_djvu.txt",
+    "license_tier": "A",
+    "authority_tier": 4,
+    "language": "en",
+    "shelf_tags": [
+     "mysticism",
+     "prayer"
+    ],
+    "companion_shelves": [
+     "catherine"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 942,
+    "content_hash": "c5b8d1e87ac118659d2391a702b958e0958e4f1c8b6738480b0b9ae3529caa44"
+   },
+   "chunk_count": 942,
+   "parts": [
+    {
+     "file": "dialogue-catherine.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 265485
+    },
+    {
+     "file": "dialogue-catherine.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 272558
+    },
+    {
+     "file": "dialogue-catherine.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 268036
+    },
+    {
+     "file": "dialogue-catherine.part-004.jsonl",
+     "chunks": 192,
+     "first_ordinal": 750,
+     "bytes": 204629
+    }
+   ]
+  },
+  {
+   "id": "letters-catherine",
+   "phase": 2,
+   "document": {
+    "id": "letters-catherine",
+    "title": "Saint Catherine of Siena as Seen in Her Letters",
+    "author": "St. Catherine of Siena",
+    "year": 1905,
+    "source_name": "archive.org — Vida D. Scudder translation/edition (J. M. Dent, 1905; scan of the 1911 reprint), djvu text",
+    "source_url": "https://archive.org/download/saintcatherineof00cath/saintcatherineof00cath_djvu.txt",
+    "license_tier": "A",
+    "authority_tier": 4,
+    "language": "en",
+    "shelf_tags": [
+     "letters",
+     "saints"
+    ],
+    "companion_shelves": [
+     "catherine"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 586,
+    "content_hash": "f97d0d4f386ff41187d17bba4e9c28796a5675d9f6122467e968ac90b080e079"
+   },
+   "chunk_count": 586,
+   "parts": [
+    {
+     "file": "letters-catherine.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 275425
+    },
+    {
+     "file": "letters-catherine.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 273179
+    },
+    {
+     "file": "letters-catherine.part-003.jsonl",
+     "chunks": 86,
+     "first_ordinal": 500,
+     "bytes": 95311
+    }
+   ]
+  },
+  {
+   "id": "exercises-ignatius",
+   "phase": 2,
+   "document": {
+    "id": "exercises-ignatius",
+    "title": "The Spiritual Exercises",
+    "author": "St. Ignatius of Loyola",
+    "year": 1914,
+    "source_name": "CCEL — ThML (Elder Mullan translation, 1914)",
+    "source_url": "https://ccel.org/ccel/ignatius/exercises.xml",
+    "license_tier": "A",
+    "authority_tier": 6,
+    "language": "en",
+    "shelf_tags": [
+     "prayer",
+     "discernment"
+    ],
+    "companion_shelves": [
+     "ignatius"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 221,
+    "content_hash": "15e034f3a1c3181e394bfc5fa6771512de6acb57e4705646987c0c1441ebfeed"
+   },
+   "chunk_count": 221,
+   "parts": [
+    {
+     "file": "exercises-ignatius.part-001.jsonl",
+     "chunks": 221,
+     "first_ordinal": 0,
+     "bytes": 241716
+    }
+   ]
+  },
+  {
+   "id": "autobiography-ignatius",
+   "phase": 2,
+   "document": {
+    "id": "autobiography-ignatius",
+    "title": "The Autobiography of St. Ignatius Loyola (A Pilgrim's Journey)",
+    "author": "St. Ignatius of Loyola",
+    "year": 1900,
+    "source_name": "CCEL — ThML (J. F. X. O'Conor translation, 1900)",
+    "source_url": "https://ccel.org/ccel/ignatius/autobiography.xml",
+    "license_tier": "A",
+    "authority_tier": 6,
+    "language": "en",
+    "shelf_tags": [
+     "autobiography",
+     "saints"
+    ],
+    "companion_shelves": [
+     "ignatius"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 125,
+    "content_hash": "2c6db9d25f35b499a7ee8e2d0c0d3626e2e95ba75c1354c4c9414095f47aaaae"
+   },
+   "chunk_count": 125,
+   "parts": [
+    {
+     "file": "autobiography-ignatius.part-001.jsonl",
+     "chunks": 125,
+     "first_ordinal": 0,
+     "bytes": 143796
+    }
+   ]
+  },
+  {
+   "id": "trial-joan",
+   "phase": 2,
+   "document": {
+    "id": "trial-joan",
+    "title": "The Trial of Jeanne d'Arc — the Trials of Condemnation and Rehabilitation",
+    "author": "Jeanne d'Arc trial record (trans. T. Douglas Murray)",
+    "year": 1902,
+    "source_name": "archive.org — Murray, \"Jeanne d'Arc, Maid of Orleans, Deliverer of France\" (McClure, Phillips, 1902), djvu text",
+    "source_url": "https://archive.org/download/jeannedarcmaidof00murruoft/jeannedarcmaidof00murruoft_djvu.txt",
+    "license_tier": "A",
+    "authority_tier": 7,
+    "language": "en",
+    "shelf_tags": [
+     "saints",
+     "history",
+     "testimony"
+    ],
+    "companion_shelves": [
+     "joan"
+    ],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 862,
+    "content_hash": "75823a126227cc576af04ebf70cd31e273a91336be53cdfc7ca87bf17d1fe529"
+   },
+   "chunk_count": 862,
+   "parts": [
+    {
+     "file": "trial-joan.part-001.jsonl",
+     "chunks": 250,
+     "first_ordinal": 0,
+     "bytes": 304402
+    },
+    {
+     "file": "trial-joan.part-002.jsonl",
+     "chunks": 250,
+     "first_ordinal": 250,
+     "bytes": 284492
+    },
+    {
+     "file": "trial-joan.part-003.jsonl",
+     "chunks": 250,
+     "first_ordinal": 500,
+     "bytes": 285739
+    },
+    {
+     "file": "trial-joan.part-004.jsonl",
+     "chunks": 112,
+     "first_ordinal": 750,
+     "bytes": 128930
+    }
+   ]
+  },
+  {
+   "id": "lumen-gentium",
+   "phase": 2,
+   "document": {
+    "id": "lumen-gentium",
+    "title": "Lumen Gentium, Chapter VIII — The Blessed Virgin Mary, Mother of God, in the Mystery of Christ and the Church (§§52–69)",
+    "author": "Second Vatican Council",
+    "year": 1964,
+    "source_name": "vatican.va — Dogmatic Constitution Lumen Gentium (21 Nov 1964), chapter VIII only",
+    "source_url": "https://www.vatican.va/archive/hist_councils/ii_vatican_council/documents/vat-ii_const_19641121_lumen-gentium_en.html",
+    "license_tier": "B",
+    "authority_tier": 2,
+    "language": "en",
+    "shelf_tags": [
+     "mariology",
+     "council"
+    ],
+    "companion_shelves": [],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 56,
+    "content_hash": "d16e8e6fdee323a556e492678a9e0a68556130fcdf65b07783bb909f1fdbe203"
+   },
+   "chunk_count": 56,
+   "parts": [
+    {
+     "file": "lumen-gentium.part-001.jsonl",
+     "chunks": 56,
+     "first_ordinal": 0,
+     "bytes": 77579
+    }
+   ]
+  },
+  {
+   "id": "divini-amoris-scientia",
+   "phase": 2,
+   "document": {
+    "id": "divini-amoris-scientia",
+    "title": "Divini Amoris Scientia — St. Thérèse of the Child Jesus Proclaimed a Doctor of the Universal Church",
+    "author": "Pope St. John Paul II",
+    "year": 1997,
+    "source_name": "vatican.va — Apostolic Letter Divini Amoris Scientia (19 Oct 1997)",
+    "source_url": "https://www.vatican.va/content/john-paul-ii/en/apost_letters/1997/documents/hf_jp-ii_apl_19101997_divini-amoris.html",
+    "license_tier": "B",
+    "authority_tier": 3,
+    "language": "en",
+    "shelf_tags": [
+     "saints",
+     "papal"
+    ],
+    "companion_shelves": [],
+    "version": 1,
+    "ingest_status": "staged",
+    "chunk_count": 37,
+    "content_hash": "7a70208e85d6a856f5d5affdbac5e4b0dae817afd8b333397d4c4572642907e9"
+   },
+   "chunk_count": 37,
+   "parts": [
+    {
+     "file": "divini-amoris-scientia.part-001.jsonl",
+     "chunks": 37,
+     "first_ordinal": 0,
+     "bytes": 47416
+    }
+   ]
   }
  ],
- "total_chunks": 21901,
- "content_hash": "c9fa190712b83d9189a5c732214dd082bbe193863f604ca0e835415789550e8c"
+ "total_chunks": 31756,
+ "content_hash": "11a40f3f65d6986722d13c937745ee3512f0e2fff934e1724577593a37dd5477"
 }

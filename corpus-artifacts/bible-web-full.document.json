@@ -1,0 +1,19 @@
+{
+ "id": "bible-web-full",
+ "title": "World English Bible — Complete (Catholic Edition)",
+ "author": "World English Bible (public domain)",
+ "year": 2020,
+ "source_name": "bible.helloao.org (Free Bible API) — WEB Catholic edition (eng_webc), all 73 books",
+ "source_url": "https://bible.helloao.org/api",
+ "license_tier": "A",
+ "authority_tier": 1,
+ "language": "en",
+ "shelf_tags": [
+  "scripture"
+ ],
+ "companion_shelves": [],
+ "version": 1,
+ "ingest_status": "staged",
+ "chunk_count": 4988,
+ "content_hash": "2cad84f025f44d69690cc1490ff0c3b4b50a9845ed3d80ef73db95c0dd799d3f"
+}

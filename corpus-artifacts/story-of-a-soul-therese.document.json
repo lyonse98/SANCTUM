@@ -1,0 +1,23 @@
+{
+ "id": "story-of-a-soul-therese",
+ "title": "Story of a Soul (L'Histoire d'une Âme) — with her Counsels, Letters, and Poems",
+ "author": "St. Thérèse of Lisieux",
+ "year": 1912,
+ "source_name": "Project Gutenberg #16772 — T. N. Taylor translation, from \"Soeur Thérèse of Lisieux\" (Burns, Oates & Washbourne, 1912; 8th ed. 1922)",
+ "source_url": "https://www.gutenberg.org/cache/epub/16772/pg16772.txt",
+ "license_tier": "A",
+ "authority_tier": 4,
+ "language": "en",
+ "shelf_tags": [
+  "autobiography",
+  "saints"
+ ],
+ "companion_shelves": [
+  "therese",
+  "therese-women"
+ ],
+ "version": 1,
+ "ingest_status": "staged",
+ "chunk_count": 709,
+ "content_hash": "dd001a3bdbbd8502589d812dabad93d595e5bad0e74ff314a691cfccd71430b3"
+}

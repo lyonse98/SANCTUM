@@ -1,0 +1,20 @@
+{
+ "id": "divini-amoris-scientia",
+ "title": "Divini Amoris Scientia — St. Thérèse of the Child Jesus Proclaimed a Doctor of the Universal Church",
+ "author": "Pope St. John Paul II",
+ "year": 1997,
+ "source_name": "vatican.va — Apostolic Letter Divini Amoris Scientia (19 Oct 1997)",
+ "source_url": "https://www.vatican.va/content/john-paul-ii/en/apost_letters/1997/documents/hf_jp-ii_apl_19101997_divini-amoris.html",
+ "license_tier": "B",
+ "authority_tier": 3,
+ "language": "en",
+ "shelf_tags": [
+  "saints",
+  "papal"
+ ],
+ "companion_shelves": [],
+ "version": 1,
+ "ingest_status": "staged",
+ "chunk_count": 37,
+ "content_hash": "7a70208e85d6a856f5d5affdbac5e4b0dae817afd8b333397d4c4572642907e9"
+}

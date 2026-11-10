@@ -1,0 +1,22 @@
+{
+ "id": "dialogue-catherine",
+ "title": "The Dialogue of the Seraphic Virgin Catherine of Siena",
+ "author": "St. Catherine of Siena",
+ "year": 1896,
+ "source_name": "archive.org — Algar Thorold translation (Kegan Paul, Trench, Trübner, 1896), djvu text",
+ "source_url": "https://archive.org/download/seraphicvirginca00cathuoft/seraphicvirginca00cathuoft_djvu.txt",
+ "license_tier": "A",
+ "authority_tier": 4,
+ "language": "en",
+ "shelf_tags": [
+  "mysticism",
+  "prayer"
+ ],
+ "companion_shelves": [
+  "catherine"
+ ],
+ "version": 1,
+ "ingest_status": "staged",
+ "chunk_count": 942,
+ "content_hash": "c5b8d1e87ac118659d2391a702b958e0958e4f1c8b6738480b0b9ae3529caa44"
+}
