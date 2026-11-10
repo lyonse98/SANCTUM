@@ -1,5 +1,5 @@
 /**
- * What the daily email can point a man at. The list is deliberately short and made only of
+ * What the daily reminder can point a man at. The list is deliberately short and made only of
  * things Sanctum actually contains, so a reminder can always open the door it promises. The
  * `key` values are the same strings the database accepts — one vocabulary across the app.
  */

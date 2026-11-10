@@ -52,7 +52,7 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
       title: 'What it keeps',
       body: w
         ? 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a woman writes lives only in her own browser. The only things ever held remotely are a scrambled anti-abuse counter, a push subscription if she asks for the daily reminder, a feedback note if she sends one, and anonymous usage counts if she turns them on.'
-        : 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a man writes lives only in his own browser. The only things ever held remotely are a scrambled anti-abuse counter, an email address if he asks for the daily reminder, a feedback note if he sends one, and anonymous usage counts if he turns them on.',
+        : 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a man writes lives only in his own browser. The only things ever held remotely are a scrambled anti-abuse counter, a push subscription if he asks for the daily reminder, a feedback note if he sends one, and anonymous usage counts if he turns them on.',
     },
     {
       icon: BookOpen,
