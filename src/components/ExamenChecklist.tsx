@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Moon, Check, RotateCcw, Flame, BookOpen } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
-import { DAILY_QUOTES } from '@/data/quotes';
+import type { Audience, PersonaTheme } from '@/types';
+import { quoteForDay } from '@/data/quotes';
 import { getExamenStreak, recordExamenComplete } from '@/lib/retention';
 
 interface ExamenChecklistProps {
   t: PersonaTheme;
+  /** Which rotation the closing quote comes from. Defaults to the men's. */
+  audience?: Audience;
 }
 
 const EXAMEN_STEPS = [
@@ -42,18 +44,11 @@ function saveState(checks: Record<string, boolean>) {
   }
 }
 
-function getQuoteForDay(date: Date = new Date()) {
-  const dayOfYear = Math.floor(
-    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000,
-  );
-  return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
-}
-
-export function ExamenChecklist({ t }: ExamenChecklistProps) {
+export function ExamenChecklist({ t, audience = 'men' }: ExamenChecklistProps) {
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [streakRecorded, setStreakRecorded] = useState(false);
   const streak = useMemo(() => getExamenStreak(), []);
-  const todayQuote = useMemo(() => getQuoteForDay(), []);
+  const todayQuote = useMemo(() => quoteForDay(new Date(), audience), [audience]);
 
   useEffect(() => {
     const stored = loadState();

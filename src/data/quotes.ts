@@ -1,3 +1,5 @@
+import type { Audience } from '@/types';
+
 export interface DailyQuote {
   text: string;
   author: string;
@@ -201,3 +203,45 @@ export const DAILY_QUOTES: DailyQuote[] = [
   { text: 'But according to His promise we are waiting for new heavens and a new earth in which righteousness dwells.', author: '2 Peter 3:13' },
   { text: 'Therefore, beloved, since you are waiting for these, be diligent to be found by Him without spot or blemish, and at peace.', author: '2 Peter 3:14' },
 ];
+
+/**
+ * The women's rotation — her own voices from the tradition, not the men's list with
+ * the pronouns changed. Every line is a widely attested verbatim quotation in its
+ * common public-domain rendering, carrying its attribution: the women Doctors and
+ * saints of the Church, Monica's words as her son recorded them, and Scripture.
+ * Nothing here is paraphrased or composed for the app.
+ */
+export const DAILY_QUOTES_WOMEN: DailyQuote[] = [
+  { text: 'My vocation is love.', author: 'St. Thérèse of Lisieux', source: 'Story of a Soul' },
+  { text: 'I will spend my heaven doing good on earth.', author: 'St. Thérèse of Lisieux' },
+  { text: 'I am not dying; I am entering into life.', author: 'St. Thérèse of Lisieux' },
+  { text: 'Let nothing disturb you, let nothing frighten you. All things pass away: God never changes.', author: 'St. Teresa of Avila' },
+  { text: 'Whoever has God lacks nothing: God alone suffices.', author: 'St. Teresa of Avila', source: 'Her bookmark' },
+  { text: 'Be who God meant you to be and you will set the world on fire.', author: 'St. Catherine of Siena' },
+  { text: 'All shall be well, and all shall be well, and all manner of thing shall be well.', author: 'Julian of Norwich', source: 'Revelations of Divine Love' },
+  { text: 'The woman\'s soul is fashioned as a shelter in which other souls may unfold.', author: 'St. Edith Stein', source: 'Essays on Woman' },
+  { text: 'My search for truth was a constant prayer.', author: 'St. Edith Stein' },
+  { text: 'I am a feather on the breath of God.', author: 'St. Hildegard of Bingen' },
+  { text: 'Nothing is far from God.', author: 'St. Monica', source: 'in St. Augustine, Confessions' },
+  { text: 'I have found my heaven on earth, since heaven is God, and God is in my soul.', author: 'St. Elizabeth of the Trinity', source: 'Heaven in Faith' },
+  { text: 'Blessed is she who believed, for there will be a fulfillment of the things which have been spoken to her from the Lord.', author: 'Luke 1:45' },
+  { text: 'Behold, the handmaid of the Lord; be it to me according to your word.', author: 'Luke 1:38' },
+  { text: 'Strength and dignity are her clothing. She laughs at the time to come.', author: 'Proverbs 31:25' },
+];
+
+/** The rotation a track reads from. The men's track gets the original array itself. */
+export function quotesForAudience(audience: Audience): DailyQuote[] {
+  return audience === 'women' ? DAILY_QUOTES_WOMEN : DAILY_QUOTES;
+}
+
+/**
+ * The quote appointed for a day on a track — the same day-of-year arithmetic every
+ * surface has always used, so a men's day never changes; only the shelf differs.
+ */
+export function quoteForDay(date: Date, audience: Audience): DailyQuote {
+  const list = quotesForAudience(audience);
+  const dayOfYear = Math.floor(
+    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000,
+  );
+  return list[dayOfYear % list.length];
+}

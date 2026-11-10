@@ -1,23 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, ChevronLeft, ChevronRight, Loader2, BookOpen, Users, Check } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 import { fetchDailyReadings } from '@/lib/readings';
 import { fetchPassage, type Passage } from '@/lib/bible';
-import { DAILY_QUOTES } from '@/data/quotes';
+import { quoteForDay } from '@/data/quotes';
 import { LECTIO_STEPS, buildLectioPrompt } from '@/lib/lectio';
 
 interface LectioDivinaProps {
   t: PersonaTheme;
   onClose: () => void;
   onReflectWithCompanion?: (prompt: string) => void;
-}
-
-function quoteForDay() {
-  const date = new Date();
-  const dayOfYear = Math.floor(
-    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000,
-  );
-  return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
+  /** Which rotation the offline fallback verse comes from. Defaults to the men's. */
+  audience?: Audience;
 }
 
 /**
@@ -31,14 +25,14 @@ function quoteForDay() {
  * than refusing to open, because the moment a man reaches for this is often the moment he has no
  * signal.
  */
-export function LectioDivina({ t, onClose, onReflectWithCompanion }: LectioDivinaProps) {
+export function LectioDivina({ t, onClose, onReflectWithCompanion, audience = 'men' }: LectioDivinaProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [gospel, setGospel] = useState<Passage | null>(null);
   const [finished, setFinished] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement>(null);
-  const fallback = useMemo(() => quoteForDay(), []);
+  const fallback = useMemo(() => quoteForDay(new Date(), audience), [audience]);
 
   useEffect(() => {
     let active = true;

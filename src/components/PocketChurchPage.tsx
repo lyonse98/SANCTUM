@@ -104,6 +104,7 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, 
           {activeTab === 'prayer' && (
             <PrayerLibrary
               t={t}
+              audience={audience}
               onReflectWithCompanion={onReflectWithCompanion}
               autoOpenLectio={autoOpenLectio}
               onConsumeLectio={onConsumeLectio}

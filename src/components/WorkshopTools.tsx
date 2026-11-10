@@ -125,7 +125,7 @@ export function WorkshopTools({ theme, audience, initialTool, onConsumeTool }: W
         {active.id === 'breathing' && <BreathPacer t={t} />}
         {active.id === 'grounding' && <SensoryChecklist t={t} />}
         {active.id === 'driveway' && <LazyDriveway t={t} audience={audience} />}
-        {active.id === 'examen' && <ExamenChecklist t={t} />}
+        {active.id === 'examen' && <ExamenChecklist t={t} audience={audience} />}
         {active.id === 'rule' && <RuleOfLife t={t} audience={audience} />}
       </div>
     </div>

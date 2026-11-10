@@ -12,7 +12,7 @@ import {
   Share2,
   VolumeX,
 } from 'lucide-react';
-import { DAILY_QUOTES } from '@/data/quotes';
+import { quoteForDay } from '@/data/quotes';
 import { fetchDailyReadings, type DailyReadings } from '@/lib/readings';
 import { fetchReadingsBundle, isoDate } from '@/lib/readingsBundle';
 import { getFeastForDate, type FeastRank } from '@/data/feastDays';
@@ -44,13 +44,6 @@ function feastRankLabel(rank: FeastRank): string {
   return FEAST_RANK_LABEL[rank];
 }
 
-function getQuoteForDay(date: Date = new Date()) {
-  const dayOfYear = Math.floor(
-    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000,
-  );
-  return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
-}
-
 interface DailyQuoteProps {
   t: PersonaTheme;
   audience: Audience;
@@ -59,7 +52,7 @@ interface DailyQuoteProps {
 }
 
 export function DailyQuote({ t, audience, onOpenExamen, onReflectWithCompanion }: DailyQuoteProps) {
-  const quote = useMemo(() => getQuoteForDay(), []);
+  const quote = useMemo(() => quoteForDay(new Date(), audience), [audience]);
   const feast = useMemo(() => getFeastForDate(), []);
   const [expanded, setExpanded] = useState(false);
   const [readings, setReadings] = useState<DailyReadings | null>(null);

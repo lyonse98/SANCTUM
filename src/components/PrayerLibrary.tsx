@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { BookOpen, ChevronDown, Compass } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 import { LectioDivina } from '@/components/LectioDivina';
 
 interface PrayerLibraryProps {
   t: PersonaTheme;
+  /** Forwarded to Lectio so its fallback verse comes from the track's rotation. */
+  audience?: Audience;
   onReflectWithCompanion?: (prompt: string) => void;
   /** Lets a companion's tool link open the session directly, without a tap on the button. */
   autoOpenLectio?: boolean;
@@ -90,7 +92,7 @@ const PRAYERS: PrayerEntry[] = [
   },
 ];
 
-export function PrayerLibrary({ t, onReflectWithCompanion, autoOpenLectio, onConsumeLectio }: PrayerLibraryProps) {
+export function PrayerLibrary({ t, audience, onReflectWithCompanion, autoOpenLectio, onConsumeLectio }: PrayerLibraryProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [lectioOpen, setLectioOpen] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
@@ -187,6 +189,7 @@ export function PrayerLibrary({ t, onReflectWithCompanion, autoOpenLectio, onCon
       {lectioOpen && (
         <LectioDivina
           t={t}
+          audience={audience}
           onClose={() => setLectioOpen(false)}
           onReflectWithCompanion={onReflectWithCompanion}
         />
