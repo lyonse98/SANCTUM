@@ -7,8 +7,10 @@
   no copy exists on the machine the scripts run on. So the load moved to where
   both credentials already live: inside Supabase. This function runs with the
   project's own GEMINI_API_KEY secret and native service-role database access,
-  and fetches the validated chunk artifacts from the public GitHub repo
-  (corpus-artifacts/, built by scripts/corpus/make-artifacts.mjs). The local
+  and fetches the validated chunk artifacts from the public GitHub data repo
+  lyonse98/sanctum-corpus (built by scripts/corpus/make-artifacts.mjs; the
+  artifacts moved out of the SANCTUM repo on Nov 10, 2026 — ~47 MB of data
+  files pushed the app repo past Bolt's import size limit). The local
   scripts remain the chunking/validation toolchain and a fallback path.
 
   Called ONLY by the operator (the parent agent driving the go-live), never by
@@ -66,7 +68,7 @@ const corsHeaders = {
 };
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
-const ARTIFACT_BASE = "https://raw.githubusercontent.com/lyonse98/SANCTUM/main/corpus-artifacts";
+const ARTIFACT_BASE = "https://raw.githubusercontent.com/lyonse98/sanctum-corpus/main";
 const EMBED_MODEL = "gemini-embedding-001";
 const EMBED_BATCH = 100; // batchEmbedContents request cap (as in scripts/corpus/lib.mjs)
 const UPSERT_PAGE = 200; // rows per PostgREST upsert (as in scripts/corpus/ingest.mjs)

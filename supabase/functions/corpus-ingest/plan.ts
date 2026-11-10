@@ -3,8 +3,9 @@
   can pin every rule the live function follows (house pattern: rerank.ts in
   corpus-retrieve). index.ts is wiring only: gate, fetch, embed, upsert.
 
-  The artifacts this plans over are committed at corpus-artifacts/ in the repo
-  (built by scripts/corpus/make-artifacts.mjs from the validated chunk output):
+  The artifacts this plans over are committed in the lyonse98/sanctum-corpus
+  data repo (built by scripts/corpus/make-artifacts.mjs in the SANCTUM repo
+  from the validated chunk output):
   a manifest naming each work, its full registry record, and its part files
   (PART_SIZE chunks each, ordinal order).
 */
