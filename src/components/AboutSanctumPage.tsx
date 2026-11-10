@@ -1,11 +1,12 @@
 import { ArrowLeft, X, Church, ShieldCheck, HeartHandshake, Users, BookOpen } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 import { MISSION_LINE, MISSION_ATTRIBUTION, MISSION_SENTENCE } from '@/lib/mission';
-import { NARRATOR_DISCLOSURE_LINE } from '@/lib/privacyCopy';
+import { NARRATOR_DISCLOSURE_LINE, WOMENS_AUDIO_NOTE } from '@/lib/privacyCopy';
 
 interface AboutSanctumPageProps {
   t: PersonaTheme;
   accent?: string;
+  audience: Audience;
   onClose: () => void;
 }
 
@@ -20,34 +21,45 @@ interface Point {
  * Sanctum on. Its whole job is to state plainly what the app is and, more importantly, what it
  * is not — the boundaries are the thing a referrer is actually checking for.
  */
-export function AboutSanctumPage({ t, accent, onClose }: AboutSanctumPageProps) {
+export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumPageProps) {
   const a = accent ?? t.accent;
+  const w = audience === 'women';
 
   const points: Point[] = [
     {
       icon: Church,
       title: 'What it is',
-      body: 'A private place for a man to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a small workshop of grounding and stillness tools, a pocket church of prayers, the Rosary, Confession preparation, and the Catechism, and eight companions drawn from Scripture and the saints.',
+      body: w
+        ? 'A private place for a woman to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a small workshop of grounding and stillness tools, a pocket church of prayers, the Rosary, Confession preparation, and the Catechism, and eight companions drawn from Scripture and the saints.'
+        : 'A private place for a man to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a small workshop of grounding and stillness tools, a pocket church of prayers, the Rosary, Confession preparation, and the Catechism, and eight companions drawn from Scripture and the saints.',
     },
     {
       icon: ShieldCheck,
       title: 'What it is not',
-      body: 'It is not a priest and it is not a therapist. Sanctum cannot baptize, absolve, marry, or anoint, and it does not diagnose or treat. It says so on screen, and it is built to hand a man to a real person rather than keep him.',
+      body: w
+        ? 'It is not a priest and it is not a therapist. Sanctum cannot baptize, absolve, marry, or anoint, and it does not diagnose or treat. It says so on screen, and it is built to hand a woman to a real person rather than keep her.'
+        : 'It is not a priest and it is not a therapist. Sanctum cannot baptize, absolve, marry, or anoint, and it does not diagnose or treat. It says so on screen, and it is built to hand a man to a real person rather than keep him.',
     },
     {
       icon: HeartHandshake,
-      title: 'Where it sends a man',
-      body: 'To a priest, a spiritual director, a Catholic therapist, or a men\u2019s group. That screen is deliberately prominent, and a man in crisis is handed to 988 and to emergency help instead of being kept in a conversation.',
+      title: w ? 'Where it sends a woman' : 'Where it sends a man',
+      body: w
+        ? 'To a priest, a spiritual director, a Catholic therapist, or a women\u2019s group. That screen is deliberately prominent, and a woman in crisis is handed to 988 and to emergency help instead of being kept in a conversation.'
+        : 'To a priest, a spiritual director, a Catholic therapist, or a men\u2019s group. That screen is deliberately prominent, and a man in crisis is handed to 988 and to emergency help instead of being kept in a conversation.',
     },
     {
       icon: Users,
       title: 'What it keeps',
-      body: 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a man writes lives only in his own browser. The only things ever held remotely are a scrambled anti-abuse counter, a push subscription if he asks for the daily reminder, a feedback note if he sends one, and anonymous usage counts if he turns them on.',
+      body: w
+        ? 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a woman writes lives only in her own browser. The only things ever held remotely are a scrambled anti-abuse counter, a push subscription if she asks for the daily reminder, a feedback note if she sends one, and anonymous usage counts if she turns them on.'
+        : 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a man writes lives only in his own browser. The only things ever held remotely are a scrambled anti-abuse counter, a push subscription if he asks for the daily reminder, a feedback note if he sends one, and anonymous usage counts if he turns them on.',
     },
     {
       icon: BookOpen,
       title: 'What it costs',
-      body: 'Nothing. There is no account, no advertising, and nothing to buy, and nothing about a man is sold.',
+      body: w
+        ? 'Nothing. There is no account, no advertising, and nothing to buy, and nothing about a woman is sold.'
+        : 'Nothing. There is no account, no advertising, and nothing to buy, and nothing about a man is sold.',
     },
   ];
 
@@ -111,8 +123,9 @@ export function AboutSanctumPage({ t, accent, onClose }: AboutSanctumPageProps) 
           style={{ backgroundColor: `${a}0F`, borderColor: `${a}33` }}
         >
           <p className="text-sm leading-relaxed text-center font-medium" style={{ color: t.text }}>
-            A Catholic companion for men. It is built for the man who will not walk into a church yet,
-            and for the man who will, but has nowhere to put the weight at two in the morning.
+            {w
+              ? 'A Catholic companion for women. It is built for the woman who will not walk into a church yet, and for the woman who will, but has nowhere to put the weight at two in the morning.'
+              : 'A Catholic companion for men. It is built for the man who will not walk into a church yet, and for the man who will, but has nowhere to put the weight at two in the morning.'}
           </p>
         </div>
 
@@ -165,12 +178,12 @@ export function AboutSanctumPage({ t, accent, onClose }: AboutSanctumPageProps) 
           </h2>
           <p className="text-xs leading-relaxed mb-3" style={{ color: t.textMuted }}>
             Sanctum is meant to sit alongside your work, not replace it. It will not hear a confession,
-            counsel a marriage, or stand in for a pastor. What it can do is stay with a man on the
-            ordinary nights in between, and keep pointing him back to you.
+            counsel a marriage, or stand in for a pastor. What it can do is stay with {w ? 'a woman' : 'a man'} on the
+            ordinary nights in between, and keep pointing {w ? 'her' : 'him'} back to you.
           </p>
           <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
-            It costs him nothing, asks for no account, keeps no record of what he writes, and hands him
-            to real help when he needs more than a conversation. If you would like to see exactly what a
+            It costs {w ? 'her' : 'him'} nothing, asks for no account, keeps no record of what {w ? 'she' : 'he'} writes, and hands {w ? 'her' : 'him'}
+            to real help when {w ? 'she' : 'he'} needs more than a conversation. If you would like to see exactly what a
             companion is and is not allowed to say, the boundaries are the same ones written on this page.
           </p>
         </div>
@@ -181,11 +194,22 @@ export function AboutSanctumPage({ t, accent, onClose }: AboutSanctumPageProps) 
           style={{ backgroundColor: `${a}0D`, borderColor: `${a}33` }}
         >
           <h2 className="text-sm font-bold font-display uppercase tracking-wide mb-2" style={{ color: t.textBright }}>
-            The Gospel, read aloud
+            {w ? 'The Gospel, in writing — for now' : 'The Gospel, read aloud'}
           </h2>
           <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
-            Every morning the day&rsquo;s Gospel and reflection can be listened to as well as
-            read, in a brother&rsquo;s voice that changes with the weekday. {NARRATOR_DISCLOSURE_LINE}
+            {w ? (
+              <>
+                {WOMENS_AUDIO_NOTE} In Men&rsquo;s Mode the day&rsquo;s Gospel and reflection can be
+                listened to as well as read, in created narrator voices that change with the weekday.
+                Women&rsquo;s Mode will have voices of its own — recorded for women, in their own time —
+                rather than a borrowed substitute.
+              </>
+            ) : (
+              <>
+                Every morning the day&rsquo;s Gospel and reflection can be listened to as well as
+                read, in a brother&rsquo;s voice that changes with the weekday. {NARRATOR_DISCLOSURE_LINE}
+              </>
+            )}
           </p>
         </div>
 

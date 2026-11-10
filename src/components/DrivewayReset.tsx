@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Car, Check, ChevronRight, Play, RotateCcw } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 import { useAudio } from '@/lib/audio';
 
-const RESET_STEPS = [
+const RESET_STEPS_MEN = [
   {
     title: 'Arrive',
     instruction: 'Turn off the engine. Put the phone down. Sit in the silence for a moment.',
@@ -38,9 +38,19 @@ const RESET_STEPS = [
 
 interface DrivewayResetProps {
   t: PersonaTheme;
+  audience: Audience;
 }
 
-export function DrivewayReset({ t }: DrivewayResetProps) {
+/** The women's Driveway Reset — the same five steps; the identity step names
+ *  who she is walking in as: a wife, a mother, a daughter, a sister. */
+const RESET_STEPS_WOMEN = RESET_STEPS_MEN.map((step, i) =>
+  i === 2
+    ? { ...step, detail: 'Your work is for Him. But your family is also for Him. The woman who provides is also the woman who is present. You are not just an employee walking through that door. You are a wife. A mother. A daughter. A sister. Remember who you are.' }
+    : step,
+);
+
+export function DrivewayReset({ t, audience }: DrivewayResetProps) {
+  const RESET_STEPS = audience === 'women' ? RESET_STEPS_WOMEN : RESET_STEPS_MEN;
   const [started, setStarted] = useState(false);
   const [step, setStep] = useState(0);
   const [countdown, setCountdown] = useState(RESET_STEPS[0].duration);
@@ -123,7 +133,7 @@ export function DrivewayReset({ t }: DrivewayResetProps) {
             You made it home. Before you go inside, take 90 seconds to reset.
           </p>
           <p className="text-xs leading-relaxed mb-5" style={{ color: t.textDim }}>
-            Five steps to leave the workday in the car and walk in as the man your family needs.
+            Five steps to leave the workday in the car and walk in as the {audience === 'women' ? 'woman' : 'man'} your family needs.
           </p>
           <div className="space-y-1.5 mb-5 text-left">
             {RESET_STEPS.map((s, i) => (

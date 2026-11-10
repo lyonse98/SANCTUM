@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 
 const DrivewayReset = lazy(() =>
   import('@/components/DrivewayReset').then((m) => ({ default: m.DrivewayReset })),
@@ -19,20 +19,20 @@ function LazyFallback({ t }: { t: PersonaTheme }) {
   );
 }
 
-interface LazyDrivewayProps { t: PersonaTheme }
-export function LazyDriveway({ t }: LazyDrivewayProps) {
+interface LazyDrivewayProps { t: PersonaTheme; audience: Audience }
+export function LazyDriveway({ t, audience }: LazyDrivewayProps) {
   return (
     <Suspense fallback={<LazyFallback t={t} />}>
-      <DrivewayReset t={t} />
+      <DrivewayReset t={t} audience={audience} />
     </Suspense>
   );
 }
 
-interface LazyColdStartProps { t: PersonaTheme }
-export function LazyColdStart({ t }: LazyColdStartProps) {
+interface LazyColdStartProps { t: PersonaTheme; audience: Audience }
+export function LazyColdStart({ t, audience }: LazyColdStartProps) {
   return (
     <Suspense fallback={<LazyFallback t={t} />}>
-      <ColdStart t={t} />
+      <ColdStart t={t} audience={audience} />
     </Suspense>
   );
 }

@@ -1,4 +1,6 @@
 import { DEFAULT_FOCUS, isReminderFocus } from '@/lib/reminderFocus';
+import { isAudience, loadAudience } from '@/lib/audience';
+import type { Audience } from '@/types';
 import { isValidLocalTime } from '@/lib/pushCore';
 import { detectPlatform, isStandaloneDisplay } from '@/lib/install';
 
@@ -28,6 +30,8 @@ export interface PushReminderState {
   localTime: string;
   /** IANA timezone captured from the device when the reminder was set. */
   tz: string;
+  /** The track active when the reminder was set — recorded with the subscription. */
+  audience: Audience;
 }
 
 const DEFAULT_STATE: PushReminderState = {
@@ -36,6 +40,7 @@ const DEFAULT_STATE: PushReminderState = {
   focus: DEFAULT_FOCUS,
   localTime: DEFAULT_LOCAL_TIME,
   tz: '',
+  audience: 'men',
 };
 
 export function loadPushReminder(): PushReminderState {
@@ -49,6 +54,7 @@ export function loadPushReminder(): PushReminderState {
       focus: typeof parsed.focus === 'string' && isReminderFocus(parsed.focus) ? parsed.focus : DEFAULT_FOCUS,
       localTime: isValidLocalTime(parsed.localTime) ? parsed.localTime : DEFAULT_LOCAL_TIME,
       tz: typeof parsed.tz === 'string' ? parsed.tz : '',
+      audience: isAudience(parsed.audience) ? parsed.audience : 'men',
     };
   } catch {
     return DEFAULT_STATE;
@@ -152,6 +158,28 @@ export function buildUpsertBody(input: {
   };
 }
 
+/**
+ * The upsert body that also carries the track — sent to the seven-argument
+ * overload of `upsert_push_subscription` added by the Women's Mode migration.
+ * Kept separate from `buildUpsertBody` on purpose: the legacy six-argument
+ * shape is the fallback and must stay byte-for-byte what the deployed RPC
+ * (and its tests) already know.
+ */
+export function buildUpsertBodyWithAudience(input: {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  focus: string;
+  localTime: string;
+  tz: string;
+  audience: Audience;
+}): Record<string, unknown> {
+  return {
+    ...buildUpsertBody(input),
+    p_audience: isAudience(input.audience) ? input.audience : 'men',
+  };
+}
+
 export function buildDeactivateBody(endpoint: string): Record<string, unknown> {
   return { p_endpoint: endpoint };
 }
@@ -232,10 +260,16 @@ async function saveSubscriptionToServer(
   const auth = json.keys?.auth ?? '';
   if (!p256dh || !auth) return false;
   const tz = deviceTimeZone();
-  const ok = await callRpc(
-    'upsert_push_subscription',
-    buildUpsertBody({ endpoint: subscription.endpoint, p256dh, auth, focus, localTime, tz }),
-  );
+  const audience = loadAudience();
+  const base = { endpoint: subscription.endpoint, p256dh, auth, focus, localTime, tz };
+  // Prefer the audience-carrying overload; if the Women's Mode migration has
+  // not been pasted yet, PostgREST answers 404 for the seven-argument shape
+  // and we fall straight back to the legacy body — the subscription must save
+  // either way. Push never breaks because a column is missing.
+  let ok = await callRpc('upsert_push_subscription', buildUpsertBodyWithAudience({ ...base, audience }));
+  if (!ok) {
+    ok = await callRpc('upsert_push_subscription', buildUpsertBody(base));
+  }
   if (ok) {
     savePushReminder({
       enabled: true,
@@ -243,6 +277,7 @@ async function saveSubscriptionToServer(
       focus: isReminderFocus(focus) ? focus : DEFAULT_FOCUS,
       localTime: isValidLocalTime(localTime) ? localTime : DEFAULT_LOCAL_TIME,
       tz,
+      audience,
     });
   }
   return ok;

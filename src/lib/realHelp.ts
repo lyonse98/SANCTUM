@@ -1,3 +1,5 @@
+import type { Audience } from '@/types';
+
 export type HelpIconKey = 'church' | 'compass' | 'heart' | 'users' | 'marriage' | 'recovery';
 
 export interface HelpLink {
@@ -124,3 +126,98 @@ export const HELP_SECTIONS: HelpSection[] = [
 /** The line that keeps the app honest — shown at the top of the help screen. */
 export const HELP_DISCLAIMER =
   'Sanctum cannot baptize, absolve, marry, or anoint. Only a priest can. This screen exists to hand you to a real person.';
+
+/**
+ * The women's Real Help — the same doors, held open the way a woman actually walks
+ * through them. Mass & Confession is universal and shared object-for-object. The
+ * women's-group links were each verified live (HTTP 200) when this list was built:
+ * Walking with Purpose, Blessed Is She, and ENDOW. (Magnificat was considered and
+ * left out — its site could not be reached to verify.) STRIVE, a men's program,
+ * does not appear here; Catholic in Recovery serves everyone.
+ */
+export const HELP_SECTIONS_WOMEN: HelpSection[] = [
+  HELP_SECTIONS[0],
+  {
+    id: 'director',
+    icon: 'compass',
+    title: 'A Spiritual Director',
+    tagline: 'One steady guide for your soul',
+    why:
+      'A director is not a therapist and not a confessor. A director is a steady guide you meet with regularly — monthly is normal — to help you hear what God is actually asking of you. Most women never ask. The ones who do rarely go back.',
+    scriptLabel: 'How to ask a priest',
+    script:
+      'Say it plainly: "Father, I am trying to take my faith seriously and I would like a spiritual director. Would you be willing to meet with me, or point me to a priest who could?" That is the whole ask. If he says no, it is not a rejection — it means he is honest about his schedule. Ask him who he would suggest.',
+    links: [
+      { label: 'Catholic Spiritual Directors Registry', href: 'https://www.catholicsd.com', detail: 'Search directors by location' },
+      { label: 'Spiritual Direction', href: 'https://www.spiritualdirection.com', detail: 'Ignatian tradition, plus a directory' },
+    ],
+  },
+  {
+    id: 'therapist',
+    icon: 'heart',
+    title: 'A Catholic Therapist',
+    tagline: 'For what prayer alone is not fixing',
+    why:
+      'Depression, anxiety, trauma, postpartum suffering, and a marriage in trouble are not failures of faith. They often need real clinical care. A therapist who shares your faith can treat the wound without treating your beliefs as the problem.',
+    scriptLabel: 'What to say when you call',
+    script:
+      '"I am a Catholic woman looking for a therapist who works with [what you are facing — anxiety, my marriage, postpartum depression, grief]. Do you have someone you would recommend?" You do not owe a stranger your whole story on the phone. You are just booking the first hour.',
+    links: [
+      { label: 'Catholic Psychotherapy Association', href: 'https://catholicpsychotherapy.org', detail: 'Find a licensed Catholic therapist' },
+      { label: 'Catholic Therapists', href: 'https://catholictherapists.com', detail: 'Directory of Catholic-committed clinicians' },
+      { label: 'Catholic Counselors', href: 'https://catholiccounselors.com', detail: 'Pastoral counseling by phone or in person' },
+      { label: 'Catholic Charities USA', href: 'https://www.catholiccharitiesusa.org/what-we-do/integrated-health', detail: 'Counseling, plus help with housing, food, and money' },
+    ],
+  },
+  {
+    id: 'womens-group',
+    icon: 'users',
+    title: "A Women's Group",
+    tagline: 'You were not made to run alone',
+    why:
+      'The women who last are not the ones with the strongest will. They are the ones with sisters who notice when they go quiet. A group is the difference between a good month and a changed life.',
+    scriptLabel: 'If there is none near you',
+    script:
+      'Ask your pastor after Mass: "Father, is there a women\'s group here, or any women who would want one?" If he says no, offer to start one — four women, one hour, one book is enough. Most parishes are waiting for someone to ask. You may be the one he has been praying for.',
+    links: [
+      { label: 'Walking with Purpose', href: 'https://walkingwithpurpose.com', detail: 'Bible studies for Catholic women, in parishes and online' },
+      { label: 'Blessed Is She', href: 'https://blessedisshe.net', detail: 'A Catholic women\'s community with local groups and daily devotions' },
+      { label: 'ENDOW', href: 'https://endowgroups.org', detail: 'Study groups for women on the Church\'s teaching and the feminine genius' },
+    ],
+  },
+  {
+    id: 'marriage',
+    icon: 'marriage',
+    title: 'A Marriage on the Rocks',
+    tagline: 'Before you walk away, or before it gets there',
+    why:
+      'Most marriages do not die in a single blow. They drift, and then one day the two of you are running a household instead of a marriage. There are programs built for exactly this — run by couples who were there themselves — and they work whether you are barely drifting or already separated.',
+    scriptLabel: 'How to bring it up with your husband',
+    script:
+      'Do not open with a list of what is wrong. Say: "I do not want us to just be roommates. I found a weekend program for couples and I want to do it with you." If he is not ready, go to confession and ask the priest for help — a priest can often say things to him that you cannot, and he has seen this a thousand times.',
+    links: [
+      { label: 'Retrouvaille', href: 'https://helpourmarriage.org', detail: 'A weekend for marriages in crisis — call 1-800-470-2230' },
+      { label: 'Worldwide Marriage Encounter', href: 'https://wwme.org', detail: 'A weekend to deepen a marriage that is not in crisis yet' },
+    ],
+  },
+  {
+    id: 'addiction',
+    icon: 'recovery',
+    title: 'Addiction or Compulsion',
+    tagline: 'Porn, drink, gambling, food — it is not a willpower problem',
+    why:
+      'You have probably tried to stop on your own more than once. Shame keeps a woman quiet, and quiet keeps her sick. These are Catholic resources that treat the addiction and the sacrament as one road, not two. You do not have to tell anyone at your parish.',
+    scriptLabel: 'What the first meeting is like',
+    script:
+      'You do not have to speak. You can sit in the back and just listen — that is allowed, and most women do it their first time. Nothing you say leaves the room. If you would rather start alone, Catholic in Recovery\'s online meetings are private, and you can begin tonight without telling a soul.',
+    links: [
+      { label: 'Catholic in Recovery', href: 'https://catholicinrecovery.com', detail: 'In-person and online 12-step groups, rooted in the sacraments' },
+      { label: 'Integrity Restored', href: 'https://integrityrestored.com', detail: 'Help for healing from pornography addiction — for you, and for your family' },
+    ],
+  },
+];
+
+/** The help sections for the active track. */
+export function getHelpSections(audience: Audience): HelpSection[] {
+  return audience === 'women' ? HELP_SECTIONS_WOMEN : HELP_SECTIONS;
+}

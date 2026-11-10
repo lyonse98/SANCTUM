@@ -91,12 +91,21 @@ describe('the Confession guide wiring', () => {
 
   it('renders the Beatitudes examination from the lib content', () => {
     expect(guide).toContain("from '@/lib/beatitudes'");
-    expect(guide).toContain('BEATITUDES.map');
+    // Women's Mode: the guide renders the set getBeatitudes(audience) selects
+    // from this lib — still single-sourced here, never copied into the component.
+    expect(guide).toContain('getBeatitudes');
+    expect(guide).toContain('beatitudes.map');
   });
 
   it('the existing Commandments examination is untouched', () => {
-    expect(guide).toContain('I am the Lord your God; you shall not have strange gods before Me');
-    expect(guide).toContain('You shall not bear false witness');
-    expect(guide).toContain('DUTIES_OF_STATE');
+    // The examination data moved verbatim into lib/confession.ts when Women's
+    // Mode factored it into a testable module; the men's text itself is the
+    // original, asserted there, and the guide renders it via the getter.
+    const confession = readFileSync(new URL('./confession.ts', import.meta.url), 'utf8');
+    expect(confession).toContain('I am the Lord your God; you shall not have strange gods before Me');
+    expect(confession).toContain('You shall not bear false witness');
+    expect(confession).toContain('DUTIES_OF_STATE');
+    expect(guide).toContain('getCommandments');
+    expect(guide).toContain('getDutiesOfState');
   });
 });

@@ -1,5 +1,5 @@
 import { ArrowLeft, Wrench, X } from 'lucide-react';
-import type { PersonaTheme, UtilityActions } from '@/types';
+import type { Audience, PersonaTheme, UtilityActions } from '@/types';
 import { WorkshopTools } from '@/components/WorkshopTools';
 import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
@@ -7,12 +7,13 @@ import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 interface WorkshopPageProps {
   onBack: () => void;
   utilities: UtilityActions;
+  audience: Audience;
   initialTool?: string | null;
   onConsumeTool?: () => void;
   seasonTheme: PersonaTheme;
 }
 
-export function WorkshopPage({ onBack, initialTool, onConsumeTool, utilities, seasonTheme }: WorkshopPageProps) {
+export function WorkshopPage({ onBack, audience, initialTool, onConsumeTool, utilities, seasonTheme }: WorkshopPageProps) {
   const t = seasonTheme;
 
   return (
@@ -63,6 +64,7 @@ export function WorkshopPage({ onBack, initialTool, onConsumeTool, utilities, se
         <div className="w-full">
           <WorkshopTools
             theme={seasonTheme}
+            audience={audience}
             initialTool={initialTool}
             onConsumeTool={onConsumeTool}
           />

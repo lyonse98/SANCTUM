@@ -3,11 +3,12 @@ import { Church, Lock, Zap } from 'lucide-react';
 import { SeasonBadge } from '@/components/SeasonBadge';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getDailyVisual } from '@/lib/liturgicalVisuals';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 
 interface TodayHeroProps {
   t: PersonaTheme;
   accent: string;
+  audience: Audience;
 }
 
 /** Picks a greeting from the man's own clock — the app has no idea who he is, only what time it is. */
@@ -24,7 +25,7 @@ function greetingForHour(hour: number): string {
  * arrived at rather than a list he has scrolled to: the season's colour, the hour of his day,
  * and the one thing worth doing — all above the Gospel card, in a single glance.
  */
-export function TodayHero({ t, accent }: TodayHeroProps) {
+export function TodayHero({ t, accent, audience }: TodayHeroProps) {
   const season = useMemo(() => getCurrentSeason(), []);
   const visual = useMemo(() => getDailyVisual(), []);
   const [greeting, setGreeting] = useState(() => greetingForHour(new Date().getHours()));
@@ -73,7 +74,9 @@ export function TodayHero({ t, accent }: TodayHeroProps) {
           {greeting}
         </p>
         <p className="text-xs text-forge-text-muted max-w-sm mx-auto leading-relaxed mb-3">
-          A private sanctuary for men seeking counsel, stillness, and strength
+          {audience === 'women'
+            ? 'A private sanctuary for women seeking counsel, stillness, and strength'
+            : 'A private sanctuary for men seeking counsel, stillness, and strength'}
         </p>
 
         <div className="flex items-center justify-center gap-2 flex-wrap mb-4">

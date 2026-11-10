@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
-import { X, ShieldAlert, Lock, MessageSquare, BarChart3, Download } from 'lucide-react';
+import { X, ShieldAlert, Lock, MessageSquare, BarChart3, Download, Users } from 'lucide-react';
 import { useFeedback } from '@/components/FeedbackProvider';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '@/lib/analytics';
-import { PRIVACY_PARAGRAPH, ANALYTICS_COPY } from '@/lib/privacyCopy';
+import { PRIVACY_PARAGRAPH, analyticsCopy } from '@/lib/privacyCopy';
+import type { Audience } from '@/types';
 import { InstallModal } from '@/components/InstallInstructions';
 
 interface SettingsModalProps {
   open: boolean;
+  audience: Audience;
+  onAudienceChange: (audience: Audience) => void;
   onClose: () => void;
   onOpenTerms?: () => void;
 }
 
-export function SettingsModal({ open, onClose, onOpenTerms }: SettingsModalProps) {
+export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpenTerms }: SettingsModalProps) {
   const feedback = useFeedback();
   const [analyticsOn, setAnalyticsOn] = useState(() => isAnalyticsEnabled());
   const [installOpen, setInstallOpen] = useState(false);
@@ -51,6 +54,47 @@ export function SettingsModal({ open, onClose, onOpenTerms }: SettingsModalProps
 
         <div className="px-5 py-5 space-y-5">
 
+          {/* The track switch. Switching closes any open companion and returns to
+              Today; each companion's conversation is kept separately on-device. */}
+          <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
+            <div className="flex items-start gap-2">
+              <Users className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
+              <div className="flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                  Your Track
+                </p>
+                <p className="text-[11px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                  Sanctum is kept for men and for women — different companions, reflections, and
+                  examinations for the life being lived. Switching closes your current companion and
+                  returns to Today; every companion&rsquo;s conversation stays saved separately on this device.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { id: 'men', label: 'For Men' },
+                    { id: 'women', label: 'For Women' },
+                  ] as const).map((opt) => {
+                    const selected = audience === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => { if (!selected) onAudienceChange(opt.id); }}
+                        aria-pressed={selected}
+                        className="py-2 px-2 rounded-lg border text-[11px] font-bold uppercase tracking-wide transition-all"
+                        style={{
+                          backgroundColor: selected ? accent : 'transparent',
+                          borderColor: accent,
+                          color: selected ? '#fff' : textMuted,
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
 
           <div className="pt-2 space-y-3">
             <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
@@ -61,7 +105,7 @@ export function SettingsModal({ open, onClose, onOpenTerms }: SettingsModalProps
                     Usage Analytics
                   </p>
                   <p className="text-[11px] leading-relaxed mb-2" style={{ color: textMuted }}>
-{ANALYTICS_COPY}
+{analyticsCopy(audience)}
                   </p>
                   <button
                     onClick={() => {

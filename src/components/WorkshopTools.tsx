@@ -13,7 +13,7 @@ import {
   ScrollText,
   type LucideIcon,
 } from 'lucide-react';
-import type { Persona, PersonaTheme } from '@/types';
+import type { Audience, Persona, PersonaTheme } from '@/types';
 import { LazyColdStart, LazyDriveway } from '@/components/LazyTools';
 import { ExamenChecklist } from '@/components/ExamenChecklist';
 import { BreathPacer } from '@/components/BreathPacer';
@@ -21,6 +21,7 @@ import { RuleOfLife } from '@/components/RuleOfLife';
 
 interface WorkshopToolsProps {
   theme: PersonaTheme;
+  audience: Audience;
   initialTool?: string | null;
   onConsumeTool?: () => void;
 }
@@ -59,7 +60,7 @@ const ORDINARY_DAY: Tool[] = [
 const ALL_TOOLS = [...HARD_MOMENT, ...ORDINARY_DAY];
 const VALID_TOOLS = ALL_TOOLS.map((tool) => tool.id);
 
-export function WorkshopTools({ theme, initialTool, onConsumeTool }: WorkshopToolsProps) {
+export function WorkshopTools({ theme, audience, initialTool, onConsumeTool }: WorkshopToolsProps) {
   const [activeTool, setActiveTool] = useState<ToolId>('breathing');
   const t = theme;
 
@@ -120,12 +121,12 @@ export function WorkshopTools({ theme, initialTool, onConsumeTool }: WorkshopToo
         className="rounded-xl border p-4 animate-fade-in"
         style={{ backgroundColor: '#FBF8F3', borderColor: '#DCD3C5' }}
       >
-        {active.id === 'cold-start' && <LazyColdStart t={t} />}
+        {active.id === 'cold-start' && <LazyColdStart t={t} audience={audience} />}
         {active.id === 'breathing' && <BreathPacer t={t} />}
         {active.id === 'grounding' && <SensoryChecklist t={t} />}
-        {active.id === 'driveway' && <LazyDriveway t={t} />}
+        {active.id === 'driveway' && <LazyDriveway t={t} audience={audience} />}
         {active.id === 'examen' && <ExamenChecklist t={t} />}
-        {active.id === 'rule' && <RuleOfLife t={t} />}
+        {active.id === 'rule' && <RuleOfLife t={t} audience={audience} />}
       </div>
     </div>
   );
