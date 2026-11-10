@@ -1,35 +1,53 @@
 #!/usr/bin/env node
 /*
-  Build the COMMITTED load artifacts for the server-side corpus loader
+  Build the load artifacts for the server-side corpus loader
   (supabase/functions/corpus-ingest). The local out/ directory is a gitignored
-  build cache; corpus-artifacts/ at the repo root is the published form the
-  edge function fetches from raw.githubusercontent.com at load time.
+  build cache; the artifacts are the published form the edge function fetches
+  from raw.githubusercontent.com at load time.
 
-    node scripts/corpus/make-artifacts.mjs
+  Since Nov 10, 2026 the artifacts live in their OWN repo —
+  lyonse98/sanctum-corpus — because ~47 MB of data files pushed this app repo
+  past Bolt's import size limit. This script writes into a local checkout of
+  that repo; afterwards, commit + push the result in that checkout.
 
-  Layout produced:
-    corpus-artifacts/manifest.json          the index the function reads first:
-                                            per work — the full document record,
-                                            chunk count, and its part files.
-    corpus-artifacts/<work>.document.json   the registry record (parity with out/)
-    corpus-artifacts/<work>.part-NNN.jsonl  chunk rows, PART_SIZE per file, in
-                                            ordinal order, same JSON shape as
-                                            out/<work>.chunks.jsonl lines.
+    node scripts/corpus/make-artifacts.mjs [--out /path/to/sanctum-corpus]
+
+  Output directory resolution: `--out <dir>` wins, then $CORPUS_ARTIFACTS_DIR,
+  then the default sibling checkout ../corpus-repo relative to this repo's
+  root (~/workspace/sanctum/corpus-repo in the standard layout).
+
+  Layout produced (at the sanctum-corpus repo root):
+    manifest.json          the index the function reads first:
+                           per work — the full document record,
+                           chunk count, and its part files.
+    <work>.document.json   the registry record (parity with out/)
+    <work>.part-NNN.jsonl  chunk rows, PART_SIZE per file, in
+                           ordinal order, same JSON shape as
+                           out/<work>.chunks.jsonl lines.
 
   Parts exist because raw fetches and edge-function invocations both prefer
   small files: the largest work (Summa, ~15 MB of chunk JSON) becomes ~1.2 MB
   parts. Re-running is deterministic: same out/ → same artifacts, byte for byte.
 */
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { corpusDir, outDir, repoRoot, sha256 } from './lib.mjs';
 import { WORKS } from './works.mjs';
 
 export const PART_SIZE = 250;
+// Historical in-repo directory name (pre-Nov 2026). Kept for reference only —
+// artifacts are no longer written into this repo; see resolveArtifactsRoot.
 export const ARTIFACTS_DIR = 'corpus-artifacts';
 
-const artifactsRoot = join(repoRoot, ARTIFACTS_DIR);
+function resolveArtifactsRoot() {
+  const outIdx = process.argv.indexOf('--out');
+  if (outIdx !== -1 && process.argv[outIdx + 1]) return resolve(process.argv[outIdx + 1]);
+  if (process.env.CORPUS_ARTIFACTS_DIR) return resolve(process.env.CORPUS_ARTIFACTS_DIR);
+  return join(repoRoot, '..', 'corpus-repo');
+}
+
+const artifactsRoot = resolveArtifactsRoot();
 
 function readOut(name) {
   const path = join(outDir, name);
@@ -38,8 +56,16 @@ function readOut(name) {
 }
 
 function main() {
-  rmSync(artifactsRoot, { recursive: true, force: true });
   mkdirSync(artifactsRoot, { recursive: true });
+  // The output root is the sanctum-corpus repo checkout — never wipe the
+  // directory itself (it holds .git and README.md). Remove only the generated
+  // files this script owns, so stale parts from a shrunk work cannot linger.
+  for (const name of readdirSync(artifactsRoot)) {
+    if (name === 'manifest.json' || name.endsWith('.document.json') || /\.part-\d+\.jsonl$/.test(name)) {
+      rmSync(join(artifactsRoot, name), { force: true });
+    }
+  }
+  console.log(`writing artifacts to ${artifactsRoot}`);
 
   const manifest = { version: 1, part_size: PART_SIZE, works: [] };
   let totalChunks = 0;

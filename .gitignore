@@ -23,7 +23,9 @@ dist-ssr
 .env
 
 # Corpus ingest caches and chunk/embedding output (manifest.jsonl is the committed record).
-# corpus-artifacts/ at the repo root is the opposite: COMMITTED on purpose — it is the
-# published form of the chunk output that the corpus-ingest edge function fetches.
 scripts/corpus/raw/
 scripts/corpus/out/
+# Corpus load artifacts live in the separate data repo lyonse98/sanctum-corpus
+# (moved out Nov 10, 2026 — ~47 MB of data files broke Bolt's repo import limit).
+# Regenerate with `npm run corpus:artifacts`, which writes to that repo's checkout.
+corpus-artifacts/
