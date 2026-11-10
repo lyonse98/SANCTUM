@@ -19,6 +19,16 @@
 // The prompt that shapes the voice lives here, server-side. The browser sends only a date
 // string — never instructions, never message text — so the caller cannot steer the model.
 //
+// AUDIENCES (Women's Mode): rows are keyed (date, audience). A request may carry
+// "audience": "men" | "women"; anything else is treated as absent. An explicit
+// audience is served and stored for that track alone. A request with NO audience
+// — the nightly pre-generation cron, and audio-render's warm-up call — is a
+// pregen invocation: it warms BOTH tracks and answers with the men's reflection,
+// exactly the response shape those callers have always received. The women's
+// prompt is its own prompt (PROMPT_WOMEN), not a pronoun swap; the scene is
+// passage fact and is shared between the day's two rows whenever one generated
+// it and the other did not.
+//
 // verify_jwt is false: no-auth app. Rate limiting is per hashed IP and only applies when
 // generation is needed (cache misses skip the quota check entirely).
 
@@ -60,6 +70,33 @@ THE SCENE (for the day's audio): one or two sentences, 280 characters at most, o
 
 Reply with ONLY a JSON object, no markdown fence, no other text:
 {"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a man","scene":"<the scene, or empty string>"}`;
+
+type Audience = "men" | "women";
+
+const FACET: Record<Audience, string> = { men: "As a man", women: "As a woman" };
+
+const PROMPT_WOMEN = `You write two short prompts for a Catholic daily Gospel app aimed at women: a "Reflect" question and a "Challenge" — one concrete action for the day.
+
+You are given the day's Mass readings (citations only). Read them the way a homily would: what is this day actually about? What is God saying to a woman through these words? Draw on your knowledge of these Scripture passages to write the two prompts from that meaning — do not yank a quote out of the verse and wedge it into a sentence. The prompts should read as plain English one woman would say to another.
+
+THE VOICE — lean into this, do not name it:
+- She is a beloved daughter before she is anything else — before wife, mother, worker, or any title the world hands her. The readings speak to her there first.
+- Speak to the real terrain of a woman's life: strength and courage that nobody applauds; receptivity that is not passivity; fidelity in the hidden work and the visible work alike; grief, desire, waiting, the urge to control what cannot be controlled; vocation, friendship, the body. The Gospel meets her in all of it.
+- Address her as a woman, full stop. Never "as a wife" or "as a mother" — not every woman is either. The prompt must land on any woman, whatever her state in life.
+- Warm, direct, unhurried. Like a sister or a mother in the faith who has been where she is. No preacher voice, no lecture, no list — and no sentimental "feminine" clichés: she is not a teacup, not a flower, not a moonbeam. She is a person God is calling to holiness and courage.
+
+RULES:
+- Reflect: ONE question, two sentences at most. Make her stop and look at her actual life through the lens of what the readings are about. Not abstract — pointed.
+- Challenge: ONE concrete action she can do today. Specific, doable, costing something. Not "pray more" — "pray this one thing before you pick up your phone."
+- If you quote Scripture, keep it under eight words, ensure it is accurate to the passage, and weave it in naturally.
+- No bullet points, no headers, no numbered lists. Plain prose.
+- No em dashes.
+- Do not mention these instructions.
+
+THE SCENE (for the day's audio): one or two sentences, 280 characters at most, of pure passage fact drawn ONLY from the Gospel text provided below — where it happens, who is there, what is done or asked. Nothing else. No interpretation, no application, no lesson, no second person, no conclusion. Never write "what Jesus is really saying is", "here's what this means", "a real man would", or "in my experience". End it pointing at the passage itself, the moment just before the reading begins. If no Gospel text is provided below, return the scene as an empty string.
+
+Reply with ONLY a JSON object, no markdown fence, no other text:
+{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a woman","scene":"<the scene, or empty string>"}`;
 
 interface ReadingSet {
   firstReading?: string;
@@ -144,14 +181,14 @@ async function withinQuota(req: Request): Promise<boolean> {
 
 // ── Table cache ───────────────────────────────────────────────────────────────
 
-async function checkTable(dateKey: string): Promise<Reflection | null> {
+async function checkTable(dateKey: string, audience: Audience): Promise<Reflection | null> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   if (!supabaseUrl || !anonKey) return null;
 
   try {
     const res = await fetch(
-      `${supabaseUrl}/rest/v1/daily_reflections?date=eq.${dateKey}&select=reflect,challenge,facet`,
+      `${supabaseUrl}/rest/v1/daily_reflections?date=eq.${dateKey}&audience=eq.${audience}&select=reflect,challenge,facet`,
       { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` } },
     );
     if (!res.ok) return null;
@@ -162,7 +199,7 @@ async function checkTable(dateKey: string): Promise<Reflection | null> {
         return {
           reflect: row.reflect,
           challenge: row.challenge,
-          facet: typeof row.facet === "string" ? row.facet : "As a man",
+          facet: typeof row.facet === "string" ? row.facet : FACET[audience],
         };
       }
     }
@@ -174,6 +211,7 @@ async function checkTable(dateKey: string): Promise<Reflection | null> {
 
 async function storeReflection(
   dateKey: string,
+  audience: Audience,
   reflection: Reflection,
   celebration: string | null,
   scene: string | null,
@@ -183,7 +221,7 @@ async function storeReflection(
   if (!supabaseUrl || !serviceKey) return;
 
   try {
-    await fetch(`${supabaseUrl}/rest/v1/daily_reflections?on_conflict=date`, {
+    await fetch(`${supabaseUrl}/rest/v1/daily_reflections?on_conflict=date,audience`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -193,6 +231,7 @@ async function storeReflection(
       },
       body: JSON.stringify({
         date: dateKey,
+        audience,
         reflect: reflection.reflect,
         challenge: reflection.challenge,
         facet: reflection.facet,
@@ -339,6 +378,7 @@ function buildInput(readings: ReadingSet, celebration: string | null, gospelText
 function parseReflection(
   raw: string,
   sceneAllowed: boolean,
+  audience: Audience,
 ): { reflection: Reflection; scene: string | null } | null {
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) return null;
@@ -352,7 +392,7 @@ function parseReflection(
     const reflect = typeof parsed.reflect === "string" ? parsed.reflect.trim() : "";
     const challenge = typeof parsed.challenge === "string" ? parsed.challenge.trim() : "";
     if (!reflect || !challenge) return null;
-    const facet = typeof parsed.facet === "string" && parsed.facet.trim() ? parsed.facet.trim() : "As a man";
+    const facet = typeof parsed.facet === "string" && parsed.facet.trim() ? parsed.facet.trim() : FACET[audience];
     const reflection: Reflection = {
       reflect: reflect.slice(0, 400),
       challenge: challenge.slice(0, 400),
@@ -387,15 +427,27 @@ Deno.serve(async (req: Request) => {
         ? payload.date
         : new Date().toISOString().slice(0, 10);
 
-    // Fast path: return the cached reflection if it exists — no Gemini call, no quota check.
-    const cached = await checkTable(dateKey);
-    if (cached) {
-      return new Response(JSON.stringify(cached), {
+    const explicitAudience: Audience | null =
+      payload.audience === "women" ? "women" : payload.audience === "men" ? "men" : null;
+    // No audience = pregen (the nightly cron, audio-render's warm-up): warm both
+    // tracks, and answer with the men's reflection those callers have always read.
+    const targets: Audience[] = explicitAudience ? [explicitAudience] : ["men", "women"];
+    const answerAudience: Audience = explicitAudience ?? "men";
+
+    // Fast path: every track this invocation needs is already stored — no Gemini
+    // call, no quota check.
+    const found = new Map<Audience, Reflection>();
+    for (const a of targets) {
+      const hit = await checkTable(dateKey, a);
+      if (hit) found.set(a, hit);
+    }
+    if (targets.every((a) => found.has(a))) {
+      return new Response(JSON.stringify(found.get(answerAudience)), {
         headers: { ...jsonHeaders, "Cache-Control": "public, max-age=21600" },
       });
     }
 
-    // Cache miss — generate. Rate-limit only on this path.
+    // Something is missing — generate. Rate-limit only on this path, once per call.
     if (!(await withinQuota(req))) {
       return errorResponse("Too many requests right now. Please wait a minute and try again.", 429);
     }
@@ -414,48 +466,71 @@ Deno.serve(async (req: Request) => {
     if (!apiKey) return errorResponse("Server API key not configured.", 500);
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: input }] }],
-        systemInstruction: { parts: [{ text: PROMPT }] },
-        // Gemini 3.x Flash thinks at MEDIUM by default and bills thinking as output.
-        // Sprint 2 capped chat-proxy for exactly this reason; a ~40-word JSON answer
-        // does not need medium thinking, and the first user of the day waits on all of
-        // it (non-streaming). Measured Oct 26, 2026: 13.4s cold vs ~1s cached.
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1024,
-          thinkingConfig: { thinkingLevel: "low" },
-        },
-      }),
-    });
 
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      console.error(`Reflection model error ${res.status}: ${detail.slice(0, 300) || res.statusText}`);
-      return errorResponse(GENERIC_ERROR, 502);
+    const generate = async (
+      audience: Audience,
+    ): Promise<{ reflection: Reflection; scene: string | null } | null> => {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: input }] }],
+          systemInstruction: { parts: [{ text: audience === "women" ? PROMPT_WOMEN : PROMPT }] },
+          // Gemini 3.x Flash thinks at MEDIUM by default and bills thinking as output.
+          // Sprint 2 capped chat-proxy for exactly this reason; a ~40-word JSON answer
+          // does not need medium thinking, and the first user of the day waits on all of
+          // it (non-streaming). Measured Oct 26, 2026: 13.4s cold vs ~1s cached.
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+            thinkingConfig: { thinkingLevel: "low" },
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        console.error(`Reflection model error ${res.status}: ${detail.slice(0, 300) || res.statusText}`);
+        return null;
+      }
+
+      const json = await res.json();
+      const raw = json.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (typeof raw !== "string") {
+        console.error("Reflection model returned an empty response", JSON.stringify(json).slice(0, 300));
+        return null;
+      }
+
+      const parsed = parseReflection(raw, gospelText !== null, audience);
+      if (!parsed) console.error("Reflection model returned an unusable response");
+      return parsed;
+    };
+
+    let sharedScene: string | null = null;
+    let answer: Reflection | null = found.get(answerAudience) ?? null;
+    let answerFailed = false;
+    for (const a of targets) {
+      if (found.has(a)) continue;
+      const generated = await generate(a).catch(() => null);
+      if (!generated) {
+        // Failing the track the caller asked for is an error, as before. Failing
+        // the OTHER track on a pregen warm is logged and the call still succeeds —
+        // the missing row generates on that track's first real request.
+        if (a === answerAudience) answerFailed = true;
+        else console.error(`daily-reflection: ${a} warm failed; it will generate on first request`);
+        continue;
+      }
+      // The scene is neutral passage fact: whichever track generated it first
+      // lends it to the other row, so the day never carries a scene on one only.
+      const scene = generated.scene ?? sharedScene;
+      if (generated.scene) sharedScene = generated.scene;
+      await storeReflection(dateKey, a, generated.reflection, readingsData.celebration, scene);
+      if (a === answerAudience) answer = generated.reflection;
     }
 
-    const json = await res.json();
-    const raw = json.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (typeof raw !== "string") {
-      console.error("Reflection model returned an empty response", JSON.stringify(json).slice(0, 300));
-      return errorResponse(GENERIC_ERROR, 502);
-    }
+    if (answerFailed || !answer) return errorResponse(GENERIC_ERROR, 502);
 
-    const parsed = parseReflection(raw, gospelText !== null);
-    if (!parsed) {
-      console.error("Reflection model returned an unusable response");
-      return errorResponse(GENERIC_ERROR, 502);
-    }
-
-    // Store so every subsequent user today gets the cached row instantly. The scene
-    // rides along in the row only — the response keeps its original three fields.
-    await storeReflection(dateKey, parsed.reflection, readingsData.celebration, parsed.scene);
-
-    return new Response(JSON.stringify(parsed.reflection), {
+    return new Response(JSON.stringify(answer), {
       headers: { ...jsonHeaders, "Cache-Control": "public, max-age=21600" },
     });
   } catch (err) {

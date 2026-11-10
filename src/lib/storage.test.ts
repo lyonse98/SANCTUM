@@ -38,6 +38,8 @@ const KNOWN_KEYS = [
   'sanctum_confession_lens',
   'sanctum_readings_2026-10-24',
   'sanctum_reflection_2026-10-24',
+  'sanctum_audience',
+  'sanctum_reflection_women_2026-10-24',
   'sanctum_passage_john-1',
 ];
 

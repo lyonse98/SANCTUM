@@ -183,7 +183,9 @@ async function callFunction(path: string, init: RequestInit): Promise<boolean> {
 async function readReflection(dateISO: string): Promise<ReflectionRow | null> {
   const rows = await restSelect(
     "daily_reflections",
-    `date=eq.${dateISO}&select=reflect,challenge,facet,scene`,
+    // audience=eq.men pins the men's row: since the Women's Mode re-key the table
+    // holds one row per (date, audience), and the narrator reads the men's reflection.
+    `date=eq.${dateISO}&audience=eq.men&select=reflect,challenge,facet,scene`,
   );
   const row = rows[0];
   if (!row || typeof row.reflect !== "string" || typeof row.challenge !== "string") return null;
