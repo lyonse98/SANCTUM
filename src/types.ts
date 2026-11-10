@@ -1,6 +1,12 @@
 export type Role = 'system' | 'user' | 'assistant';
 
-export type PersonaId = 'joseph' | 'david' | 'paul' | 'augustine' | 'ignatius' | 'peter' | 'moses' | 'therese';
+/** The two Sanctum tracks. One app, one codebase — the audience governs which
+ *  companions, daily reflection, and tailored copy a person sees. */
+export type Audience = 'men' | 'women';
+
+export type PersonaId =
+  | 'joseph' | 'david' | 'paul' | 'augustine' | 'ignatius' | 'peter' | 'moses' | 'therese'
+  | 'mary' | 'magdalene' | 'teresa' | 'catherine' | 'monica' | 'joan' | 'clare' | 'therese-women';
 
 export type TabId = 'today' | 'companions' | 'church' | 'workshop' | 'help';
 
@@ -49,6 +55,9 @@ export interface PersonaTheme {
 
 export interface Persona {
   id: PersonaId;
+  /** Which track this companion belongs to. A companion is only ever offered to
+   *  her own audience — the two casts never mix on screen. */
+  audience: Audience;
   name: string;
   title: string;
   era: string;

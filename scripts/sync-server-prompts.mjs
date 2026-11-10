@@ -19,7 +19,10 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const checkOnly = process.argv.includes('--check');
 
-const EXPECTED_IDS = ['joseph', 'david', 'paul', 'augustine', 'ignatius', 'peter', 'moses', 'therese'];
+const EXPECTED_IDS = [
+  'joseph', 'david', 'paul', 'augustine', 'ignatius', 'peter', 'moses', 'therese',
+  'mary', 'magdalene', 'teresa', 'catherine', 'monica', 'joan', 'clare', 'therese-women',
+];
 
 function extractPersonaPrompts() {
   const src = readFileSync(join(root, 'src/personas.ts'), 'utf8');
