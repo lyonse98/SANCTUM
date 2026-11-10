@@ -3,6 +3,7 @@ import { Church, Lock, Zap } from 'lucide-react';
 import { SeasonBadge } from '@/components/SeasonBadge';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getDailyVisual } from '@/lib/liturgicalVisuals';
+import { getFeastArt } from '@/lib/feastArt';
 import type { Audience, PersonaTheme } from '@/types';
 
 interface TodayHeroProps {
@@ -28,6 +29,9 @@ function greetingForHour(hour: number): string {
 export function TodayHero({ t, accent, audience }: TodayHeroProps) {
   const season = useMemo(() => getCurrentSeason(), []);
   const visual = useMemo(() => getDailyVisual(), []);
+  // The Illuminated Garden — non-null only on the women's track, and only on a
+  // solemnity or one of Our Lady's days; null (nothing rendered) everywhere else.
+  const feastArt = useMemo(() => getFeastArt(new Date(), audience), [audience]);
   const [greeting, setGreeting] = useState(() => greetingForHour(new Date().getHours()));
 
   useEffect(() => {
@@ -44,6 +48,41 @@ export function TodayHero({ t, accent, audience }: TodayHeroProps) {
       />
 
       <div className="relative">
+        {feastArt && (
+          <figure
+            className="relative w-full h-48 rounded-2xl overflow-hidden mb-5 border text-left"
+            style={{ borderColor: t.accentRgba(0.35), boxShadow: `0 14px 34px -14px ${t.accent}66` }}
+          >
+            <img
+              src={feastArt.image}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: 'saturate(1.02) contrast(1.04)' }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  'linear-gradient(180deg, rgba(24,14,10,0.10) 0%, rgba(24,14,10,0.34) 52%, rgba(24,14,10,0.78) 100%)',
+              }}
+            />
+            <figcaption className="absolute inset-x-0 bottom-0 p-4">
+              <span
+                className="inline-block text-[9px] font-bold uppercase tracking-[0.22em] px-2 py-0.5 rounded-full border mb-1.5"
+                style={{ color: '#FFF6E8', borderColor: 'rgba(255,246,232,0.55)', backgroundColor: 'rgba(24,14,10,0.35)' }}
+              >
+                {feastArt.feast.rank}
+              </span>
+              <p className="font-display text-[22px] leading-tight" style={{ color: '#FFFBF2' }}>
+                {feastArt.feast.name}
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.18em] mt-0.5" style={{ color: 'rgba(255,246,232,0.85)' }}>
+                {feastArt.feast.motif}
+              </p>
+            </figcaption>
+          </figure>
+        )}
+
         <div className="flex items-center justify-center gap-3 mb-3" aria-hidden="true">
           <span
             className="h-px w-12"
