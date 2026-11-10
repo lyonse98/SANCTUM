@@ -1,11 +1,12 @@
 import { useState, useRef, useCallback } from 'react';
 import { Send, Loader2, BookOpen, Sparkles, ChevronRight } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 import { streamChat } from '@/lib/llm';
 import type { ChatSource } from '@/lib/chatSources';
 
 interface CatechismQAProps {
   t: PersonaTheme;
+  audience: Audience;
 }
 
 interface QAMessage {
@@ -62,7 +63,7 @@ const SUGGESTED_QUESTIONS = [
   'Is the Resurrection historical?',
 ];
 
-export function CatechismQA({ t }: CatechismQAProps) {
+export function CatechismQA({ t, audience }: CatechismQAProps) {
   const [messages, setMessages] = useState<QAMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -151,7 +152,8 @@ export function CatechismQA({ t }: CatechismQAProps) {
               <Sparkles className="w-6 h-6" style={{ color: t.accent }} />
             </div>
             <p className="text-xs leading-relaxed mb-4" style={{ color: t.textMuted }}>
-              Ask anything about the Catholic faith. Great for honest questions, RCIA, or your wife's conversion journey.
+              Ask anything about the Catholic faith. Great for honest questions, RCIA, or{' '}
+              {audience === 'women' ? "a loved one's conversion journey." : "your wife's conversion journey."}
             </p>
             <div className="space-y-1.5">
               {SUGGESTED_QUESTIONS.map((q) => (

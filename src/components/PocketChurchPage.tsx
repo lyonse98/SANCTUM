@@ -111,7 +111,7 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, 
           )}
           {activeTab === 'rosary' && <RosaryPrayer t={t} />}
           {activeTab === 'confession' && <ConfessionGuide t={t} audience={audience} />}
-          {activeTab === 'catechism' && <PocketCatechism t={t} />}
+          {activeTab === 'catechism' && <PocketCatechism t={t} audience={audience} />}
         </div>
 
         <UtilitiesRow t={t} utilities={utilities} className="mt-6" />

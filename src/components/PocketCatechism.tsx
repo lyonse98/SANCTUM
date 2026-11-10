@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, Shield, Heart, Hand, ChevronRight, Quote, Users, Swords, ShieldAlert, Sparkles } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 import { CatechismQA } from '@/components/CatechismQA';
 import {
   PILLARS,
@@ -21,11 +21,12 @@ const PILLAR_ICONS: Record<PillarId, typeof BookOpen> = {
 
 interface PocketCatechismProps {
   t: PersonaTheme;
+  audience: Audience;
 }
 
 const TEACHING_COUNT = PILLARS.reduce((n, p) => n + CATECHISM[p.id].length, 0);
 
-export function PocketCatechism({ t }: PocketCatechismProps) {
+export function PocketCatechism({ t, audience }: PocketCatechismProps) {
   const [mode, setMode] = useState<'pillars' | 'objections' | 'ask'>('pillars');
   const [activePillar, setActivePillar] = useState<PillarId>('creed');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -69,7 +70,7 @@ export function PocketCatechism({ t }: PocketCatechismProps) {
       </div>
 
       {mode === 'ask' ? (
-        <CatechismQA t={t} />
+        <CatechismQA t={t} audience={audience} />
       ) : (
         <>
           {/* Pillar tabs */}

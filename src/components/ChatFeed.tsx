@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { COMPANION_PORTRAYAL_LINE } from '@/lib/privacyCopy';
+import { audienceNoun } from '@/lib/audience';
 import {
   BookOpen,
   Check,
@@ -142,7 +143,7 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
           {COMPANION_PORTRAYAL_LINE}
         </p>
         <p className="mt-6 text-sm italic" style={{ color: t.accent }}>
-          "I'm here, brother. Speak when you're ready."
+          {`"I'm here, ${audienceNoun(persona.audience).toLowerCase()}. Speak when you're ready."`}
         </p>
       </div>
     );

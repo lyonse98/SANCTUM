@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Square } from 'lucide-react';
 import type { Persona } from '@/types';
 import { DAILY_MESSAGE_CAP } from '@/lib/messageCap';
+import { audienceNoun } from '@/lib/audience';
 
 const MAX_CHARS = 800;
 const RATE_LIMIT_COUNT = 10;
@@ -22,6 +23,8 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
   const timestampsRef = useRef<number[]>([]);
   const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = persona.theme;
+  // The companion addresses the user by the track's word — brother or sister.
+  const kin = audienceNoun(persona.audience).toLowerCase();
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -78,7 +81,7 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
           style={{ backgroundColor: 'rgba(153,27,27,0.12)', borderColor: 'rgba(185,28,28,0.35)' }}
         >
           <p className="text-[11px] font-medium leading-relaxed" style={{ color: '#991B1B' }}>
-            Take a breath brother. Spend 2 minutes in reflection or use an Offline Tool before sending your next message.
+            Take a breath {kin}. Spend 2 minutes in reflection or use an Offline Tool before sending your next message.
           </p>
         </div>
       )}
@@ -93,7 +96,7 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Speak plainly, brother..."
+            placeholder={`Speak plainly, ${kin}...`}
             rows={1}
             maxLength={MAX_CHARS}
             className="flex-1 bg-transparent text-sm px-4 py-3 resize-none outline-none max-h-[120px] leading-relaxed"

@@ -170,8 +170,17 @@ export function ShareInviteModal({ open, audience, t, onClose }: ShareInviteModa
             <span>{privacyShare(audience)}</span>
           </p>
           <p className="text-[11px] mt-2 text-center leading-relaxed" style={{ color: t.textDim }}>
-            Sending it to a phone? Tell him: open the link, tap Share &rarr; &ldquo;Add to Home Screen&rdquo;,
-            and Sanctum lives on his home screen like an app.
+            {audience === 'women' ? (
+              <>
+                Sending it to a phone? Tell her: open the link, tap Share &rarr; &ldquo;Add to Home Screen&rdquo;,
+                and Sanctum lives on her home screen like an app.
+              </>
+            ) : (
+              <>
+                Sending it to a phone? Tell him: open the link, tap Share &rarr; &ldquo;Add to Home Screen&rdquo;,
+                and Sanctum lives on his home screen like an app.
+              </>
+            )}
           </p>
         </div>
       </div>
