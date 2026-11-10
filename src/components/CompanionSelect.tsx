@@ -19,7 +19,18 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
   const cast = personasForAudience(audience);
   const [hoveredId, setHoveredId] = useState<PersonaId | null>(null);
   const [routerOpen, setRouterOpen] = useState(false);
+  const [activeNeed, setActiveNeed] = useState<string | null>(null);
   const defaultTheme = theme;
+
+  // Browse by need — the women's cast carries `issues` (the needs each companion
+  // speaks to); the row is hers alone. On the men's track nothing here renders and
+  // the grid is the full cast, exactly as before.
+  const needTags = audience === 'women'
+    ? [...new Set(cast.flatMap((p) => p.issues ?? []))]
+    : [];
+  const visibleCast = activeNeed
+    ? cast.filter((p) => p.issues?.includes(activeNeed))
+    : cast;
 
   return (
     <div className="absolute inset-0 overflow-y-auto chat-scroll" style={{ backgroundColor: defaultTheme.bg }}>
@@ -82,11 +93,51 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
           </div>
         </button>
 
+        {/* Browse by need — women's track only */}
+        {needTags.length > 0 && (
+          <div className="w-full mb-6">
+            <p
+              className="text-[10px] font-bold uppercase tracking-[0.2em] text-center mb-2.5"
+              style={{ color: defaultTheme.textDim }}
+            >
+              Browse by need
+            </p>
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {needTags.map((tag) => {
+                const isActive = activeNeed === tag;
+                const chipAccent = defaultTheme.secondaryAccent ?? defaultTheme.accent;
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setActiveNeed(isActive ? null : tag)}
+                    aria-pressed={isActive}
+                    className="text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all active:scale-95"
+                    style={{
+                      color: isActive ? '#FDFAF2' : defaultTheme.textMuted,
+                      borderColor: isActive ? chipAccent : `${defaultTheme.border}99`,
+                      backgroundColor: isActive ? chipAccent : `${defaultTheme.border}26`,
+                    }}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+            {activeNeed && (
+              <p className="text-[11px] text-center mt-2.5" style={{ color: defaultTheme.textDim }}>
+                Companions who speak to {activeNeed.toLowerCase()} — tap the tag again to see everyone.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Companion grid */}
         <div className="w-full">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {cast.map((persona) => {
+            {visibleCast.map((persona) => {
               const isHovered = hoveredId === persona.id;
+              // Her cards carry her issue tags; his carry his struggles, as always.
+              const chips = audience === 'women' ? (persona.issues ?? persona.struggles) : persona.struggles;
               return (
                 <button
                   key={persona.id}
@@ -142,7 +193,7 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
                       {persona.description}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {persona.struggles.map((struggle) => (
+                      {chips.map((struggle) => (
                         <span
                           key={struggle}
                           className="text-[10px] px-2 py-0.5 rounded-full border font-medium transition-colors duration-300"
