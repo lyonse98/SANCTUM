@@ -66,6 +66,7 @@ export type EventProperty =
   | 'breathing' | 'grounding' | 'driveway' | 'rule' | 'scripture' | 'prayer-library'
   // companions
   | 'joseph' | 'david' | 'paul' | 'augustine' | 'ignatius' | 'peter' | 'moses' | 'therese' | 'aquinas'
+  | 'mary' | 'magdalene' | 'teresa' | 'catherine' | 'monica' | 'joan' | 'clare' | 'therese-women'
   // funnel sources
   | 'gospel' | 'tab-bar' | 'companion-select' | 'settings';
 

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Compass, X, ChevronRight } from 'lucide-react';
-import { PERSONAS } from '@/personas';
-import type { Persona, PersonaTheme } from '@/types';
+import { PERSONAS, personasForAudience } from '@/personas';
+import type { Audience, Persona, PersonaTheme } from '@/types';
 
 interface CompanionRouterProps {
   t: PersonaTheme;
+  audience: Audience;
   open: boolean;
   onClose: () => void;
   onSelect: (persona: Persona) => void;
@@ -80,39 +81,75 @@ const RECOMMENDATIONS: Record<string, { personaId: string; reason: string }> = {
   'marriage-discipline-challenged': { personaId: 'therese', reason: 'Thérèse never did anything the world would call great. She did a hundred small duties with great love and became a Doctor of the Church. She will hold you to that standard, because she lived it.' },
 };
 
-function getRecommendation(answers: Answer[]): { persona: Persona; reason: string } {
+const RECOMMENDATIONS_WOMEN: Record<string, { personaId: string; reason: string }> = {
+  'overwhelmed-head-taught': { personaId: 'teresa', reason: 'Teresa mapped the interior life like a castle with seven dwellings — she takes an overwhelmed mind and gives it rooms to walk through, one at a time. Methodical, honest, and never airy.' },
+  'overwhelmed-emotion-understood': { personaId: 'magdalene', reason: 'Mary Magdalene stayed at the cross and came weeping to the tomb. She will not hurry your feelings or tidy them up. She knows what it is to love Jesus with your whole heart in the middle of grief.' },
+  'overwhelmed-action-steadied': { personaId: 'clare', reason: 'Clare steadied fifty sisters for forty years on almost nothing. When everything feels like too much, she starts with one thing let go of — and the hands empty enough to hold what matters.' },
+  'overwhelmed-discipline-challenged': { personaId: 'catherine', reason: 'Catherine of Siena wrote to popes the way other people breathe. She will not let overwhelm become an hiding place — she will hand you the truth and the next faithful step, in that order.' },
+  'failing-emotion-understood': { personaId: 'magdalene', reason: 'Magdalene was misjudged for centuries for sins she never committed — and Jesus entrusted her with the first news of Easter anyway. She sits with a woman who has failed or been shamed, and she does not flinch.' },
+  'failing-action-challenged': { personaId: 'joan', reason: 'Joan was captured, chained, and tried — and she never stopped answering truthfully. She understands the woman who acts fast and pays for it. She will get you back on your feet and pointed at the real fight.' },
+  'failing-discipline-challenged': { personaId: 'catherine', reason: 'Catherine’s most famous sentence is a challenge: be who God meant you to be and you will set the world on fire. She names the failure plainly — and then names the woman underneath it, whom she refuses to give up on.' },
+  'failing-head-taught': { personaId: 'teresa', reason: 'Teresa spent twenty years in tepid, distracted prayer before anything changed. She knows the divided heart from the inside, and she teaches — patiently, exactly — how a woman begins again.' },
+  'restless-head-taught': { personaId: 'teresa', reason: 'Teresa’s restless mind became the Church’s map of prayer. She will give your thoughts somewhere true to go: dwelling by dwelling, toward the King at the center.' },
+  'restless-emotion-understood': { personaId: 'magdalene', reason: 'Magdalene’s restlessness ended at a tomb garden, searching for the one she loved. She understands a heart that will not settle for less than Jesus himself — because hers would not.' },
+  'restless-action-challenged': { personaId: 'joan', reason: 'Joan took a peasant girl’s energy and put it entirely at God’s disposal. She will help you aim your drive instead of apologizing for it — once the call is tested, no more shrinking.' },
+  'restless-discipline-steadied': { personaId: 'clare', reason: 'Clare redirected a noblewoman’s whole ambition into one small convent and one great love. She knows how restlessness quiets: not by doing less, but by wanting one thing completely.' },
+  'direction-head-taught': { personaId: 'teresa', reason: 'Teresa is the Church’s teacher of prayer — how to tell where you are with God, what is dryness, what is growth, what is a trap. Discernment, in her hands, is a craft you can learn.' },
+  'direction-emotion-understood': { personaId: 'mary', reason: 'Mary pondered everything in her heart before she understood any of it. If you need direction and your heart is loud, she teaches the older way: keep the things, turn them over, and let God ripen them.' },
+  'direction-action-steadied': { personaId: 'joan', reason: 'Joan did not act on a feeling — she let the Church examine her first, then rode. She will steady your hand: test the call, then obey it without theatrics.' },
+  'direction-discipline-challenged': { personaId: 'catherine', reason: 'Catherine discerned her vocation in a tiny cell and then walked into the politics of nations. She pairs self-knowledge with obedience — and she will press you on both.' },
+  'responsibility-head-steadied': { personaId: 'monica', reason: 'Monica carried a household, a hard marriage, and a lost son for decades — with her mind fixed on God the whole time. She steadies women who carry people: hope as a discipline, not a mood.' },
+  'responsibility-emotion-understood': { personaId: 'monica', reason: 'Monica wept in front of a bishop until he answered her. She knows the tears that come with responsibility you did not choose, and she will teach you to make them into prayer instead of despair.' },
+  'responsibility-action-steadied': { personaId: 'clare', reason: 'Clare ran a community on prayer and whatever arrived at the door that day. For the woman buried in responsibility, she is relentlessly practical: hold less, trust more, do the next true thing.' },
+  'responsibility-discipline-challenged': { personaId: 'catherine', reason: 'Catherine carried the wounds of the whole Church as her own responsibility — and let it make her bolder, not bitter. She will challenge you to carry your load the same way.' },
+  'marriage-head-taught': { personaId: 'therese-women', reason: 'Thérèse grew up inside the only marriage the Church has ever canonized — Louis and Zélie Martin, nine children, a business, and daily prayer. She will help you see what the small daily kindnesses in your marriage are actually building.' },
+  'marriage-emotion-understood': { personaId: 'therese-women', reason: 'Thérèse loved the sisters who were hardest to love, and she says plainly that love is a decision of the will — often before the feelings agree. She will not tell you to feel differently. She will show you the next small thing.' },
+  'marriage-action-steadied': { personaId: 'therese-women', reason: 'Thérèse taught the Little Way: holiness is the small act done with great love. She will give you one small, doable thing to do for your husband today — and it will matter more than you think.' },
+  'marriage-discipline-challenged': { personaId: 'therese-women', reason: 'Thérèse never did anything the world calls great. She did a hundred small duties with great love and became a Doctor of the Church. She will hold you to that standard, because she lived it.' },
+};
+
+const FALLBACK_WOMEN: Record<string, string> = {
+  overwhelmed: 'monica',
+  failing: 'magdalene',
+  restless: 'teresa',
+  direction: 'mary',
+  responsibility: 'monica',
+  marriage: 'therese-women',
+};
+
+function getRecommendation(answers: Answer[], audience: Audience): { persona: Persona; reason: string } {
+  const cast = personasForAudience(audience);
+  const resolve = (id: string): Persona => cast.find((p) => p.id === id) ?? cast[0];
   const key = answers.join('-');
-  const rec = RECOMMENDATIONS[key];
-  if (rec) {
-    const persona = PERSONAS.find((p) => p.id === rec.personaId) ?? PERSONAS[0];
-    return { persona, reason: rec.reason };
-  }
+  const rec = (audience === 'women' ? RECOMMENDATIONS_WOMEN : RECOMMENDATIONS)[key];
+  if (rec) return { persona: resolve(rec.personaId), reason: rec.reason };
   // Fallback: match by first answer
   const firstAnswer = answers[0];
-  const fallbackMap: Record<string, string> = {
-    overwhelmed: 'moses',
-    failing: 'peter',
-    restless: 'augustine',
-    direction: 'ignatius',
-    responsibility: 'joseph',
-    marriage: 'therese',
-  };
-  const pid = fallbackMap[firstAnswer] ?? 'joseph';
-  const persona = PERSONAS.find((p) => p.id === pid) ?? PERSONAS[0];
+  const fallbackMap: Record<string, string> = audience === 'women'
+    ? FALLBACK_WOMEN
+    : {
+        overwhelmed: 'moses',
+        failing: 'peter',
+        restless: 'augustine',
+        direction: 'ignatius',
+        responsibility: 'joseph',
+        marriage: 'therese',
+      };
+  const persona = resolve(fallbackMap[firstAnswer] ?? cast[0].id);
   return {
     persona,
-    reason: `${persona.name} speaks to men like you. Read the card and see if the voice fits — you can always switch.`,
+    reason: `${persona.name} speaks to ${audience === 'women' ? 'women' : 'men'} like you. Read the card and see if the voice fits — you can always switch.`,
   };
 }
 
-export function CompanionRouter({ t, open, onClose, onSelect }: CompanionRouterProps) {
+export function CompanionRouter({ t, audience, open, onClose, onSelect }: CompanionRouterProps) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
 
   if (!open) return null;
 
   const isDone = step >= QUESTIONS.length;
-  const { persona: recommended, reason } = isDone ? getRecommendation(answers) : { persona: null, reason: '' };
+  const { persona: recommended, reason } = isDone ? getRecommendation(answers, audience) : { persona: null, reason: '' };
   // Gate on the resolved persona, not on `isDone`, so TypeScript narrows the null away.
   const showResult = recommended !== null;
 

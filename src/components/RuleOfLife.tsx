@@ -1,20 +1,21 @@
 import { useCallback, useState } from 'react';
 import { ScrollText, Check, Plus, X, RotateCcw, Pencil } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 import {
   loadRule,
   saveRule,
   loadTodayChecks,
   saveTodayChecks,
   practiceFor,
-  RULE_GROUPS,
-  UNIVERSAL_PRACTICES,
+  getRuleGroups,
+  getPractices,
   MAX_RULE_PRACTICES,
   type RuleGroup,
 } from '@/lib/ruleOfLife';
 
 interface RuleOfLifeProps {
   t: PersonaTheme;
+  audience: Audience;
 }
 
 /**
@@ -26,7 +27,9 @@ interface RuleOfLifeProps {
  * rules die, and a written-in rule tends to duplicate one already on the list. Choosing is the
  * whole act; the only thing kept is which ones he chose, on his own device.
  */
-export function RuleOfLife({ t }: RuleOfLifeProps) {
+export function RuleOfLife({ t, audience }: RuleOfLifeProps) {
+  const RULE_GROUPS = getRuleGroups(audience);
+  const UNIVERSAL_PRACTICES = getPractices(audience);
   const [chosen, setChosen] = useState<string[]>(() => loadRule());
   const [checks, setChecks] = useState<Record<string, boolean>>(() => loadTodayChecks());
   // A man with no rule yet lands straight in the picking state — an empty list is not a tool.
@@ -139,7 +142,7 @@ export function RuleOfLife({ t }: RuleOfLifeProps) {
         <div className="space-y-4">
           {RULE_GROUPS.map((group) => {
             const groupChosen = chosen
-              .map((k) => practiceFor(k))
+              .map((k) => practiceFor(k, audience))
               .filter((p): p is NonNullable<typeof p> => p != null && p.group === group.id);
             if (groupChosen.length === 0) return null;
             return (
@@ -215,7 +218,7 @@ export function RuleOfLife({ t }: RuleOfLifeProps) {
               </p>
               <div className="space-y-2">
                 {chosen.map((key) => {
-                  const practice = practiceFor(key);
+                  const practice = practiceFor(key, audience);
                   if (!practice) return null;
                   return (
                     <div

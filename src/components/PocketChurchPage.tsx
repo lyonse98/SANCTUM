@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Church } from 'lucide-react';
-import type { PersonaTheme, UtilityActions } from '@/types';
+import type { Audience, PersonaTheme, UtilityActions } from '@/types';
 import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { PrayerLibrary } from '@/components/PrayerLibrary';
@@ -14,6 +14,7 @@ interface PocketChurchPageProps {
   initialTab?: ChurchTab | null;
   onConsumeTab?: () => void;
   onReflectWithCompanion?: (prompt: string) => void;
+  audience: Audience;
   /** A companion's tool:lectio link opens the session without a tap on the button. */
   autoOpenLectio?: boolean;
   onConsumeLectio?: () => void;
@@ -32,7 +33,7 @@ const TABS: { id: ChurchTab; label: string }[] = [
 
 const VALID_TABS = TABS.map((tab) => tab.id);
 
-export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, onReflectWithCompanion, autoOpenLectio, onConsumeLectio, seasonTheme }: PocketChurchPageProps) {
+export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, audience, onReflectWithCompanion, autoOpenLectio, onConsumeLectio, seasonTheme }: PocketChurchPageProps) {
   const [activeTab, setActiveTab] = useState<ChurchTab>('prayer');
   const t = seasonTheme;
 
@@ -109,7 +110,7 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, 
             />
           )}
           {activeTab === 'rosary' && <RosaryPrayer t={t} />}
-          {activeTab === 'confession' && <ConfessionGuide t={t} />}
+          {activeTab === 'confession' && <ConfessionGuide t={t} audience={audience} />}
           {activeTab === 'catechism' && <PocketCatechism t={t} />}
         </div>
 

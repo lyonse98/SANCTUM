@@ -35,6 +35,14 @@ export const PRIVACY_SHORT =
 export const PRIVACY_SHARE =
   'No account. Conversations are never stored on a server, and chat history lives only on his own device.';
 
+/** Privacy Fact 2 in Women's Mode — same promise, addressed to a sister. */
+export const PRIVACY_SHARE_WOMEN =
+  'No account. Conversations are never stored on a server, and chat history lives only on her own device.';
+
+export function privacyShare(audience: 'men' | 'women'): string {
+  return audience === 'women' ? PRIVACY_SHARE_WOMEN : PRIVACY_SHARE;
+}
+
 /** Analytics section copy for Settings. */
 export const ANALYTICS_COPY =
   'Off by default. If you turn this on, Sanctum sends anonymous usage events \u2014 which screen, which tool, which companion \u2014 so we can see which parts men actually use. No message text, no email, no identity, ever.';
@@ -53,3 +61,19 @@ export const COMPANION_PORTRAYAL_SHORT = 'AI portrayal';
  */
 export const NARRATOR_DISCLOSURE_LINE =
   'Sanctum\u2019s narrators are created personas \u2014 AI-voiced characters, written to be the brothers reading next to you. They aren\u2019t real men, and they never pretend to be \u2014 least of all priests.';
+
+/** The analytics disclosure addressed to a woman. */
+export const ANALYTICS_COPY_WOMEN =
+  'Off by default. If you turn this on, Sanctum sends anonymous usage events — which screen, which tool, which companion — so we can see which parts women actually use. No message text, no email, no identity, ever.';
+
+export function analyticsCopy(audience: 'men' | 'women'): string {
+  return audience === 'women' ? ANALYTICS_COPY_WOMEN : ANALYTICS_COPY;
+}
+
+/**
+ * The one line shown where Men's Mode offers the day's spoken audio. Women's Mode
+ * has no narrator voices yet — a deliberate hold rather than a thinner substitute —
+ * so the Gospel card says so plainly and keeps everything else.
+ */
+export const WOMENS_AUDIO_NOTE =
+  'Spoken audio is not yet available in Women’s Mode — the Gospel and reflection are here in writing.';

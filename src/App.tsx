@@ -41,11 +41,12 @@ import { detectCrisisLevel } from '@/lib/crisis';
 import { track, trackNow, type EventProperty } from '@/lib/analytics';
 import { loadHistory, saveHistory, clearHistory, wipeAllSanctumData } from '@/lib/storage';
 import { savePersonaId } from '@/lib/personaStorage';
-import { getPersona, PERSONAS } from '@/personas';
+import { getPersona } from '@/personas';
+import { loadAudience, saveAudience } from '@/lib/audience';
 import { getRemainingMessages, incrementDailyMessageCount, isAtMessageCap, DAILY_MESSAGE_CAP } from '@/lib/messageCap';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
-import type { ChatMessage, Message, PresetChip, Persona, PersonaId, PersonaTheme, TabId, UtilityActions } from '@/types';
+import type { Audience, ChatMessage, Message, PresetChip, Persona, PersonaId, PersonaTheme, TabId, UtilityActions } from '@/types';
 
 const MAX_HISTORY_TURNS = 8;
 
@@ -89,10 +90,20 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [introActive, setIntroActive] = useState(false);
   const [panicActive, setPanicActive] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(() => hasAcceptedTerms());
+  // The active track. Existing installs carry no stored audience and load as
+  // 'men' (loadAudience's default), so nothing changes for them until they
+  // choose otherwise in Settings. New users choose in the welcome gate.
+  const [audience, setAudience] = useState<Audience>(() => loadAudience());
   const [showTerms, setShowTerms] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [hardCrisis, setHardCrisis] = useState(false);
-  const persona: Persona | null = useMemo(() => (personaId ? getPersona(personaId) : null), [personaId]);
+  const persona: Persona | null = useMemo(() => {
+    if (!personaId) return null;
+    const p = getPersona(personaId);
+    // A companion from the other track can never be open here — a stored id
+    // from before a switch resolves to nothing rather than to the wrong cast.
+    return p.audience === audience ? p : null;
+  }, [personaId, audience]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [incognito, setIncognito] = useState(false);
@@ -179,7 +190,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   // persists. Shared by ordinary sends and gospel reflection so the two can never
   // drift apart in streaming, error, or persistence behavior.
   const streamReply = useCallback(
-    (apiMessages: Message[], baseMessages: ChatMessage[], context: { personaId: string; season?: string; distress?: boolean }) => {
+    (apiMessages: Message[], baseMessages: ChatMessage[], context: { personaId: string; season?: string; distress?: boolean; audience?: Audience }) => {
       setIsStreaming(true);
       setStreamingContent('');
 
@@ -266,9 +277,10 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         personaId: persona.id,
         season: season.name,
         distress: crisisLevel === 'soft',
+        audience,
       });
     },
-    [messages, isStreaming, persona, season, streamReply],
+    [messages, isStreaming, persona, season, streamReply, audience],
   );
 
   // Reflect on a gospel card. The readings reach the model as context for this one
@@ -288,15 +300,41 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       streamReply([...history, { role: 'user', content: card.content }], marked, {
         personaId: persona.id,
         season: season.name,
+        audience,
       });
     },
-    [messages, isStreaming, persona, season, streamReply],
+    [messages, isStreaming, persona, season, streamReply, audience],
   );
 
-  const handleAcceptTerms = useCallback(() => {
+  const handleAcceptTerms = useCallback((chosen: Audience) => {
+    saveAudience(chosen);
+    setAudience(chosen);
     setTermsAccepted(true);
     setShowTerms(false);
   }, []);
+
+  // Switching tracks from Settings: the open companion belongs to the other
+  // cast, so the conversation closes and the app returns to Today. Each
+  // companion's saved thread stays on the device under its own id, untouched —
+  // switching back restores exactly where she (or he) left it.
+  const handleAudienceChange = useCallback(
+    (next: Audience) => {
+      if (next === audience) return;
+      if (isStreaming) {
+        abortRef.current?.abort();
+        setIsStreaming(false);
+        setStreamingContent('');
+      }
+      saveAudience(next);
+      setAudience(next);
+      setPersonaId(null);
+      setMessages([]);
+      setIntroActive(false);
+      setTab('today');
+      setSettingsOpen(false);
+    },
+    [audience, isStreaming],
+  );
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -391,6 +429,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       abortRef.current?.abort();
     }
     wipeAllSanctumData();
+    setAudience(loadAudience());
     setRemainingMessages(getRemainingMessages());
     setMessages([]);
     setPersonaId(null);
@@ -457,6 +496,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     if (tab === 'companions') {
       content = (
         <CompanionSelect
+          audience={audience}
           onSelect={(p) => {
             handleSelectPersona(p);
           }}
@@ -472,6 +512,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           initialTab={churchTab}
           onConsumeTab={() => setChurchTab(null)}
           utilities={utilities}
+          audience={audience}
           onReflectWithCompanion={(message) => {
             setPendingGospelContext(message);
             setTab('companions');
@@ -484,6 +525,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     } else if (tab === 'workshop') {
       content = (
         <WorkshopPage
+          audience={audience}
           onBack={() => setTab('today')}
           initialTool={workshopTool}
           onConsumeTool={() => setWorkshopTool(null)}
@@ -494,6 +536,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     } else if (tab === 'help') {
       content = (
         <FindHelpPage
+          audience={audience}
           t={areaTheme}
           accent={seasonAccent}
           onBack={() => setTab('today')}
@@ -508,6 +551,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             onOpenWorkshop={() => setTab('workshop')}
           />
           <HomeScreen
+            audience={audience}
             onReflectWithCompanion={(message) => {
               setPendingGospelContext(message);
               setTab('companions');
@@ -534,19 +578,22 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           haloKey={haloNonce}
         />
         {showAbout && (
-          <AboutSanctumPage t={areaTheme} accent={seasonAccent} onClose={() => setShowAbout(false)} />
+          <AboutSanctumPage t={areaTheme} accent={seasonAccent} audience={audience} onClose={() => setShowAbout(false)} />
         )}
         {showTerms && (
-          <TermsPage t={areaTheme} accent={seasonAccent} onClose={() => setShowTerms(false)} />
+          <TermsPage t={areaTheme} accent={seasonAccent} audience={audience} onClose={() => setShowTerms(false)} />
         )}
 
         <SettingsModal
           open={settingsOpen}
+          audience={audience}
+          onAudienceChange={handleAudienceChange}
           onClose={() => setSettingsOpen(false)}
           onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
         />
         <ShareInviteModal
           open={shareInviteOpen}
+          audience={audience}
           t={areaTheme}
           onClose={() => setShareInviteOpen(false)}
         />
@@ -683,6 +730,8 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       <SettingsModal
         open={settingsOpen}
+        audience={audience}
+        onAudienceChange={handleAudienceChange}
         onClose={() => setSettingsOpen(false)}
         onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
       />
@@ -696,10 +745,10 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       )}
 
       {showAbout && (
-        <AboutSanctumPage t={t} accent={seasonAccent} onClose={() => setShowAbout(false)} />
+        <AboutSanctumPage t={t} accent={seasonAccent} audience={audience} onClose={() => setShowAbout(false)} />
       )}
       {showTerms && (
-        <TermsPage t={t} accent={seasonAccent} onClose={() => setShowTerms(false)} />
+        <TermsPage t={t} accent={seasonAccent} audience={audience} onClose={() => setShowTerms(false)} />
       )}
 
       <ReminderModal open={reminderOpen} t={t} onClose={() => setReminderOpen(false)} />

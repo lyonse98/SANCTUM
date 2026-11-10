@@ -114,7 +114,7 @@ export function Header({
                 </p>
               </div>
               <div className="py-1 max-h-[60vh] overflow-y-auto chat-scroll">
-                {PERSONAS.map((p) => (
+                {PERSONAS.filter((p) => p.audience === persona.audience).map((p) => (
                   <button
                     key={p.id}
                     onClick={() => handlePick(p)}

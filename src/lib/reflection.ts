@@ -1,16 +1,28 @@
+import type { Audience } from '@/types';
+import { audienceFacet } from '@/lib/audience';
+
 export interface Reflection {
   reflect: string;
   challenge: string;
-  /** The role the prompts are framed through — always "As a man" so no man is excluded. */
+  /** The role the prompts are framed through — "As a man" / "As a woman", so no one is excluded. */
   facet: string;
 }
 
 const CACHE_PREFIX = 'sanctum_reflection_';
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
-function readCache(dateKey: string): Reflection | null {
+/**
+ * The on-device cache key. Men's entries keep the original `sanctum_reflection_<date>`
+ * shape (existing installs' caches stay valid); women's entries are namespaced apart
+ * so the two tracks' reflections can never be served to the wrong audience.
+ */
+export function reflectionCacheKey(dateKey: string, audience: Audience): string {
+  return audience === 'women' ? `${CACHE_PREFIX}women_${dateKey}` : `${CACHE_PREFIX}${dateKey}`;
+}
+
+function readCache(dateKey: string, audience: Audience): Reflection | null {
   try {
-    const raw = localStorage.getItem(CACHE_PREFIX + dateKey);
+    const raw = localStorage.getItem(reflectionCacheKey(dateKey, audience));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { at: number; value: Reflection };
     if (Date.now() - parsed.at > CACHE_TTL_MS) return null;
@@ -20,12 +32,17 @@ function readCache(dateKey: string): Reflection | null {
   }
 }
 
-function writeCache(dateKey: string, value: Reflection): void {
+function writeCache(dateKey: string, audience: Audience, value: Reflection): void {
   try {
-    localStorage.setItem(CACHE_PREFIX + dateKey, JSON.stringify({ at: Date.now(), value }));
+    localStorage.setItem(reflectionCacheKey(dateKey, audience), JSON.stringify({ at: Date.now(), value }));
   } catch {
     // ignore
   }
+}
+
+/** The exact request body sent to the daily-reflection function. */
+export function reflectionRequestBody(dateKey: string, audience: Audience): { date: string; audience: Audience } {
+  return { date: dateKey, audience };
 }
 
 /**
@@ -78,8 +95,8 @@ export function reflectionDisplay(
  * the cached row instantly. If not, it generates it, stores it, and returns it — so the
  * Gemini API is called once per day total, not once per user.
  */
-export async function fetchReflection(dateKey: string): Promise<Reflection | null> {
-  const cached = readCache(dateKey);
+export async function fetchReflection(dateKey: string, audience: Audience = 'men'): Promise<Reflection | null> {
+  const cached = readCache(dateKey, audience);
   if (cached) return cached;
 
   try {
@@ -90,7 +107,7 @@ export async function fetchReflection(dateKey: string): Promise<Reflection | nul
         'Content-Type': 'application/json',
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ date: dateKey }),
+      body: JSON.stringify(reflectionRequestBody(dateKey, audience)),
     });
 
     if (!res.ok) return null;
@@ -103,9 +120,9 @@ export async function fetchReflection(dateKey: string): Promise<Reflection | nul
     const reflection: Reflection = {
       reflect: reflect.slice(0, 400),
       challenge: challenge.slice(0, 400),
-      facet: typeof data.facet === 'string' && data.facet.trim() ? data.facet.trim() : 'As a man',
+      facet: typeof data.facet === 'string' && data.facet.trim() ? data.facet.trim() : audienceFacet(audience),
     };
-    writeCache(dateKey, reflection);
+    writeCache(dateKey, audience, reflection);
     return reflection;
   } catch {
     return null;

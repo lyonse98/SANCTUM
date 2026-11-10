@@ -1,4 +1,5 @@
-import type { Message } from '@/types';
+import type { Audience, Message } from '@/types';
+import { loadAudience } from '@/lib/audience';
 import { SourcesTrailerParser, type ChatSource } from '@/lib/chatSources';
 
 interface StreamCallbacks {
@@ -29,6 +30,10 @@ export interface ChatContext {
   personaId: string;
   season?: string;
   distress?: boolean;
+  /** The active track. Callers in the main app pass it explicitly; surfaces that
+   *  only know a persona id (the Catechism's Aquinas seat) omit it and the stored
+   *  on-device audience is used — it only ever steers how the reply addresses her. */
+  audience?: Audience;
 }
 
 export interface ChatTiming {
@@ -86,6 +91,7 @@ export async function streamChat(
         personaId: context?.personaId ?? '',
         season: context?.season ?? '',
         distress: context?.distress === true,
+        audience: context?.audience ?? loadAudience(),
       }),
       signal,
     });

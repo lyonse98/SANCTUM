@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Quote,
   Share2,
+  VolumeX,
 } from 'lucide-react';
 import { DAILY_QUOTES } from '@/data/quotes';
 import { fetchDailyReadings, type DailyReadings } from '@/lib/readings';
@@ -31,7 +32,8 @@ import {
 } from '@/lib/reflection';
 import { ListenBar } from '@/components/ListenBar';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
+import { WOMENS_AUDIO_NOTE } from '@/lib/privacyCopy';
 
 const FEAST_RANK_LABEL: Record<FeastRank, string> = {
   solemnity: 'Solemnity',
@@ -51,11 +53,12 @@ function getQuoteForDay(date: Date = new Date()) {
 
 interface DailyQuoteProps {
   t: PersonaTheme;
+  audience: Audience;
   onOpenExamen?: () => void;
   onReflectWithCompanion?: (prompt: string) => void;
 }
 
-export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuoteProps) {
+export function DailyQuote({ t, audience, onOpenExamen, onReflectWithCompanion }: DailyQuoteProps) {
   const quote = useMemo(() => getQuoteForDay(), []);
   const feast = useMemo(() => getFeastForDate(), []);
   const [expanded, setExpanded] = useState(false);
@@ -132,7 +135,7 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
     const seq = ++reflectionFetchSeq.current;
     setReflectionBusyFor(want);
     void (async () => {
-      const result = await fetchReflection(want);
+      const result = await fetchReflection(want, audience);
       if (reflectionFetchSeq.current !== seq) return;
       setReflection(result);
       setReflectionFor(want);
@@ -199,7 +202,7 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
     }
 
     lines.push(
-      '\nReflect on these readings through your eyes. What do they mean for a man walking the road today? What truth do they uncover, and what do they ask of him?',
+      `\nReflect on these readings through your eyes. What do they mean for ${audience === 'women' ? 'a woman' : 'a man'} walking the road today? What truth do they uncover, and what do they ask of ${audience === 'women' ? 'her' : 'him'}?`,
     );
     return lines.join('\n');
   };
@@ -273,7 +276,14 @@ export function DailyQuote({ t, onOpenExamen, onReflectWithCompanion }: DailyQuo
           (or one plain line when the day's render failed). Fetches independently
           and fails silently; it can never block the text below. */}
       {!loading && readings?.date && (
-        <ListenBar t={t} dateKey={readings.date} citation={readings.gospel ?? null} />
+        audience === 'women' ? (
+          <p className="mt-4 flex items-center gap-1.5 text-[10px] leading-relaxed" style={{ color: t.textDim }}>
+            <VolumeX className="w-3 h-3 flex-shrink-0" />
+            {WOMENS_AUDIO_NOTE}
+          </p>
+        ) : (
+          <ListenBar t={t} dateKey={readings.date} citation={readings.gospel ?? null} />
+        )
       )}
 
       {/* The verse to sit with — the heart of the passage, shown up front */}

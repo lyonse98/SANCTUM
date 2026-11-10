@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Zap, Check, ChevronRight, Play, RotateCcw } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 import { useAudio } from '@/lib/audio';
 
 interface ColdStartProps {
   t: PersonaTheme;
+  audience: Audience;
 }
 
-const COLD_START_STEPS = [
+const COLD_START_STEPS_MEN = [
   {
     title: 'Physical Shock',
     instruction: 'Splash ice-cold water on your face. Or hold an ice cube in your hand until it melts.',
@@ -34,9 +35,18 @@ const COLD_START_STEPS = [
   },
 ];
 
+/** The women's Cold Start — identical physiology, one line of address differs:
+ *  the posture step speaks to a woman with a fight on her hands. */
+const COLD_START_STEPS_WOMEN = COLD_START_STEPS_MEN.map((step, i) =>
+  i === 1
+    ? { ...step, detail: 'Your body was curled into a defensive posture. You need to physically break it. Stand tall. Plant your feet. You are not prey — you are a woman with a fight on your hands.' }
+    : step,
+);
+
 const BREATH_PHASES = ['Breathe In', 'Hold', 'Breathe Out', 'Hold'];
 
-export function ColdStart({ t }: ColdStartProps) {
+export function ColdStart({ t, audience }: ColdStartProps) {
+  const COLD_START_STEPS = audience === 'women' ? COLD_START_STEPS_WOMEN : COLD_START_STEPS_MEN;
   const [started, setStarted] = useState(false);
   const [step, setStep] = useState(0);
   const [countdown, setCountdown] = useState(COLD_START_STEPS[0].duration);

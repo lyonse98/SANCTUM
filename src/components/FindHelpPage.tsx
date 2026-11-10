@@ -12,13 +12,14 @@ import {
   RotateCcw,
   type LucideIcon,
 } from 'lucide-react';
-import type { PersonaTheme, UtilityActions } from '@/types';
+import type { Audience, PersonaTheme, UtilityActions } from '@/types';
 import { UtilitiesRow } from '@/components/UtilitiesRow';
-import { HELP_DISCLAIMER, HELP_SECTIONS, type HelpIconKey } from '@/lib/realHelp';
+import { HELP_DISCLAIMER, HELP_SECTIONS, getHelpSections, type HelpIconKey } from '@/lib/realHelp';
 
 interface FindHelpPageProps {
   t: PersonaTheme;
   utilities: UtilityActions;
+  audience: Audience;
   accent?: string;
   onBack: () => void;
 }
@@ -36,7 +37,8 @@ const ICONS: Record<HelpIconKey, LucideIcon> = {
  * Hands the man to a real person. Deliberately prominent: it is the one screen that
  * keeps Sanctum honest, so it is reachable from the home toolbar, the chat, and crisis.
  */
-export function FindHelpPage({ t, utilities, accent, onBack }: FindHelpPageProps) {
+export function FindHelpPage({ t, utilities, audience, accent, onBack }: FindHelpPageProps) {
+  const sections = getHelpSections(audience);
   const a = accent ?? t.accent;
 
   return (
@@ -90,7 +92,7 @@ export function FindHelpPage({ t, utilities, accent, onBack }: FindHelpPageProps
 
         {/* Sections */}
         <div className="w-full space-y-4">
-          {HELP_SECTIONS.map((section, index) => (
+          {sections.map((section, index) => (
             <HelpSectionCard key={section.id} section={section} t={t} accent={a} index={index} />
           ))}
         </div>

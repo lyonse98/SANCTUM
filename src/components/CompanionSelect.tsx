@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { ArrowLeft, Compass, Users } from 'lucide-react';
-import { PERSONAS } from '@/personas';
+import { personasForAudience } from '@/personas';
 import { CompanionRouter } from '@/components/CompanionRouter';
 import { COMPANION_PORTRAYAL_LINE } from '@/lib/privacyCopy';
 import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
-import type { Persona, PersonaId, PersonaTheme, UtilityActions } from '@/types';
+import type { Audience, Persona, PersonaId, PersonaTheme, UtilityActions } from '@/types';
 
 interface CompanionSelectProps {
+  audience: Audience;
   onSelect: (persona: Persona) => void;
   onBack: () => void;
   utilities: UtilityActions;
   theme: PersonaTheme;
 }
 
-export function CompanionSelect({ onSelect, onBack, utilities, theme }: CompanionSelectProps) {
+export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }: CompanionSelectProps) {
+  const cast = personasForAudience(audience);
   const [hoveredId, setHoveredId] = useState<PersonaId | null>(null);
   const [routerOpen, setRouterOpen] = useState(false);
   const defaultTheme = theme;
@@ -83,7 +85,7 @@ export function CompanionSelect({ onSelect, onBack, utilities, theme }: Companio
         {/* Companion grid */}
         <div className="w-full">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {PERSONAS.map((persona) => {
+            {cast.map((persona) => {
               const isHovered = hoveredId === persona.id;
               return (
                 <button
@@ -175,6 +177,7 @@ export function CompanionSelect({ onSelect, onBack, utilities, theme }: Companio
 
       <CompanionRouter
         t={defaultTheme}
+        audience={audience}
         open={routerOpen}
         onClose={() => setRouterOpen(false)}
         onSelect={onSelect}

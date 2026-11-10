@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Scroll, Heart, HandHeart } from 'lucide-react';
 import { PRIVACY_PARAGRAPH } from '@/lib/privacyCopy';
+import type { Audience } from '@/types';
 import { MISSION_LINE, MISSION_ATTRIBUTION } from '@/lib/mission';
 
 const STORAGE_KEY = 'sanctum_terms_accepted';
@@ -14,20 +15,26 @@ export function hasAcceptedTerms(): boolean {
 }
 
 interface TermsModalProps {
-  onAccept: () => void;
+  /** The track chosen at the door — saved on-device by the app before entry. */
+  onAccept: (audience: Audience) => void;
 }
 
 export function TermsModal({ onAccept }: TermsModalProps) {
   const [checking, setChecking] = useState(false);
+  // No default: the door asks. (Installs from before the women's track carry a
+  // stored terms acceptance and never see this gate again — they load as men's
+  // and can switch in Settings.)
+  const [choice, setChoice] = useState<Audience | null>(null);
 
   const handleAccept = () => {
+    if (!choice) return;
     setChecking(true);
     try {
       localStorage.setItem(STORAGE_KEY, 'true');
     } catch {
       // ignore
     }
-    onAccept();
+    onAccept(choice);
   };
 
   return (
@@ -44,7 +51,7 @@ export function TermsModal({ onAccept }: TermsModalProps) {
             <HandHeart className="w-7 h-7" style={{ color: '#C2410C' }} />
           </div>
           <h2 className="text-lg font-bold font-display uppercase tracking-wide mb-1.5" style={{ color: '#1B1815' }}>
-            Welcome, Brother
+            Welcome, {choice === 'women' ? 'Sister' : 'Brother'}
           </h2>
           <p className="text-xs leading-relaxed" style={{ color: '#635C51' }}>
             You're stepping into a quiet space. A few things to know before you enter.
@@ -88,10 +95,43 @@ export function TermsModal({ onAccept }: TermsModalProps) {
         </div>
 
         <div className="px-6 pb-6">
+          {/* The one choice the door asks for: which track of Sanctum is hers (or his).
+              Same Gospel, same saints' wisdom — companions, reflections, and
+              examinations written for the life actually being lived. */}
+          <p className="text-[11px] leading-relaxed text-center mb-3" style={{ color: '#756D61' }}>
+            Sanctum is kept in two tracks. Choose yours — you can change it later in Settings.
+          </p>
+          <div className="grid grid-cols-2 gap-2 mb-3" role="radiogroup" aria-label="Choose your track">
+            {([
+              { id: 'men', label: 'For Men', sub: 'Brothers in the faith' },
+              { id: 'women', label: 'For Women', sub: 'Sisters in the faith' },
+            ] as const).map((opt) => {
+              const selected = choice === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setChoice(opt.id)}
+                  className="py-3 px-2 rounded-xl border transition-all active:scale-[0.98]"
+                  style={{
+                    backgroundColor: selected ? '#4A6B4A' : '#F3EEE7',
+                    borderColor: selected ? '#4A6B4A' : '#DCD3C5',
+                    color: selected ? '#ffffff' : '#4A443C',
+                  }}
+                >
+                  <span className="block text-sm font-bold">{opt.label}</span>
+                  <span className="block text-[10px] mt-0.5" style={{ color: selected ? '#E7E2D6' : '#A39A8A' }}>
+                    {opt.sub}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
           <button
             onClick={handleAccept}
-            disabled={checking}
-            className="w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
+            disabled={checking || !choice}
+            className="w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
             style={{ backgroundColor: '#4A6B4A', color: '#ffffff' }}
           >
             Enter Sanctum

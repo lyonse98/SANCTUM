@@ -61,8 +61,41 @@ export const UNIVERSAL_PRACTICES: UniversalPractice[] = [
 
 const PRACTICE_BY_KEY = new Map(UNIVERSAL_PRACTICES.map((p) => [p.key, p]));
 
-export function practiceFor(key: string): UniversalPractice | undefined {
-  return PRACTICE_BY_KEY.get(key);
+export function practiceFor(key: string, audience: 'men' | 'women' = 'men'): UniversalPractice | undefined {
+  return (audience === 'women' ? PRACTICE_BY_KEY_WOMEN : PRACTICE_BY_KEY).get(key);
+}
+
+/**
+ * The women's rule — the same practices under the same keys (a stored rule survives
+ * a track switch intact), with the wording that presumes a wife and a brother
+ * replaced by the life she actually lives. Group blurbs follow the same rule.
+ */
+const PRACTICE_OVERRIDES_WOMEN: Record<string, Partial<UniversalPractice>> = {
+  body: { detail: 'Twenty minutes of hard walking or lifting — the body you offer God is this one' },
+  sleep: { detail: 'A tired woman has no reserve for prayer, for her family, or for the fight' },
+  wife: { label: 'Love Your Husband', detail: 'One deliberate act of love for him today' },
+  brother: { label: 'Check On a Sister', detail: 'Text one sister and ask how she is really doing' },
+};
+
+export const UNIVERSAL_PRACTICES_WOMEN: UniversalPractice[] = UNIVERSAL_PRACTICES.map((p) => {
+  const override = PRACTICE_OVERRIDES_WOMEN[p.key];
+  return override ? { ...p, ...override } : p;
+});
+
+const PRACTICE_BY_KEY_WOMEN = new Map(UNIVERSAL_PRACTICES_WOMEN.map((p) => [p.key, p]));
+
+export const RULE_GROUPS_WOMEN: typeof RULE_GROUPS = RULE_GROUPS.map((g) => {
+  if (g.id === 'work') return { ...g, blurb: 'The body and the day, offered on purpose.' };
+  if (g.id === 'people') return { ...g, blurb: 'The home, the husband, the sister. Where the rule becomes flesh.' };
+  return g;
+});
+
+export function getRuleGroups(audience: 'men' | 'women'): typeof RULE_GROUPS {
+  return audience === 'women' ? RULE_GROUPS_WOMEN : RULE_GROUPS;
+}
+
+export function getPractices(audience: 'men' | 'women'): UniversalPractice[] {
+  return audience === 'women' ? UNIVERSAL_PRACTICES_WOMEN : UNIVERSAL_PRACTICES;
 }
 
 /**

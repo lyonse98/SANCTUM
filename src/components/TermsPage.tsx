@@ -1,7 +1,8 @@
 import { ArrowLeft, X, Scroll, Heart, ShieldCheck, Database } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 import {
   NARRATOR_DISCLOSURE_LINE,
+  WOMENS_AUDIO_NOTE,
   PRIVACY_PARAGRAPH,
   PRIVACY_SERVER_INTRO,
   PRIVACY_SERVER_LIST,
@@ -11,6 +12,7 @@ import {
 interface TermsPageProps {
   t: PersonaTheme;
   accent?: string;
+  audience: Audience;
   onClose: () => void;
 }
 
@@ -20,7 +22,7 @@ interface TermsPageProps {
  * found a disclaimer and a button, not the policy. This page renders the canonical
  * privacy text (src/lib/privacyCopy.ts) in full, plus the scope disclaimers.
  */
-export function TermsPage({ t, accent, onClose }: TermsPageProps) {
+export function TermsPage({ t, accent, audience, onClose }: TermsPageProps) {
   const a = accent ?? t.accent;
 
   const sections: { icon: typeof Scroll; title: string; body: React.ReactNode }[] = [
@@ -136,7 +138,7 @@ export function TermsPage({ t, accent, onClose }: TermsPageProps) {
         </div>
 
         <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>
-          {NARRATOR_DISCLOSURE_LINE}
+          {audience === 'women' ? WOMENS_AUDIO_NOTE : NARRATOR_DISCLOSURE_LINE}
         </p>
 
         <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>

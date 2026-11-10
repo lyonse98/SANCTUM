@@ -1,23 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X, Link2, Check, Share2, Lock, Church } from 'lucide-react';
-import type { PersonaTheme } from '@/types';
-import { PRIVACY_SHARE } from '@/lib/privacyCopy';
+import type { Audience, PersonaTheme } from '@/types';
+import { privacyShare } from '@/lib/privacyCopy';
 
 interface ShareInviteModalProps {
   open: boolean;
+  audience: Audience;
   t: PersonaTheme;
   onClose: () => void;
 }
 
 const INVITE_LINE =
   'Sanctum — a private Catholic companion for men. Daily Gospel, examen, and eight voices for the road. No account needed.';
+const INVITE_LINE_WOMEN =
+  'Sanctum — a private Catholic companion for women. Daily Gospel, examen, and eight voices for the road. No account needed.';
 
 function appUrl(): string {
   if (typeof window === 'undefined') return '';
   return window.location.origin;
 }
 
-export function ShareInviteModal({ open, t, onClose }: ShareInviteModalProps) {
+export function ShareInviteModal({ open, audience, t, onClose }: ShareInviteModalProps) {
+  const inviteLine = audience === 'women' ? INVITE_LINE_WOMEN : INVITE_LINE;
   const [copied, setCopied] = useState(false);
   const url = useMemo(() => appUrl(), []);
 
@@ -52,7 +56,7 @@ export function ShareInviteModal({ open, t, onClose }: ShareInviteModalProps) {
   const handleShare = async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Sanctum', text: INVITE_LINE, url });
+        await navigator.share({ title: 'Sanctum', text: inviteLine, url });
         return;
       }
       await handleCopy();
@@ -112,7 +116,7 @@ export function ShareInviteModal({ open, t, onClose }: ShareInviteModalProps) {
               </span>
             </div>
             <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
-              {INVITE_LINE}
+              {inviteLine}
             </p>
           </div>
 
@@ -163,7 +167,7 @@ export function ShareInviteModal({ open, t, onClose }: ShareInviteModalProps) {
             style={{ color: t.textDim }}
           >
             <Lock className="w-3 h-3 flex-shrink-0 mt-0.5" />
-            <span>{PRIVACY_SHARE}</span>
+            <span>{privacyShare(audience)}</span>
           </p>
           <p className="text-[11px] mt-2 text-center leading-relaxed" style={{ color: t.textDim }}>
             Sending it to a phone? Tell him: open the link, tap Share &rarr; &ldquo;Add to Home Screen&rdquo;,

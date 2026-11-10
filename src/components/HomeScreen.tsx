@@ -5,11 +5,12 @@ import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { TodayHero } from '@/components/TodayHero';
 import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
-import type { UtilityActions } from '@/types';
+import type { Audience, UtilityActions } from '@/types';
 import { PRIVACY_SHORT } from '@/lib/privacyCopy';
 import { MISSION_LINE, MISSION_ATTRIBUTION } from '@/lib/mission';
 
 interface HomeScreenProps {
+  audience: Audience;
   onReflectWithCompanion: (message: string) => void;
   onOpenExamen: () => void;
   utilities: UtilityActions;
@@ -20,7 +21,7 @@ interface HomeScreenProps {
  * neither is hidden behind a disclosure, because a man should be able to see what the day holds
  * without hunting for it. The five utilities close the page as an ordinary card.
  */
-export function HomeScreen({ onReflectWithCompanion, onOpenExamen, utilities }: HomeScreenProps) {
+export function HomeScreen({ audience, onReflectWithCompanion, onOpenExamen, utilities }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
   const seasonTheme = getSeasonTheme();
   const seasonAccent = getSeasonAccentColor();
@@ -47,13 +48,14 @@ export function HomeScreen({ onReflectWithCompanion, onOpenExamen, utilities }: 
         </div>
 
         <div className="w-full mb-6">
-          <TodayHero t={seasonTheme} accent={seasonAccent} />
+          <TodayHero t={seasonTheme} accent={seasonAccent} audience={audience} />
         </div>
 
         {/* Daily Gospel — the day's anchor */}
         <div ref={gospelRef} className="w-full mb-5">
           <DailyQuote
             t={seasonTheme}
+            audience={audience}
             onOpenExamen={onOpenExamen}
             onReflectWithCompanion={onReflectWithCompanion}
           />
