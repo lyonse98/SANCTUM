@@ -6,6 +6,10 @@
 */
 
 import { run as ccc } from './adapters/ccc.mjs';
+import { run as bibleFull } from './adapters/bible.mjs';
+import { teresaLife, teresaCastle, ignatiusExercises, ignatiusAutobiography } from './adapters/ccel.mjs';
+import { storyOfASoul, catherineDialogue, catherineLetters, joanTrial } from './adapters/plaintext.mjs';
+import { lumenGentiumMary, diviniAmoris } from './adapters/vatican.mjs';
 import { run as curated } from './adapters/curated.mjs';
 import { run as anchors } from './adapters/anchors.mjs';
 import { run as summa } from './adapters/summa.mjs';
@@ -148,6 +152,133 @@ export const WORKS = [
       source_url: 'https://ccel.org/ccel/schaff/npnf204.xml',
       license_tier: 'A', authority_tier: 5, language: 'en',
       shelf_tags: ['saints', 'monastic'], companion_shelves: [], version: 1, ingest_status: 'staged',
+    },
+  },
+  // ── Phase 2 — companion source packs ─────────────────────────────────────
+  {
+    phase: 2,
+    adapter: bibleFull,
+    doc: {
+      id: 'bible-web-full', title: 'World English Bible — Complete (Catholic Edition)',
+      author: 'World English Bible (public domain)', year: 2020,
+      source_name: 'bible.helloao.org (Free Bible API) — WEB Catholic edition (eng_webc), all 73 books',
+      source_url: 'https://bible.helloao.org/api',
+      license_tier: 'A', authority_tier: 1, language: 'en',
+      shelf_tags: ['scripture'], companion_shelves: [], version: 1, ingest_status: 'staged',
+    },
+  },
+  {
+    phase: 2,
+    adapter: storyOfASoul,
+    doc: {
+      id: 'story-of-a-soul-therese', title: "Story of a Soul (L'Histoire d'une Âme) — with her Counsels, Letters, and Poems",
+      author: 'St. Thérèse of Lisieux', year: 1912,
+      source_name: 'Project Gutenberg #16772 — T. N. Taylor translation, from "Soeur Thérèse of Lisieux" (Burns, Oates & Washbourne, 1912; 8th ed. 1922)',
+      source_url: 'https://www.gutenberg.org/cache/epub/16772/pg16772.txt',
+      license_tier: 'A', authority_tier: 4, language: 'en',
+      shelf_tags: ['autobiography', 'saints'], companion_shelves: ['therese', 'therese-women'], version: 1, ingest_status: 'staged',
+    },
+  },
+  {
+    phase: 2,
+    adapter: teresaLife,
+    doc: {
+      id: 'life-teresa', title: 'The Life of St. Teresa of Jesus', author: 'St. Teresa of Avila', year: 1870,
+      source_name: 'CCEL — ThML (David Lewis translation, 1870)',
+      source_url: 'https://ccel.org/ccel/teresa/life.xml',
+      license_tier: 'A', authority_tier: 4, language: 'en',
+      shelf_tags: ['autobiography', 'prayer'], companion_shelves: ['teresa'], version: 1, ingest_status: 'staged',
+    },
+  },
+  {
+    phase: 2,
+    adapter: teresaCastle,
+    doc: {
+      id: 'interior-castle-teresa', title: 'The Interior Castle (The Mansions)', author: 'St. Teresa of Avila', year: 1912,
+      source_name: 'CCEL — ThML (Benedictines of Stanbrook translation, 1912)',
+      source_url: 'https://ccel.org/ccel/teresa/castle2.xml',
+      license_tier: 'A', authority_tier: 4, language: 'en',
+      shelf_tags: ['prayer', 'mysticism'], companion_shelves: ['teresa'], version: 1, ingest_status: 'staged',
+    },
+  },
+  {
+    phase: 2,
+    adapter: catherineDialogue,
+    doc: {
+      id: 'dialogue-catherine', title: 'The Dialogue of the Seraphic Virgin Catherine of Siena', author: 'St. Catherine of Siena', year: 1896,
+      source_name: 'archive.org — Algar Thorold translation (Kegan Paul, Trench, Trübner, 1896), djvu text',
+      source_url: 'https://archive.org/download/seraphicvirginca00cathuoft/seraphicvirginca00cathuoft_djvu.txt',
+      license_tier: 'A', authority_tier: 4, language: 'en',
+      shelf_tags: ['mysticism', 'prayer'], companion_shelves: ['catherine'], version: 1, ingest_status: 'staged',
+    },
+  },
+  {
+    phase: 2,
+    adapter: catherineLetters,
+    doc: {
+      id: 'letters-catherine', title: 'Saint Catherine of Siena as Seen in Her Letters', author: 'St. Catherine of Siena', year: 1905,
+      source_name: 'archive.org — Vida D. Scudder translation/edition (J. M. Dent, 1905; scan of the 1911 reprint), djvu text',
+      source_url: 'https://archive.org/download/saintcatherineof00cath/saintcatherineof00cath_djvu.txt',
+      license_tier: 'A', authority_tier: 4, language: 'en',
+      shelf_tags: ['letters', 'saints'], companion_shelves: ['catherine'], version: 1, ingest_status: 'staged',
+    },
+  },
+  {
+    phase: 2,
+    adapter: ignatiusExercises,
+    doc: {
+      id: 'exercises-ignatius', title: 'The Spiritual Exercises', author: 'St. Ignatius of Loyola', year: 1914,
+      source_name: 'CCEL — ThML (Elder Mullan translation, 1914)',
+      source_url: 'https://ccel.org/ccel/ignatius/exercises.xml',
+      license_tier: 'A', authority_tier: 6, language: 'en',
+      shelf_tags: ['prayer', 'discernment'], companion_shelves: ['ignatius'], version: 1, ingest_status: 'staged',
+    },
+  },
+  {
+    phase: 2,
+    adapter: ignatiusAutobiography,
+    doc: {
+      id: 'autobiography-ignatius', title: "The Autobiography of St. Ignatius Loyola (A Pilgrim's Journey)", author: 'St. Ignatius of Loyola', year: 1900,
+      source_name: "CCEL — ThML (J. F. X. O'Conor translation, 1900)",
+      source_url: 'https://ccel.org/ccel/ignatius/autobiography.xml',
+      license_tier: 'A', authority_tier: 6, language: 'en',
+      shelf_tags: ['autobiography', 'saints'], companion_shelves: ['ignatius'], version: 1, ingest_status: 'staged',
+    },
+  },
+  {
+    phase: 2,
+    adapter: joanTrial,
+    doc: {
+      id: 'trial-joan', title: "The Trial of Jeanne d'Arc — the Trials of Condemnation and Rehabilitation",
+      author: "Jeanne d'Arc trial record (trans. T. Douglas Murray)", year: 1902,
+      source_name: 'archive.org — Murray, "Jeanne d\'Arc, Maid of Orleans, Deliverer of France" (McClure, Phillips, 1902), djvu text',
+      source_url: 'https://archive.org/download/jeannedarcmaidof00murruoft/jeannedarcmaidof00murruoft_djvu.txt',
+      license_tier: 'A', authority_tier: 7, language: 'en',
+      shelf_tags: ['saints', 'history', 'testimony'], companion_shelves: ['joan'], version: 1, ingest_status: 'staged',
+    },
+  },
+  {
+    phase: 2,
+    adapter: lumenGentiumMary,
+    doc: {
+      id: 'lumen-gentium', title: 'Lumen Gentium, Chapter VIII — The Blessed Virgin Mary, Mother of God, in the Mystery of Christ and the Church (§§52–69)',
+      author: 'Second Vatican Council', year: 1964,
+      source_name: 'vatican.va — Dogmatic Constitution Lumen Gentium (21 Nov 1964), chapter VIII only',
+      source_url: 'https://www.vatican.va/archive/hist_councils/ii_vatican_council/documents/vat-ii_const_19641121_lumen-gentium_en.html',
+      license_tier: 'B', authority_tier: 2, language: 'en',
+      shelf_tags: ['mariology', 'council'], companion_shelves: [], version: 1, ingest_status: 'staged',
+    },
+  },
+  {
+    phase: 2,
+    adapter: diviniAmoris,
+    doc: {
+      id: 'divini-amoris-scientia', title: 'Divini Amoris Scientia — St. Thérèse of the Child Jesus Proclaimed a Doctor of the Universal Church',
+      author: 'Pope St. John Paul II', year: 1997,
+      source_name: 'vatican.va — Apostolic Letter Divini Amoris Scientia (19 Oct 1997)',
+      source_url: 'https://www.vatican.va/content/john-paul-ii/en/apost_letters/1997/documents/hf_jp-ii_apl_19101997_divini-amoris.html',
+      license_tier: 'B', authority_tier: 3, language: 'en',
+      shelf_tags: ['saints', 'papal'], companion_shelves: [], version: 1, ingest_status: 'staged',
     },
   },
 ];
