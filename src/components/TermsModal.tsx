@@ -51,7 +51,7 @@ export function TermsModal({ onAccept }: TermsModalProps) {
             <HandHeart className="w-7 h-7" style={{ color: '#C2410C' }} />
           </div>
           <h2 className="text-lg font-bold font-display uppercase tracking-wide mb-1.5" style={{ color: '#1B1815' }}>
-            Welcome, {choice === 'women' ? 'Sister' : 'Brother'}
+            Welcome{choice === 'women' ? ', Sister' : choice === 'men' ? ', Brother' : ''}
           </h2>
           <p className="text-xs leading-relaxed" style={{ color: '#635C51' }}>
             You're stepping into a quiet space. A few things to know before you enter.
