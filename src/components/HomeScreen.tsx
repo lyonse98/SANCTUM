@@ -23,7 +23,7 @@ interface HomeScreenProps {
  */
 export function HomeScreen({ audience, onReflectWithCompanion, onOpenExamen, utilities }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
-  const seasonTheme = getSeasonTheme();
+  const seasonTheme = getSeasonTheme(new Date(), audience);
   const seasonAccent = getSeasonAccentColor();
 
   useEffect(() => {

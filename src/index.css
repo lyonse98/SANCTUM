@@ -167,6 +167,18 @@
   .animate-cta-glow { animation: none; }
 }
 
+/*
+  Women's Mode display type. The men's headings speak in Oswald — a stamped,
+  squared-off voice. On her track the same headings speak in a serif: Georgia and
+  the system serif stack, nothing fetched. App marks the document root with
+  data-audience; this rule matches 'women' only, so Men's Mode is untouched.
+  (Specificity: the attribute selector outranks the single-class utility.)
+*/
+[data-audience='women'] .font-display {
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  letter-spacing: 0.015em;
+}
+
 /* A slow, quiet glow on the primary call-to-action so the eye finds it without being shouted at. */
 @keyframes cta-glow {
   0%, 100% { box-shadow: 0 8px 22px -10px var(--cta-accent, rgba(194,65,12,0.6)); }

@@ -45,6 +45,11 @@ export interface PersonaTheme {
   accent: string;
   accentBright: string;
   accentDark: string;
+  /** Women's track only: a warm earth accent (terracotta) for secondary touches.
+   *  Absent on every men's theme — the season accent stays primary in both modes. */
+  secondaryAccent?: string;
+  /** Women's track only: a quiet green accent (sage) for secondary touches. */
+  tertiaryAccent?: string;
   accentRgba: (alpha: number) => string;
   text: string;
   textBright: string;
@@ -64,6 +69,13 @@ export interface Persona {
   portrait: string;
   tagline: string;
   struggles: string[];
+  /**
+   * The life-issues this companion speaks to, in the user's own vocabulary of need —
+   * set only on the women's cast, where the companion select screen surfaces them as
+   * chips and a "browse by need" row. The men's cast carries none: its select screen
+   * is unchanged.
+   */
+  issues?: string[];
   description: string;
   systemPrompt: string;
   presets: PresetChip[];

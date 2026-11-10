@@ -1,7 +1,7 @@
 import { type LiturgicalSeason } from '@/data/liturgicalCalendar';
 import { makeLightTheme } from '@/lib/theme';
 import { getDailyVisual, type DailyVisual } from '@/lib/liturgicalVisuals';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 
 interface SeasonAccent {
   accent: string;
@@ -24,15 +24,20 @@ export function getSeasonAccent(season: LiturgicalSeason): SeasonAccent {
   return SEASON_ACCENTS[season];
 }
 
-/** A full theme following the day's liturgical visual — richer and rotated daily. */
-export function getSeasonTheme(date: Date = new Date()): PersonaTheme {
+/**
+ * A full theme following the day's liturgical visual — richer and rotated daily.
+ * The day's colour is the primary accent on both tracks; the audience only chooses
+ * the neutral ground it stands on (see lib/theme). Default is the men's ground, so
+ * every existing caller is unchanged.
+ */
+export function getSeasonTheme(date: Date = new Date(), audience: Audience = 'men'): PersonaTheme {
   const visual = getDailyVisual(date);
   return makeLightTheme({
     accent: visual.accent,
     accentBright: visual.accentBright,
     accentDark: visual.accentDark,
     tint: visual.tint,
-  });
+  }, audience);
 }
 
 export function getSeasonAccentColor(date: Date = new Date()): string {

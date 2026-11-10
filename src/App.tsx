@@ -123,7 +123,17 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [pendingGospelContext, setPendingGospelContext] = useState<string | null>(null);
   const [season] = useState(() => getCurrentSeason());
   const seasonAccent = useMemo(() => getSeasonAccentColor(), []);
-  const seasonTheme = useMemo(() => getSeasonTheme(), []);
+  // The day's liturgical colour is the accent on both tracks; the audience picks
+  // only the neutral ground beneath it. 'men' returns the theme Sanctum has
+  // always had, value for value.
+  const seasonTheme = useMemo(() => getSeasonTheme(new Date(), audience), [audience]);
+
+  // The track, marked on the document root so the women's display type (a serif
+  // voice for headings, see index.css) can reach every screen and modal. The rule
+  // matches 'women' only — with 'men' set, no style anywhere changes.
+  useEffect(() => {
+    document.documentElement.dataset.audience = audience;
+  }, [audience]);
   // The center tab names the thing worth doing at this hour rather than the generic word "Today".
   const hourOfDay = new Date().getHours();
   const todayLabel = hourOfDay < 12 ? 'Gospel' : hourOfDay < 17 ? 'Prayer' : 'Examen';
