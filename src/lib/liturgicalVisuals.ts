@@ -1,5 +1,5 @@
 import { getCurrentSeason, type LiturgicalSeason } from '@/data/liturgicalCalendar';
-import { COLOR_PALETTES, getFeastForDate, type FeastRank, type LiturgicalColor } from '@/data/feastDays';
+import { COLOR_PALETTES, getFeastForDate, type ColorPalette, type FeastRank, type LiturgicalColor } from '@/data/feastDays';
 
 export interface DailyVisual {
   season: LiturgicalSeason;
@@ -63,6 +63,11 @@ const RANK_INTENSITY: Record<FeastRank, 1 | 2 | 3> = {
   feast: 2,
   solemnity: 3,
 };
+
+/** The palette a plain day of the given season wears — the season's own colour, before any feast speaks. */
+export function getSeasonPalette(season: LiturgicalSeason): ColorPalette {
+  return COLOR_PALETTES[SEASON_COLOR[season]];
+}
 
 function dayOfYear(date: Date): number {
   return Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
