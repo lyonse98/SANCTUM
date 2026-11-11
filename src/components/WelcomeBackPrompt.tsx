@@ -5,12 +5,7 @@ import { recordVisit, shouldShowInstallPrompt, snoozeInstallPrompt, clearInstall
 import { InstallInstructions } from '@/components/InstallInstructions';
 import { canNativeInstall, subscribeInstallChanges } from '@/lib/install';
 
-interface WelcomeBackPromptProps {
-  onOpenCompanions: () => void;
-  onOpenWorkshop: () => void;
-}
-
-export function WelcomeBackPrompt({ onOpenCompanions, onOpenWorkshop }: WelcomeBackPromptProps) {
+export function WelcomeBackPrompt() {
   const [welcomeBack, setWelcomeBack] = useState(false);
   const [showInstall, setShowInstall] = useState(false);
   const [daysSince, setDaysSince] = useState(0);

@@ -14,7 +14,6 @@ import { HomeScreen } from '@/components/HomeScreen';
 // carries Today + chat and the rest loads on first navigation to its tab.
 const CompanionSelect = lazy(() => import('@/components/CompanionSelect').then((m) => ({ default: m.CompanionSelect })));
 const PocketChurchPage = lazy(() => import('@/components/PocketChurchPage').then((m) => ({ default: m.PocketChurchPage })));
-const WorkshopPage = lazy(() => import('@/components/WorkshopPage').then((m) => ({ default: m.WorkshopPage })));
 
 function TabFallback() {
   return (
@@ -55,13 +54,13 @@ const MAX_HISTORY_TURNS = 8;
  * Everything a companion can name must resolve to a real destination — a dead link at a
  * hard moment is worse than no link at all.
  */
-const TOOL_ROUTES: Record<string, { tab: TabId; workshopTool?: string; churchTab?: ChurchTab; churchLectio?: boolean }> = {
-  'cold-start': { tab: 'workshop', workshopTool: 'cold-start' },
-  'breathing': { tab: 'workshop', workshopTool: 'breathing' },
-  'grounding': { tab: 'workshop', workshopTool: 'grounding' },
-  'driveway': { tab: 'workshop', workshopTool: 'driveway' },
-  'examen': { tab: 'workshop', workshopTool: 'examen' },
-  'rule': { tab: 'workshop', workshopTool: 'rule' },
+const TOOL_ROUTES: Record<string, { tab: TabId; helpTool?: string; churchTab?: ChurchTab; churchLectio?: boolean; todayExamen?: boolean }> = {
+  'cold-start': { tab: 'help', helpTool: 'cold-start' },
+  'breathing': { tab: 'help', helpTool: 'breathing' },
+  'grounding': { tab: 'help', helpTool: 'grounding' },
+  'driveway': { tab: 'help', helpTool: 'driveway' },
+  'examen': { tab: 'today', todayExamen: true },
+  'rule': { tab: 'church', churchTab: 'rule' },
   'scripture': { tab: 'church', churchTab: 'prayer' },
   'lectio': { tab: 'church', churchTab: 'prayer', churchLectio: true },
   'rosary': { tab: 'church', churchTab: 'rosary' },
@@ -118,7 +117,8 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [haloNonce, setHaloNonce] = useState(0);
   const [churchTab, setChurchTab] = useState<ChurchTab | null>(null);
   const [churchLectio, setChurchLectio] = useState(false);
-  const [workshopTool, setWorkshopTool] = useState<string | null>(null);
+  const [helpTool, setHelpTool] = useState<string | null>(null);
+  const [forceExamen, setForceExamen] = useState(false);
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(null);
   const [pendingGospelContext, setPendingGospelContext] = useState<string | null>(null);
   const [season] = useState(() => getCurrentSeason());
@@ -143,11 +143,12 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const openToolLink = useCallback((tool: string) => {
     const route = TOOL_ROUTES[tool];
     if (!route) return;
-    if (route.workshopTool) setWorkshopTool(route.workshopTool);
+    if (route.helpTool) setHelpTool(route.helpTool);
+    if (route.todayExamen) setForceExamen(true);
     if (route.churchTab) setChurchTab(route.churchTab);
     setChurchLectio(Boolean(route.churchLectio));
     setTab(route.tab);
-    track('tool_open', (route.workshopTool ?? tool) as EventProperty);
+    track('tool_open', (route.helpTool ?? tool) as EventProperty);
   }, []);
 
   useEffect(() => {
@@ -467,7 +468,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     const focus = parseFocusParam(window.location.search);
     if (!focus) return;
     const route = FOCUS_ROUTES[focus];
-    if (route.workshopTool) setWorkshopTool(route.workshopTool);
+    if (route.todayExamen) setForceExamen(true);
     if (route.churchTab) setChurchTab(route.churchTab as ChurchTab);
     setTab(route.tab);
     window.history.replaceState(null, '', window.location.pathname + window.location.hash);
@@ -532,17 +533,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           seasonTheme={areaTheme}
         />
       );
-    } else if (tab === 'workshop') {
-      content = (
-        <WorkshopPage
-          audience={audience}
-          onBack={() => setTab('today')}
-          initialTool={workshopTool}
-          onConsumeTool={() => setWorkshopTool(null)}
-          utilities={utilities}
-          seasonTheme={areaTheme}
-        />
-      );
     } else if (tab === 'help') {
       content = (
         <FindHelpPage
@@ -551,22 +541,27 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           accent={seasonAccent}
           onBack={() => setTab('today')}
           utilities={utilities}
+          initialTool={helpTool}
+          onConsumeTool={() => setHelpTool(null)}
+          onPrayNow={() => { setChurchTab('prayer'); setTab('church'); }}
         />
       );
     } else {
       content = (
         <>
-          <WelcomeBackPrompt
-            onOpenCompanions={() => setTab('companions')}
-            onOpenWorkshop={() => setTab('workshop')}
-          />
+          <WelcomeBackPrompt />
           <HomeScreen
             audience={audience}
             onReflectWithCompanion={(message) => {
               setPendingGospelContext(message);
               setTab('companions');
             }}
-            onOpenExamen={() => { setWorkshopTool('examen'); setTab('workshop'); }}
+            onOpenExamen={() => setForceExamen(true)}
+            onOpenCompanion={(p) => handleSelectPersona(p)}
+            onOpenConfession={() => { setChurchTab('confession'); setTab('church'); }}
+            onOpenHelp={() => setTab('help')}
+            forceExamen={forceExamen}
+            onConsumeForceExamen={() => setForceExamen(false)}
             utilities={utilities}
           />
         </>
@@ -612,7 +607,19 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     );
   }
   if (introActive && persona) {
-    return <PersonaIntro persona={persona} onDone={() => {
+    // The intro's quiet doors: leaving by one of them drops the pending opening
+    // moves (they belonged to a conversation the man chose not to start) and
+    // lands him where the door points — a priest, or prayer.
+    const leaveIntroTo = (dest: 'help' | 'church') => {
+      setPendingInitialMessage(null);
+      setPendingGospelContext(null);
+      setIntroActive(false);
+      setPersonaId(null);
+      setMessages([]);
+      if (dest === 'church') setChurchTab('prayer');
+      setTab(dest);
+    };
+    return <PersonaIntro persona={persona} onOpenHelp={() => leaveIntroTo('help')} onOpenPray={() => leaveIntroTo('church')} onDone={() => {
       setIntroActive(false);
       if (pendingInitialMessage) {
         const msg = pendingInitialMessage;
@@ -750,7 +757,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         <MessageCapModal
           t={t}
           onClose={() => setShowCapModal(false)}
-          onOpenWorkshop={() => { setShowCapModal(false); handleChangeTab('workshop'); }}
+          onOpenTools={() => { setShowCapModal(false); handleChangeTab('help'); }}
         />
       )}
 
@@ -779,7 +786,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
 export default App;
 
-function MessageCapModal({ t, onClose, onOpenWorkshop }: { t: Persona['theme']; onClose: () => void; onOpenWorkshop: () => void }) {
+function MessageCapModal({ t, onClose, onOpenTools }: { t: Persona['theme']; onClose: () => void; onOpenTools: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
@@ -806,11 +813,11 @@ function MessageCapModal({ t, onClose, onOpenWorkshop }: { t: Persona['theme']; 
           The offline tools — grounding, examen, prayers, and the catechism — are always available, with no limits.
         </p>
         <button
-          onClick={onOpenWorkshop}
+          onClick={onOpenTools}
           className="w-full py-2.5 rounded-lg text-xs font-bold border transition-all active:scale-95 mb-2"
           style={{ backgroundColor: t.accentRgba(0.15), borderColor: t.accentRgba(0.4), color: t.accent }}
         >
-          Open the Workshop
+          Open the Tools
         </button>
         <button
           onClick={onClose}

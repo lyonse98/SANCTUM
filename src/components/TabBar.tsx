@@ -1,4 +1,4 @@
-import { BookOpen, Users, Church, Wrench, HeartHandshake, type LucideIcon } from 'lucide-react';
+import { BookOpen, Users, Church, HeartHandshake, type LucideIcon } from 'lucide-react';
 import type { TabId } from '@/types';
 
 interface Tab {
@@ -8,17 +8,17 @@ interface Tab {
 }
 
 /**
- * Church and Companions sit on the left, the Gospel dead center, Real Help and the Workshop on
- * the right. The center slot is the app's front door and is drawn to be found without reading:
- * it is larger, lifted out of the ribbon, and ringed in the season's colour. Its halo fires only
- * on arrival, so the resting state stays calm.
+ * Four areas: Church and Companions on the left, Real Help on the right, the Gospel lifted
+ * between them. The raised slot is the app's front door and is drawn to be found without
+ * reading: it is larger, lifted out of the ribbon, and ringed in the season's colour. Its
+ * halo fires only on arrival, so the resting state stays calm. (The Workshop retired in
+ * Nov 2026 — its tools live on in Real Help, Pocket Church, and Today's evening Examen.)
  */
 export const TABS: Tab[] = [
   { id: 'church', label: 'Church', icon: Church },
   { id: 'companions', label: 'Companions', icon: Users },
   { id: 'today', label: 'Today', icon: BookOpen },
   { id: 'help', label: 'Real Help', icon: HeartHandshake },
-  { id: 'workshop', label: 'Workshop', icon: Wrench },
 ];
 
 interface TabBarProps {
@@ -35,7 +35,7 @@ interface TabBarProps {
 }
 
 /**
- * The five core areas of Sanctum as a footer ribbon, always one tap away. Sits at the bottom on
+ * The four core areas of Sanctum as a footer ribbon, always one tap away. Sits at the bottom on
  * every size so the app reads the same on a phone as on a desktop.
  */
 export function TabBar({

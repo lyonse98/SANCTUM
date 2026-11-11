@@ -7,6 +7,7 @@ import { PrayerLibrary } from '@/components/PrayerLibrary';
 import { ConfessionGuide } from '@/components/ConfessionGuide';
 import { PocketCatechism } from '@/components/PocketCatechism';
 import { RosaryPrayer } from '@/components/RosaryPrayer';
+import { RuleOfLife } from '@/components/RuleOfLife';
 
 interface PocketChurchPageProps {
   onBack: () => void;
@@ -22,13 +23,14 @@ interface PocketChurchPageProps {
   seasonTheme: PersonaTheme;
 }
 
-export type ChurchTab = 'prayer' | 'rosary' | 'confession' | 'catechism';
+export type ChurchTab = 'prayer' | 'rosary' | 'confession' | 'catechism' | 'rule';
 
 const TABS: { id: ChurchTab; label: string }[] = [
   { id: 'prayer', label: 'Prayers' },
   { id: 'rosary', label: 'Rosary' },
   { id: 'confession', label: 'Confession' },
   { id: 'catechism', label: 'Catechism' },
+  { id: 'rule', label: 'Rule of Life' },
 ];
 
 const VALID_TABS = TABS.map((tab) => tab.id);
@@ -77,7 +79,7 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, 
         {/* Intro */}
         <div className="w-full text-center mb-6">
           <p className="text-sm leading-relaxed max-w-sm mx-auto" style={{ color: t.textMuted }}>
-            Prayers, the Rosary, Confession prep, and a Catechism you can ask questions. The faith in your pocket.
+            Prayers, the Rosary, Confession prep, a Catechism you can ask questions, and the Rule of Life you keep. The faith in your pocket.
           </p>
         </div>
 
@@ -113,6 +115,7 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, 
           {activeTab === 'rosary' && <RosaryPrayer t={t} />}
           {activeTab === 'confession' && <ConfessionGuide t={t} audience={audience} />}
           {activeTab === 'catechism' && <PocketCatechism t={t} audience={audience} />}
+          {activeTab === 'rule' && <RuleOfLife t={t} audience={audience} />}
         </div>
 
         <UtilitiesRow t={t} utilities={utilities} className="mt-6" />

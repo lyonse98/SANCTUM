@@ -1,6 +1,6 @@
 /**
  * A rule of life: the few things a man has decided to do every day, ticked off each day. It is
- * the one tool in the Workshop for a good day rather than a bad one — everything else there is
+ * the one tool for a good day rather than a bad one — the trouble tools over in Real Help are
  * for a moment of trouble, and a rule is for the ordinary morning after morning.
  *
  * The practices are a fixed menu, not something he writes. That keeps them distinct from each

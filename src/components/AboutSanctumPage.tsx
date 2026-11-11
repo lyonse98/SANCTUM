@@ -30,8 +30,8 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
       icon: Church,
       title: 'What it is',
       body: w
-        ? 'A private place for a woman to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a small workshop of grounding and stillness tools, a pocket church of prayers, the Rosary, Confession preparation, and the Catechism, and eight companions drawn from Scripture and the saints.'
-        : 'A private place for a man to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a small workshop of grounding and stillness tools, a pocket church of prayers, the Rosary, Confession preparation, and the Catechism, and eight companions drawn from Scripture and the saints.',
+        ? 'A private place for a woman to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a pocket church of prayers, the Rosary, Confession preparation, the Catechism, and a rule of life, grounding tools for a hard moment kept beside real help, and eight companions drawn from Scripture and the saints.'
+        : 'A private place for a man to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a pocket church of prayers, the Rosary, Confession preparation, the Catechism, and a rule of life, grounding tools for a hard moment kept beside real help, and eight companions drawn from Scripture and the saints.',
     },
     {
       icon: ShieldCheck,
@@ -126,6 +126,25 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
             {w
               ? 'A Catholic companion for women. It is built for the woman who will not walk into a church yet, and for the woman who will, but has nowhere to put the weight at two in the morning.'
               : 'A Catholic companion for men. It is built for the man who will not walk into a church yet, and for the man who will, but has nowhere to put the weight at two in the morning.'}
+          </p>
+        </div>
+
+        {/* The shape of a day — the Ignatian arc the whole app is built to walk. */}
+        <div
+          className="w-full rounded-xl border p-5 mb-6 animate-fade-in"
+          style={{ backgroundColor: t.card, borderColor: `${t.border}99` }}
+        >
+          <h2 className="text-sm font-bold font-display uppercase tracking-wide mb-2" style={{ color: t.textBright }}>
+            The shape of a day
+          </h2>
+          <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
+            A day here has a shape, and it is an old one. Hear the Gospel. Sit with it — reflect,
+            and take the day&rsquo;s challenge. Walk a while with a companion who has walked the
+            road before. Pray. Be reconciled: the app points to a priest, to Confession, and to
+            real help whenever what is needed is a real person. Do the good in front of you. Then,
+            at night, review the day in the Examen and rest. Everything in Sanctum points at
+            something else in Sanctum, and all of it points out of the app — to Mass, to
+            Confession, to prayer, and to the people in front of you.
           </p>
         </div>
 

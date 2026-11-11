@@ -43,9 +43,9 @@ describe('push payload — the copy rule', () => {
 describe('deep links', () => {
   it('maps every focus to the surface that actually holds it', () => {
     expect(FOCUS_ROUTES.gospel).toEqual({ tab: 'today' });
-    expect(FOCUS_ROUTES.examen).toEqual({ tab: 'workshop', workshopTool: 'examen' });
+    expect(FOCUS_ROUTES.examen).toEqual({ tab: 'today', todayExamen: true });
     expect(FOCUS_ROUTES.rosary).toEqual({ tab: 'church', churchTab: 'rosary' });
-    expect(FOCUS_ROUTES.rule).toEqual({ tab: 'workshop', workshopTool: 'rule' });
+    expect(FOCUS_ROUTES.rule).toEqual({ tab: 'church', churchTab: 'rule' });
   });
 
   it('agrees with the focus list the app already offers', () => {

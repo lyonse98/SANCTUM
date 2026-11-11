@@ -8,7 +8,7 @@ export type PersonaId =
   | 'joseph' | 'david' | 'paul' | 'augustine' | 'ignatius' | 'peter' | 'moses' | 'therese'
   | 'mary' | 'magdalene' | 'teresa' | 'catherine' | 'monica' | 'joan' | 'clare' | 'therese-women';
 
-export type TabId = 'today' | 'companions' | 'church' | 'workshop' | 'help';
+export type TabId = 'today' | 'companions' | 'church' | 'help';
 
 export interface Message {
   role: Role;

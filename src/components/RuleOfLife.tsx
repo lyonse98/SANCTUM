@@ -19,8 +19,9 @@ interface RuleOfLifeProps {
 }
 
 /**
- * The one tool in the Workshop meant for an ordinary day. Everything else there is for trouble —
- * panic, spiral, the walk in the door. A rule of life is the opposite: a few things decided in
+ * The one tool meant for an ordinary day — it lives in Pocket Church now, beside the prayers.
+ * The in-the-moment tools over in Real Help are for trouble — panic, spiral, the walk in the
+ * door. A rule of life is the opposite: a few things decided in
  * advance, done in the ordinary morning, and ticked off without ceremony.
  *
  * He picks from a fixed list of practices rather than writing his own. A blank page is where most

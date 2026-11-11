@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { Audience, PersonaTheme, UtilityActions } from '@/types';
 import { UtilitiesRow } from '@/components/UtilitiesRow';
+import { RightNowTools } from '@/components/RightNowTools';
 import { HELP_DISCLAIMER, HELP_SECTIONS, getHelpSections, type HelpIconKey } from '@/lib/realHelp';
 
 interface FindHelpPageProps {
@@ -22,6 +23,11 @@ interface FindHelpPageProps {
   audience: Audience;
   accent?: string;
   onBack: () => void;
+  /** A companion's tool link can land here with one of the Right Now tools already open. */
+  initialTool?: string | null;
+  onConsumeTool?: () => void;
+  /** The funnel back to prayer — the foot of Real Help points into Pocket Church. */
+  onPrayNow?: () => void;
 }
 
 const ICONS: Record<HelpIconKey, LucideIcon> = {
@@ -37,7 +43,7 @@ const ICONS: Record<HelpIconKey, LucideIcon> = {
  * Hands the man to a real person. Deliberately prominent: it is the one screen that
  * keeps Sanctum honest, so it is reachable from the home toolbar, the chat, and crisis.
  */
-export function FindHelpPage({ t, utilities, audience, accent, onBack }: FindHelpPageProps) {
+export function FindHelpPage({ t, utilities, audience, accent, onBack, initialTool, onConsumeTool, onPrayNow }: FindHelpPageProps) {
   const sections = getHelpSections(audience);
   const a = accent ?? t.accent;
 
@@ -90,12 +96,41 @@ export function FindHelpPage({ t, utilities, audience, accent, onBack }: FindHel
           Six doors out of this app. Pick the one that fits what you are carrying right now.
         </p>
 
+        {/* Right Now — the in-the-moment tools, first, because the moment comes first.
+            They work offline, with no conversation and no limits. */}
+        <div className="w-full mb-6">
+          <div className="flex items-center gap-3 mb-2.5">
+            <span
+              className="text-[10px] font-bold uppercase tracking-[0.18em] font-display"
+              style={{ color: t.textDim }}
+            >
+              Right Now
+            </span>
+            <span className="flex-1 h-px" style={{ backgroundColor: `${t.border}66` }} />
+          </div>
+          <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textDim }}>
+            For the hard moment itself — on-device, offline, no limits.
+          </p>
+          <RightNowTools theme={t} audience={audience} initialTool={initialTool} onConsumeTool={onConsumeTool} />
+        </div>
+
         {/* Sections */}
         <div className="w-full space-y-4">
           {sections.map((section, index) => (
             <HelpSectionCard key={section.id} section={section} t={t} accent={a} index={index} />
           ))}
         </div>
+
+        {onPrayNow && (
+          <button
+            onClick={onPrayNow}
+            className="mt-6 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all active:scale-[0.98] w-full"
+            style={{ backgroundColor: `${a}0F`, borderColor: `${a}33`, color: a }}
+          >
+            <Church className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-wide">Pray now · Pocket Church</span>
+          </button>
+        )}
 
         <UtilitiesRow t={t} utilities={utilities} className="mt-6" />
 

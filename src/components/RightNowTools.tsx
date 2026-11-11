@@ -1,116 +1,69 @@
 import { useState, useEffect } from 'react';
 import {
-  Wrench,
   Wind,
   Eye,
   Hand,
   Ear,
   Flame,
-  Moon,
   Zap,
   Car,
-  WifiOff,
-  ScrollText,
   type LucideIcon,
 } from 'lucide-react';
-import type { Audience, Persona, PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 import { LazyColdStart, LazyDriveway } from '@/components/LazyTools';
-import { ExamenChecklist } from '@/components/ExamenChecklist';
 import { BreathPacer } from '@/components/BreathPacer';
-import { RuleOfLife } from '@/components/RuleOfLife';
 
-interface WorkshopToolsProps {
+interface RightNowToolsProps {
   theme: PersonaTheme;
   audience: Audience;
   initialTool?: string | null;
   onConsumeTool?: () => void;
 }
 
-type ToolId = 'cold-start' | 'breathing' | 'grounding' | 'driveway' | 'examen' | 'rule';
+export type RightNowToolId = 'cold-start' | 'breathing' | 'grounding' | 'driveway';
 
 interface Tool {
-  id: ToolId;
+  id: RightNowToolId;
   label: string;
   icon: LucideIcon;
   desc: string;
 }
 
 /**
- * The Workshop has two purposes that share a screen but not a mood. The first five tools are for a
- * bad moment — panic, spiral, the walk in the door — and a man in that state should see every one
- * of them at once and need a single tap. The sixth is for an ordinary morning, and it is the only
- * one he can come back to when nothing is wrong.
- *
- * Splitting them into two labelled groups lets the eye sort them automatically, so the screen stops
- * reading as a grid of six equal buttons. Collapsing either group would hurt the acute case — a man
- * in panic cannot be made to expand a menu first — so both stay open.
+ * The in-the-moment tools, in their new home at the top of Real Help. They used to
+ * live in the Workshop; Erik's ruling (Nov 11, 2026) moved them here because this
+ * is where a man or woman in a hard moment actually lands — beside the priest and
+ * the groups, not behind a tab of their own. All four stay visible at once with a
+ * single tap to open: someone in panic cannot be made to expand a menu first.
+ * The tools themselves are unchanged, and so is everything they keep on-device.
  */
-const HARD_MOMENT: Tool[] = [
+const TOOLS: Tool[] = [
   { id: 'cold-start', label: 'Cold Start', icon: Zap, desc: '60-second panic interrupter' },
   { id: 'breathing', label: 'Breathing', icon: Wind, desc: 'Box, sigh, and 4-7-8' },
   { id: 'grounding', label: '5-4-3-2-1', icon: Eye, desc: 'Come back to the room' },
   { id: 'driveway', label: 'Driveway', icon: Car, desc: 'Reset before you walk in' },
 ];
 
-const ORDINARY_DAY: Tool[] = [
-  { id: 'examen', label: 'Examen', icon: Moon, desc: 'Evening review with the Gospel' },
-  { id: 'rule', label: 'Rule of Life', icon: ScrollText, desc: 'The few things you do daily' },
-];
+const VALID_TOOLS = TOOLS.map((tool) => tool.id);
 
-const ALL_TOOLS = [...HARD_MOMENT, ...ORDINARY_DAY];
-const VALID_TOOLS = ALL_TOOLS.map((tool) => tool.id);
-
-export function WorkshopTools({ theme, audience, initialTool, onConsumeTool }: WorkshopToolsProps) {
-  const [activeTool, setActiveTool] = useState<ToolId>('breathing');
+export function RightNowTools({ theme, audience, initialTool, onConsumeTool }: RightNowToolsProps) {
+  const [activeTool, setActiveTool] = useState<RightNowToolId>('breathing');
   const t = theme;
 
   useEffect(() => {
     if (!initialTool) return;
     if ((VALID_TOOLS as string[]).includes(initialTool)) {
-      setActiveTool(initialTool as ToolId);
+      setActiveTool(initialTool as RightNowToolId);
     }
     onConsumeTool?.();
   }, [initialTool, onConsumeTool]);
 
-  const active = ALL_TOOLS.find((tool) => tool.id === activeTool) ?? ALL_TOOLS[1];
+  const active = TOOLS.find((tool) => tool.id === activeTool) ?? TOOLS[1];
 
   return (
     <div className="w-full">
-      {/* Section header */}
-      <div className="flex items-center justify-center gap-3 mb-4">
-        <div className="w-8 h-px" style={{ backgroundColor: t.borderLight }} />
-        <div className="flex items-center gap-2">
-          <Wrench className="w-4 h-4" style={{ color: t.textMuted }} />
-          <span className="text-[11px] font-bold uppercase tracking-[0.15em] font-display" style={{ color: t.textMuted }}>
-            Offline Tools
-          </span>
-        </div>
-        <div className="w-8 h-px" style={{ backgroundColor: t.borderLight }} />
-      </div>
-
-      {/* Offline badge */}
-      <div className="flex justify-center mb-5">
-        <span
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider"
-          style={{ backgroundColor: t.card, borderColor: t.border, color: t.textDim }}
-        >
-          <WifiOff className="w-3 h-3" />
-          100% On-Device — Works Offline
-        </span>
-      </div>
-
-      {/* For a hard moment */}
-      <SectionLabel t={t}>For a hard moment</SectionLabel>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
-        {HARD_MOMENT.map((tool) => (
-          <ToolButton key={tool.id} tool={tool} active={activeTool === tool.id} t={t} onSelect={setActiveTool} />
-        ))}
-      </div>
-
-      {/* For the ordinary day */}
-      <SectionLabel t={t}>For the ordinary day</SectionLabel>
-      <div className="grid grid-cols-2 gap-2.5 mb-4">
-        {ORDINARY_DAY.map((tool) => (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
+        {TOOLS.map((tool) => (
           <ToolButton key={tool.id} tool={tool} active={activeTool === tool.id} t={t} onSelect={setActiveTool} />
         ))}
       </div>
@@ -125,23 +78,7 @@ export function WorkshopTools({ theme, audience, initialTool, onConsumeTool }: W
         {active.id === 'breathing' && <BreathPacer t={t} />}
         {active.id === 'grounding' && <SensoryChecklist t={t} />}
         {active.id === 'driveway' && <LazyDriveway t={t} audience={audience} />}
-        {active.id === 'examen' && <ExamenChecklist t={t} audience={audience} />}
-        {active.id === 'rule' && <RuleOfLife t={t} audience={audience} />}
       </div>
-    </div>
-  );
-}
-
-function SectionLabel({ t, children }: { t: PersonaTheme; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 mb-2.5">
-      <span
-        className="text-[10px] font-bold uppercase tracking-[0.18em] font-display"
-        style={{ color: t.textDim }}
-      >
-        {children}
-      </span>
-      <span className="flex-1 h-px" style={{ backgroundColor: `${t.border}66` }} />
     </div>
   );
 }
@@ -155,7 +92,7 @@ function ToolButton({
   tool: Tool;
   active: boolean;
   t: PersonaTheme;
-  onSelect: (id: ToolId) => void;
+  onSelect: (id: RightNowToolId) => void;
 }) {
   const Icon = tool.icon;
   return (
