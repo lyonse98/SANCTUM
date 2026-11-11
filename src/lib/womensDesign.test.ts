@@ -373,15 +373,18 @@ describe('the rank ladder — the season leads, feasts deepen, solemnities deepe
     }
   });
 
-  it('a memorial never repaints the theme — Thérèse’s day equals a ferial of the same season', () => {
-    const memorial = new Date('2026-10-01T12:00:00');
-    const ferial = new Date('2026-10-06T12:00:00');
+  it('a memorial in a privileged season never repaints the theme — the season leads as on a ferial', () => {
+    // Our Lady of Lourdes, Feb 11, 2027 — a memorial inside Lent. Ordinary
+    // Time memorials now take the lead (the refinement suite below); in the
+    // privileged seasons the old rule stands untouched.
+    const memorial = new Date('2027-02-11T12:00:00');
+    const ferial = new Date('2027-02-12T12:00:00');
     for (const audience of ['men', 'women'] as const) {
       expect(serializable(getSeasonTheme(memorial, audience)), audience).toEqual(
         serializable(getSeasonTheme(ferial, audience)),
       );
-      // The season's green leads — not the saint's white.
-      expect(getSeasonTheme(memorial, audience).accent, audience).toBe('#1E6B3A');
+      // Lent's violet leads — not the saint's blue.
+      expect(getSeasonTheme(memorial, audience).accent, audience).toBe('#5E2A6B');
     }
   });
 
@@ -417,6 +420,86 @@ describe('the rank ladder — the season leads, feasts deepen, solemnities deepe
     const src = read('../components/SaintOfDayCard.tsx');
     expect(src).toContain('getMemorialMarker');
     expect(src).toContain('marker.fill');
+  });
+});
+
+describe('the memorial refinement — in Ordinary Time the saint leads, the season keeps the ground (Erik, Nov 11, 2026)', () => {
+  // Erik's ruling from the live app on St. Martin's day: with green on every
+  // accent surface and the saint reduced to a marker, the memorial clashed.
+  // In Ordinary Time the saint's colour now takes the lead accent set and the
+  // green steps back to the ground wash and the season chip — as at Mass,
+  // where a memorial's vestments are the saint's colour. In the privileged
+  // seasons the season still rides primary (pinned above).
+
+  it('St. Martin of Tours (Nov 11, 2026, white, Ordinary Time): the gold family leads, the green only washes the ground', () => {
+    const date = new Date('2026-11-11T12:00:00');
+    expect(getDayRank(date).rank).toBe('memorial');
+    expect(serializable(getSeasonTheme(date, 'men'))).toEqual({
+      ...MEN_NEUTRALS,
+      // The ground wash is still Ordinary Time green, at ferial strength.
+      bgGradient:
+        'radial-gradient(ellipse at 18% 0%, rgba(30,107,58,0.20) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(30,107,58,0.12) 0%, transparent 55%), linear-gradient(180deg, #EFEBE2 0%, #E1DDD0 100%)',
+      // The accent set is the white palette the feast path uses — gold.
+      accent: '#8C6A1F',
+      accentBright: '#B08A2E',
+      accentDark: '#6B4F15',
+      glow: 'rgba(140,106,31,0.20)',
+      // The saint leads, so the budget retires his slate.
+      secondaryAccent: MEN_SLATE_RETIRED,
+      rgba25: 'rgba(140,106,31,0.25)',
+      rgba1: 'rgba(140,106,31,1)',
+    });
+    const women = getSeasonTheme(date, 'women');
+    expect(women.accent).toBe('#8C6A1F');
+    expect(women.accentBright).toBe('#B08A2E');
+    expect(women.accentDark).toBe('#6B4F15');
+    expect(women.accentRgba(1)).toBe('rgba(140,106,31,1)');
+    expect(women.bgGradient).toContain('rgba(30,107,58,0.20)');
+    // Her secondaries retire too — clay to sand, sage to stone-sage.
+    expect(women.secondaryAccent).toBe('#C8A184');
+    expect(women.tertiaryAccent).toBe('#9AA08E');
+  });
+
+  it('a red martyr memorial in Ordinary Time wears red — St. Blaise (Feb 3, 2026)', () => {
+    // St. Josaphat (Nov 12) is not on the app's calendar, so the red-martyr
+    // case is pinned on St. Blaise, the in-calendar red memorial of
+    // Ordinary Time's first half. Same rule, same red family.
+    const date = new Date('2026-02-03T12:00:00');
+    expect(getDayRank(date).rank).toBe('memorial');
+    expect(getDayRank(date).feast?.name).toBe('St. Blaise');
+    for (const audience of ['men', 'women'] as const) {
+      const t = getSeasonTheme(date, audience);
+      expect(t.accent, audience).toBe('#A31F1F');
+      expect(t.accentBright, audience).toBe('#C72E2E');
+      expect(t.accentDark, audience).toBe('#7E1616');
+      expect(t.bgGradient, audience).toContain('rgba(30,107,58,0.20)');
+    }
+  });
+
+  it('St. Thérèse (Oct 1, 2026) now leads in her white — gold accents over the green ground', () => {
+    const date = new Date('2026-10-01T12:00:00');
+    for (const audience of ['men', 'women'] as const) {
+      const t = getSeasonTheme(date, audience);
+      expect(t.accent, audience).toBe('#8C6A1F');
+      expect(t.accent, audience).not.toBe('#1E6B3A');
+      expect(t.bgGradient, audience).toContain('rgba(30,107,58,0.20)');
+    }
+    // No longer the ferial's twin.
+    expect(serializable(getSeasonTheme(date, 'men'))).not.toEqual(
+      serializable(getSeasonTheme(new Date('2026-10-06T12:00:00'), 'men')),
+    );
+  });
+
+  it('a memorial inside Lent keeps the season in the lead and the secondaries at full strength', () => {
+    const date = new Date('2027-02-11T12:00:00'); // Our Lady of Lourdes, in Lent 2027
+    expect(getDayRank(date).rank).toBe('memorial');
+    const women = getSeasonTheme(date, 'women');
+    expect(women.accent).toBe('#5E2A6B'); // Lent violet, not Lourdes blue
+    expect(women.secondaryAccent).toBe('#B85C38');
+    expect(women.tertiaryAccent).toBe('#7C8A6A');
+    const men = getSeasonTheme(date, 'men');
+    expect(men.accent).toBe('#5E2A6B');
+    expect(men.secondaryAccent).toBe(MEN_SLATE);
   });
 });
 
