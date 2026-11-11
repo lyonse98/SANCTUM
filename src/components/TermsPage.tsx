@@ -1,8 +1,7 @@
 import { ArrowLeft, X, Scroll, Heart, ShieldCheck, Database } from 'lucide-react';
 import type { Audience, PersonaTheme } from '@/types';
 import {
-  NARRATOR_DISCLOSURE_LINE,
-  WOMENS_AUDIO_NOTE,
+  narratorDisclosureLine,
   PRIVACY_PARAGRAPH,
   PRIVACY_SERVER_INTRO,
   PRIVACY_SERVER_LIST,
@@ -138,7 +137,7 @@ export function TermsPage({ t, accent, audience, onClose }: TermsPageProps) {
         </div>
 
         <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>
-          {audience === 'women' ? WOMENS_AUDIO_NOTE : NARRATOR_DISCLOSURE_LINE}
+          {narratorDisclosureLine(audience)}
         </p>
 
         <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>

@@ -10,7 +10,6 @@ import {
   ChevronDown,
   Quote,
   Share2,
-  VolumeX,
 } from 'lucide-react';
 import { quoteForDay } from '@/data/quotes';
 import { fetchDailyReadings, type DailyReadings } from '@/lib/readings';
@@ -33,7 +32,6 @@ import {
 import { ListenBar } from '@/components/ListenBar';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
 import type { Audience, PersonaTheme } from '@/types';
-import { WOMENS_AUDIO_NOTE } from '@/lib/privacyCopy';
 
 const FEAST_RANK_LABEL: Record<FeastRank, string> = {
   solemnity: 'Solemnity',
@@ -265,18 +263,11 @@ export function DailyQuote({ t, audience, onOpenExamen, onReflectWithCompanion }
         </div>
       )}
 
-      {/* The day's Gospel, read aloud — renders only when the audio row is ready
-          (or one plain line when the day's render failed). Fetches independently
-          and fails silently; it can never block the text below. */}
+      {/* The day's Gospel, read aloud — renders only when the track's audio row is
+          ready (or one plain line when the day's render failed). Each track fetches
+          its own row and fails silently; it can never block the text below. */}
       {!loading && readings?.date && (
-        audience === 'women' ? (
-          <p className="mt-4 flex items-center gap-1.5 text-[10px] leading-relaxed" style={{ color: t.textDim }}>
-            <VolumeX className="w-3 h-3 flex-shrink-0" />
-            {WOMENS_AUDIO_NOTE}
-          </p>
-        ) : (
-          <ListenBar t={t} dateKey={readings.date} citation={readings.gospel ?? null} />
-        )
+        <ListenBar t={t} dateKey={readings.date} citation={readings.gospel ?? null} audience={audience} />
       )}
 
       {/* The verse to sit with — the heart of the passage, shown up front */}

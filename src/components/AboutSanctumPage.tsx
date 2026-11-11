@@ -1,7 +1,7 @@
 import { ArrowLeft, X, Church, ShieldCheck, HeartHandshake, Users, BookOpen } from 'lucide-react';
 import type { Audience, PersonaTheme } from '@/types';
 import { MISSION_LINE, MISSION_ATTRIBUTION, MISSION_SENTENCE } from '@/lib/mission';
-import { NARRATOR_DISCLOSURE_LINE, WOMENS_AUDIO_NOTE } from '@/lib/privacyCopy';
+import { NARRATOR_DISCLOSURE_LINE, NARRATOR_DISCLOSURE_LINE_WOMEN } from '@/lib/privacyCopy';
 
 interface AboutSanctumPageProps {
   t: PersonaTheme;
@@ -207,21 +207,19 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
           </p>
         </div>
 
-        {/* The voices a man hears — named as what they are, beside the companion copy. */}
+        {/* The voices the listener hears — named as what they are, beside the companion copy. */}
         <div
           className="w-full rounded-2xl border p-5 mt-6 animate-fade-in"
           style={{ backgroundColor: `${a}0D`, borderColor: `${a}33` }}
         >
           <h2 className="text-sm font-bold font-display uppercase tracking-wide mb-2" style={{ color: t.textBright }}>
-            {w ? 'The Gospel, in writing — for now' : 'The Gospel, read aloud'}
+            The Gospel, read aloud
           </h2>
           <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
             {w ? (
               <>
-                {WOMENS_AUDIO_NOTE} In Men&rsquo;s Mode the day&rsquo;s Gospel and reflection can be
-                listened to as well as read, in created narrator voices that change with the weekday.
-                Women&rsquo;s Mode will have voices of its own — recorded for women, in their own time —
-                rather than a borrowed substitute.
+                Every morning the day&rsquo;s Gospel and reflection can be listened to as well as
+                read, in a sister&rsquo;s voice that changes with the weekday. {NARRATOR_DISCLOSURE_LINE_WOMEN}
               </>
             ) : (
               <>

@@ -1,4 +1,11 @@
-import { AUDIO_PM_START_HOUR, BELL_PATH, type NarratorId } from './narratorCore';
+import {
+  AUDIO_PM_START_HOUR,
+  BELL_PATH,
+  NARRATOR_IDS,
+  type NarratorAudience,
+  type NarratorId,
+} from './narratorCore';
+import type { Audience } from '@/types';
 
 /**
  * The day's audio row, as the Gospel card's ListenBar consumes it. Mirrors the shape of
@@ -7,9 +14,13 @@ import { AUDIO_PM_START_HOUR, BELL_PATH, type NarratorId } from './narratorCore'
  * error, timeout, or malformed row resolves to null and the card simply shows no bar.
  * The player can never block, delay, or alter the text experience (spec §11.1), and it
  * sends nothing anywhere: no play events, no analytics.
+ *
+ * Rows are per (date, audience): the two tracks render independently, and a missing
+ * or failed row on one track says nothing about the other.
  */
 export interface DailyAudio {
   date: string;
+  audience: NarratorAudience;
   persona: NarratorId;
   status: string;
   headAmUrl: string | null;
@@ -24,7 +35,14 @@ export interface DailyAudio {
 const CACHE_PREFIX = 'sanctum_audio_';
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
-const PERSONA_IDS: NarratorId[] = ['henry', 'coach', 'frank', 'ben', 'martin', 'tom', 'ed', 'lector'];
+/**
+ * The cache key for a track's row. Men's keeps the original key (existing devices
+ * hold valid cached rows under it); women's gets its own, mirroring reflection.ts,
+ * so the two tracks' caches can never serve each other's row.
+ */
+export function audioCacheKey(dateKey: string, audience: Audience): string {
+  return audience === 'women' ? `${CACHE_PREFIX}women_${dateKey}` : `${CACHE_PREFIX}${dateKey}`;
+}
 
 export function audioPublicUrl(supabaseUrl: string, path: string): string {
   return `${supabaseUrl}/storage/v1/object/public/daily-audio/${path}`;
@@ -43,8 +61,10 @@ export function parseAudioRow(raw: unknown, supabaseUrl: string): DailyAudio | n
   if (!raw || typeof raw !== 'object') return null;
   const row = raw as Record<string, unknown>;
   if (typeof row.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.date)) return null;
-  if (typeof row.persona !== 'string' || !PERSONA_IDS.includes(row.persona as NarratorId)) return null;
+  if (typeof row.persona !== 'string' || !NARRATOR_IDS.includes(row.persona as NarratorId)) return null;
   if (typeof row.status !== 'string') return null;
+  // Rows written before the audience re-key carry no audience; they are men's rows.
+  const audience: NarratorAudience = row.audience === 'women' ? 'women' : 'men';
 
   const path = (value: unknown): string | null =>
     typeof value === 'string' && value.length > 0 ? value : null;
@@ -55,6 +75,7 @@ export function parseAudioRow(raw: unknown, supabaseUrl: string): DailyAudio | n
 
   return {
     date: row.date,
+    audience,
     persona: row.persona as NarratorId,
     status: row.status,
     headAmUrl: headAmPath ? audioPublicUrl(supabaseUrl, headAmPath) : null,
@@ -72,41 +93,45 @@ export function headForHour(hour: number): 'am' | 'pm' {
   return hour < AUDIO_PM_START_HOUR ? 'am' : 'pm';
 }
 
-function readCache(dateKey: string, supabaseUrl: string): DailyAudio | null {
+function readCache(dateKey: string, audience: Audience, supabaseUrl: string): DailyAudio | null {
   try {
-    const raw = localStorage.getItem(CACHE_PREFIX + dateKey);
+    const raw = localStorage.getItem(audioCacheKey(dateKey, audience));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { at: number; value: unknown };
     if (Date.now() - parsed.at > CACHE_TTL_MS) return null;
-    return parseAudioRow(parsed.value, supabaseUrl);
+    const audio = parseAudioRow(parsed.value, supabaseUrl);
+    // A cached row from the other track is never served, even if a key collided.
+    return audio && audio.audience === audience ? audio : null;
   } catch {
     return null;
   }
 }
 
-function writeCache(dateKey: string, row: Record<string, unknown>): void {
+function writeCache(dateKey: string, audience: Audience, row: Record<string, unknown>): void {
   try {
-    localStorage.setItem(CACHE_PREFIX + dateKey, JSON.stringify({ at: Date.now(), value: row }));
+    localStorage.setItem(audioCacheKey(dateKey, audience), JSON.stringify({ at: Date.now(), value: row }));
   } catch {
     // ignore
   }
 }
 
 /**
- * Reads the day's daily_audio row. Only 'ready' rows are cached — a 'failed' row can
- * still be healed by the morning retry, and the card should see that on its next open.
+ * Reads the day's daily_audio row FOR ONE TRACK. Only 'ready' rows are cached — a
+ * 'failed' row can still be healed by the morning retry, and the card should see
+ * that on its next open. The audience filter is in the query itself, so one track's
+ * render state can never leak into the other's card.
  */
-export async function fetchDailyAudio(dateKey: string): Promise<DailyAudio | null> {
+export async function fetchDailyAudio(dateKey: string, audience: Audience = 'men'): Promise<DailyAudio | null> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
   if (!supabaseUrl || !anonKey) return null;
 
-  const cached = readCache(dateKey, supabaseUrl);
+  const cached = readCache(dateKey, audience, supabaseUrl);
   if (cached) return cached;
 
   try {
     const res = await fetch(
-      `${supabaseUrl}/rest/v1/daily_audio?date=eq.${dateKey}&select=date,persona,status,head_am_path,head_pm_path,main_path,head_am_seconds,head_pm_seconds,main_seconds`,
+      `${supabaseUrl}/rest/v1/daily_audio?date=eq.${dateKey}&audience=eq.${audience}&select=date,audience,persona,status,head_am_path,head_pm_path,main_path,head_am_seconds,head_pm_seconds,main_seconds`,
       {
         headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
         signal: AbortSignal.timeout(8000),
@@ -116,10 +141,10 @@ export async function fetchDailyAudio(dateKey: string): Promise<DailyAudio | nul
     const rows = (await res.json()) as unknown;
     if (!Array.isArray(rows) || rows.length === 0) return null;
     const audio = parseAudioRow(rows[0], supabaseUrl);
-    if (audio?.status === 'ready') {
-      writeCache(dateKey, rows[0] as Record<string, unknown>);
+    if (audio?.status === 'ready' && audio.audience === audience) {
+      writeCache(dateKey, audience, rows[0] as Record<string, unknown>);
     }
-    return audio;
+    return audio && audio.audience === audience ? audio : null;
   } catch {
     return null;
   }

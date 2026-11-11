@@ -18,8 +18,13 @@
  * - The bank is human-approved text. The lines written for the audio build are listed
  *   in `DRAFT_BANK_LINES` (their drafting registry); Erik approved every one of them as
  *   written on Nov 2, 2026, clearing the spec §5.3 launch gate.
- * - There is NO fallback voice. If a day cannot render in the man's own voice, it does
- *   not render (Erik, Nov 2, 2026). This module has no concept of a substitute voice.
+ * - There is NO fallback voice. If a day cannot render in the narrator's own voice, it
+ *   does not render (Erik, Nov 2, 2026). This module has no concept of a substitute voice.
+ * - TWO COMPANIES, ONE PIPELINE (Erik, Nov 11, 2026): the women's company (Charter
+ *   addendum, Nov 11) reads the women's track from the same machinery. Selection,
+ *   banks, voices, and storage paths are all keyed by audience, and the tracks can
+ *   never borrow each other's voice, bank, reflection, or files. The men's data and
+ *   behavior below are unchanged from the Nov 2 approval.
  * - Time-of-day lives only in the two heads (AM/PM). The main segment is time-neutral
  *   (§5.4), enforced by `TIME_NEUTRAL_LINT` in the tests.
  */
@@ -32,14 +37,31 @@ export const AUDIO_PM_START_HOUR = 15;
 /** The produced silence between the Gospel and the reflection, in seconds (spec §3.4). */
 export const AUDIO_SILENCE_SECONDS = 2.0;
 
-/** The one persona with a signature sound; the bell is stitched by the phone (spec §5.6). */
+/** The signature-sound personas — one per company; the bell is stitched by the phone (spec §5.6). */
 export const BELL_PERSONA_ID = 'martin';
+export const BELL_PERSONAS: readonly string[] = ['martin', 'marta'];
 export const BELL_PATH = 'static/martin-bell.mp3';
+
+/** True when the persona carries the signature bell (Martin for the men, Marta for the women). */
+export function personaHasBell(persona: string): boolean {
+  return BELL_PERSONAS.includes(persona);
+}
 
 // ── Personas ──────────────────────────────────────────────────────────────────
 
+/** The two tracks, as the render pipeline names them (mirrors the app's Audience). */
+export type NarratorAudience = 'men' | 'women';
+
 export type PersonaId = 'henry' | 'coach' | 'frank' | 'ben' | 'martin' | 'tom' | 'ed';
-export type NarratorId = PersonaId | 'lector';
+export type WomenPersonaId = 'ruth' | 'dana' | 'grace' | 'claire' | 'marta' | 'june' | 'rose';
+export type NarratorId = PersonaId | WomenPersonaId | 'lector';
+
+/** The weekday readers plus the Lector — everyone who can voice a daily row. */
+export const NARRATOR_IDS: NarratorId[] = [
+  'henry', 'coach', 'frank', 'ben', 'martin', 'tom', 'ed',
+  'ruth', 'dana', 'grace', 'claire', 'marta', 'june', 'rose',
+  'lector',
+];
 
 export interface PersonaDisplay {
   /** Short name, e.g. "Ben". */
@@ -50,7 +72,9 @@ export interface PersonaDisplay {
   weekdayName: string;
 }
 
-export const PERSONA_DISPLAY: Record<NarratorId, PersonaDisplay> = {
+/** Display names for every narrator, including the Pilgrim specials (who have no
+ *  daily bank — they are cast, voiced, and named, but read only on the road). */
+export const PERSONA_DISPLAY: Record<NarratorId | 'will' | 'willa', PersonaDisplay> = {
   henry: { name: 'Henry', displayName: 'Henry, the Elder', weekdayName: 'Sunday' },
   coach: { name: 'Coach', displayName: 'Coach', weekdayName: 'Monday' },
   frank: { name: 'Frank', displayName: 'Frank, the Working Man', weekdayName: 'Tuesday' },
@@ -58,6 +82,15 @@ export const PERSONA_DISPLAY: Record<NarratorId, PersonaDisplay> = {
   martin: { name: 'Martin', displayName: 'Martin, the Keeper of the Hours', weekdayName: 'Thursday' },
   tom: { name: 'Tom', displayName: 'Tom, the Night Watchman', weekdayName: 'Friday' },
   ed: { name: 'Ed', displayName: 'Ed, the Neighbor', weekdayName: 'Saturday' },
+  ruth: { name: 'Ruth', displayName: 'Ruth, the Elder', weekdayName: 'Sunday' },
+  dana: { name: 'Dana', displayName: 'Coach Dana', weekdayName: 'Monday' },
+  grace: { name: 'Grace', displayName: 'Grace, the Working Woman', weekdayName: 'Tuesday' },
+  claire: { name: 'Claire', displayName: 'Claire, the Sister', weekdayName: 'Wednesday' },
+  marta: { name: 'Marta', displayName: 'Marta, the Keeper of the Hours', weekdayName: 'Thursday' },
+  june: { name: 'June', displayName: 'June, the Night Watch', weekdayName: 'Friday' },
+  rose: { name: 'Rose', displayName: 'Rose, the Neighbor', weekdayName: 'Saturday' },
+  will: { name: 'Will', displayName: 'Will, the Pilgrim', weekdayName: '' },
+  willa: { name: 'Willa', displayName: 'Willa, the Pilgrim', weekdayName: '' },
   lector: { name: 'The Lector', displayName: 'The Lector', weekdayName: '' },
 };
 
@@ -71,6 +104,45 @@ const WEEKDAY_PERSONA: Record<number, PersonaId> = {
   5: 'tom',
   6: 'ed',
 };
+
+/** Weekday (0 = Sunday) → the sister who reads that day (Charter addendum rotation). */
+const WEEKDAY_PERSONA_WOMEN: Record<number, WomenPersonaId> = {
+  0: 'ruth',
+  1: 'dana',
+  2: 'grace',
+  3: 'claire',
+  4: 'marta',
+  5: 'june',
+  6: 'rose',
+};
+
+/** The weekday reader for a track: 0 = Sunday … 6 = Saturday. */
+export function weekdayPersona(audience: NarratorAudience, weekday: number): PersonaId | WomenPersonaId {
+  return audience === 'women' ? WEEKDAY_PERSONA_WOMEN[weekday] : WEEKDAY_PERSONA[weekday];
+}
+
+/**
+ * The Pilgrim specials' voices (Charter §4 + addendum): cast and voiced like the
+ * Lector, but with no daily bank — Will and Willa read on the road, not in the
+ * rotation. Recorded here so the casting table has one home.
+ */
+export const PILGRIM_VOICES: Record<NarratorAudience, string> = {
+  men: 'Umbriel',
+  women: 'Leda',
+};
+
+/**
+ * The storage path of one day's segment file, keyed by audience so the two tracks'
+ * files can never collide: "2026-11-05/men/main.mp3" vs "2026-11-05/women/main.mp3".
+ * The bell is the one shared object (BELL_PATH) — Marta's bell is Martin's bell.
+ */
+export function audioSegmentPath(
+  dateISO: string,
+  audience: NarratorAudience,
+  segment: 'head-am' | 'head-pm' | 'main',
+): string {
+  return `${dateISO}/${audience}/${segment}.mp3`;
+}
 
 // ── Date helpers (ISO dates, timezone-free arithmetic) ────────────────────────
 
@@ -946,6 +1018,282 @@ export const LECTOR_BANK = {
   challengeHandoff: "Today's challenge — {facetLower}.", // DRAFT §5.3 (formulation)
 };
 
+// ── The women's company (Charter addendum, Nov 11, 2026) ──────────────────────
+//
+// Cast by Erik on Nov 11, 2026, reversing the earlier women's-audio exclusion. The
+// sheets live in the charter's addendum; the bank below is their voice in the same
+// Zone 3 discipline as the men's: selected, never improvised; framing points at
+// the text, never concludes it. Each woman's sign-on and brand sign-off are her
+// sheet's canonical lines; the remaining variants were authored for this build in
+// her register, mirroring her weekday counterpart's devotion and cadence profile.
+// Voices are Gemini TTS stock, assigned by descriptor in the charter's table.
+
+export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
+  ruth: {
+    voice: 'Gacrux',
+    tempo: 0.88,
+    pauseBeats: { afterScene: 1, afterGospel: 1, beforeChallenge: 1, afterChallenge: 1 },
+    signOnsAM: [
+      "Well. Let's see what He has for us today.",
+      "Well. Sit down a minute. He's never in a hurry, and neither are we.",
+      "Well. I've heard these Gospels a good many years now. They haven't worn out. Listen.",
+    ],
+    signOnsPM: [
+      "Well. Let's see what He has for us today.",
+      "Well. Sit down a minute. He's never in a hurry, and neither are we.",
+    ],
+    signOffs: [
+      "Same time tomorrow. He'll be here. So will I.",
+      "That's enough for today. Same time tomorrow — He'll be here, and so will I.",
+    ],
+    frameFeriaAM: "It's {label}. No feast today. An ordinary day — and He shows up in those, same as the great ones.",
+    frameFeriaPM: "It's {label}. No feast today. An ordinary day — and He shows up in those, same as the great ones.",
+    frameMemorialAM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
+    frameMemorialPM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
+    sceneLeadIns: [
+      'See the scene:',
+      'Look at the room:',
+    ],
+    reflectionHandoff: "Listen to that silence once more. Here is today's reflection.",
+    challengeHandoff: "And here is today's challenge — {facetLower}.",
+    teaserTemplates: [
+      "Tomorrow's {tomorrowWeekday} — and the Gospel is {bookChapter}.",
+      "Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.",
+    ],
+    soberSignOnsAM: ["Well. Today is a solemn day. Sit down, and let's hear it."],
+    soberSignOnsPM: ["Well. The day is nearly done, and it is a solemn one. Let's hear the Gospel."],
+    soberFrame: 'A solemn day on the calendar. We keep it quietly.',
+  },
+
+  dana: {
+    voice: 'Kore',
+    tempo: 1.08,
+    pauseBeats: { ...NO_BEATS },
+    signOnsAM: [
+      "Let's get after it.",
+      "First rep of the day. Let's get after the Gospel.",
+      'No speeches today. Just the Gospel, then we work.',
+    ],
+    signOnsPM: [
+      "Let's get after it.",
+      'No speeches today. Just the Gospel, then we work.',
+    ],
+    signOffs: [
+      'Now go live it.',
+      "That's the word. Now go live it.",
+    ],
+    frameFeriaAM: '{label}. No feast today. Just a regular {weekday} — and regular days are where this gets built.',
+    frameFeriaPM: '{label}. No feast today. Just a regular {weekday} — and regular days are where this gets built.',
+    frameMemorialAM: '{label} — and today the Church gives us {celebration}.{saintLine}',
+    frameMemorialPM: '{label} — and today the Church gives us {celebration}.{saintLine}',
+    sceneLeadIns: [
+      "Here's the scene.",
+      'Watch this scene.',
+    ],
+    reflectionHandoff: "Sit with that for a second. Here's today's reflection.",
+    challengeHandoff: 'Now the challenge — {facetLower}.',
+    teaserTemplates: [
+      'Tomorrow: {tomorrowWeekday}. {bookChapter}. Be ready.',
+      'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.',
+    ],
+    soberSignOnsAM: ['No speeches today. This one we just hear.'],
+    soberSignOnsPM: ['No speeches tonight. This one we just hear.'],
+    soberFrame: 'A hard, holy day. We take it straight.',
+  },
+
+  grace: {
+    voice: 'Pulcherrima',
+    tempo: 1.0,
+    pauseBeats: { ...NO_BEATS, afterGospel: 1 },
+    signOnsAM: [
+      'Alright. First things first.',
+      "Alright. Day's already moving. Gospel before the work.",
+      'Alright. Before the day gets loud — the Gospel.',
+    ],
+    signOnsPM: [
+      'Alright. The work can wait a minute. First things first.',
+      'Alright. Tools down a minute. Gospel first.',
+    ],
+    signOffs: [
+      'Now go do the next right thing.',
+      "That's the day's first job done. Now go do the next right thing.",
+    ],
+    frameFeriaAM: "{label}. No feast today. Plain workday — He's in it all the same.",
+    frameFeriaPM: "{label}. No feast today. Plain workday — He's in it all the same.",
+    frameMemorialAM: '{label} — and today the Church gives us {celebration}.{saintLine}',
+    frameMemorialPM: '{label} — and today the Church gives us {celebration}.{saintLine}',
+    sceneLeadIns: [
+      "Here's the picture:",
+      'The scene:',
+    ],
+    reflectionHandoff: "Here's today's reflection.",
+    challengeHandoff: "And today's challenge — {facetLower}.",
+    teaserTemplates: [
+      'Tomorrow: {tomorrowWeekday}. {bookChapter}.',
+      'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.',
+    ],
+    soberSignOnsAM: ['Alright. Quiet today. Just the Gospel, plain.'],
+    soberSignOnsPM: ['Alright. Tools down. A solemn one today — just the Gospel.'],
+    soberFrame: 'A solemn day. Plain and quiet, like it should be.',
+  },
+
+  claire: {
+    voice: 'Erinome',
+    tempo: 1.0,
+    pauseBeats: { ...NO_BEATS },
+    signOnsAM: [
+      "Morning, sister. Let's start where we always start.",
+      'Morning, sister. Before the house wakes — the Gospel first.',
+      "Sister, it's midweek — right where habits are won and lost. Let's hear the Gospel.",
+    ],
+    signOnsPM: [
+      "Sister, it's midweek — right where habits are won and lost. Let's hear the Gospel.",
+      "Evening, sister. The day's nearly done — let's hear the Gospel before it is.",
+      'Sister. Whatever today was, end it here — with the Gospel.',
+    ],
+    signOffs: [
+      'Pray first. Then fight.',
+      'Same time tomorrow, sister. Pray first. Then fight.',
+    ],
+    frameFeriaAM: "It's {label}. No feast today — an ordinary {weekday}.",
+    frameFeriaPM: "It's {label}. No feast today — an ordinary {weekday}.",
+    frameMemorialAM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
+    frameMemorialPM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
+    sceneLeadIns: [
+      "Here's the scene:",
+      "Here's the room:",
+    ],
+    reflectionHandoff: "Sit with that a second. Here's today's reflection.",
+    challengeHandoff: "And today's challenge — {facetLower}. One thing, today:",
+    teaserTemplates: [
+      "Tomorrow's {tomorrowWeekday}, still {tomorrowWeek} — and the Gospel is {bookChapter}.",
+      'Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.',
+    ],
+    soberSignOnsAM: ['Morning, sister. A hard day today. We read it anyway.'],
+    soberSignOnsPM: ['Evening, sister. A hard day. We end it with the Gospel anyway.'],
+    soberFrame: 'A solemn day — we take it as it comes.',
+  },
+
+  marta: {
+    voice: 'Despina',
+    tempo: 0.94,
+    pauseBeats: { afterScene: 1, afterGospel: 1, beforeChallenge: 0, afterChallenge: 1 },
+    signOnsAM: [
+      "The hour is His. Let's keep it.",
+      "Another hour, given. Let's spend this one on the Gospel.",
+      'We keep the hours, and the hours keep us. Begin.',
+    ],
+    signOnsPM: [
+      "The hour is His. Let's keep it.",
+      'We keep the hours, and the hours keep us. Begin.',
+    ],
+    signOffs: [
+      'Keep the rhythm.',
+      "Until tomorrow's hour. Keep the rhythm.",
+    ],
+    frameFeriaAM: '{label}. The calendar gives no feast today — an ordinary hour, kept like all the rest.',
+    frameFeriaPM: '{label}. The calendar gives no feast today — an ordinary hour, kept like all the rest.',
+    frameMemorialAM: '{label}. Today the hours carry {celebration}.{saintLine}',
+    frameMemorialPM: '{label}. Today the hours carry {celebration}.{saintLine}',
+    sceneLeadIns: [
+      'See the scene:',
+      'Picture the room:',
+    ],
+    reflectionHandoff: "Keep that room in mind. Here is today's reflection.",
+    challengeHandoff: "And today's challenge — {facetLower}.",
+    teaserTemplates: [
+      'Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.',
+      'Tomorrow, {tomorrowWeekday} of {tomorrowWeek} — the Gospel is {bookChapter}.',
+    ],
+    soberSignOnsAM: ["The hour is His — and today it is a solemn one. Let's keep it."],
+    soberSignOnsPM: ["Another hour, given — a solemn one. Let's keep it."],
+    soberFrame: 'A solemn day. The hours are kept quietly today.',
+  },
+
+  june: {
+    voice: 'Sulafat',
+    tempo: 0.9,
+    pauseBeats: { ...NO_BEATS, afterGospel: 1, afterChallenge: 1 },
+    signOnsAM: [
+      "Whatever hour this finds you — He's awake. Listen.",
+      "The watch is ending. He's been with you all night. Listen.",
+      "Morning's coming. One more thing before you rest — the Gospel.",
+    ],
+    signOnsPM: [
+      "Still up? You're not the only one.",
+      "The dark hours are His hours too. Here's the Gospel.",
+      "Whatever hour this finds you — He's awake. Listen.",
+    ],
+    signOffs: [
+      'He keeps watch with you. Rest when you can.',
+      'The watch goes on. He keeps watch with you. Rest when you can.',
+    ],
+    frameFeriaAM: '{label}. No feast on the calendar. An ordinary watch, ending — He keeps those, too.',
+    frameFeriaPM: '{label}. No feast on the calendar tonight. An ordinary watch — He keeps those, too.',
+    frameMemorialAM: '{label} — and today the Church gives us {celebration}.{saintLine}',
+    frameMemorialPM: '{label}. Tonight the Church gives us {celebration}.{saintLine}',
+    sceneLeadIns: [
+      'The scene, plain:',
+      'Look:',
+    ],
+    reflectionHandoff: "Sit in that silence a moment. Here's today's reflection.",
+    challengeHandoff: 'And the challenge — {facetLower}.',
+    teaserTemplates: [
+      "Tomorrow is {tomorrowWeekday}, the week's end. The Gospel is {bookChapter}.",
+      'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.',
+    ],
+    soberSignOnsAM: ["The watch ends on a solemn morning. He's here. Listen."],
+    soberSignOnsPM: ["Still up? Tonight of all nights — He's here. Listen."],
+    soberFrame: 'A solemn watch. We keep it with Him.',
+  },
+
+  rose: {
+    voice: 'Callirrhoe',
+    tempo: 1.02,
+    pauseBeats: { ...NO_BEATS, afterGospel: 1 },
+    signOnsAM: [
+      "Morning. Coffee's on. Let's sit a minute.",
+      'Morning, neighbor. Pull up a chair — Gospel first, then the day.',
+      'Morning. You look like you could use a minute. Here it is.',
+    ],
+    signOnsPM: [
+      "Evening, neighbor. Pull up a chair — Gospel before the day's done.",
+      "Neighbor. Day's winding down. Let's sit a minute with the Gospel.",
+    ],
+    signOffs: [
+      "I'll be here tomorrow.",
+      "You know where to find me. I'll be here tomorrow.",
+    ],
+    frameFeriaAM: "It's {label}. No feast today — just an ordinary {weekday}, the kind most of life is made of.",
+    frameFeriaPM: "It's {label}. No feast today — just an ordinary {weekday}, the kind most of life is made of.",
+    frameMemorialAM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
+    frameMemorialPM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
+    sceneLeadIns: [
+      'Picture this:',
+      "Here's the scene:",
+    ],
+    reflectionHandoff: "Now here's today's reflection.",
+    challengeHandoff: "And today's challenge — {facetLower}.",
+    teaserTemplates: [
+      "Tomorrow's {tomorrowWeekday} — {tomorrowCelebration} — and the Gospel is {bookChapter}.",
+      'Tomorrow is {tomorrowWeekday}. The Gospel is {bookChapter}.',
+    ],
+    soberSignOnsAM: ["Morning, neighbor. A solemn one today. Let's sit with it."],
+    soberSignOnsPM: ["Evening, neighbor. A solemn day, this one. Let's sit with it a while."],
+    soberFrame: "A solemn day — the kind we don't rush past.",
+  },
+};
+
+/** The women's Lector: the same ritual formulas, her own voice and formal profile. */
+export const LECTOR_BANK_WOMEN = {
+  voice: 'Autonoe',
+  tempo: 1.0,
+  pauseBeats: { ...NO_BEATS } as PauseBeats,
+  frameSolemnity: '{weekday} — and today the Church keeps the Solemnity of {celebrationBare}.',
+  reflectionHandoff: "Today's reflection.",
+  challengeHandoff: "Today's challenge — {facetLower}.",
+};
+
 /** All Souls (Nov 2) — the commemoration frame, approved wording (character-pass sheet). */
 export const COMMEMORATION_FRAME =
   '{weekday} — today is All Souls, the Commemoration of All the Faithful Departed.';
@@ -1103,6 +1451,8 @@ export const TIME_NEUTRAL_LINT: string[] = [
 
 export interface AssembleInputs {
   dateISO: string;
+  /** Which company's day this is. Defaults to 'men' — the original pipeline's track. */
+  audience?: NarratorAudience;
   /** The bundle's celebration name (the name the app displays), or null. */
   celebration: string | null;
   gospelCitation: string;
@@ -1181,7 +1531,9 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
     : feast
       ? lectorTakes(dateISO, feast)
       : false;
-  const persona: NarratorId = inputs.forcePersona ?? (lector ? 'lector' : WEEKDAY_PERSONA[weekdayOfISO(dateISO)]);
+  const audience: NarratorAudience = inputs.audience ?? 'men';
+  const persona: NarratorId =
+    inputs.forcePersona ?? (lector ? 'lector' : weekdayPersona(audience, weekdayOfISO(dateISO)));
   const sober = !lector && isSoberDay(dateISO, inputs.gospelCitation);
   const teaserSuppressed = isTeaserSuppressed(dateISO);
   const { m, d } = parseISODate(dateISO);
@@ -1219,25 +1571,27 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
   let teaserIncluded = false;
 
   if (lector) {
-    const frame = fillTemplate(LECTOR_BANK.frameSolemnity, frameSlots);
+    const lectorBank = audience === 'women' ? LECTOR_BANK_WOMEN : LECTOR_BANK;
+    const frame = fillTemplate(lectorBank.frameSolemnity, frameSlots);
     headAM = frame;
     headPM = frame;
     const evangelist = evangelistOf(inputs.gospelCitation) ?? '';
     mainA = joinParagraphs(
       [fillTemplate(GOSPEL_INTRO, { evangelist }), inputs.gospelText, GOSPEL_CLOSE, ACCLAMATION],
-      [0, LECTOR_BANK.pauseBeats.afterGospel, 0],
+      [0, lectorBank.pauseBeats.afterGospel, 0],
     );
     mainB = joinParagraphs(
       [
-        LECTOR_BANK.reflectionHandoff,
+        lectorBank.reflectionHandoff,
         inputs.reflect,
-        fillTemplate(LECTOR_BANK.challengeHandoff, { facetLower: facetLower(inputs.facet) }),
+        fillTemplate(lectorBank.challengeHandoff, { facetLower: facetLower(inputs.facet) }),
         inputs.challenge,
       ],
       [0, 0, 0],
     );
   } else {
-    const bank = BANK[persona as PersonaId];
+    const bank =
+      audience === 'women' ? BANK_WOMEN[persona as WomenPersonaId] : BANK[persona as PersonaId];
 
     const frameFor = (ampm: 'AM' | 'PM'): string => {
       if (sober) return bank.soberFrame;

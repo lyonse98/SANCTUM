@@ -61,6 +61,18 @@ export const COMPANION_PORTRAYAL_SHORT = 'AI portrayal';
 export const NARRATOR_DISCLOSURE_LINE =
   'Sanctum\u2019s narrators are created personas \u2014 AI-voiced characters, written to be the brothers reading next to you. They aren\u2019t real men, and they never pretend to be \u2014 least of all priests.';
 
+/**
+ * The same disclosure for the women's company (Narrator Charter addendum, Nov 11,
+ * 2026) — the sisters reading next to her, with the religious-sister line drawn as
+ * plainly as the priest line is drawn for the brothers.
+ */
+export const NARRATOR_DISCLOSURE_LINE_WOMEN =
+  'Sanctum\u2019s narrators are created personas \u2014 AI-voiced characters, written to be the sisters reading next to you. They aren\u2019t real women, and they never pretend to be \u2014 least of all religious sisters or priests.';
+
+export function narratorDisclosureLine(audience: 'men' | 'women'): string {
+  return audience === 'women' ? NARRATOR_DISCLOSURE_LINE_WOMEN : NARRATOR_DISCLOSURE_LINE;
+}
+
 /** The analytics disclosure addressed to a woman. */
 export const ANALYTICS_COPY_WOMEN =
   'Off by default. If you turn this on, Sanctum sends anonymous usage events — which screen, which tool, which companion — so we can see which parts women actually use. No message text, no email, no identity, ever.';
@@ -68,11 +80,3 @@ export const ANALYTICS_COPY_WOMEN =
 export function analyticsCopy(audience: 'men' | 'women'): string {
   return audience === 'women' ? ANALYTICS_COPY_WOMEN : ANALYTICS_COPY;
 }
-
-/**
- * The one line shown where Men's Mode offers the day's spoken audio. Women's Mode
- * has no narrator voices yet — a deliberate hold rather than a thinner substitute —
- * so the Gospel card says so plainly and keeps everything else.
- */
-export const WOMENS_AUDIO_NOTE =
-  'Spoken audio is not yet available in Women’s Mode — the Gospel and reflection are here in writing.';

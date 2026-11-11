@@ -2,16 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { Pause, Play, RotateCcw } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
 import { fetchDailyAudio, headForHour, type DailyAudio } from '@/lib/dailyAudio';
-import { BELL_PERSONA_ID, PERSONA_DISPLAY } from '@/lib/narratorCore';
-import { NARRATOR_DISCLOSURE_LINE } from '@/lib/privacyCopy';
-
-const DISCLOSED_KEY = 'sanctum_audio_disclosed';
+import { PERSONA_DISPLAY, personaHasBell } from '@/lib/narratorCore';
+import { narratorDisclosureLine } from '@/lib/privacyCopy';
+import type { Audience } from '@/types';
 
 interface ListenBarProps {
   t: PersonaTheme;
   /** The readings bundle's date — the row fetched is for the Gospel on screen. */
   dateKey: string;
   citation: string | null;
+  /** The track whose row to fetch — the two tracks' audio never crosses. */
+  audience: Audience;
+}
+
+/** The first-listen disclosure is per track: her first listen shows her line. */
+function disclosedKey(audience: Audience): string {
+  return audience === 'women' ? 'sanctum_audio_disclosed_women' : 'sanctum_audio_disclosed';
 }
 
 function fmt(seconds: number): string {
@@ -54,11 +60,12 @@ function encodeWav(buffer: AudioBuffer): ArrayBuffer {
  * it sends nothing anywhere.
  *
  * Playback (§11.3): the day's files are stitched into one WAV stream behind a single
- * <audio> element (bell first on Martin's Thursdays, then the AM or PM head chosen by
- * the device's own hour, then the main). If Web Audio is unavailable, the files play
- * as a plain sequence instead, without the bell.
+ * <audio> element (bell first on the Keeper's Thursdays — Martin's for the men,
+ * Marta's for the women — then the AM or PM head chosen by the device's own hour,
+ * then the main). If Web Audio is unavailable, the files play as a plain sequence
+ * instead, without the bell.
  */
-export function ListenBar({ t, dateKey, citation }: ListenBarProps) {
+export function ListenBar({ t, dateKey, citation, audience }: ListenBarProps) {
   const [audio, setAudio] = useState<DailyAudio | null>(null);
   const [gone, setGone] = useState(false);
   const [showDisclosure, setShowDisclosure] = useState(false);
@@ -77,13 +84,13 @@ export function ListenBar({ t, dateKey, citation }: ListenBarProps) {
   useEffect(() => {
     let active = true;
     void (async () => {
-      const row = await fetchDailyAudio(dateKey);
+      const row = await fetchDailyAudio(dateKey, audience);
       if (active) setAudio(row);
     })();
     return () => {
       active = false;
     };
-  }, [dateKey]);
+  }, [dateKey, audience]);
 
   // Tear the player down with the card: stop the stream, release the blob, and let
   // go of the lock-screen controls.
@@ -214,7 +221,7 @@ export function ListenBar({ t, dateKey, citation }: ListenBarProps) {
       return;
     }
     try {
-      const withBell = audio.persona === BELL_PERSONA_ID;
+      const withBell = personaHasBell(audio.persona);
       const stitched = await stitch([...(withBell ? [audio.bellUrl] : []), headUrl, audio.mainUrl]);
       modeRef.current = 'stitched';
       blobUrlRef.current = stitched.url;
@@ -254,9 +261,9 @@ export function ListenBar({ t, dateKey, citation }: ListenBarProps) {
     // The first tap ever shows the disclosure card before anything plays (§11.6).
     let disclosed = false;
     try {
-      disclosed = localStorage.getItem(DISCLOSED_KEY) === '1';
+      disclosed = localStorage.getItem(disclosedKey(audience)) === '1';
     } catch {
-      disclosed = true; // If the flag can't be read, don't trap the man behind the card.
+      disclosed = true; // If the flag can't be read, don't trap the listener behind the card.
     }
     if (!disclosed) {
       setShowDisclosure(true);
@@ -267,7 +274,7 @@ export function ListenBar({ t, dateKey, citation }: ListenBarProps) {
 
   const handleListenFromCard = () => {
     try {
-      localStorage.setItem(DISCLOSED_KEY, '1');
+      localStorage.setItem(disclosedKey(audience), '1');
     } catch {
       // ignore — the card simply returns next time
     }
@@ -300,7 +307,7 @@ export function ListenBar({ t, dateKey, citation }: ListenBarProps) {
             : `Today's reader is ${display.displayName} — ${display.weekdayName}'s narrator.`}
         </p>
         <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
-          {NARRATOR_DISCLOSURE_LINE}
+          {narratorDisclosureLine(audience)}
         </p>
         <button
           onClick={handleListenFromCard}
