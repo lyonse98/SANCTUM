@@ -4,12 +4,15 @@
   permanent "what will tomorrow sound like" check.
 
   Usage:
-    node scripts/audio-dry-run.mjs [YYYY-MM-DD] [--render] [--out <dir>] [--drafts]
+    node scripts/audio-dry-run.mjs [YYYY-MM-DD] [--render] [--out <dir>] [--drafts] [--women]
 
   Default date: tomorrow in America/Los_Angeles. The script fetches the day's live
   daily_readings bundle + daily_reflections row (the same rows the render function
   will read), assembles the script locally with src/lib/narratorCore.ts, and prints
   it in full — both heads and the main — for the paper check.
+
+  --women checks the women's track instead: her reflection row, her company's
+  narrator, her bank. Default is the men's track, as it has always been.
 
   --render also renders MP3s with the samples' workstation method (Gemini TTS +
   ffmpeg atempo + concat) into a scratch folder for pre-launch listening. It needs
@@ -36,6 +39,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const render = args.includes('--render');
 const showDrafts = args.includes('--drafts');
+const audience = args.includes('--women') ? 'women' : 'men';
 const outFlag = args.indexOf('--out');
 const dateArg = args.find((a) => /^\d{4}-\d{2}-\d{2}$/.test(a));
 
@@ -94,8 +98,8 @@ const core = loadNarratorCore();
 
 // ── Fetch the day's rows (read-only) ──────────────────────────────────────────
 
-async function restOne(table, select) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?date=eq.${dateISO}&select=${select}`, {
+async function restOne(table, select, extraFilter = '') {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?date=eq.${dateISO}${extraFilter}&select=${select}`, {
     headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` },
   });
   if (!res.ok) return { row: null, status: res.status };
@@ -148,9 +152,9 @@ async function fetchTomorrowCitations() {
 const payload = await fetchReadingsPayload();
 // The scene column arrives with the audio migration; before it is applied, a select
 // naming it fails wholesale — retry without it (the scene is then simply absent).
-let reflectionResult = await restOne('daily_reflections', 'reflect,challenge,facet,scene');
+let reflectionResult = await restOne('daily_reflections', 'reflect,challenge,facet,scene', `&audience=eq.${audience}`);
 if (!reflectionResult.row && reflectionResult.status === 400) {
-  reflectionResult = await restOne('daily_reflections', 'reflect,challenge,facet');
+  reflectionResult = await restOne('daily_reflections', 'reflect,challenge,facet', `&audience=eq.${audience}`);
 }
 const reflectionRow = reflectionResult.row;
 if (!payload || !reflectionRow) {
@@ -167,12 +171,13 @@ const tomorrow = await fetchTomorrowCitations();
 
 const assembled = core.assembleScript({
   dateISO,
+  audience,
   celebration: payload.citations?.celebration ?? null,
   gospelCitation: payload.citations?.gospel,
   gospelText: payload.texts?.gospel?.text,
   reflect: reflectionRow.reflect,
   challenge: reflectionRow.challenge,
-  facet: reflectionRow.facet ?? 'As a man',
+  facet: reflectionRow.facet ?? (audience === 'women' ? 'As a woman' : 'As a man'),
   scene: reflectionRow.scene ?? null,
   tomorrowCelebration: tomorrow.celebration,
   tomorrowGospelCitation: tomorrow.gospel,
@@ -221,7 +226,13 @@ if (render) {
   mkdirSync(outDir, { recursive: true });
 
   const profile =
-    assembled.persona === 'lector' ? core.LECTOR_BANK : core.BANK[assembled.persona];
+    assembled.persona === 'lector'
+      ? audience === 'women'
+        ? core.LECTOR_BANK_WOMEN
+        : core.LECTOR_BANK
+      : audience === 'women'
+        ? core.BANK_WOMEN[assembled.persona]
+        : core.BANK[assembled.persona];
 
   async function tts(text, name) {
     const res = await fetch(

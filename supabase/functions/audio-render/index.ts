@@ -23,6 +23,12 @@
   - { "retention": true }                          delete segment files older than 90
                                                    days; rows are kept, marked expired
 
+  Every shape also accepts "audience": "men" | "women" (Nov 11, 2026 — the women's
+  company). Absent means "men", exactly the pre-parity behavior, so the original
+  schedules keep their meaning; the women's schedules pass "women" explicitly.
+  Rows are keyed (date, audience), files live under <date>/<audience>/, and a
+  track's render reads only its own reflection row — the tracks never cross.
+
   verify_jwt is false, like the other no-auth functions: the schedule calls with the
   public anon key, and every table/bucket write here goes through the service role.
 
@@ -33,12 +39,17 @@ import { Mp3Encoder } from "npm:@breezystack/lamejs@1.2.7";
 import {
   AUDIO_SILENCE_SECONDS,
   BANK,
+  BANK_WOMEN,
   LECTOR_BANK,
+  LECTOR_BANK_WOMEN,
   addDaysISO,
   applyLexicon,
   assembleScript,
+  audioSegmentPath,
   resolveFeastDay,
+  weekdayPersona,
   weekdayOfISO,
+  type NarratorAudience,
   type NarratorId,
 } from "./narratorCore.ts";
 import {
@@ -126,8 +137,12 @@ async function restSelect(table: string, query: string): Promise<Record<string, 
   return Array.isArray(rows) ? rows : [];
 }
 
-async function upsertRow(table: string, row: Record<string, unknown>): Promise<void> {
-  const res = await fetch(`${supabaseUrl()}/rest/v1/${table}?on_conflict=date`, {
+async function upsertRow(
+  table: string,
+  row: Record<string, unknown>,
+  onConflict = "date,audience",
+): Promise<void> {
+  const res = await fetch(`${supabaseUrl()}/rest/v1/${table}?on_conflict=${onConflict}`, {
     method: "POST",
     headers: serviceHeaders({ Prefer: "return=minimal,resolution=merge-duplicates" }),
     body: JSON.stringify(row),
@@ -180,19 +195,21 @@ async function callFunction(path: string, init: RequestInit): Promise<boolean> {
   }
 }
 
-async function readReflection(dateISO: string): Promise<ReflectionRow | null> {
+async function readReflection(dateISO: string, audience: NarratorAudience): Promise<ReflectionRow | null> {
   const rows = await restSelect(
     "daily_reflections",
-    // audience=eq.men pins the men's row: since the Women's Mode re-key the table
-    // holds one row per (date, audience), and the narrator reads the men's reflection.
-    `date=eq.${dateISO}&audience=eq.men&select=reflect,challenge,facet,scene`,
+    // The audience filter pins the track's own row: the table holds one row per
+    // (date, audience), and each company reads only its own track's reflection.
+    // An absent row returns null and the caller skips the render gracefully —
+    // no row, no play bar, and never the other track's words.
+    `date=eq.${dateISO}&audience=eq.${audience}&select=reflect,challenge,facet,scene`,
   );
   const row = rows[0];
   if (!row || typeof row.reflect !== "string" || typeof row.challenge !== "string") return null;
   return {
     reflect: row.reflect,
     challenge: row.challenge,
-    facet: typeof row.facet === "string" ? row.facet : "As a man",
+    facet: typeof row.facet === "string" ? row.facet : audience === "women" ? "As a woman" : "As a man",
     scene: typeof row.scene === "string" && row.scene.trim() ? row.scene : null,
   };
 }
@@ -235,16 +252,17 @@ async function fetchTomorrowCitations(dateISO: string): Promise<{ celebration: s
   }
 }
 
-async function ensureBundle(dateISO: string): Promise<Bundle> {
-  let reflection = await readReflection(dateISO);
+async function ensureBundle(dateISO: string, audience: NarratorAudience): Promise<Bundle> {
+  let reflection = await readReflection(dateISO, audience);
   if (!reflection) {
-    // The reflection function is a cache-first generator: calling it creates the row.
+    // The reflection function is a cache-first generator: calling it creates the
+    // row — for the requested audience, so her bundle is generated as hers.
     await callFunction("daily-reflection", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: dateISO }),
+      body: JSON.stringify({ date: dateISO, audience }),
     });
-    reflection = await readReflection(dateISO);
+    reflection = await readReflection(dateISO, audience);
   }
 
   let readings = await readReadings(dateISO);
@@ -383,8 +401,21 @@ async function runRetention(): Promise<{ deleted: number; expired: number }> {
 
   let deleted = 0;
   for (const folder of oldFolders) {
-    const objects = await storageList(folder);
-    const paths = objects.filter((o) => o.id).map((o) => `${folder}/${o.name}`);
+    // Files live one level down, under <date>/<audience>/ (the pre-parity layout
+    // kept them directly under <date>/). Folder entries carry no id; file entries
+    // do. Walk both shapes so neither track's files outlive the sweep.
+    const entries = await storageList(folder);
+    const paths: string[] = [];
+    for (const entry of entries) {
+      if (entry.id) {
+        paths.push(`${folder}/${entry.name}`);
+      } else {
+        const sub = await storageList(`${folder}/${entry.name}`);
+        for (const obj of sub) {
+          if (obj.id) paths.push(`${folder}/${entry.name}/${obj.name}`);
+        }
+      }
+    }
     if (paths.length > 0) {
       await storageDelete(paths);
       deleted += paths.length;
@@ -410,14 +441,13 @@ async function runRetention(): Promise<{ deleted: number; expired: number }> {
 
 /**
  * Persona for a failure record written before assembly could run (bundle stage).
- * Mirrors §6.1 — weekday brother, Lector on a solemnity. The true persona is set by
- * assembly before any audio exists; this only labels a day that never rendered.
+ * Mirrors §6.1 — weekday narrator, Lector on a solemnity. The true persona is set
+ * by assembly before any audio exists; this only labels a day that never rendered.
  */
-function fallbackPersona(dateISO: string): NarratorId {
+function fallbackPersona(dateISO: string, audience: NarratorAudience): NarratorId {
   const feast = resolveFeastDay(dateISO);
   if (feast?.rank === "solemnity") return "lector";
-  const byWeekday: NarratorId[] = ["henry", "coach", "frank", "ben", "martin", "tom", "ed"];
-  return byWeekday[weekdayOfISO(dateISO)];
+  return weekdayPersona(audience, weekdayOfISO(dateISO));
 }
 
 interface AudioRow {
@@ -427,8 +457,16 @@ interface AudioRow {
   updated_at?: string;
 }
 
-async function runRender(dateISO: string, force: boolean, dryRun: boolean): Promise<Response> {
-  const rows = await restSelect("daily_audio", `date=eq.${dateISO}&select=status,attempts,persona,updated_at`);
+async function runRender(
+  dateISO: string,
+  audience: NarratorAudience,
+  force: boolean,
+  dryRun: boolean,
+): Promise<Response> {
+  const rows = await restSelect(
+    "daily_audio",
+    `date=eq.${dateISO}&audience=eq.${audience}&select=status,attempts,persona,updated_at`,
+  );
   const row = (rows[0] ?? null) as AudioRow | null;
   const attempts = typeof row?.attempts === "number" ? row.attempts : 0;
 
@@ -453,18 +491,19 @@ async function runRender(dateISO: string, force: boolean, dryRun: boolean): Prom
 
   let persona: NarratorId = row?.persona && typeof row.persona === "string"
     ? (row.persona as NarratorId)
-    : fallbackPersona(dateISO);
+    : fallbackPersona(dateISO, audience);
   let attempt = attempts;
   let claimed = false;
 
   try {
-    const bundle = await ensureBundle(dateISO);
+    const bundle = await ensureBundle(dateISO, audience);
 
     const sceneOff = Deno.env.get("AUDIO_SCENE") === "off";
     let assembled: ReturnType<typeof assembleScript>;
     try {
       assembled = assembleScript({
         dateISO,
+        audience,
         celebration: bundle.celebration,
         gospelCitation: bundle.gospelCitation,
         gospelText: bundle.gospelText,
@@ -485,6 +524,7 @@ async function runRender(dateISO: string, force: boolean, dryRun: boolean): Prom
         ok: true,
         dryRun: true,
         date: dateISO,
+        audience,
         persona: assembled.persona,
         lector: assembled.lector,
         sober: assembled.sober,
@@ -504,6 +544,7 @@ async function runRender(dateISO: string, force: boolean, dryRun: boolean): Prom
     attempt = attempts + 1;
     await upsertRow("daily_audio", {
       date: dateISO,
+      audience,
       persona,
       status: "rendering",
       attempts: attempt,
@@ -511,7 +552,14 @@ async function runRender(dateISO: string, force: boolean, dryRun: boolean): Prom
     });
     claimed = true;
 
-    const profile = persona === "lector" ? LECTOR_BANK : BANK[persona as keyof typeof BANK];
+    const profile =
+      persona === "lector"
+        ? audience === "women"
+          ? LECTOR_BANK_WOMEN
+          : LECTOR_BANK
+        : audience === "women"
+          ? BANK_WOMEN[persona as keyof typeof BANK_WOMEN]
+          : BANK[persona as keyof typeof BANK];
 
     // The lexicon transforms the speech payloads only — the stored script stays
     // canonical, and the hash below is of the canonical text (§8.2 step 6).
@@ -544,9 +592,9 @@ async function runRender(dateISO: string, force: boolean, dryRun: boolean): Prom
     const headPmMp3 = assembled.lector ? headAmMp3 : encodeMp3(headPmPcm);
     const mainMp3 = encodeMp3(mainPcm);
 
-    const headAmPath = `${dateISO}/head-am.mp3`;
-    const headPmPath = `${dateISO}/head-pm.mp3`;
-    const mainPath = `${dateISO}/main.mp3`;
+    const headAmPath = audioSegmentPath(dateISO, audience, "head-am");
+    const headPmPath = audioSegmentPath(dateISO, audience, "head-pm");
+    const mainPath = audioSegmentPath(dateISO, audience, "main");
     await uploadMp3(headAmPath, headAmMp3);
     await uploadMp3(headPmPath, headPmMp3);
     await uploadMp3(mainPath, mainMp3);
@@ -554,6 +602,7 @@ async function runRender(dateISO: string, force: boolean, dryRun: boolean): Prom
     const scriptHash = await sha256Hex(assembled.script);
     await upsertRow("daily_audio", {
       date: dateISO,
+      audience,
       persona,
       status: "ready",
       head_am_path: headAmPath,
@@ -574,15 +623,16 @@ async function runRender(dateISO: string, force: boolean, dryRun: boolean): Prom
     });
 
     const seconds = Math.round((secondsOf(headAmPcm) + secondsOf(headPmPcm) + secondsOf(mainPcm)) * 10) / 10;
-    console.log(`audio-render: date=${dateISO} persona=${persona} seconds=${seconds} attempts=${attempt}`);
-    return jsonResponse({ ok: true, persona, seconds });
+    console.log(`audio-render: date=${dateISO} audience=${audience} persona=${persona} seconds=${seconds} attempts=${attempt}`);
+    return jsonResponse({ ok: true, audience, persona, seconds });
   } catch (err) {
     const stage: Stage | "error" = err instanceof StageError ? err.stage : "error";
-    console.error(`audio-render failed: date=${dateISO} stage=${stage}`);
+    console.error(`audio-render failed: date=${dateISO} audience=${audience} stage=${stage}`);
     if (!dryRun) {
       try {
         await upsertRow("daily_audio", {
           date: dateISO,
+          audience,
           persona,
           status: "failed",
           // A run that failed before the claim still consumed its attempt — the
@@ -623,6 +673,10 @@ Deno.serve(async (req: Request) => {
         ? payload.date
         : losAngelesToday();
 
+    // Absent audience = the men's track, exactly the pre-parity meaning of every
+    // existing schedule and force call. The women's schedules pass "women".
+    const audience: NarratorAudience = payload.audience === "women" ? "women" : "men";
+
     const renderKey = Deno.env.get("AUDIO_RENDER_KEY");
     const force =
       payload.force === true &&
@@ -630,7 +684,7 @@ Deno.serve(async (req: Request) => {
       renderKey.length > 0 &&
       req.headers.get("x-render-key") === renderKey;
 
-    return await runRender(dateISO, force, payload.dryRun === true);
+    return await runRender(dateISO, audience, force, payload.dryRun === true);
   } catch (err) {
     console.error("audio-render failed:", err instanceof Error ? err.message : String(err));
     return jsonResponse({ ok: false, stage: "error" });
