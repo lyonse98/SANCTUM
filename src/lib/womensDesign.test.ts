@@ -27,6 +27,14 @@ import type { PersonaTheme } from '@/types';
  * on that ruling — the values changed, the pinning discipline did not.
  * Men's CONTENT and COPY are untouched by the revision and remain pinned by
  * the genderCopy/portrayal suites, which pass unmodified.
+ *
+ * SIMPLIFICATION, later on Nov 11, 2026: Erik ruled calendar supremacy —
+ * colour belongs to the calendar, and the season/feast system runs every
+ * accent in the app. The track secondaries (his slate, her clay and sage)
+ * and the accent-budget retirement that refereed them are REMOVED: the
+ * snapshots below lost their secondaryAccent keys deliberately, on that
+ * ruling, and the ladder assertions now pin the absence of the keys. Every
+ * accent value the ladder produces is unchanged.
  */
 
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8');
@@ -49,12 +57,8 @@ const MEN_NEUTRALS = {
   textDim: '#6E665A',
 };
 
-/** His slate secondary, and the grey it retires to when a feast leads. */
-const MEN_SLATE = '#5A6B7C';
-const MEN_SLATE_RETIRED = '#94908A';
-
 describe("men's season theme — the approved stone-beige ground, rank for rank", () => {
-  it('an ordinary day in Ordinary Time — ferial wash, slate at full strength', () => {
+  it('an ordinary day in Ordinary Time — ferial wash', () => {
     expect(serializable(getSeasonTheme(new Date('2026-06-15T12:00:00')))).toEqual({
       ...MEN_NEUTRALS,
       bgGradient:
@@ -63,13 +67,12 @@ describe("men's season theme — the approved stone-beige ground, rank for rank"
       accentBright: '#2A8A4E',
       accentDark: '#15502B',
       glow: 'rgba(30,107,58,0.20)',
-      secondaryAccent: MEN_SLATE,
       rgba25: 'rgba(30,107,58,0.25)',
       rgba1: 'rgba(30,107,58,1)',
     });
   });
 
-  it('the Immaculate Conception (Marian blue) — solemnity wash at 3x, slate retired', () => {
+  it('the Immaculate Conception (Marian blue) — solemnity wash at 3x', () => {
     expect(serializable(getSeasonTheme(new Date('2026-12-08T12:00:00')))).toEqual({
       ...MEN_NEUTRALS,
       bgGradient:
@@ -78,13 +81,12 @@ describe("men's season theme — the approved stone-beige ground, rank for rank"
       accentBright: '#3F6BB0',
       accentDark: '#1E3A68',
       glow: 'rgba(42,78,140,0.20)',
-      secondaryAccent: MEN_SLATE_RETIRED,
       rgba25: 'rgba(42,78,140,0.25)',
       rgba1: 'rgba(42,78,140,1)',
     });
   });
 
-  it('Mary, Mother of God (white solemnity) — solemnity wash at 3x, slate retired', () => {
+  it('Mary, Mother of God (white solemnity) — solemnity wash at 3x', () => {
     expect(serializable(getSeasonTheme(new Date('2026-01-01T12:00:00')))).toEqual({
       ...MEN_NEUTRALS,
       bgGradient:
@@ -93,13 +95,12 @@ describe("men's season theme — the approved stone-beige ground, rank for rank"
       accentBright: '#B08A2E',
       accentDark: '#6B4F15',
       glow: 'rgba(140,106,31,0.20)',
-      secondaryAccent: MEN_SLATE_RETIRED,
       rgba25: 'rgba(140,106,31,0.25)',
       rgba1: 'rgba(140,106,31,1)',
     });
   });
 
-  it('Easter Sunday (gold) — solemnity wash at 3x, slate retired', () => {
+  it('Easter Sunday (gold) — solemnity wash at 3x', () => {
     expect(serializable(getSeasonTheme(new Date('2026-04-05T12:00:00')))).toEqual({
       ...MEN_NEUTRALS,
       bgGradient:
@@ -108,7 +109,6 @@ describe("men's season theme — the approved stone-beige ground, rank for rank"
       accentBright: '#C9A02E',
       accentDark: '#7E5C10',
       glow: 'rgba(166,124,26,0.20)',
-      secondaryAccent: MEN_SLATE_RETIRED,
       rgba25: 'rgba(166,124,26,0.25)',
       rgba1: 'rgba(166,124,26,1)',
     });
@@ -118,15 +118,15 @@ describe("men's season theme — the approved stone-beige ground, rank for rank"
     const date = new Date('2026-06-15T12:00:00');
     expect(serializable(getSeasonTheme(date))).toEqual(serializable(getSeasonTheme(date, 'men')));
     const men = getSeasonTheme(date, 'men');
-    // The revision gives him a slate secondary of his own — never her colours.
-    expect(men.secondaryAccent).toBe(MEN_SLATE);
+    // Calendar supremacy (Nov 11, 2026): his theme carries no secondary
+    // accent keys at all — the calendar's colour is the only accent.
+    expect('secondaryAccent' in men).toBe(false);
     expect('tertiaryAccent' in men).toBe(false);
-    expect(men.secondaryAccent).not.toBe('#B85C38');
     const seed = { accent: '#123456', accentBright: '#234567', accentDark: '#0A1B2C', tint: '18,52,86' };
     expect(serializable(makeLightTheme(seed))).toEqual(serializable(makeLightTheme(seed, 'men')));
   });
 
-  it("a men's companion theme (Joseph) stands on the new ground, slate full, ferial wash", () => {
+  it("a men's companion theme (Joseph) stands on the new ground, ferial wash", () => {
     const joseph = personaForAudience('joseph', 'men');
     expect(joseph).not.toBeNull();
     expect(serializable(joseph!.theme)).toEqual({
@@ -137,7 +137,6 @@ describe("men's season theme — the approved stone-beige ground, rank for rank"
       accentBright: '#E8590C',
       accentDark: '#9A3412',
       glow: 'rgba(194,65,12,0.20)',
-      secondaryAccent: MEN_SLATE,
       rgba25: 'rgba(194,65,12,0.25)',
       rgba1: 'rgba(194,65,12,1)',
     });
@@ -163,16 +162,16 @@ describe("women's theme — warm ivory-sand over the same liturgical spine", () 
     expect(women.textBright).toBe('#251820');
     expect(women.bg).not.toBe(men.bg);
     expect(women.text).not.toBe(men.text);
-    // Dec 8 is a solemnity: the accent budget has retired her secondaries to
-    // their neutral cousins (the rank-ladder suite pins the full-strength day).
-    expect(women.secondaryAccent).toBe('#C8A184');
-    expect(women.tertiaryAccent).toBe('#9AA08E');
+    // Calendar supremacy: her theme carries no secondary accents on any
+    // day — the solemnity's colour is the only accent in the room.
+    expect('secondaryAccent' in women).toBe(false);
+    expect('tertiaryAccent' in women).toBe(false);
   });
 
-  it('on an ordinary day her secondaries ride at full strength — clay and sage', () => {
+  it('her theme carries no secondary accents, on an ordinary day or any other', () => {
     const women = getSeasonTheme(new Date('2026-06-15T12:00:00'), 'women');
-    expect(women.secondaryAccent).toBe('#B85C38');
-    expect(women.tertiaryAccent).toBe('#7C8A6A');
+    expect('secondaryAccent' in women).toBe(false);
+    expect('tertiaryAccent' in women).toBe(false);
   });
 
   it("her companions stand on the same warm ground, in their own colours", () => {
@@ -180,8 +179,9 @@ describe("women's theme — warm ivory-sand over the same liturgical spine", () 
     expect(mary?.theme.card).toBe('#FCF8EF');
     expect(mary?.theme.bg).toBe('#F5EDDE');
     expect(mary?.theme.accent).toBe('#274690');
-    // A companion's theme never retires — her colours are her identity.
-    expect(mary?.theme.secondaryAccent).toBe('#B85C38');
+    // Her own accent leads her room; no track secondaries ride along.
+    expect('secondaryAccent' in mary!.theme).toBe(false);
+    expect('tertiaryAccent' in mary!.theme).toBe(false);
   });
 
   it('the serif display voice is wired, and only for her', () => {
@@ -388,13 +388,17 @@ describe('the rank ladder — the season leads, feasts deepen, solemnities deepe
     }
   });
 
-  it('the accent budget retires both tracks’ secondaries on a feast day', () => {
+  it("browse-by-need chips wear the day accent — on St. Luke's feast, the martyr red", () => {
+    // Calendar supremacy: the chips' colour source is the day theme's
+    // accent itself, so on a feast the chips wear the feast's own colour.
+    const src = read('../components/CompanionSelect.tsx');
+    expect(src).toContain('const chipAccent = defaultTheme.accent;');
+    expect(src).not.toContain('secondaryAccent');
     const feastDay = new Date('2026-10-18T12:00:00');
-    const women = getSeasonTheme(feastDay, 'women');
-    expect(women.secondaryAccent).toBe('#C8A184'); // clay → sand
-    expect(women.tertiaryAccent).toBe('#9AA08E'); // sage → stone-sage
-    const men = getSeasonTheme(feastDay, 'men');
-    expect(men.secondaryAccent).toBe('#94908A'); // slate → grey
+    for (const audience of ['men', 'women'] as const) {
+      expect(getSeasonTheme(feastDay, audience).accent, audience).toBe('#A31F1F');
+      expect('secondaryAccent' in getSeasonTheme(feastDay, audience), audience).toBe(false);
+    }
   });
 
   it('the memorial marker wears the saint’s liturgical colour — and only on memorials', () => {
@@ -444,8 +448,7 @@ describe('the memorial refinement — in Ordinary Time the saint leads, the seas
       accentBright: '#B08A2E',
       accentDark: '#6B4F15',
       glow: 'rgba(140,106,31,0.20)',
-      // The saint leads, so the budget retires his slate.
-      secondaryAccent: MEN_SLATE_RETIRED,
+      // The saint leads — his gold is the day's only accent.
       rgba25: 'rgba(140,106,31,0.25)',
       rgba1: 'rgba(140,106,31,1)',
     });
@@ -455,9 +458,10 @@ describe('the memorial refinement — in Ordinary Time the saint leads, the seas
     expect(women.accentDark).toBe('#6B4F15');
     expect(women.accentRgba(1)).toBe('rgba(140,106,31,1)');
     expect(women.bgGradient).toContain('rgba(30,107,58,0.20)');
-    // Her secondaries retire too — clay to sand, sage to stone-sage.
-    expect(women.secondaryAccent).toBe('#C8A184');
-    expect(women.tertiaryAccent).toBe('#9AA08E');
+    // Calendar supremacy: no secondaries exist to retire — the saint's
+    // gold is simply the day's only accent, on her track too.
+    expect('secondaryAccent' in women).toBe(false);
+    expect('tertiaryAccent' in women).toBe(false);
   });
 
   it('a red martyr memorial in Ordinary Time wears red — St. Blaise (Feb 3, 2026)', () => {
@@ -490,16 +494,15 @@ describe('the memorial refinement — in Ordinary Time the saint leads, the seas
     );
   });
 
-  it('a memorial inside Lent keeps the season in the lead and the secondaries at full strength', () => {
+  it('a memorial inside Lent keeps the season in the lead', () => {
     const date = new Date('2027-02-11T12:00:00'); // Our Lady of Lourdes, in Lent 2027
     expect(getDayRank(date).rank).toBe('memorial');
     const women = getSeasonTheme(date, 'women');
     expect(women.accent).toBe('#5E2A6B'); // Lent violet, not Lourdes blue
-    expect(women.secondaryAccent).toBe('#B85C38');
-    expect(women.tertiaryAccent).toBe('#7C8A6A');
+    expect('secondaryAccent' in women).toBe(false);
     const men = getSeasonTheme(date, 'men');
     expect(men.accent).toBe('#5E2A6B');
-    expect(men.secondaryAccent).toBe(MEN_SLATE);
+    expect('secondaryAccent' in men).toBe(false);
   });
 });
 
