@@ -1,5 +1,4 @@
 import {
-  Settings as SettingsIcon,
   Share2,
   MessageSquarePlus,
   Info,
@@ -17,26 +16,31 @@ interface UtilitiesRowProps {
 const ITEMS: { key: keyof UtilityActions; label: string; icon: LucideIcon; hint: string }[] = [
   { key: 'onOpenAbout', label: 'About', icon: Info, hint: 'About Sanctum, and a note for church leaders' },
   { key: 'onShareInvite', label: 'Share', icon: Share2, hint: 'Share Sanctum with a friend' },
-  { key: 'onOpenSettings', label: 'Settings', icon: SettingsIcon, hint: 'Settings' },
   { key: 'onOpenFeedback', label: 'Feedback', icon: MessageSquarePlus, hint: 'Send feedback or report a bug' },
   { key: 'onOpenReminder', label: 'Reminder', icon: Bell, hint: 'A daily notification that opens the part of Sanctum you chose' },
 ];
 
 /**
- * The five things that are not destinations, in the same place on every screen of Sanctum:
- * About, Share, Settings, Feedback, and the daily reminder. They sit at the foot of each page as
- * an ordinary card, so they are always findable without a second bar stacked on the ribbon — one
- * strip of navigation at the bottom is a pattern people already understand, and two is a puzzle.
+ * The four in-the-moment actions that are not destinations, in the same place on every screen
+ * of Sanctum: About, Share, Feedback, and the daily reminder. They sit at the foot of each page
+ * as an ordinary card, so they are always findable without a second bar stacked on the ribbon —
+ * one strip of navigation at the bottom is a pattern people already understand, and two is a
+ * puzzle.
  *
- * Five equal columns, the same width and the same centering as the tab ribbon above them. Every
- * page that holds this row already shares the ribbon's container width, so the two strips line up
- * edge to edge. The labels are set a notch smaller than the ribbon's to keep the longest ones
- * (Reminder, Feedback) whole in a fifth of a phone's width.
+ * Settings is no longer one of them. It graduated to a permanent home of its own — the fifth
+ * slot of the tab ribbon (the action that lets Today sit dead centre) and the gear in the
+ * companion-chat header — so it does not need a third door here. The UtilityActions object still
+ * carries onOpenSettings for those two callers; this row simply no longer renders it.
+ *
+ * Four equal columns, the same width and the same centering as the tab ribbon above them. Every
+ * page that holds this row already shares the ribbon's container width, so the two strips line
+ * up edge to edge. The labels are set a notch smaller than the ribbon's to keep the longest ones
+ * (Reminder, Feedback) whole in a quarter of a phone's width.
  */
 export function UtilitiesRow({ t, utilities, className = '' }: UtilitiesRowProps) {
   return (
     <nav aria-label="Sanctum utilities" className={`w-full ${className}`}>
-      <div className="grid grid-cols-5 gap-1">
+      <div className="grid grid-cols-4 gap-1">
         {ITEMS.map((item) => {
           const Icon = item.icon;
           return (
