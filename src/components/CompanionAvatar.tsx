@@ -28,7 +28,7 @@ export function CompanionAvatar({ personaId, theme, size = 64, animate = false }
 
   return (
     <div
-      className="relative flex-shrink-0 overflow-hidden rounded-full"
+      className="portrait-arch relative flex-shrink-0 overflow-hidden rounded-full"
       style={{
         width: size,
         height: size,
@@ -44,8 +44,7 @@ export function CompanionAvatar({ personaId, theme, size = 64, animate = false }
         loading="lazy"
         decoding="async"
         onLoad={() => setLoaded(true)}
-        className="w-full h-full object-cover"
-        style={{ filter: 'contrast(1.08) saturate(0.92)' }}
+        className="portrait-grade w-full h-full object-cover"
       />
       <div
         className="absolute inset-0 pointer-events-none"

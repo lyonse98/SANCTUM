@@ -67,3 +67,18 @@ export function getFeastArt(date: Date, audience: Audience): FeastArt | null {
     image: marian ? '/mary.webp' : SEASON_ART[getCurrentSeason(date).season],
   };
 }
+
+/**
+ * The men's counterpart to the Illuminated Garden: where her hero wears the day's
+ * painting, his wears the day's emblem — the feast's own glyph, set large in the
+ * day's colour over its motif line, typographic and spare. Feasts and solemnities
+ * only; an ordinary day (and every memorial) gets no panel, and the women's track
+ * never enters here — she has the art.
+ */
+export function getFeastEmblem(date: Date, audience: Audience): FeastDay | null {
+  if (audience !== 'men') return null;
+  const feast = getFeastForDate(date);
+  if (!feast) return null;
+  if (feast.rank !== 'feast' && feast.rank !== 'solemnity') return null;
+  return feast;
+}

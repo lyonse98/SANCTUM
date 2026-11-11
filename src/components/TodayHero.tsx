@@ -3,13 +3,15 @@ import { Church, Lock, Zap } from 'lucide-react';
 import { SeasonBadge } from '@/components/SeasonBadge';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getDailyVisual } from '@/lib/liturgicalVisuals';
-import { getFeastArt } from '@/lib/feastArt';
+import { getFeastArt, getFeastEmblem } from '@/lib/feastArt';
 import type { Audience, PersonaTheme } from '@/types';
 
 interface TodayHeroProps {
   t: PersonaTheme;
   accent: string;
   audience: Audience;
+  /** The Sunday door to Real Help (Mass & Confession). */
+  onOpenHelp?: () => void;
 }
 
 /** Picks a greeting from the man's own clock — the app has no idea who he is, only what time it is. */
@@ -26,12 +28,16 @@ function greetingForHour(hour: number): string {
  * arrived at rather than a list he has scrolled to: the season's colour, the hour of his day,
  * and the one thing worth doing — all above the Gospel card, in a single glance.
  */
-export function TodayHero({ t, accent, audience }: TodayHeroProps) {
+export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
   const season = useMemo(() => getCurrentSeason(), []);
   const visual = useMemo(() => getDailyVisual(), []);
   // The Illuminated Garden — non-null only on the women's track, and only on a
   // solemnity or one of Our Lady's days; null (nothing rendered) everywhere else.
   const feastArt = useMemo(() => getFeastArt(new Date(), audience), [audience]);
+  // The men's counterpart — the day's emblem, large and spare, on feasts and
+  // solemnities only; null on ordinary days and on the women's track.
+  const feastEmblem = useMemo(() => getFeastEmblem(new Date(), audience), [audience]);
+  const isSunday = useMemo(() => new Date().getDay() === 0, []);
   const [greeting, setGreeting] = useState(() => greetingForHour(new Date().getHours()));
 
   useEffect(() => {
@@ -78,6 +84,34 @@ export function TodayHero({ t, accent, audience }: TodayHeroProps) {
               </p>
               <p className="text-[10px] uppercase tracking-[0.18em] mt-0.5" style={{ color: 'rgba(255,246,232,0.85)' }}>
                 {feastArt.feast.motif}
+              </p>
+            </figcaption>
+          </figure>
+        )}
+
+        {feastEmblem && (
+          <figure
+            className="relative w-full rounded-2xl border mb-5 px-4 py-6"
+            style={{
+              borderColor: t.accentRgba(0.35),
+              background: `linear-gradient(180deg, ${t.accentRgba(0.07)} 0%, transparent 100%)`,
+            }}
+          >
+            <span
+              className="inline-block text-[9px] font-bold uppercase tracking-[0.22em] px-2 py-0.5 rounded-full border mb-2"
+              style={{ color: t.accent, borderColor: t.accentRgba(0.4), backgroundColor: t.accentRgba(0.08) }}
+            >
+              {feastEmblem.rank}
+            </span>
+            <div className="text-6xl leading-none mb-2" style={{ color: accent }} aria-hidden="true">
+              {feastEmblem.glyph}
+            </div>
+            <figcaption>
+              <p className="font-display text-[22px] leading-tight" style={{ color: t.textBright }}>
+                {feastEmblem.name}
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.18em] mt-0.5" style={{ color: t.textDim }}>
+                {feastEmblem.motif}
               </p>
             </figcaption>
           </figure>
@@ -149,6 +183,17 @@ export function TodayHero({ t, accent, audience }: TodayHeroProps) {
             Read the Gospel below, then sit with it alongside a companion. That is the whole ask.
           </p>
         </div>
+
+        {isSunday && onOpenHelp && (
+          <button
+            onClick={onOpenHelp}
+            className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-opacity hover:opacity-70"
+            style={{ color: t.accent }}
+          >
+            <Church className="w-3.5 h-3.5" />
+            Mass today · Find a parish
+          </button>
+        )}
       </div>
     </header>
   );

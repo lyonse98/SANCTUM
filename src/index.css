@@ -208,6 +208,32 @@
     radial-gradient(ellipse 44px 18px at 38% 6%, rgba(184, 92, 56, 0.04) 0%, transparent 70%);
 }
 
+/*
+  Portrait frames and grading, by track. The men's portraits keep the shapes
+  they have always had — the round avatar, the squared card banner — under the
+  thin border each component already draws. On her track the same portraits
+  wear a cathedral arch: a tall dome over squared shoulders, the shape of a
+  church window, recognisable at thumbnail size. (The attribute selector
+  outranks the single-class Tailwind radius utilities it overrides.)
+  The grade is just as quiet: his portraits sit a touch cooler and flatter,
+  hers a touch warmer, as if the same painting hung in two different lights.
+*/
+.portrait-grade {
+  filter: contrast(1.08) saturate(0.95);
+}
+[data-audience='men'] .portrait-grade {
+  filter: contrast(1.08) saturate(0.92) brightness(0.99);
+}
+[data-audience='women'] .portrait-grade {
+  filter: contrast(1.05) saturate(1.03) sepia(0.12);
+}
+[data-audience='women'] .portrait-arch {
+  border-radius: 999px 999px 12px 12px;
+}
+[data-audience='women'] .portrait-arch-banner {
+  border-radius: 180px 180px 0 0 / 72px 72px 0 0;
+}
+
 /* A slow, quiet glow on the primary call-to-action so the eye finds it without being shouted at. */
 @keyframes cta-glow {
   0%, 100% { box-shadow: 0 8px 22px -10px var(--cta-accent, rgba(194,65,12,0.6)); }

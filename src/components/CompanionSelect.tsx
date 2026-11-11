@@ -156,7 +156,7 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                     style={{ background: persona.theme.glow }}
                   />
-                  <div className="relative h-32 overflow-hidden">
+                  <div className="portrait-arch-banner relative h-32 overflow-hidden">
                     <img
                       src={persona.portrait}
                       alt={persona.name}
@@ -164,8 +164,7 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
                       decoding="async"
                       width={760}
                       height={415}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      style={{ filter: 'contrast(1.1) saturate(0.9)' }}
+                      className="portrait-grade w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     <div
                       className="absolute inset-0"

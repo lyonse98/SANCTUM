@@ -239,8 +239,8 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                 <img
                   src={recommended.portrait}
                   alt={recommended.name}
-                  className="w-24 h-24 rounded-xl object-cover border-2"
-                  style={{ borderColor: recommended.theme.accent, filter: 'contrast(1.1) saturate(0.9)' }}
+                  className="portrait-arch portrait-grade w-24 h-24 rounded-xl object-cover border-2"
+                  style={{ borderColor: recommended.theme.accent }}
                 />
               </div>
               <h3 className="text-lg font-bold font-display" style={{ color: recommended.theme.textBright }}>
