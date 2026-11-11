@@ -25,9 +25,9 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
   // Browse by need — both casts carry their needs, in their own register: her
   // companions carry `issues`, written for her; his carry the `struggles` they
   // have always carried. The row serves both tracks from the same machinery,
-  // and the chips wear the day theme's secondary accent — which the accent
-  // budget retires to its neutral cousin on feasts and solemnities, so the
-  // retirement reaches this row on its own.
+  // and the chips wear the day theme's accent — under calendar supremacy
+  // (Erik, Nov 11, 2026) the calendar's colour is the only accent anywhere
+  // in the app, this row included.
   const needsOf = (p: Persona) => (audience === 'women' ? (p.issues ?? p.struggles) : p.struggles);
   const needTags = [...new Set(cast.flatMap((p) => needsOf(p)))];
   const visibleCast = activeNeed
@@ -107,7 +107,7 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
             <div className="flex flex-wrap justify-center gap-1.5">
               {needTags.map((tag) => {
                 const isActive = activeNeed === tag;
-                const chipAccent = defaultTheme.secondaryAccent ?? defaultTheme.accent;
+                const chipAccent = defaultTheme.accent;
                 return (
                   <button
                     key={tag}
@@ -115,7 +115,7 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
                     aria-pressed={isActive}
                     className="text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all active:scale-95"
                     style={{
-                      color: isActive ? '#FDFAF2' : defaultTheme.textMuted,
+                      color: isActive ? '#ffffff' : defaultTheme.textMuted,
                       borderColor: isActive ? chipAccent : `${defaultTheme.border}99`,
                       backgroundColor: isActive ? chipAccent : `${defaultTheme.border}26`,
                     }}

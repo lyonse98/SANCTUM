@@ -78,21 +78,21 @@ export function WorkshopTools({ theme, audience, initialTool, onConsumeTool }: W
     <div className="w-full">
       {/* Section header */}
       <div className="flex items-center justify-center gap-3 mb-4">
-        <div className="w-8 h-px" style={{ backgroundColor: '#C6BCAB' }} />
+        <div className="w-8 h-px" style={{ backgroundColor: t.borderLight }} />
         <div className="flex items-center gap-2">
-          <Wrench className="w-4 h-4" style={{ color: '#635C51' }} />
-          <span className="text-[11px] font-bold uppercase tracking-[0.15em] font-display" style={{ color: '#635C51' }}>
+          <Wrench className="w-4 h-4" style={{ color: t.textMuted }} />
+          <span className="text-[11px] font-bold uppercase tracking-[0.15em] font-display" style={{ color: t.textMuted }}>
             Offline Tools
           </span>
         </div>
-        <div className="w-8 h-px" style={{ backgroundColor: '#C6BCAB' }} />
+        <div className="w-8 h-px" style={{ backgroundColor: t.borderLight }} />
       </div>
 
       {/* Offline badge */}
       <div className="flex justify-center mb-5">
         <span
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider"
-          style={{ backgroundColor: '#F3EEE7', borderColor: '#DCD3C5', color: '#756D61' }}
+          style={{ backgroundColor: t.card, borderColor: t.border, color: t.textDim }}
         >
           <WifiOff className="w-3 h-3" />
           100% On-Device — Works Offline
@@ -119,7 +119,7 @@ export function WorkshopTools({ theme, audience, initialTool, onConsumeTool }: W
       <div
         key={active.id}
         className="rounded-xl border p-4 animate-fade-in"
-        style={{ backgroundColor: '#FBF8F3', borderColor: '#DCD3C5' }}
+        style={{ backgroundColor: t.card, borderColor: t.border }}
       >
         {active.id === 'cold-start' && <LazyColdStart t={t} audience={audience} />}
         {active.id === 'breathing' && <BreathPacer t={t} />}
@@ -163,26 +163,26 @@ function ToolButton({
       onClick={() => onSelect(tool.id)}
       className="rounded-xl p-3 border text-center transition-all duration-200 active:scale-95"
       style={{
-        backgroundColor: active ? t.accentRgba(0.08) : '#F5F1EA',
-        borderColor: active ? t.accentRgba(0.35) : '#DCD3C5',
+        backgroundColor: active ? t.accentRgba(0.08) : t.card,
+        borderColor: active ? t.accentRgba(0.35) : t.border,
       }}
     >
       <div
         className="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-2 border transition-colors"
         style={{
-          backgroundColor: active ? t.accentRgba(0.12) : '#FFFFFF',
-          borderColor: active ? t.accentRgba(0.3) : '#DCD3C5',
+          backgroundColor: active ? t.accentRgba(0.12) : t.cardHover,
+          borderColor: active ? t.accentRgba(0.3) : t.border,
         }}
       >
-        <Icon className="w-5 h-5" strokeWidth={active ? 2.3 : 2} style={{ color: active ? t.accent : '#635C51' }} />
+        <Icon className="w-5 h-5" strokeWidth={active ? 2.3 : 2} style={{ color: active ? t.accent : t.textMuted }} />
       </div>
       <p
         className="text-[11px] font-bold font-display uppercase tracking-wide mb-0.5"
-        style={{ color: active ? t.textBright : '#3A352E' }}
+        style={{ color: active ? t.textBright : t.text }}
       >
         {tool.label}
       </p>
-      <p className="text-[9px] leading-tight" style={{ color: '#756D61' }}>
+      <p className="text-[9px] leading-tight" style={{ color: t.textDim }}>
         {tool.desc}
       </p>
     </button>
