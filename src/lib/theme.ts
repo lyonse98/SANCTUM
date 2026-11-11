@@ -22,6 +22,14 @@ export interface ThemeOptions {
    * not the day's.
    */
   retireAccents?: boolean;
+  /**
+   * The tint that washes the GROUND, when it differs from the accent's own
+   * tint. Ordinary-Time memorials are the one case: the saint's colour drives
+   * the accent set (accent, accentRgba, glow) while the season's tint still
+   * washes the ground — the saint leads, the season stays in the room.
+   * Everywhere else the two are the same tint, as they have always been.
+   */
+  washTint?: string;
 }
 
 interface NeutralGround {
@@ -97,9 +105,10 @@ export function makeLightTheme(
   // Two decimals keeps the ferial wash (strength 1) byte-identical to the
   // gradient every theme has always rendered: 0.20 and 0.12.
   const wash = (base: number) => (base * strength).toFixed(2);
+  const groundTint = options.washTint ?? tint;
   const theme: PersonaTheme = {
     bg: n.bg,
-    bgGradient: `radial-gradient(ellipse at 18% 0%, rgba(${tint},${wash(0.2)}) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(${tint},${wash(0.12)}) 0%, transparent 55%), linear-gradient(180deg, ${n.gradientTop} 0%, ${n.gradientBottom} 100%)`,
+    bgGradient: `radial-gradient(ellipse at 18% 0%, rgba(${groundTint},${wash(0.2)}) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(${groundTint},${wash(0.12)}) 0%, transparent 55%), linear-gradient(180deg, ${n.gradientTop} 0%, ${n.gradientBottom} 100%)`,
     card: n.card,
     cardHover: n.cardHover,
     border: n.border,

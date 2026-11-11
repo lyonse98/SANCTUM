@@ -1,21 +1,29 @@
 import { getFeastForDate, type FeastDay, type LiturgicalColor } from '@/data/feastDays';
+import type { LiturgicalSeason } from '@/data/liturgicalCalendar';
 
 /**
  * The rank ladder (Erik's final theme system, Nov 10, 2026): how loudly a day
  * may speak in the theme. The calendar underneath (data/feastDays) is the one
  * both tracks keep; this module only grades the day against it.
  *
- * - ferial / memorial: the season leads, exactly as on any ordinary day. A
- *   memorial never repaints the theme — the saint is honoured with a small
- *   colour marker on the Saint of the Day card instead (below).
+ * - ferial: the season leads, exactly as on any ordinary day.
+ * - memorial: the season leads and the saint is honoured with a small colour
+ *   marker on the Saint of the Day card (below) — with ONE exception, ruled
+ *   by Erik on Nov 11, 2026 after living with the ladder for a day: in
+ *   Ordinary Time the saint's colour takes the lead accent set and the green
+ *   steps back to the ground wash and the season chip. Ordinary Time is the
+ *   Church's unprivileged season — as at Mass, where a memorial's vestments
+ *   are the saint's colour, not green. In the privileged seasons (Advent,
+ *   Lent, Christmas, Easter) a memorial keeps the season's lead, as before.
  * - feast: the day's own liturgical colour takes the lead accent, and the
  *   tint wash in the ground deepens modestly.
  * - solemnity (and the great days — Easter, Christmas, Pentecost): the
  *   ground takes the day's tint at ~3x the ferial strength — deeper tinted
  *   light, still the light family, both tracks converging on one tint.
  *
- * On feasts and solemnities the accent budget also retires the tracks'
- * secondary accents to their neutral cousins (see lib/theme).
+ * On feasts and solemnities — and on Ordinary-Time memorials, where the
+ * saint leads — the accent budget also retires the tracks' secondary
+ * accents to their neutral cousins (see lib/theme).
  */
 export type DayRank = 'ferial' | 'memorial' | 'feast' | 'solemnity';
 
@@ -42,6 +50,15 @@ export const TINT_STRENGTH_BY_RANK: Record<DayRank, number> = {
 /** True when the day's own colour leads and the secondaries must retire. */
 export function rankRetiresAccents(rank: DayRank): boolean {
   return rank === 'feast' || rank === 'solemnity';
+}
+
+/**
+ * True when a memorial's saint takes the lead accent set: the day is a
+ * memorial AND the season is Ordinary Time (either half). In the privileged
+ * seasons a memorial never takes the lead — the season rides primary there.
+ */
+export function memorialTakesLeadInOrdinaryTime(rank: DayRank, season: LiturgicalSeason): boolean {
+  return rank === 'memorial' && (season === 'ordinary-1' || season === 'ordinary-2');
 }
 
 export interface MemorialMarker {

@@ -1,6 +1,6 @@
 import { type LiturgicalSeason } from '@/data/liturgicalCalendar';
 import { makeLightTheme } from '@/lib/theme';
-import { getDayRank, rankRetiresAccents, TINT_STRENGTH_BY_RANK } from '@/lib/dayTheme';
+import { getDayRank, memorialTakesLeadInOrdinaryTime, rankRetiresAccents, TINT_STRENGTH_BY_RANK } from '@/lib/dayTheme';
 import { getDailyVisual, getSeasonPalette, type DailyVisual } from '@/lib/liturgicalVisuals';
 import type { Audience, PersonaTheme } from '@/types';
 
@@ -29,11 +29,15 @@ export function getSeasonAccent(season: LiturgicalSeason): SeasonAccent {
  * A full theme following the day, graded by the rank ladder (lib/dayTheme).
  * The season is the default voice; a feast lets the day's own colour lead and
  * deepens the ground's tint wash; a solemnity deepens the wash ~3x so the
- * whole ground takes the day's tint — still light, on both tracks. A memorial
- * never repaints the theme: the season palette leads exactly as on a ferial,
- * and the saint is honoured by a colour marker on their card instead. On
- * feasts and solemnities the tracks' secondary accents retire to their
- * neutral cousins, so the day's colour is the only strong voice.
+ * whole ground takes the day's tint — still light, on both tracks.
+ *
+ * Memorials: in the privileged seasons the season palette leads exactly as
+ * on a ferial, and the saint is honoured by a colour marker on their card
+ * instead. In Ordinary Time (Erik, Nov 11, 2026) the saint's colour takes
+ * the lead accent set — the visual already carries the saint's palette, so
+ * the seed stands — while the season's tint still washes the ground at
+ * ferial strength (the washTint seam in lib/theme) and the secondaries
+ * retire, the saint being the day's one strong voice.
  *
  * The audience only chooses the neutral ground the day stands on (see
  * lib/theme). Default is the men's ground, so every existing caller is
@@ -49,13 +53,22 @@ export function getSeasonTheme(date: Date = new Date(), audience: Audience = 'me
     accentDark: visual.accentDark,
     tint: visual.tint,
   };
+  let washTint: string | undefined;
+  let retireAccents = rankRetiresAccents(rank);
   if (rank === 'memorial') {
-    seed = { ...getSeasonPalette(visual.season) };
+    if (memorialTakesLeadInOrdinaryTime(rank, visual.season)) {
+      // The saint leads the accent set; the season keeps the ground.
+      washTint = getSeasonPalette(visual.season).tint;
+      retireAccents = true;
+    } else {
+      seed = { ...getSeasonPalette(visual.season) };
+    }
   }
 
   return makeLightTheme(seed, audience, {
     tintStrength: TINT_STRENGTH_BY_RANK[rank],
-    retireAccents: rankRetiresAccents(rank),
+    retireAccents,
+    washTint,
   });
 }
 
