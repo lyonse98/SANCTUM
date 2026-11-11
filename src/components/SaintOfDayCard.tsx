@@ -6,7 +6,8 @@ import { fetchReadingsBundle } from '@/lib/readingsBundle';
 import { isPersonCelebration, resolveCelebrationName, shouldMirrorCelebration } from '@/lib/celebration';
 import { getMemorialMarker } from '@/lib/dayTheme';
 import { fetchDailyReadings } from '@/lib/readings';
-import type { PersonaTheme } from '@/types';
+import { companionForSaint } from '@/lib/saintCompanion';
+import type { Audience, Persona, PersonaTheme } from '@/types';
 
 function getSaintForDay(date: Date = new Date()): SaintOfDay | null {
   const mmdd = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -50,6 +51,9 @@ function wikiUrl(name: string): string {
 
 interface SaintOfDayCardProps {
   t: PersonaTheme;
+  audience: Audience;
+  /** The funnel into Companions — present only when today's saint is in the cast. */
+  onOpenCompanion?: (persona: Persona) => void;
 }
 
 function normalizeSaintName(name: string): string {
@@ -64,7 +68,7 @@ function namesMatch(a: string, b: string): boolean {
 
 
 
-export function SaintOfDayCard({ t }: SaintOfDayCardProps) {
+export function SaintOfDayCard({ t, audience, onOpenCompanion }: SaintOfDayCardProps) {
   const localSaint = useMemo(() => getSaintForDay() ?? getSaintFromFeast() ?? getFallbackSaint(), []);
   // A memorial never repaints the day's theme; instead the saint wears a small
   // marker in their liturgical colour beside the card's label (lib/dayTheme).
@@ -120,6 +124,12 @@ export function SaintOfDayCard({ t }: SaintOfDayCardProps) {
   }, [localSaint]);
 
   const saint = celebrationSaint ?? localSaint;
+  // When today's saint is one of the user's own companions, the card opens a door
+  // into their company; a saint outside the cast gets no door at all.
+  const companion = useMemo(
+    () => (onOpenCompanion ? companionForSaint(saint.name, audience) : null),
+    [saint.name, audience, onOpenCompanion],
+  );
   const url = wikiUrl(saint.name);
   const initial = saint.name === 'All Saints' || saint.name === 'All Souls'
     ? saint.name.charAt(0)
@@ -213,6 +223,20 @@ export function SaintOfDayCard({ t }: SaintOfDayCardProps) {
               </span>
             ))}
           </div>
+        )}
+
+        {companion && onOpenCompanion && (
+          <button
+            onClick={() => onOpenCompanion(companion)}
+            className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg text-xs font-bold border transition-all active:scale-95 mb-2"
+            style={{
+              backgroundColor: t.accentRgba(0.14),
+              borderColor: t.accentRgba(0.4),
+              color: t.accent,
+            }}
+          >
+            Spend a few minutes with {companion.name}
+          </button>
         )}
 
         <a

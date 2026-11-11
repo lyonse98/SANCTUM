@@ -5,9 +5,12 @@ import type { Persona } from '@/types';
 interface PersonaIntroProps {
   persona: Persona;
   onDone: () => void;
+  /** Quiet doors out of the intro — to a real priest, and to prayer. */
+  onOpenHelp?: () => void;
+  onOpenPray?: () => void;
 }
 
-export function PersonaIntro({ persona, onDone }: PersonaIntroProps) {
+export function PersonaIntro({ persona, onDone, onOpenHelp, onOpenPray }: PersonaIntroProps) {
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
   const t = persona.theme;
 
@@ -88,6 +91,30 @@ export function PersonaIntro({ persona, onDone }: PersonaIntroProps) {
           </p>
         </div>
       </div>
+
+      {/* Quiet doors — even the way in points onward, to a priest and to prayer. */}
+      {(onOpenHelp || onOpenPray) && (
+        <div className="absolute bottom-6 inset-x-0 flex items-center justify-center gap-5">
+          {onOpenHelp && (
+            <button
+              onClick={onOpenHelp}
+              className="text-[10px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
+              style={{ color: t.textDim }}
+            >
+              Find a priest · Real Help
+            </button>
+          )}
+          {onOpenPray && (
+            <button
+              onClick={onOpenPray}
+              className="text-[10px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
+              style={{ color: t.textDim }}
+            >
+              Pray
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Bottom progress bar */}
       <div className="absolute bottom-0 left-0 h-0.5" style={{ backgroundColor: t.accent }}>

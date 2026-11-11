@@ -8,6 +8,10 @@ interface ExamenChecklistProps {
   t: PersonaTheme;
   /** Which rotation the closing quote comes from. Defaults to the men's. */
   audience?: Audience;
+  /** The funnel onward: tonight's examination carried to Confession prep. */
+  onOpenConfession?: () => void;
+  /** And to a real priest, under Real Help. */
+  onOpenHelp?: () => void;
 }
 
 const EXAMEN_STEPS = [
@@ -44,7 +48,7 @@ function saveState(checks: Record<string, boolean>) {
   }
 }
 
-export function ExamenChecklist({ t, audience = 'men' }: ExamenChecklistProps) {
+export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenHelp }: ExamenChecklistProps) {
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [streakRecorded, setStreakRecorded] = useState(false);
   const streak = useMemo(() => getExamenStreak(), []);
@@ -165,8 +169,32 @@ export function ExamenChecklist({ t, audience = 'men' }: ExamenChecklistProps) {
       </div>
 
       {allDone && (
-        <div className="mt-3 text-center text-xs font-medium animate-fade-in" style={{ color: t.accent }}>
-          Rest now. You fought today. You owned what was yours. Sleep in peace.
+        <div className="mt-3 text-center animate-fade-in">
+          <p className="text-xs font-medium" style={{ color: t.accent }}>
+            Rest now. You fought today. You owned what was yours. Sleep in peace.
+          </p>
+          {(onOpenConfession || onOpenHelp) && (
+            <div className="flex flex-col items-center gap-1.5 mt-3">
+              {onOpenConfession && (
+                <button
+                  onClick={onOpenConfession}
+                  className="text-[11px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
+                  style={{ color: t.textMuted }}
+                >
+                  Take tonight&rsquo;s examination to Confession
+                </button>
+              )}
+              {onOpenHelp && (
+                <button
+                  onClick={onOpenHelp}
+                  className="text-[11px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
+                  style={{ color: t.textMuted }}
+                >
+                  Find a priest · Real Help
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
