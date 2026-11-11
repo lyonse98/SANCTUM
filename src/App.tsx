@@ -575,6 +575,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         <TabBar
           active={tab}
           onChange={handleChangeTab}
+          onOpenSettings={() => setSettingsOpen(true)}
           accent={seasonAccent}
           cardColor={areaTheme.card}
           borderColor={areaTheme.border}
@@ -773,6 +774,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       <TabBar
         active="companions"
         onChange={handleChangeTab}
+        onOpenSettings={() => setSettingsOpen(true)}
         accent={seasonAccent}
         cardColor={t.card}
         borderColor={t.border}
