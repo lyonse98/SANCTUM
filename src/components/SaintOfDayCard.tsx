@@ -4,6 +4,7 @@ import { SAINTS, type SaintOfDay } from '@/data/saints';
 import { getFeastForDate } from '@/data/feastDays';
 import { fetchReadingsBundle } from '@/lib/readingsBundle';
 import { isPersonCelebration, resolveCelebrationName, shouldMirrorCelebration } from '@/lib/celebration';
+import { getMemorialMarker } from '@/lib/dayTheme';
 import { fetchDailyReadings } from '@/lib/readings';
 import type { PersonaTheme } from '@/types';
 
@@ -65,6 +66,11 @@ function namesMatch(a: string, b: string): boolean {
 
 export function SaintOfDayCard({ t }: SaintOfDayCardProps) {
   const localSaint = useMemo(() => getSaintForDay() ?? getSaintFromFeast() ?? getFallbackSaint(), []);
+  // A memorial never repaints the day's theme; instead the saint wears a small
+  // marker in their liturgical colour beside the card's label (lib/dayTheme).
+  // Null on every other kind of day — feasts and solemnities speak through the
+  // whole theme, and ordinary days have no one to mark.
+  const marker = useMemo(() => getMemorialMarker(new Date()), []);
   const [celebrationSaint, setCelebrationSaint] = useState<SaintOfDay | null>(null);
 
   // One observance per day, and the lectionary's celebration wins: the readings header
@@ -145,7 +151,18 @@ export function SaintOfDayCard({ t }: SaintOfDayCardProps) {
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: t.accent }}>
+            <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-bold" style={{ color: t.accent }}>
+              {marker && (
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor: marker.fill,
+                    boxShadow: marker.ring ? `inset 0 0 0 1.5px ${marker.ring}` : undefined,
+                  }}
+                  title={`${marker.colorName} — the colour of today's memorial`}
+                  aria-label={`Memorial colour: ${marker.colorName}`}
+                />
+              )}
               {celebrationSaint && !isPersonCelebration(saint.name) ? 'Today’s Celebration' : 'Saint of the Day'}
             </span>
             <h3 className="text-base font-bold font-display leading-tight mt-0.5" style={{ color: t.textBright }}>
