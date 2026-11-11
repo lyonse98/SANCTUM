@@ -179,6 +179,35 @@
   letter-spacing: 0.015em;
 }
 
+/*
+  Track motifs in the Today masthead. Under the identical layout, each track's
+  hero carries a faint texture of its own — his a quiet geometric ruling, hers
+  a soft botanical wash of leaf-like ellipses — laid behind the content at
+  ~5% strength and faded out before it can reach the text it would crowd.
+  Pure decoration: pointer-events off, contrast untouched (nothing sits on it
+  that isn't already backed by the wash beneath).
+*/
+.masthead-motif::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, black 0%, transparent 88%);
+  mask-image: linear-gradient(180deg, black 0%, transparent 88%);
+}
+[data-audience='men'] .masthead-motif::before {
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0, transparent 7px, rgba(53, 48, 42, 0.05) 7px, rgba(53, 48, 42, 0.05) 8px),
+    repeating-linear-gradient(90deg, transparent 0, transparent 7px, rgba(53, 48, 42, 0.03) 7px, rgba(53, 48, 42, 0.03) 8px);
+}
+[data-audience='women'] .masthead-motif::before {
+  background-image:
+    radial-gradient(ellipse 64px 26px at 16% 16%, rgba(124, 138, 106, 0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 84px 30px at 84% 8%, rgba(184, 92, 56, 0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 52px 22px at 66% 34%, rgba(124, 138, 106, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 44px 18px at 38% 6%, rgba(184, 92, 56, 0.04) 0%, transparent 70%);
+}
+
 /* A slow, quiet glow on the primary call-to-action so the eye finds it without being shouted at. */
 @keyframes cta-glow {
   0%, 100% { box-shadow: 0 8px 22px -10px var(--cta-accent, rgba(194,65,12,0.6)); }

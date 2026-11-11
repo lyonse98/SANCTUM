@@ -40,7 +40,7 @@ export function TodayHero({ t, accent, audience }: TodayHeroProps) {
   }, []);
 
   return (
-    <header className="relative w-full text-center">
+    <header className="masthead-motif relative w-full text-center">
       <div
         className="absolute inset-x-0 -top-8 h-40 pointer-events-none"
         aria-hidden="true"
