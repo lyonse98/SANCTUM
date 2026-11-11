@@ -22,14 +22,16 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
   const [activeNeed, setActiveNeed] = useState<string | null>(null);
   const defaultTheme = theme;
 
-  // Browse by need — the women's cast carries `issues` (the needs each companion
-  // speaks to); the row is hers alone. On the men's track nothing here renders and
-  // the grid is the full cast, exactly as before.
-  const needTags = audience === 'women'
-    ? [...new Set(cast.flatMap((p) => p.issues ?? []))]
-    : [];
+  // Browse by need — both casts carry their needs, in their own register: her
+  // companions carry `issues`, written for her; his carry the `struggles` they
+  // have always carried. The row serves both tracks from the same machinery,
+  // and the chips wear the day theme's secondary accent — which the accent
+  // budget retires to its neutral cousin on feasts and solemnities, so the
+  // retirement reaches this row on its own.
+  const needsOf = (p: Persona) => (audience === 'women' ? (p.issues ?? p.struggles) : p.struggles);
+  const needTags = [...new Set(cast.flatMap((p) => needsOf(p)))];
   const visibleCast = activeNeed
-    ? cast.filter((p) => p.issues?.includes(activeNeed))
+    ? cast.filter((p) => needsOf(p).includes(activeNeed))
     : cast;
 
   return (
@@ -93,7 +95,7 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
           </div>
         </button>
 
-        {/* Browse by need — women's track only */}
+        {/* Browse by need — both tracks, each in its own register */}
         {needTags.length > 0 && (
           <div className="w-full mb-6">
             <p
