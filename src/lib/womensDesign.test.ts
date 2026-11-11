@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { getSeasonTheme } from './seasonTheme';
 import { makeLightTheme } from './theme';
+import { getDayRank, getMemorialMarker } from './dayTheme';
 import { getFeastArt, MARIAN_FEAST_NAMES } from './feastArt';
 import { FIXED_FEASTS } from '@/data/feastDays';
 import { DAILY_QUOTES, DAILY_QUOTES_WOMEN, quoteForDay, quotesForAudience } from '@/data/quotes';
@@ -11,11 +12,21 @@ import type { PersonaTheme } from '@/types';
 /**
  * The merged women's design (Erik, Nov 10, 2026) — three layers, one rule:
  * the liturgical spine is shared, her content is hers, and the visual register
- * differs — while MEN'S MODE IS PROVABLY UNCHANGED. The men's snapshots below
- * were captured from the code BEFORE this build (HEAD 40bda0b); they pin the
- * men's theme output value-for-value so a women's change can never quietly
- * repaint his Sanctum. Every women's feature is gated on the audience, and the
- * gates themselves are pinned here too.
+ * differs. The first build (HEAD 40bda0b → 7d5b226) pinned the men's theme
+ * output value-for-value so a women's change could never quietly repaint his
+ * Sanctum.
+ *
+ * REVISION, same day: Erik reviewed the first build and approved a revised
+ * final system — "One Truth, Two Seasonings" — that supersedes the neutral
+ * values: both grounds move (his cooler stone-beige, hers warm ivory-sand),
+ * the grounds are tinted by the season and graded by a rank ladder (feasts
+ * deepen the wash, solemnities ~3x), the accent budget retires each track's
+ * secondary accents on feasts and solemnities, his themes gain a slate
+ * secondary, and his companions gain a browse-by-need row. The men's
+ * snapshots below were therefore re-based DELIBERATELY, with his approval,
+ * on that ruling — the values changed, the pinning discipline did not.
+ * Men's CONTENT and COPY are untouched by the revision and remain pinned by
+ * the genderCopy/portrayal suites, which pass unmodified.
  */
 
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8');
@@ -27,102 +38,113 @@ function serializable(t: PersonaTheme) {
 }
 
 const MEN_NEUTRALS = {
-  bg: '#EDE7DB',
-  card: '#FAF6EE',
+  bg: '#E9E6DC',
+  card: '#F7F4EC',
   cardHover: '#FFFFFF',
-  border: '#D4C8B4',
-  borderLight: '#B9AA91',
+  border: '#CFC9BB',
+  borderLight: '#B0A996',
   text: '#35302A',
   textBright: '#191613',
   textMuted: '#5D5649',
   textDim: '#6E665A',
 };
 
-describe("men's season theme — byte-for-byte what it was before the women's design", () => {
-  it('an ordinary day in Ordinary Time', () => {
+/** His slate secondary, and the grey it retires to when a feast leads. */
+const MEN_SLATE = '#5A6B7C';
+const MEN_SLATE_RETIRED = '#94908A';
+
+describe("men's season theme — the approved stone-beige ground, rank for rank", () => {
+  it('an ordinary day in Ordinary Time — ferial wash, slate at full strength', () => {
     expect(serializable(getSeasonTheme(new Date('2026-06-15T12:00:00')))).toEqual({
       ...MEN_NEUTRALS,
       bgGradient:
-        'radial-gradient(ellipse at 18% 0%, rgba(30,107,58,0.20) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(30,107,58,0.12) 0%, transparent 55%), linear-gradient(180deg, #F1EBE1 0%, #E5DDCF 100%)',
+        'radial-gradient(ellipse at 18% 0%, rgba(30,107,58,0.20) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(30,107,58,0.12) 0%, transparent 55%), linear-gradient(180deg, #EFEBE2 0%, #E1DDD0 100%)',
       accent: '#1E6B3A',
       accentBright: '#2A8A4E',
       accentDark: '#15502B',
       glow: 'rgba(30,107,58,0.20)',
+      secondaryAccent: MEN_SLATE,
       rgba25: 'rgba(30,107,58,0.25)',
       rgba1: 'rgba(30,107,58,1)',
     });
   });
 
-  it('the Immaculate Conception (Marian blue)', () => {
+  it('the Immaculate Conception (Marian blue) — solemnity wash at 3x, slate retired', () => {
     expect(serializable(getSeasonTheme(new Date('2026-12-08T12:00:00')))).toEqual({
       ...MEN_NEUTRALS,
       bgGradient:
-        'radial-gradient(ellipse at 18% 0%, rgba(42,78,140,0.20) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(42,78,140,0.12) 0%, transparent 55%), linear-gradient(180deg, #F1EBE1 0%, #E5DDCF 100%)',
+        'radial-gradient(ellipse at 18% 0%, rgba(42,78,140,0.60) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(42,78,140,0.36) 0%, transparent 55%), linear-gradient(180deg, #EFEBE2 0%, #E1DDD0 100%)',
       accent: '#2A4E8C',
       accentBright: '#3F6BB0',
       accentDark: '#1E3A68',
       glow: 'rgba(42,78,140,0.20)',
+      secondaryAccent: MEN_SLATE_RETIRED,
       rgba25: 'rgba(42,78,140,0.25)',
       rgba1: 'rgba(42,78,140,1)',
     });
   });
 
-  it('Mary, Mother of God (white solemnity)', () => {
+  it('Mary, Mother of God (white solemnity) — solemnity wash at 3x, slate retired', () => {
     expect(serializable(getSeasonTheme(new Date('2026-01-01T12:00:00')))).toEqual({
       ...MEN_NEUTRALS,
       bgGradient:
-        'radial-gradient(ellipse at 18% 0%, rgba(140,106,31,0.20) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(140,106,31,0.12) 0%, transparent 55%), linear-gradient(180deg, #F1EBE1 0%, #E5DDCF 100%)',
+        'radial-gradient(ellipse at 18% 0%, rgba(140,106,31,0.60) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(140,106,31,0.36) 0%, transparent 55%), linear-gradient(180deg, #EFEBE2 0%, #E1DDD0 100%)',
       accent: '#8C6A1F',
       accentBright: '#B08A2E',
       accentDark: '#6B4F15',
       glow: 'rgba(140,106,31,0.20)',
+      secondaryAccent: MEN_SLATE_RETIRED,
       rgba25: 'rgba(140,106,31,0.25)',
       rgba1: 'rgba(140,106,31,1)',
     });
   });
 
-  it('Easter Sunday (gold)', () => {
+  it('Easter Sunday (gold) — solemnity wash at 3x, slate retired', () => {
     expect(serializable(getSeasonTheme(new Date('2026-04-05T12:00:00')))).toEqual({
       ...MEN_NEUTRALS,
       bgGradient:
-        'radial-gradient(ellipse at 18% 0%, rgba(166,124,26,0.20) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(166,124,26,0.12) 0%, transparent 55%), linear-gradient(180deg, #F1EBE1 0%, #E5DDCF 100%)',
+        'radial-gradient(ellipse at 18% 0%, rgba(166,124,26,0.60) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(166,124,26,0.36) 0%, transparent 55%), linear-gradient(180deg, #EFEBE2 0%, #E1DDD0 100%)',
       accent: '#A67C1A',
       accentBright: '#C9A02E',
       accentDark: '#7E5C10',
       glow: 'rgba(166,124,26,0.20)',
+      secondaryAccent: MEN_SLATE_RETIRED,
       rgba25: 'rgba(166,124,26,0.25)',
       rgba1: 'rgba(166,124,26,1)',
     });
   });
 
-  it("default and explicit 'men' are the same call, and carry no women's keys", () => {
+  it("default and explicit 'men' are the same call; his keys are his own", () => {
     const date = new Date('2026-06-15T12:00:00');
     expect(serializable(getSeasonTheme(date))).toEqual(serializable(getSeasonTheme(date, 'men')));
     const men = getSeasonTheme(date, 'men');
-    expect('secondaryAccent' in men).toBe(false);
+    // The revision gives him a slate secondary of his own — never her colours.
+    expect(men.secondaryAccent).toBe(MEN_SLATE);
     expect('tertiaryAccent' in men).toBe(false);
+    expect(men.secondaryAccent).not.toBe('#B85C38');
     const seed = { accent: '#123456', accentBright: '#234567', accentDark: '#0A1B2C', tint: '18,52,86' };
     expect(serializable(makeLightTheme(seed))).toEqual(serializable(makeLightTheme(seed, 'men')));
   });
 
-  it("a men's companion theme (Joseph) is untouched", () => {
+  it("a men's companion theme (Joseph) stands on the new ground, slate full, ferial wash", () => {
     const joseph = personaForAudience('joseph', 'men');
     expect(joseph).not.toBeNull();
     expect(serializable(joseph!.theme)).toEqual({
       ...MEN_NEUTRALS,
       bgGradient:
-        'radial-gradient(ellipse at 18% 0%, rgba(194,65,12,0.20) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(194,65,12,0.12) 0%, transparent 55%), linear-gradient(180deg, #F1EBE1 0%, #E5DDCF 100%)',
+        'radial-gradient(ellipse at 18% 0%, rgba(194,65,12,0.20) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(194,65,12,0.12) 0%, transparent 55%), linear-gradient(180deg, #EFEBE2 0%, #E1DDD0 100%)',
       accent: '#C2410C',
       accentBright: '#E8590C',
       accentDark: '#9A3412',
       glow: 'rgba(194,65,12,0.20)',
+      secondaryAccent: MEN_SLATE,
       rgba25: 'rgba(194,65,12,0.25)',
       rgba1: 'rgba(194,65,12,1)',
     });
   });
 });
 
-describe("women's theme — Sisterhood in Daylight over the same liturgical spine", () => {
+describe("women's theme — warm ivory-sand over the same liturgical spine", () => {
   it('the season accent stays primary; only the neutral ground warms', () => {
     const date = new Date('2026-12-08T12:00:00');
     const men = getSeasonTheme(date, 'men');
@@ -133,24 +155,32 @@ describe("women's theme — Sisterhood in Daylight over the same liturgical spin
     expect(women.accentDark).toBe(men.accentDark);
     expect(women.glow).toBe(men.glow);
     expect(women.accentRgba(0.4)).toBe(men.accentRgba(0.4));
-    // The ground is hers: warm cream surfaces, plum-brown text.
-    expect(women.bg).toBe('#F6EFE2');
-    expect(women.card).toBe('#FDFAF2');
-    expect(women.border).toBe('#DEC7B4');
+    // The ground is hers: warm ivory-sand surfaces, plum-brown text.
+    expect(women.bg).toBe('#F5EDDE');
+    expect(women.card).toBe('#FCF8EF');
+    expect(women.border).toBe('#DFC8AF');
     expect(women.text).toBe('#3E2B31');
     expect(women.textBright).toBe('#251820');
     expect(women.bg).not.toBe(men.bg);
     expect(women.text).not.toBe(men.text);
-    // Terracotta and sage ride along as secondary accents.
+    // Dec 8 is a solemnity: the accent budget has retired her secondaries to
+    // their neutral cousins (the rank-ladder suite pins the full-strength day).
+    expect(women.secondaryAccent).toBe('#C8A184');
+    expect(women.tertiaryAccent).toBe('#9AA08E');
+  });
+
+  it('on an ordinary day her secondaries ride at full strength — clay and sage', () => {
+    const women = getSeasonTheme(new Date('2026-06-15T12:00:00'), 'women');
     expect(women.secondaryAccent).toBe('#B85C38');
     expect(women.tertiaryAccent).toBe('#7C8A6A');
   });
 
   it("her companions stand on the same warm ground, in their own colours", () => {
     const mary = personaForAudience('mary', 'women');
-    expect(mary?.theme.card).toBe('#FDFAF2');
-    expect(mary?.theme.bg).toBe('#F6EFE2');
+    expect(mary?.theme.card).toBe('#FCF8EF');
+    expect(mary?.theme.bg).toBe('#F5EDDE');
     expect(mary?.theme.accent).toBe('#274690');
+    // A companion's theme never retires — her colours are her identity.
     expect(mary?.theme.secondaryAccent).toBe('#B85C38');
   });
 
@@ -159,6 +189,15 @@ describe("women's theme — Sisterhood in Daylight over the same liturgical spin
     expect(css).toContain("[data-audience='women'] .font-display");
     expect(css).toContain('Georgia');
     expect(read('../App.tsx')).toContain('dataset.audience');
+  });
+
+  it('the masthead motifs are wired per track — his ruling, her botanical wash', () => {
+    const css = read('../index.css');
+    expect(css).toContain("[data-audience='men'] .masthead-motif::before");
+    expect(css).toContain("[data-audience='women'] .masthead-motif::before");
+    expect(css).toContain('repeating-linear-gradient');
+    expect(css).toContain('radial-gradient(ellipse 64px 26px');
+    expect(read('../components/TodayHero.tsx')).toContain('masthead-motif');
   });
 });
 
@@ -256,11 +295,128 @@ describe("companion issue tags — hers, on her screen only", () => {
     expect(carriers('Dryness')).toEqual(expect.arrayContaining(['teresa', 'therese-women']));
   });
 
-  it('the select screen surfaces the tags as chips and a browse-by-need row, gated to her track', () => {
+  it('the select screen surfaces the tags as chips and a browse-by-need row', () => {
     const src = read('../components/CompanionSelect.tsx');
     expect(src).toContain('Browse by need');
     expect(src).toContain('persona.issues');
     expect(src).toContain("audience === 'women'");
+    expect(src).toContain('needsOf');
+  });
+});
+
+describe("men's browse-by-need — his struggles, the same row", () => {
+  it("the men's needs list derives from the cast's own struggles and is not empty", () => {
+    const cast = personasForAudience('men');
+    const needs = [...new Set(cast.flatMap((p) => p.struggles))];
+    expect(needs.length).toBeGreaterThanOrEqual(20);
+    for (const tag of needs) expect(tag.trim().length).toBeGreaterThan(0);
+    // His register, not hers: his list is built from struggles alone.
+    expect(needs).toContain('Lust');
+    expect(needs).toContain('Anger');
+    expect(needs).not.toContain('Waiting on God');
+  });
+
+  it('every men’s companion is reachable by at least one of his own needs', () => {
+    const cast = personasForAudience('men');
+    for (const p of cast) {
+      expect(p.struggles.length, p.id).toBeGreaterThanOrEqual(3);
+      const reachable = cast.filter((c) => c.struggles.includes(p.struggles[0]));
+      expect(reachable.map((c) => c.id), p.id).toContain(p.id);
+    }
+  });
+
+  it("his needs cross-link too — 'Shame' and 'Marriage' each carry two companions", () => {
+    const cast = personasForAudience('men');
+    const carriers = (tag: string) => cast.filter((p) => p.struggles.includes(tag)).map((p) => p.id);
+    expect(carriers('Shame').length).toBeGreaterThanOrEqual(2);
+    expect(carriers('Marriage').length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('the rank ladder — the season leads, feasts deepen, solemnities deepen most', () => {
+  /** The first tint wash alpha in a theme's ground gradient. */
+  const washAlpha = (t: PersonaTheme) => {
+    const m = t.bgGradient.match(/rgba\([\d,]+,([\d.]+)\)/);
+    return m ? parseFloat(m[1]) : NaN;
+  };
+
+  it('ranks resolve against the shared calendar', () => {
+    expect(getDayRank(new Date(2026, 5, 15)).rank).toBe('ferial');
+    expect(getDayRank(new Date(2026, 9, 1)).rank).toBe('memorial'); // St. Thérèse
+    expect(getDayRank(new Date(2026, 9, 18)).rank).toBe('feast'); // St. Luke
+    expect(getDayRank(new Date(2026, 11, 8)).rank).toBe('solemnity'); // Immaculate Conception
+    expect(getDayRank(new Date(2026, 3, 5)).rank).toBe('solemnity'); // Easter Sunday
+  });
+
+  it('tint strength orders solemnity > feast > ferial, on both tracks', () => {
+    const ferial = new Date('2026-06-15T12:00:00');
+    const feast = new Date('2026-10-18T12:00:00');
+    const solemnity = new Date('2026-12-08T12:00:00');
+    for (const audience of ['men', 'women'] as const) {
+      const f = washAlpha(getSeasonTheme(ferial, audience));
+      const fe = washAlpha(getSeasonTheme(feast, audience));
+      const s = washAlpha(getSeasonTheme(solemnity, audience));
+      expect(f, audience).toBe(0.2);
+      expect(fe, audience).toBe(0.35);
+      expect(s, audience).toBe(0.6);
+      expect(s).toBeGreaterThan(fe);
+      expect(fe).toBeGreaterThan(f);
+    }
+  });
+
+  it("a feast's own colour takes the lead — St. Luke wears martyr red on both tracks", () => {
+    for (const audience of ['men', 'women'] as const) {
+      const t = getSeasonTheme(new Date('2026-10-18T12:00:00'), audience);
+      expect(t.accent, audience).toBe('#A31F1F');
+      expect(t.accentBright, audience).toBe('#C72E2E');
+      expect(t.accentDark, audience).toBe('#7E1616');
+    }
+  });
+
+  it('a memorial never repaints the theme — Thérèse’s day equals a ferial of the same season', () => {
+    const memorial = new Date('2026-10-01T12:00:00');
+    const ferial = new Date('2026-10-06T12:00:00');
+    for (const audience of ['men', 'women'] as const) {
+      expect(serializable(getSeasonTheme(memorial, audience)), audience).toEqual(
+        serializable(getSeasonTheme(ferial, audience)),
+      );
+      // The season's green leads — not the saint's white.
+      expect(getSeasonTheme(memorial, audience).accent, audience).toBe('#1E6B3A');
+    }
+  });
+
+  it('the accent budget retires both tracks’ secondaries on a feast day', () => {
+    const feastDay = new Date('2026-10-18T12:00:00');
+    const women = getSeasonTheme(feastDay, 'women');
+    expect(women.secondaryAccent).toBe('#C8A184'); // clay → sand
+    expect(women.tertiaryAccent).toBe('#9AA08E'); // sage → stone-sage
+    const men = getSeasonTheme(feastDay, 'men');
+    expect(men.secondaryAccent).toBe('#94908A'); // slate → grey
+  });
+
+  it('the memorial marker wears the saint’s liturgical colour — and only on memorials', () => {
+    // St. Thérèse, a virgin: the white marker — ivory fill, gold ring.
+    expect(getMemorialMarker(new Date(2026, 9, 1))).toEqual({
+      colorName: 'white',
+      fill: '#FDFAF2',
+      ring: '#B08A2E',
+    });
+    // St. Cecilia, a martyr (Nov 22, 2027 — in 2026 the day is Christ the King).
+    expect(getMemorialMarker(new Date(2027, 10, 22))).toEqual({
+      colorName: 'red',
+      fill: '#A31F1F',
+      ring: null,
+    });
+    // Feasts, solemnities, and ferials earn no marker.
+    expect(getMemorialMarker(new Date(2026, 9, 18))).toBeNull();
+    expect(getMemorialMarker(new Date(2026, 11, 8))).toBeNull();
+    expect(getMemorialMarker(new Date(2026, 5, 15))).toBeNull();
+  });
+
+  it('the Saint of the Day card renders the marker from the ladder', () => {
+    const src = read('../components/SaintOfDayCard.tsx');
+    expect(src).toContain('getMemorialMarker');
+    expect(src).toContain('marker.fill');
   });
 });
 
