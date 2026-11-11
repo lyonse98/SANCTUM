@@ -21,9 +21,10 @@ import type { LiturgicalSeason } from '@/data/liturgicalCalendar';
  *   ground takes the day's tint at ~3x the ferial strength — deeper tinted
  *   light, still the light family, both tracks converging on one tint.
  *
- * On feasts and solemnities — and on Ordinary-Time memorials, where the
- * saint leads — the accent budget also retires the tracks' secondary
- * accents to their neutral cousins (see lib/theme).
+ * Since Erik's calendar-supremacy ruling (Nov 11, 2026) the ladder's accent
+ * is the only accent in the app — the tracks keep no secondary accent
+ * colours, so there is no accent budget and nothing retires; the colour
+ * this module chooses is simply the colour everything wears.
  */
 export type DayRank = 'ferial' | 'memorial' | 'feast' | 'solemnity';
 
@@ -46,11 +47,6 @@ export const TINT_STRENGTH_BY_RANK: Record<DayRank, number> = {
   feast: 1.75,
   solemnity: 3,
 };
-
-/** True when the day's own colour leads and the secondaries must retire. */
-export function rankRetiresAccents(rank: DayRank): boolean {
-  return rank === 'feast' || rank === 'solemnity';
-}
 
 /**
  * True when a memorial's saint takes the lead accent set: the day is a

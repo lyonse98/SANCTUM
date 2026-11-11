@@ -1,6 +1,6 @@
 import { type LiturgicalSeason } from '@/data/liturgicalCalendar';
 import { makeLightTheme } from '@/lib/theme';
-import { getDayRank, memorialTakesLeadInOrdinaryTime, rankRetiresAccents, TINT_STRENGTH_BY_RANK } from '@/lib/dayTheme';
+import { getDayRank, memorialTakesLeadInOrdinaryTime, TINT_STRENGTH_BY_RANK } from '@/lib/dayTheme';
 import { getDailyVisual, getSeasonPalette, type DailyVisual } from '@/lib/liturgicalVisuals';
 import type { Audience, PersonaTheme } from '@/types';
 
@@ -36,8 +36,9 @@ export function getSeasonAccent(season: LiturgicalSeason): SeasonAccent {
  * instead. In Ordinary Time (Erik, Nov 11, 2026) the saint's colour takes
  * the lead accent set — the visual already carries the saint's palette, so
  * the seed stands — while the season's tint still washes the ground at
- * ferial strength (the washTint seam in lib/theme) and the secondaries
- * retire, the saint being the day's one strong voice.
+ * ferial strength (the washTint seam in lib/theme). Under calendar
+ * supremacy (Erik, Nov 11, 2026) whichever colour this ladder chooses is
+ * the app's only accent; the tracks add none of their own.
  *
  * The audience only chooses the neutral ground the day stands on (see
  * lib/theme). Default is the men's ground, so every existing caller is
@@ -54,12 +55,10 @@ export function getSeasonTheme(date: Date = new Date(), audience: Audience = 'me
     tint: visual.tint,
   };
   let washTint: string | undefined;
-  let retireAccents = rankRetiresAccents(rank);
   if (rank === 'memorial') {
     if (memorialTakesLeadInOrdinaryTime(rank, visual.season)) {
       // The saint leads the accent set; the season keeps the ground.
       washTint = getSeasonPalette(visual.season).tint;
-      retireAccents = true;
     } else {
       seed = { ...getSeasonPalette(visual.season) };
     }
@@ -67,7 +66,6 @@ export function getSeasonTheme(date: Date = new Date(), audience: Audience = 'me
 
   return makeLightTheme(seed, audience, {
     tintStrength: TINT_STRENGTH_BY_RANK[rank],
-    retireAccents,
     washTint,
   });
 }

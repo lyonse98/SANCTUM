@@ -15,14 +15,6 @@ export interface ThemeOptions {
    */
   tintStrength?: number;
   /**
-   * The accent budget: on feasts and solemnities the day's own colour leads,
-   * and the track's secondary accents retire to their desaturated neutral
-   * cousins (her clay to sand, her sage to stone-sage, his slate to grey).
-   * Persona themes never retire — a companion's colours are their identity,
-   * not the day's.
-   */
-  retireAccents?: boolean;
-  /**
    * The tint that washes the GROUND, when it differs from the accent's own
    * tint. Ordinary-Time memorials are the one case: the saint's colour drives
    * the accent set (accent, accentRgba, glow) while the season's tint still
@@ -44,21 +36,21 @@ interface NeutralGround {
   textDim: string;
   gradientTop: string;
   gradientBottom: string;
-  secondaryAccent?: string;
-  tertiaryAccent?: string;
-  secondaryAccentRetired?: string;
-  tertiaryAccentRetired?: string;
 }
 
 /**
  * The neutral ground every theme stands on, per track — "One Truth, Two
- * Seasonings" (Erik's final system, Nov 10, 2026). The accent always comes
- * from the caller — the day's liturgical colour or the companion's own — and
- * stays the primary accent in BOTH modes; only the surfaces around it differ.
+ * Seasonings" (Erik's final system, Nov 10, 2026), simplified by his
+ * calendar-supremacy ruling of Nov 11, 2026: colour belongs to the calendar.
+ * The accent always comes from the caller — the day's liturgical colour or
+ * the companion's own — and it is the ONLY accent in BOTH modes; the tracks
+ * carry no secondary accent colours of their own (her clay and sage, his
+ * slate, and the retirement machinery that refereed them are gone). Track
+ * identity lives in the non-colour channels: this ground's temperature, the
+ * ink, the typeface, the motifs, the imagery.
  *
- * Men's: cool stone-beige and ink, slate carried as a quiet secondary.
- * Women's: warm ivory-sand and plum-brown, terracotta (clay) and sage carried
- * as secondaries.
+ * Men's: cool stone-beige and ink-brown.
+ * Women's: warm ivory-sand and plum-brown.
  */
 const NEUTRALS: Record<Audience, NeutralGround> = {
   men: {
@@ -73,8 +65,6 @@ const NEUTRALS: Record<Audience, NeutralGround> = {
     textDim: '#6E665A',
     gradientTop: '#EFEBE2',
     gradientBottom: '#E1DDD0',
-    secondaryAccent: '#5A6B7C',
-    secondaryAccentRetired: '#94908A',
   },
   women: {
     bg: '#F5EDDE',
@@ -88,10 +78,6 @@ const NEUTRALS: Record<Audience, NeutralGround> = {
     textDim: '#86707A',
     gradientTop: '#FAF3E6',
     gradientBottom: '#EFE1C9',
-    secondaryAccent: '#B85C38',
-    tertiaryAccent: '#7C8A6A',
-    secondaryAccentRetired: '#C8A184',
-    tertiaryAccentRetired: '#9AA08E',
   },
 };
 
@@ -123,10 +109,5 @@ export function makeLightTheme(
     textDim: n.textDim,
     glow: `rgba(${tint},0.20)`,
   };
-  const retire = options.retireAccents === true;
-  const secondary = retire && n.secondaryAccentRetired ? n.secondaryAccentRetired : n.secondaryAccent;
-  const tertiary = retire && n.tertiaryAccentRetired ? n.tertiaryAccentRetired : n.tertiaryAccent;
-  if (secondary) theme.secondaryAccent = secondary;
-  if (tertiary) theme.tertiaryAccent = tertiary;
   return theme;
 }

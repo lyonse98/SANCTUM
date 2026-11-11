@@ -45,11 +45,6 @@ export interface PersonaTheme {
   accent: string;
   accentBright: string;
   accentDark: string;
-  /** Women's track only: a warm earth accent (terracotta) for secondary touches.
-   *  Absent on every men's theme — the season accent stays primary in both modes. */
-  secondaryAccent?: string;
-  /** Women's track only: a quiet green accent (sage) for secondary touches. */
-  tertiaryAccent?: string;
   accentRgba: (alpha: number) => string;
   text: string;
   textBright: string;
