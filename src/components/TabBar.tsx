@@ -15,7 +15,7 @@ interface Tab {
  * colour. Its halo fires only on arrival, so the resting state stays calm. Settings is an
  * action, not a fifth area: its slot opens the settings modal and never takes the active
  * highlight. (The Workshop retired in Nov 2026 — its tools live on in Real Help, Pocket
- * Church, and Today's evening Examen.)
+ * Church, and Today's evening closing.)
  */
 export const TABS: Tab[] = [
   { id: 'church', label: 'Church', icon: Church },
@@ -31,7 +31,7 @@ interface TabBarProps {
   cardColor: string;
   borderColor: string;
   textDim: string;
-  /** Overrides the center tab's word — the Gospel in the morning, the Examen at night. */
+  /** Overrides the center tab's word — the Gospel in the morning, Tonight at night. */
   todayLabel?: string;
   /** Changes each time he lands on Today, which re-fires the arrival halo. */
   haloKey?: number;

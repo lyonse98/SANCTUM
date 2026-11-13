@@ -67,16 +67,16 @@ describe('the absorbed homes', () => {
     }
   });
 
-  it('the Evening Examen lives on Today, expandable, from the PM hour the audio day keeps', () => {
+  it('the Tonight closing lives on Today, from the PM hour the audio day keeps (the Examen tool retired Nov 12, 2026)', () => {
     const home = read('components/HomeScreen.tsx');
-    expect(home).toContain("import { EveningExamen } from '@/components/EveningExamen'");
+    expect(home).toContain("import { TonightClosing } from '@/components/TonightClosing'");
     expect(home).toContain('AUDIO_PM_START_HOUR');
-    expect(home).toContain('showExamen');
-    // A push landing can force it into view at any hour — already open.
-    expect(home).toContain('forceExamen');
-    const section = read('components/EveningExamen.tsx');
-    expect(section).toContain("import { ExamenChecklist } from '@/components/ExamenChecklist'");
-    expect(section).toContain('aria-expanded');
+    expect(home).toContain('showTonight');
+    // A push landing can force it into view at any hour.
+    expect(home).toContain('forceTonight');
+    // The retired card and its checklist are mounted nowhere on Today.
+    expect(home).not.toContain('EveningExamen');
+    expect(home).not.toContain('ExamenChecklist');
   });
 });
 

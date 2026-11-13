@@ -46,11 +46,10 @@ function feastRankLabel(rank: FeastRank): string {
 interface DailyQuoteProps {
   t: PersonaTheme;
   audience: Audience;
-  onOpenExamen?: () => void;
   onReflectWithCompanion?: (prompt: string) => void;
 }
 
-export function DailyQuote({ t, audience, onOpenExamen, onReflectWithCompanion }: DailyQuoteProps) {
+export function DailyQuote({ t, audience, onReflectWithCompanion }: DailyQuoteProps) {
   const quote = useMemo(() => quoteForDay(new Date(), audience), [audience]);
   const feast = useMemo(() => getFeastForDate(), []);
   const [expanded, setExpanded] = useState(false);
@@ -211,7 +210,6 @@ export function DailyQuote({ t, audience, onOpenExamen, onReflectWithCompanion }
   // The two quiet buttons below the main action share a row only when both are present, so a lone
   // button fills the width instead of sitting in half of it.
   const hasShare = Boolean(keyVerse || shown.value);
-  const hasExamen = Boolean(onOpenExamen);
 
   return (
     <div
@@ -367,27 +365,16 @@ export function DailyQuote({ t, audience, onOpenExamen, onReflectWithCompanion }
       )}
 
       {/* Quieter ways to pray it — present, but not competing with the step above. */}
-      {!loading && (hasShare || hasExamen) && (
-        <div className={`grid gap-2 mt-2 ${hasShare && hasExamen ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          {hasShare && (
-            <button
-              onClick={() => setShareOpen(true)}
-              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98]"
-              style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.textMuted }}
-            >
-              <Share2 className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="text-[11px] font-bold uppercase tracking-wide">Share</span>
-            </button>
-          )}
-          {hasExamen && (
-            <button
-              onClick={onOpenExamen}
-              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98]"
-              style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.textMuted }}
-            >
-              <span className="text-[11px] font-bold uppercase tracking-wide">Evening Examen</span>
-            </button>
-          )}
+      {!loading && hasShare && (
+        <div className="grid gap-2 mt-2 grid-cols-1">
+          <button
+            onClick={() => setShareOpen(true)}
+            className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98]"
+            style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.textMuted }}
+          >
+            <Share2 className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="text-[11px] font-bold uppercase tracking-wide">Share</span>
+          </button>
         </div>
       )}
 

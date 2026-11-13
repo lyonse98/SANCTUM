@@ -27,7 +27,8 @@ export function isPushFocus(value: unknown): value is PushFocus {
 
 /**
  * Where a tap on the notification lands. Mirrors the app's own tool routing: the Gospel is
- * Today, the Examen closes the day on Today (forced into view whatever the hour), the
+ * Today, the examen focus closes the day on Today (the Tonight closing, forced into view
+ * whatever the hour), the
  * Rosary sits behind Pocket Church's Pray door, and the rule focus — whose surface was
  * retired Nov 12, 2026 — lands on the Pocket Church page itself, at the top. A focus
  * that cannot resolve to a real screen would be a broken promise, so the map is total
@@ -38,7 +39,7 @@ export interface FocusRoute {
   churchTab?: string;
   /** Inside the Pray door: which section opens. */
   churchPray?: string;
-  /** Land on Today with the Evening Examen revealed, even outside the evening hours. */
+  /** Land on Today with the Tonight closing revealed, even outside the evening hours. */
   todayExamen?: boolean;
 }
 

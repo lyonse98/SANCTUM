@@ -32,6 +32,7 @@ const KNOWN_KEYS = [
   'sanctum_examen',
   'sanctum_examen_last_date',
   'sanctum_examen_streak',
+  'sanctum_tonight_resolve',
   'sanctum_rule_of_life',
   'sanctum_rule_checks',
   'sanctum_confession_notes',

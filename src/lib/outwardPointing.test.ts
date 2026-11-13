@@ -68,9 +68,9 @@ describe('outward pointing — both tracks', () => {
         expect(t.blocks).not.toContain('A reply with no referral is usually the better reply');
       });
 
-      it('describes the current app — four areas, Examen on Today, Real Help is people only', () => {
+      it('describes the current app — four areas, a closing reflection at night, Real Help is people only', () => {
         expect(t.blocks).toContain('This app has four areas.');
-        expect(t.blocks).toContain("the day's Gospel, the saint of the day, and the Evening Examen");
+        expect(t.blocks).toContain("the day's Gospel, the saint of the day, and a short closing reflection at night");
         expect(t.blocks).toContain('Confession prep, and the Catechism');
         // The wellness tools were removed Nov 12, 2026: Find Real Help is described
         // as the door to people, and the tool list offers none of the four dead ids.

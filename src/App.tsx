@@ -144,8 +144,9 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     document.documentElement.dataset.audience = audience;
   }, [audience]);
   // The center tab names the thing worth doing at this hour rather than the generic word "Today".
+  // The evening word is "Tonight" — the closing's own name since the Examen retired as a tool.
   const hourOfDay = new Date().getHours();
-  const todayLabel = hourOfDay < 12 ? 'Gospel' : hourOfDay < 17 ? 'Prayer' : 'Examen';
+  const todayLabel = hourOfDay < 12 ? 'Gospel' : hourOfDay < 17 ? 'Prayer' : 'Tonight';
   const abortRef = useRef<AbortController | null>(null);
 
   /** Sends a companion's tool link to the area that actually contains that tool. */
@@ -559,12 +560,10 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
               setPendingGospelContext(message);
               setTab('companions');
             }}
-            onOpenExamen={() => setForceExamen(true)}
             onOpenCompanion={(p) => handleSelectPersona(p)}
-            onOpenConfession={() => { setChurchTab('confession'); setTab('church'); }}
             onOpenHelp={() => setTab('help')}
-            forceExamen={forceExamen}
-            onConsumeForceExamen={() => setForceExamen(false)}
+            forceTonight={forceExamen}
+            onConsumeForceTonight={() => setForceExamen(false)}
             utilities={utilities}
           />
         </>

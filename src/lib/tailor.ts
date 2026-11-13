@@ -56,6 +56,8 @@ export interface TailorMeta {
   hash: string;
   narratorName: string;
   at: number;
+  /** The morning's stated focus — tonight's closing echoes it back. */
+  focus?: TailorFocus;
 }
 
 export function readTailorMeta(dateKey: string, audience: Audience): TailorMeta | null {
@@ -234,6 +236,7 @@ export async function getOrBuildTailored(
     hash,
     narratorName: built.narratorName,
     at: Date.now(),
+    focus: intake.focus,
   });
   return { devotional: built, fromCache: false };
 }

@@ -21,7 +21,7 @@ const TOOL_LABELS: Record<string, string> = {
   'cold-start': 'Cold Start',
   'breathing': 'Breath Pacer',
   'grounding': '5-4-3-2-1 Grounding',
-  'examen': 'Evening Examen',
+  'examen': "Tonight's closing",
   'rule': 'Rule of Life',
   'scripture': 'Prayer Library',
   'lectio': 'Lectio Divina',
