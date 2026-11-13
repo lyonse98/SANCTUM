@@ -12,6 +12,12 @@ interface ExamenChecklistProps {
   onOpenConfession?: () => void;
   /** And to a real priest, under Real Help. */
   onOpenHelp?: () => void;
+  /**
+   * Frameless: no card chrome and no title row of its own, because the host —
+   * the expandable Evening Examen section on Today — already carries both.
+   * The streak and reset survive, on their own slim row.
+   */
+  framed?: boolean;
 }
 
 const EXAMEN_STEPS = [
@@ -48,7 +54,7 @@ function saveState(checks: Record<string, boolean>) {
   }
 }
 
-export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenHelp }: ExamenChecklistProps) {
+export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenHelp, framed = true }: ExamenChecklistProps) {
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [streakRecorded, setStreakRecorded] = useState(false);
   const streak = useMemo(() => getExamenStreak(), []);
@@ -93,27 +99,40 @@ export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenH
 
   const currentStreak = streakRecorded ? Math.max(streak, 1) : streak;
 
+  const streakAndReset = (
+    <div className="flex items-center gap-3">
+      {currentStreak > 0 && (
+        <span className="flex items-center gap-1 text-[11px] font-bold" style={{ color: t.accent }}>
+          <Flame className="w-3 h-3" />
+          {currentStreak} day{currentStreak !== 1 ? 's' : ''}
+        </span>
+      )}
+      {completedCount > 0 && (
+        <button onClick={reset} className="flex items-center gap-1 text-[11px] transition-colors" style={{ color: t.textDim }}>
+          <RotateCcw className="w-3 h-3" /> Reset
+        </button>
+      )}
+    </div>
+  );
+
   return (
-    <div className="rounded-xl p-4 border" style={{ backgroundColor: t.card, borderColor: `${t.border}66` }}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Moon className="w-4 h-4" style={{ color: t.accent }} />
-          <h3 className="text-sm font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>Evening Examen</h3>
+    <div
+      className={framed ? 'rounded-xl p-4 border' : undefined}
+      style={framed ? { backgroundColor: t.card, borderColor: `${t.border}66` } : undefined}
+    >
+      {framed ? (
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Moon className="w-4 h-4" style={{ color: t.accent }} />
+            <h3 className="text-sm font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>Evening Examen</h3>
+          </div>
+          {streakAndReset}
         </div>
-        <div className="flex items-center gap-3">
-          {currentStreak > 0 && (
-            <span className="flex items-center gap-1 text-[11px] font-bold" style={{ color: t.accent }}>
-              <Flame className="w-3 h-3" />
-              {currentStreak} day{currentStreak !== 1 ? 's' : ''}
-            </span>
-          )}
-          {completedCount > 0 && (
-            <button onClick={reset} className="flex items-center gap-1 text-[11px] transition-colors" style={{ color: t.textDim }}>
-              <RotateCcw className="w-3 h-3" /> Reset
-            </button>
-          )}
-        </div>
-      </div>
+      ) : (
+        (currentStreak > 0 || completedCount > 0) && (
+          <div className="flex items-center justify-end mb-3">{streakAndReset}</div>
+        )
+      )}
 
       {/* Today's Gospel — integrated */}
       <div

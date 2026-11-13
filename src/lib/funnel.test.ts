@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getFeastEmblem } from './feastArt';
 import { companionForSaint } from './saintCompanion';
@@ -9,9 +9,10 @@ const SRC = join(__dirname, '..');
 const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 
 /**
- * The November 2026 reshaping (Erik's ruling, Nov 11): the Workshop tab retired and
- * its contents absorbed — the Examen home on Today, the Rule of Life in Pocket Church,
- * the in-the-moment tools in Real Help — and every surface funnelled into the next:
+ * The November 2026 reshaping (Erik's rulings, Nov 11–12): the Workshop tab retired
+ * and its contents absorbed — the Examen home on Today, the Rule of Life in Pocket
+ * Church — the quick wellness tools first moved to Real Help, then removed from the
+ * app altogether (Nov 12), and every surface funnelled into the next:
  * Gospel → companions, saint → companion, companions → Real Help, Examen → Confession,
  * Real Help → prayer, and all of it pointing at Church. These tests pin the shape so
  * a later edit cannot quietly re-stand the fifth tab or strand a stored practice.
@@ -31,10 +32,12 @@ describe('four areas, no Workshop', () => {
     const app = read('App.tsx');
     expect(app.toLowerCase()).not.toContain('workshop');
     // A companion's examen link lands on Today's evening Examen; the rule link on
-    // Pocket Church's Rule of Life; the hard-moment tools on Real Help, pre-opened.
+    // Pocket Church's Rule of Life; a legacy link naming a removed wellness tool
+    // lands on Real Help itself — the page, no tool opened (Nov 12, 2026).
     expect(app).toContain("'examen': { tab: 'today', todayExamen: true }");
     expect(app).toContain("'rule': { tab: 'church', churchTab: 'rule' }");
-    expect(app).toContain("'cold-start': { tab: 'help', helpTool: 'cold-start' }");
+    expect(app).toContain("'cold-start': { tab: 'help' }");
+    expect(app).not.toContain('helpTool');
   });
 });
 
@@ -46,27 +49,27 @@ describe('the absorbed homes', () => {
     expect(church).toContain("activeTab === 'rule'");
   });
 
-  it('the in-the-moment tools live at the top of Real Help, under Right Now', () => {
+  it('Real Help is real help only — the wellness tools are gone entirely (Nov 12, 2026)', () => {
     const help = read('components/FindHelpPage.tsx');
-    expect(help).toContain("import { RightNowTools } from '@/components/RightNowTools'");
-    expect(help).toContain('Right Now');
-    const tools = read('components/RightNowTools.tsx');
-    for (const id of ['cold-start', 'breathing', 'grounding', 'driveway']) {
-      expect(tools).toContain(`'${id}'`);
+    expect(help).not.toContain('RightNowTools');
+    expect(help).not.toContain('Right Now');
+    expect(help).not.toContain('initialTool');
+    // The components themselves no longer exist anywhere in the tree.
+    for (const gone of ['RightNowTools.tsx', 'LazyTools.tsx', 'ColdStart.tsx', 'BreathPacer.tsx', 'DrivewayReset.tsx']) {
+      expect(existsSync(join(SRC, 'components', gone))).toBe(false);
     }
-    // The tools themselves are the same components the Workshop mounted.
-    expect(tools).toContain('LazyColdStart');
-    expect(tools).toContain('BreathPacer');
-    expect(tools).toContain('LazyDriveway');
   });
 
-  it('the Evening Examen lives on Today, from the PM hour the audio day keeps', () => {
+  it('the Evening Examen lives on Today, expandable, from the PM hour the audio day keeps', () => {
     const home = read('components/HomeScreen.tsx');
-    expect(home).toContain("import { ExamenChecklist } from '@/components/ExamenChecklist'");
+    expect(home).toContain("import { EveningExamen } from '@/components/EveningExamen'");
     expect(home).toContain('AUDIO_PM_START_HOUR');
     expect(home).toContain('showExamen');
-    // A push landing can force it into view at any hour.
+    // A push landing can force it into view at any hour — already open.
     expect(home).toContain('forceExamen');
+    const section = read('components/EveningExamen.tsx');
+    expect(section).toContain("import { ExamenChecklist } from '@/components/ExamenChecklist'");
+    expect(section).toContain('aria-expanded');
   });
 });
 

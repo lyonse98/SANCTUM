@@ -30,8 +30,8 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
       icon: Church,
       title: 'What it is',
       body: w
-        ? 'A private place for a woman to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a pocket church of prayers, the Rosary, Confession preparation, the Catechism, and a rule of life, grounding tools for a hard moment kept beside real help, and eight companions drawn from Scripture and the saints.'
-        : 'A private place for a man to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a pocket church of prayers, the Rosary, Confession preparation, the Catechism, and a rule of life, grounding tools for a hard moment kept beside real help, and eight companions drawn from Scripture and the saints.',
+        ? 'A private place for a woman to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a pocket church of prayers, the Rosary, Confession preparation, the Catechism, and a rule of life, and eight companions drawn from Scripture and the saints.'
+        : 'A private place for a man to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a pocket church of prayers, the Rosary, Confession preparation, the Catechism, and a rule of life, and eight companions drawn from Scripture and the saints.',
     },
     {
       icon: ShieldCheck,

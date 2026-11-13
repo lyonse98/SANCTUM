@@ -81,7 +81,7 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
           style={{ backgroundColor: 'rgba(153,27,27,0.12)', borderColor: 'rgba(185,28,28,0.35)' }}
         >
           <p className="text-[11px] font-medium leading-relaxed" style={{ color: '#991B1B' }}>
-            Take a breath {kin}. Spend 2 minutes in reflection or use an Offline Tool before sending your next message.
+            Take a breath {kin}. Spend 2 minutes in reflection before sending your next message.
           </p>
         </div>
       )}

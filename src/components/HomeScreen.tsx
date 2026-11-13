@@ -3,7 +3,7 @@ import { DailyQuote } from '@/components/DailyQuote';
 import { SaintOfDayCard } from '@/components/SaintOfDayCard';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { TodayHero } from '@/components/TodayHero';
-import { ExamenChecklist } from '@/components/ExamenChecklist';
+import { EveningExamen } from '@/components/EveningExamen';
 import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
 import { AUDIO_PM_START_HOUR } from '@/lib/narratorCore';
@@ -32,7 +32,8 @@ interface HomeScreenProps {
  * without hunting for it. The day closes where Ignatius would close it: the Evening Examen
  * belongs to this screen, appearing as the day turns (from the PM hour the audio day already
  * keeps) — or whenever it is asked for, by the Gospel card's quiet button or a reminder's tap.
- * The five utilities close the page as an ordinary card.
+ * It rests as one expandable row; the checklist opens only when it is tapped open (or when a
+ * reminder lands on it). The utilities close the page as an ordinary card.
  */
 export function HomeScreen({ audience, onReflectWithCompanion, onOpenExamen, onOpenCompanion, onOpenConfession, onOpenHelp, forceExamen, onConsumeForceExamen, utilities }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
@@ -43,6 +44,8 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenExamen, onO
   const isEvening = new Date().getHours() >= AUDIO_PM_START_HOUR;
   const [examenRevealed, setExamenRevealed] = useState(false);
   const showExamen = isEvening || examenRevealed || Boolean(forceExamen);
+  // Bumped whenever the Examen is asked for by name — the section opens itself.
+  const [examenSignal, setExamenSignal] = useState(0);
 
   useEffect(() => {
     if (window.location.hash !== '#daily-gospel') return;
@@ -50,10 +53,11 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenExamen, onO
     window.history.replaceState(null, '', window.location.pathname);
   }, []);
 
-  // A reminder's tap (or the Gospel card's button, routed the same way) reveals the
-  // Examen and walks the eye to it, whatever the hour on the clock says.
+  // A reminder's tap reveals the Examen already open, and walks the eye to it,
+  // whatever the hour on the clock says.
   useEffect(() => {
     if (!forceExamen) return;
+    setExamenSignal((s) => s + 1);
     const id = setTimeout(() => {
       examenRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       onConsumeForceExamen?.();
@@ -64,6 +68,7 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenExamen, onO
   const revealExamen = () => {
     onOpenExamen();
     setExamenRevealed(true);
+    setExamenSignal((s) => s + 1);
     setTimeout(() => examenRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
   };
 
@@ -102,15 +107,18 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenExamen, onO
         </div>
 
         {/* The Evening Examen — the day's closing movement, in its home on Today.
-            Present from the PM hour; a tap on the reminder or the Gospel card's
-            button brings it forward at any hour. */}
+            Present from the PM hour as one expandable row; a tap on the reminder
+            lands it already open, and the Gospel card's button brings it forward,
+            open, at any hour. */}
         {showExamen && (
           <div ref={examenRef} className="w-full mb-5 animate-fade-in">
-            <ExamenChecklist
+            <EveningExamen
               t={seasonTheme}
               audience={audience}
               onOpenConfession={onOpenConfession}
               onOpenHelp={onOpenHelp}
+              forceOpen={Boolean(forceExamen)}
+              openSignal={examenSignal}
             />
           </div>
         )}

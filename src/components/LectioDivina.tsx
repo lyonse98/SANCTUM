@@ -19,7 +19,7 @@ interface LectioDivinaProps {
  *
  * The Prayer tab used to be a shelf of fourteen texts in an accordion: it answered "what is this?"
  * and never "what do I do now?". This is the practice the shelf was missing — the same shape as
- * Cold Start and the Breath Pacer, but aimed at Scripture rather than at a man in trouble.
+ * the Examen, but aimed at Scripture rather than at a man in trouble.
  *
  * It works offline. When the readings cannot be fetched it falls back to the day's verse rather
  * than refusing to open, because the moment a man reaches for this is often the moment he has no

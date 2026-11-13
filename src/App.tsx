@@ -54,11 +54,14 @@ const MAX_HISTORY_TURNS = 8;
  * Everything a companion can name must resolve to a real destination — a dead link at a
  * hard moment is worse than no link at all.
  */
-const TOOL_ROUTES: Record<string, { tab: TabId; helpTool?: string; churchTab?: ChurchTab; churchLectio?: boolean; todayExamen?: boolean }> = {
-  'cold-start': { tab: 'help', helpTool: 'cold-start' },
-  'breathing': { tab: 'help', helpTool: 'breathing' },
-  'grounding': { tab: 'help', helpTool: 'grounding' },
-  'driveway': { tab: 'help', helpTool: 'driveway' },
+const TOOL_ROUTES: Record<string, { tab: TabId; churchTab?: ChurchTab; churchLectio?: boolean; todayExamen?: boolean }> = {
+  // The quick wellness tools were removed from the app entirely (Erik, Nov 12, 2026).
+  // A companion's older link naming one of them — or a transcript saved before the
+  // removal — still lands somewhere true: Real Help itself, the page, no tool opened.
+  'cold-start': { tab: 'help' },
+  'breathing': { tab: 'help' },
+  'grounding': { tab: 'help' },
+  'driveway': { tab: 'help' },
   'examen': { tab: 'today', todayExamen: true },
   'rule': { tab: 'church', churchTab: 'rule' },
   'scripture': { tab: 'church', churchTab: 'prayer' },
@@ -117,7 +120,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [haloNonce, setHaloNonce] = useState(0);
   const [churchTab, setChurchTab] = useState<ChurchTab | null>(null);
   const [churchLectio, setChurchLectio] = useState(false);
-  const [helpTool, setHelpTool] = useState<string | null>(null);
   const [forceExamen, setForceExamen] = useState(false);
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(null);
   const [pendingGospelContext, setPendingGospelContext] = useState<string | null>(null);
@@ -143,12 +145,11 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const openToolLink = useCallback((tool: string) => {
     const route = TOOL_ROUTES[tool];
     if (!route) return;
-    if (route.helpTool) setHelpTool(route.helpTool);
     if (route.todayExamen) setForceExamen(true);
     if (route.churchTab) setChurchTab(route.churchTab);
     setChurchLectio(Boolean(route.churchLectio));
     setTab(route.tab);
-    track('tool_open', (route.helpTool ?? tool) as EventProperty);
+    track('tool_open', tool as EventProperty);
   }, []);
 
   useEffect(() => {
@@ -541,8 +542,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           accent={seasonAccent}
           onBack={() => setTab('today')}
           utilities={utilities}
-          initialTool={helpTool}
-          onConsumeTool={() => setHelpTool(null)}
           onPrayNow={() => { setChurchTab('prayer'); setTab('church'); }}
         />
       );
@@ -758,7 +757,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         <MessageCapModal
           t={t}
           onClose={() => setShowCapModal(false)}
-          onOpenTools={() => { setShowCapModal(false); handleChangeTab('help'); }}
+          onOpenHelp={() => { setShowCapModal(false); handleChangeTab('help'); }}
         />
       )}
 
@@ -788,7 +787,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
 export default App;
 
-function MessageCapModal({ t, onClose, onOpenTools }: { t: Persona['theme']; onClose: () => void; onOpenTools: () => void }) {
+function MessageCapModal({ t, onClose, onOpenHelp }: { t: Persona['theme']; onClose: () => void; onOpenHelp: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
@@ -812,14 +811,14 @@ function MessageCapModal({ t, onClose, onOpenTools }: { t: Persona['theme']; onC
           You've used all {DAILY_MESSAGE_CAP} of your daily conversations with this companion. The limit resets at midnight.
         </p>
         <p className="text-xs leading-relaxed mb-5" style={{ color: t.textMuted }}>
-          The offline tools — grounding, examen, prayers, and the catechism — are always available, with no limits.
+          The examen, the prayers, and the catechism are always available, with no limits — and Real Help is there when what you need is a person.
         </p>
         <button
-          onClick={onOpenTools}
+          onClick={onOpenHelp}
           className="w-full py-2.5 rounded-lg text-xs font-bold border transition-all active:scale-95 mb-2"
           style={{ backgroundColor: t.accentRgba(0.15), borderColor: t.accentRgba(0.4), color: t.accent }}
         >
-          Open the Tools
+          Find Real Help
         </button>
         <button
           onClick={onClose}

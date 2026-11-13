@@ -62,8 +62,8 @@ export type EventProperty =
   // tabs
   | 'today' | 'church' | 'companions' | 'help' | 'workshop'
   // tools
-  | 'rosary' | 'confession' | 'catechism' | 'lectio' | 'examen' | 'cold-start'
-  | 'breathing' | 'grounding' | 'driveway' | 'rule' | 'scripture' | 'prayer-library'
+  | 'rosary' | 'confession' | 'catechism' | 'lectio' | 'examen'
+  | 'rule' | 'scripture' | 'prayer-library'
   // companions
   | 'joseph' | 'david' | 'paul' | 'augustine' | 'ignatius' | 'peter' | 'moses' | 'therese' | 'aquinas'
   | 'mary' | 'magdalene' | 'teresa' | 'catherine' | 'monica' | 'joan' | 'clare' | 'therese-women'

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Compass, X, ChevronRight } from 'lucide-react';
+import { Compass, X, ChevronRight, PenLine } from 'lucide-react';
 import { PERSONAS, personasForAudience } from '@/personas';
+import { matchCompanionsByNeed, type CompanionMatch } from '@/lib/companionMatch';
 import type { Audience, Persona, PersonaTheme } from '@/types';
 
 interface CompanionRouterProps {
@@ -145,13 +146,21 @@ function getRecommendation(answers: Answer[], audience: Audience): { persona: Pe
 export function CompanionRouter({ t, audience, open, onClose, onSelect }: CompanionRouterProps) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
+  // The typable path (Nov 12, 2026): the user states the need in their own words
+  // and the on-device matcher answers. `submittedNeed` non-null means the typed
+  // results — or the honest no-match — are what the modal is showing.
+  const [needText, setNeedText] = useState('');
+  const [submittedNeed, setSubmittedNeed] = useState<string | null>(null);
 
   if (!open) return null;
 
   const isDone = step >= QUESTIONS.length;
   const { persona: recommended, reason } = isDone ? getRecommendation(answers, audience) : { persona: null, reason: '' };
   // Gate on the resolved persona, not on `isDone`, so TypeScript narrows the null away.
-  const showResult = recommended !== null;
+  const showResult = recommended !== null && submittedNeed === null;
+  const typedMatches: CompanionMatch[] = submittedNeed
+    ? matchCompanionsByNeed(submittedNeed, personasForAudience(audience))
+    : [];
 
   const handleAnswer = (value: string) => {
     const newAnswers = [...answers, value];
@@ -162,6 +171,13 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
   const handleRestart = () => {
     setStep(0);
     setAnswers([]);
+    setNeedText('');
+    setSubmittedNeed(null);
+  };
+
+  const handleSubmitNeed = () => {
+    if (needText.trim().length < 3) return;
+    setSubmittedNeed(needText);
   };
 
   return (
@@ -188,8 +204,113 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
         </div>
 
         <div className="p-5">
-          {!showResult ? (
+          {submittedNeed !== null ? (
             <div className="animate-fade-in">
+              <p className="text-[10px] uppercase tracking-widest font-bold mb-2" style={{ color: t.accent }}>
+                In your words
+              </p>
+              <p className="text-sm italic leading-relaxed mb-5" style={{ color: t.textMuted }}>
+                &ldquo;{submittedNeed}&rdquo;
+              </p>
+              {typedMatches.length > 0 ? (
+                <>
+                  <div className="space-y-2.5 mb-5">
+                    {typedMatches.map(({ persona: p, reason: why }) => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          onSelect(p);
+                          handleRestart();
+                        }}
+                        className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-all active:scale-[0.98]"
+                        style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}66` }}
+                      >
+                        <img
+                          src={p.portrait}
+                          alt={p.name}
+                          className="portrait-arch portrait-grade w-12 h-12 rounded-lg object-cover border flex-shrink-0"
+                          style={{ borderColor: p.theme.accent }}
+                        />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm font-bold font-display" style={{ color: t.textBright }}>
+                            {p.name}
+                          </span>
+                          <span className="block text-[11px] leading-snug mt-0.5" style={{ color: t.textMuted }}>
+                            {why}
+                          </span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.textDim }} />
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-center mb-4" style={{ color: t.textDim }}>
+                    Matched on this device, from the words you used — nothing was sent anywhere.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm leading-relaxed mb-5" style={{ color: t.textMuted }}>
+                  Nothing in the cast matches those words plainly — that happens, and it is not a dead end.
+                  Answer three short questions, or browse the whole cast and trust your eye.
+                </p>
+              )}
+              <button
+                onClick={handleRestart}
+                className="w-full py-2.5 rounded-lg text-xs font-bold border transition-all active:scale-95 mb-2"
+                style={{ backgroundColor: t.accentRgba(0.1), borderColor: t.accentRgba(0.35), color: t.accent }}
+              >
+                Answer the questions instead
+              </button>
+              <button
+                onClick={() => {
+                  handleRestart();
+                  onClose();
+                }}
+                className="w-full py-2 rounded-lg text-xs font-medium border transition-all active:scale-95"
+                style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}66`, color: t.textDim }}
+              >
+                See the whole cast
+              </button>
+            </div>
+          ) : !showResult ? (
+            <div className="animate-fade-in">
+              {/* Say it in your own words — offered once, at the door, before the
+                  questions begin. Matching happens on-device (companionMatch). */}
+              {step === 0 && answers.length === 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <PenLine className="w-3.5 h-3.5" style={{ color: t.accent }} />
+                    <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: t.accent }}>
+                      Or say it in your own words
+                    </p>
+                  </div>
+                  <textarea
+                    value={needText}
+                    onChange={(e) => setNeedText(e.target.value)}
+                    rows={2}
+                    maxLength={300}
+                    placeholder="What do you need to talk about?"
+                    aria-label="What do you need to talk about?"
+                    className="w-full rounded-lg border px-3.5 py-2.5 text-sm leading-relaxed resize-none outline-none"
+                    style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}66`, color: t.text }}
+                  />
+                  <button
+                    onClick={handleSubmitNeed}
+                    disabled={needText.trim().length < 3}
+                    className="w-full mt-2 py-2.5 rounded-lg text-xs font-bold border transition-all active:scale-95 disabled:opacity-40"
+                    style={{ backgroundColor: t.accentRgba(0.1), borderColor: t.accentRgba(0.35), color: t.accent }}
+                  >
+                    Find who fits
+                  </button>
+                  <div className="flex items-center gap-3 mt-5">
+                    <span className="flex-1 h-px" style={{ backgroundColor: `${t.border}66` }} />
+                    <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: t.textDim }}>
+                      or answer three questions
+                    </span>
+                    <span className="flex-1 h-px" style={{ backgroundColor: `${t.border}66` }} />
+                  </div>
+                </div>
+              )}
+
               {/* Progress */}
               <div className="flex items-center gap-1.5 mb-5">
                 {QUESTIONS.map((_, i) => (

@@ -5,8 +5,8 @@ import type { Passage } from '@/lib/bible';
  *
  * This exists because the app's Prayer tab was a shelf — fourteen texts in an accordion, each one
  * answering "what is this?" and never "what do I do now?". A shelf is a reference; this is a
- * practice. The same pattern the app's tools already proved three times over (Cold Start, the
- * Breath Pacer, the Examen): numbered steps, a pace, and a finish.
+ * practice. The same pattern the app's guided practices use (the Examen above all):
+ * numbered steps, a pace, and a finish.
  *
  * The text itself comes from the lectionary, so nothing here is authored content that can go
  * stale — the words are the Church's, the path through them is ours.
