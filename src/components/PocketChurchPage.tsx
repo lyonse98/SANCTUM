@@ -7,39 +7,49 @@ import { PrayerLibrary } from '@/components/PrayerLibrary';
 import { ConfessionGuide } from '@/components/ConfessionGuide';
 import { PocketCatechism } from '@/components/PocketCatechism';
 import { RosaryPrayer } from '@/components/RosaryPrayer';
-import { RuleOfLife } from '@/components/RuleOfLife';
 
 interface PocketChurchPageProps {
   onBack: () => void;
   utilities: UtilityActions;
   initialTab?: ChurchTab | null;
   onConsumeTab?: () => void;
-  onReflectWithCompanion?: (prompt: string) => void;
+  /** Opens the Pray door on a named section (a companion's rosary link, a reminder's tap). */
+  initialPraySection?: PraySection | null;
+  onConsumePraySection?: () => void;
   audience: Audience;
-  /** A companion's tool:lectio link opens the session without a tap on the button. */
-  autoOpenLectio?: boolean;
-  onConsumeLectio?: () => void;
   /** The season's theme — so the page wears the day's colour, not a fixed palette. */
   seasonTheme: PersonaTheme;
 }
 
-export type ChurchTab = 'prayer' | 'rosary' | 'confession' | 'catechism' | 'rule';
+/**
+ * Pocket Church's doors after the re-cut (Erik's approval, Nov 12, 2026):
+ * PRAY, CONFESSION, ASK — three doors and nothing else on this page. Lectio
+ * Divina and the Rule of Life both left the app as identifiable surfaces the
+ * same day; their components stay in the repo, unwired, and the landings
+ * that once named them now resolve to the Gospel on Today and to this page.
+ */
+export type ChurchTab = 'pray' | 'confession' | 'ask';
+
+/** Inside the Pray door: the Rosary first, then the prayer library. */
+export type PraySection = 'rosary' | 'prayers';
 
 const TABS: { id: ChurchTab; label: string }[] = [
-  { id: 'prayer', label: 'Prayers' },
-  { id: 'rosary', label: 'Rosary' },
+  { id: 'pray', label: 'Pray' },
   { id: 'confession', label: 'Confession' },
-  { id: 'catechism', label: 'Catechism' },
-  { id: 'rule', label: 'Rule of Life' },
+  { id: 'ask', label: 'Ask' },
 ];
 
 const VALID_TABS = TABS.map((tab) => tab.id);
 
-export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, audience, onReflectWithCompanion, autoOpenLectio, onConsumeLectio, seasonTheme }: PocketChurchPageProps) {
-  const [activeTab, setActiveTab] = useState<ChurchTab>('prayer');
+export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPraySection, onConsumePraySection, utilities, audience, seasonTheme }: PocketChurchPageProps) {
+  // A landing (a companion's link, a reminder's tap) names its door up front:
+  // the page opens there directly rather than flashing the default door first.
+  // The consume effects below still clear the request once it has landed.
+  const [activeTab, setActiveTab] = useState<ChurchTab>(initialTab ?? 'pray');
+  const [praySection, setPraySection] = useState<PraySection>(initialPraySection ?? 'rosary');
   const t = seasonTheme;
 
-  // A companion can send a man straight to the section he needs.
+  // A companion can send a man straight to the door he needs.
   useEffect(() => {
     if (!initialTab) return;
     if ((VALID_TABS as string[]).includes(initialTab)) {
@@ -47,6 +57,13 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, 
     }
     onConsumeTab?.();
   }, [initialTab, onConsumeTab]);
+
+  useEffect(() => {
+    if (!initialPraySection) return;
+    setActiveTab('pray');
+    setPraySection(initialPraySection);
+    onConsumePraySection?.();
+  }, [initialPraySection, onConsumePraySection]);
 
   return (
     <div className="absolute inset-0 overflow-y-auto chat-scroll" style={{ backgroundColor: t.bg }}>
@@ -79,17 +96,17 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, 
         {/* Intro */}
         <div className="w-full text-center mb-6">
           <p className="text-sm leading-relaxed max-w-sm mx-auto" style={{ color: t.textMuted }}>
-            Prayers, the Rosary, Confession prep, a Catechism you can ask questions, and the Rule of Life you keep. The faith in your pocket.
+            Three doors: pray, prepare for Confession, or ask the Catechism a question. The faith in your pocket.
           </p>
         </div>
 
-        {/* Tab selector */}
-        <div className="w-full flex gap-1.5 mb-5 overflow-x-auto scrollbar-hide">
+        {/* The three doors */}
+        <div className="w-full flex gap-1.5 mb-5">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className="px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all border"
+              className="flex-1 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all border"
               style={
                 activeTab === tab.id
                   ? { backgroundColor: t.accentRgba(0.15), color: t.accent, borderColor: t.accentRgba(0.4) }
@@ -103,19 +120,35 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, utilities, 
 
         {/* Content */}
         <div className="w-full">
-          {activeTab === 'prayer' && (
-            <PrayerLibrary
-              t={t}
-              audience={audience}
-              onReflectWithCompanion={onReflectWithCompanion}
-              autoOpenLectio={autoOpenLectio}
-              onConsumeLectio={onConsumeLectio}
-            />
+          {activeTab === 'pray' && (
+            <div>
+              {/* Inside Pray: the Rosary first, the library beside it. */}
+              <div className="flex gap-1.5 mb-4">
+                {(
+                  [
+                    { id: 'rosary', label: 'The Rosary' },
+                    { id: 'prayers', label: 'Prayer Library' },
+                  ] as { id: PraySection; label: string }[]
+                ).map((section) => (
+                  <button
+                    key={section.id}
+                    onClick={() => setPraySection(section.id)}
+                    className="flex-1 px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all border"
+                    style={
+                      praySection === section.id
+                        ? { backgroundColor: t.accentRgba(0.12), color: t.accent, borderColor: t.accentRgba(0.35) }
+                        : { backgroundColor: `${t.border}33`, color: t.textDim, borderColor: `${t.border}66` }
+                    }
+                  >
+                    {section.label}
+                  </button>
+                ))}
+              </div>
+              {praySection === 'rosary' ? <RosaryPrayer t={t} /> : <PrayerLibrary t={t} />}
+            </div>
           )}
-          {activeTab === 'rosary' && <RosaryPrayer t={t} />}
           {activeTab === 'confession' && <ConfessionGuide t={t} audience={audience} />}
-          {activeTab === 'catechism' && <PocketCatechism t={t} audience={audience} />}
-          {activeTab === 'rule' && <RuleOfLife t={t} audience={audience} />}
+          {activeTab === 'ask' && <PocketCatechism t={t} audience={audience} defaultMode="ask" />}
         </div>
 
         <UtilitiesRow t={t} utilities={utilities} className="mt-6" />

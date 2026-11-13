@@ -22,12 +22,18 @@ const PILLAR_ICONS: Record<PillarId, typeof BookOpen> = {
 interface PocketCatechismProps {
   t: PersonaTheme;
   audience: Audience;
+  /**
+   * Which face the Catechism opens with. The Pocket Church re-cut (Nov 12, 2026)
+   * makes ASK the door — the Catechism as a question surface — so the page passes
+   * 'ask'; the pillars and objections remain one tap inside, unrebuilt.
+   */
+  defaultMode?: 'pillars' | 'objections' | 'ask';
 }
 
 const TEACHING_COUNT = PILLARS.reduce((n, p) => n + CATECHISM[p.id].length, 0);
 
-export function PocketCatechism({ t, audience }: PocketCatechismProps) {
-  const [mode, setMode] = useState<'pillars' | 'objections' | 'ask'>('pillars');
+export function PocketCatechism({ t, audience, defaultMode }: PocketCatechismProps) {
+  const [mode, setMode] = useState<'pillars' | 'objections' | 'ask'>(defaultMode ?? 'pillars');
   const [activePillar, setActivePillar] = useState<PillarId>('creed');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 

@@ -1688,3 +1688,110 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
     selections,
   };
 }
+
+// ── Tailored script assembly (Tailor Today, Nov 12, 2026) ────────────────────
+
+/** One of the day's readings, verbatim from the bundle, in lectionary order. */
+export interface TailoredReadingPart {
+  kind: 'first' | 'psalm' | 'second' | 'gospel';
+  citation: string;
+  text: string;
+}
+
+/**
+ * The personalized devotional's script. The narrator is the day's own — same
+ * company, same framing banks, same head — and the body is the day's READINGS
+ * ENTIRE, verbatim from the bundle exactly as the free devotional carries
+ * them (first reading, psalm, second reading, Gospel — never regenerated,
+ * never replaced). What is tailored is what follows: one need-matched passage
+ * from the curated bank, offered AFTER the readings as a supplement and
+ * introduced as one ("And for what you're carrying today —"), then the
+ * reflection and challenge re-aimed at one user's stated morning, uniting
+ * the readings to what that user brought in. There is no scene (the scene
+ * belongs to the day) and no tomorrow teaser (a tailored devotional ends
+ * with the sign-off). The head is the half of the day the build happens in:
+ * a tailored devotional is built when it is asked for, so it speaks the
+ * current hour's sign-on rather than carrying both.
+ */
+export interface TailoredAssembleInputs extends AssembleInputs {
+  /** The day's readings entire, in order — the Gospel part must be present. */
+  readings: TailoredReadingPart[];
+  /** The curated bank's passage for this user's need — selected, never generated. */
+  passageCitation: string;
+  passageText: string;
+  /** Which head the build speaks, from the device's own hour at build time. */
+  head: 'am' | 'pm';
+}
+
+export interface TailoredScript {
+  persona: NarratorId;
+  lector: boolean;
+  sober: boolean;
+  /** The spoken parts, in order — rendered separately and joined with the produced silence. */
+  head: string;
+  readings: string;
+  passage: string;
+  mainB: string;
+  /** The full spoken text (head + body), for audit. */
+  spokenText: string;
+  script: string;
+}
+
+/** How each reading is introduced when it is spoken. */
+function readingIntro(part: TailoredReadingPart): string {
+  switch (part.kind) {
+    case 'gospel':
+      return fillTemplate(GOSPEL_INTRO, { evangelist: evangelistOf(part.citation) ?? '' });
+    case 'psalm':
+      return `The responsorial psalm — ${spokenizeOrdinals(part.citation)}.`;
+    default:
+      return `A reading from ${spokenizeOrdinals(part.citation)}.`;
+  }
+}
+
+export function assembleTailoredScript(inputs: TailoredAssembleInputs): TailoredScript {
+  const gospel = inputs.readings.find((p) => p.kind === 'gospel');
+  if (!gospel) throw new Error('tailored assembly requires the day\'s Gospel');
+  // The day's own assembly decides who reads (weekday narrator, Lector on a
+  // solemnity), whether the day is sober, both heads, and the whole second
+  // movement (reflection hand-off → tailored reflection → challenge hand-off
+  // → tailored challenge → sign-off) — the tailored build reuses all of it
+  // and replaces only the first movement with the readings entire.
+  const base = assembleScript({
+    ...inputs,
+    gospelCitation: gospel.citation,
+    gospelText: gospel.text,
+    scene: null,
+    tomorrowCelebration: null,
+    tomorrowGospelCitation: null,
+  });
+  const head = inputs.head === 'pm' ? base.headPM : base.headAM;
+
+  const readingParagraphs: string[] = [];
+  for (const part of inputs.readings) {
+    readingParagraphs.push(`${readingIntro(part)}\n${part.text}`);
+    if (part.kind === 'gospel') {
+      readingParagraphs.push(GOSPEL_CLOSE, ACCLAMATION);
+    }
+  }
+  const readings = readingParagraphs.join('\n\n');
+
+  const passage = `And for what you're carrying today — ${spokenizeOrdinals(inputs.passageCitation)}. ${inputs.passageText}`;
+
+  const spokenText = [head, readings, passage, base.mainB].join('\n\n');
+  const script = [
+    `HEAD (${inputs.head.toUpperCase()})\n${head}`,
+    `MAIN\n${readings}\n\n${passage}\n\n[${AUDIO_SILENCE_SECONDS.toFixed(1)}s silence]\n\n${base.mainB}`,
+  ].join('\n\n');
+  return {
+    persona: base.persona,
+    lector: base.lector,
+    sober: base.sober,
+    head,
+    readings,
+    passage,
+    mainB: base.mainB,
+    spokenText,
+    script,
+  };
+}

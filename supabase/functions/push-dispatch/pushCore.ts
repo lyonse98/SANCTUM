@@ -28,13 +28,16 @@ export function isPushFocus(value: unknown): value is PushFocus {
 /**
  * Where a tap on the notification lands. Mirrors the app's own tool routing: the Gospel is
  * Today, the Examen closes the day on Today (forced into view whatever the hour), the
- * Rosary and the Rule of Life sit in Pocket Church. A focus that cannot resolve to a real
- * screen would be a broken promise, so the map is total over the four keys and a test pins
- * it against the app's focus list.
+ * Rosary sits behind Pocket Church's Pray door, and the rule focus — whose surface was
+ * retired Nov 12, 2026 — lands on the Pocket Church page itself, at the top. A focus
+ * that cannot resolve to a real screen would be a broken promise, so the map is total
+ * over the four keys and a test pins it against the app's focus list.
  */
 export interface FocusRoute {
   tab: 'today' | 'church';
   churchTab?: string;
+  /** Inside the Pray door: which section opens. */
+  churchPray?: string;
   /** Land on Today with the Evening Examen revealed, even outside the evening hours. */
   todayExamen?: boolean;
 }
@@ -42,8 +45,8 @@ export interface FocusRoute {
 export const FOCUS_ROUTES: Record<PushFocus, FocusRoute> = {
   gospel: { tab: 'today' },
   examen: { tab: 'today', todayExamen: true },
-  rosary: { tab: 'church', churchTab: 'rosary' },
-  rule: { tab: 'church', churchTab: 'rule' },
+  rosary: { tab: 'church', churchTab: 'pray', churchPray: 'rosary' },
+  rule: { tab: 'church' },
 };
 
 /**

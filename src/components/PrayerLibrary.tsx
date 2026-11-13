@@ -1,16 +1,9 @@
-import { useEffect, useState } from 'react';
-import { BookOpen, ChevronDown, Compass } from 'lucide-react';
-import type { Audience, PersonaTheme } from '@/types';
-import { LectioDivina } from '@/components/LectioDivina';
+import { useState } from 'react';
+import { BookOpen, ChevronDown } from 'lucide-react';
+import type { PersonaTheme } from '@/types';
 
 interface PrayerLibraryProps {
   t: PersonaTheme;
-  /** Forwarded to Lectio so its fallback verse comes from the track's rotation. */
-  audience?: Audience;
-  onReflectWithCompanion?: (prompt: string) => void;
-  /** Lets a companion's tool link open the session directly, without a tap on the button. */
-  autoOpenLectio?: boolean;
-  onConsumeLectio?: () => void;
 }
 
 interface PrayerEntry {
@@ -92,19 +85,9 @@ const PRAYERS: PrayerEntry[] = [
   },
 ];
 
-export function PrayerLibrary({ t, audience, onReflectWithCompanion, autoOpenLectio, onConsumeLectio }: PrayerLibraryProps) {
+export function PrayerLibrary({ t }: PrayerLibraryProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [lectioOpen, setLectioOpen] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
-
-  // A companion can send a man straight into the session with a tool link.
-  useEffect(() => {
-    if (autoOpenLectio) {
-      setLectioOpen(true);
-      onConsumeLectio?.();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoOpenLectio]);
 
   return (
     <div className="rounded-xl p-4 border" style={{ backgroundColor: t.card, borderColor: `${t.border}66` }}>
@@ -113,33 +96,11 @@ export function PrayerLibrary({ t, audience, onReflectWithCompanion, autoOpenLec
         <h3 className="text-sm font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>Prayer</h3>
       </div>
 
-      {/* The path — what to do when he opens the tab at 6am. Sits first because practice comes
-          before reference, and because the man who reaches for this does not always know what to say. */}
-      <button
-        onClick={() => setLectioOpen(true)}
-        className="w-full flex items-start gap-3 px-4 py-3.5 rounded-xl border-2 mb-4 text-left transition-all active:scale-[0.98]"
-        style={{
-          backgroundColor: t.accentRgba(0.1),
-          borderColor: t.accentRgba(0.45),
-        }}
-      >
-        <Compass className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: t.accent }} />
-        <span className="flex-1 min-w-0">
-          <span
-            className="block text-xs font-bold font-display uppercase tracking-wide mb-0.5"
-            style={{ color: t.accent }}
-          >
-            Pray today&rsquo;s Gospel
-          </span>
-          <span className="block text-[11px] leading-relaxed" style={{ color: t.textMuted }}>
-            A guided Lectio Divina in four steps. About five minutes, and you never have to wonder
-            what to do next.
-          </span>
-        </span>
-      </button>
-
       {/* The reference — fourteen texts, collapsed by default. A man who already knows what he
-          wants to say finds it in one tap; a man who does not is not made to triage fourteen rows. */}
+          wants to say finds it in one tap; a man who does not is not made to triage fourteen rows.
+          (Lectio Divina left this shelf on Nov 12, 2026 — Erik's ruling: it is not an
+          identifiable surface anywhere in the app; the Gospel card on Today is where
+          the day's Gospel is prayed.) */}
       <button
         onClick={() => setReferenceOpen((v) => !v)}
         className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all"
@@ -186,14 +147,6 @@ export function PrayerLibrary({ t, audience, onReflectWithCompanion, autoOpenLec
         </div>
       )}
 
-      {lectioOpen && (
-        <LectioDivina
-          t={t}
-          audience={audience}
-          onClose={() => setLectioOpen(false)}
-          onReflectWithCompanion={onReflectWithCompanion}
-        />
-      )}
     </div>
   );
 }

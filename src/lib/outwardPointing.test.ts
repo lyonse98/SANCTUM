@@ -68,10 +68,10 @@ describe('outward pointing — both tracks', () => {
         expect(t.blocks).not.toContain('A reply with no referral is usually the better reply');
       });
 
-      it('describes the current app — four areas, Examen on Today, Rule in Church, Real Help is people only', () => {
+      it('describes the current app — four areas, Examen on Today, Real Help is people only', () => {
         expect(t.blocks).toContain('This app has four areas.');
         expect(t.blocks).toContain("the day's Gospel, the saint of the day, and the Evening Examen");
-        expect(t.blocks).toContain('Confession prep, the Catechism, and the Rule of Life');
+        expect(t.blocks).toContain('Confession prep, and the Catechism');
         // The wellness tools were removed Nov 12, 2026: Find Real Help is described
         // as the door to people, and the tool list offers none of the four dead ids.
         expect(t.blocks).toContain('This is the door out of the app.');
@@ -79,8 +79,12 @@ describe('outward pointing — both tracks', () => {
         for (const dead of ['tool:cold-start', 'tool:breathing', 'tool:grounding', 'tool:driveway']) {
           expect(t.blocks).not.toContain(dead);
         }
+        // The Rule of Life surface was retired the same day (Erik): its tool id is
+        // gone from the list, and nothing describes it as part of the Church area.
+        expect(t.blocks).not.toContain('tool:rule');
+        expect(t.blocks).not.toContain('Rule of Life');
         // The surviving tool links all still resolve to real destinations.
-        for (const live of ['tool:examen', 'tool:rule', 'tool:scripture', 'tool:lectio', 'tool:rosary', 'tool:confession', 'tool:catechism', 'tool:help']) {
+        for (const live of ['tool:examen', 'tool:scripture', 'tool:lectio', 'tool:rosary', 'tool:confession', 'tool:catechism', 'tool:help']) {
           expect(t.blocks).toContain(live);
         }
       });

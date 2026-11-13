@@ -10,9 +10,10 @@ const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 
 /**
  * The November 2026 reshaping (Erik's rulings, Nov 11–12): the Workshop tab retired
- * and its contents absorbed — the Examen home on Today, the Rule of Life in Pocket
- * Church — the quick wellness tools first moved to Real Help, then removed from the
- * app altogether (Nov 12), and every surface funnelled into the next:
+ * and its contents absorbed — the Examen home on Today — the quick wellness tools
+ * first moved to Real Help, then removed from the app altogether (Nov 12), the
+ * Rule of Life and Lectio surfaces retired the same day (components kept,
+ * unwired; their stored keys left inert), and every surface funnelled into the next:
  * Gospel → companions, saint → companion, companions → Real Help, Examen → Confession,
  * Real Help → prayer, and all of it pointing at Church. These tests pin the shape so
  * a later edit cannot quietly re-stand the fifth tab or strand a stored practice.
@@ -35,18 +36,24 @@ describe('four areas, no Workshop', () => {
     // Pocket Church's Rule of Life; a legacy link naming a removed wellness tool
     // lands on Real Help itself — the page, no tool opened (Nov 12, 2026).
     expect(app).toContain("'examen': { tab: 'today', todayExamen: true }");
-    expect(app).toContain("'rule': { tab: 'church', churchTab: 'rule' }");
+    // The Rule of Life surface was retired Nov 12, 2026 (Erik): a saved
+    // transcript's rule link lands on the Pocket Church page itself.
+    expect(app).toContain("'rule': { tab: 'church' }");
     expect(app).toContain("'cold-start': { tab: 'help' }");
     expect(app).not.toContain('helpTool');
   });
 });
 
 describe('the absorbed homes', () => {
-  it('the Rule of Life is mounted in Pocket Church, as its own section', () => {
+  it('the Rule of Life surface is retired — no card in Pocket Church, component file kept unwired', () => {
     const church = read('components/PocketChurchPage.tsx');
-    expect(church).toContain("import { RuleOfLife } from '@/components/RuleOfLife'");
-    expect(church).toContain("{ id: 'rule', label: 'Rule of Life' }");
-    expect(church).toContain("activeTab === 'rule'");
+    expect(church).not.toContain("from '@/components/RuleOfLife'");
+    expect(church).not.toContain('<RuleOfLife');
+    expect(church).not.toContain("'rule'");
+    // The component stays in the repo, unwired (Erik, Nov 12, 2026) — as does
+    // LectioDivina, whose surface was retired the same day.
+    expect(existsSync(join(SRC, 'components', 'RuleOfLife.tsx'))).toBe(true);
+    expect(existsSync(join(SRC, 'components', 'LectioDivina.tsx'))).toBe(true);
   });
 
   it('Real Help is real help only — the wellness tools are gone entirely (Nov 12, 2026)', () => {

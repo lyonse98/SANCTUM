@@ -29,7 +29,7 @@ import { CrisisModal } from '@/components/CrisisCard';
 import { FindHelpPage } from '@/components/FindHelpPage';
 import { AboutSanctumPage } from '@/components/AboutSanctumPage';
 import { PersonaIntro } from '@/components/PersonaIntro';
-import type { ChurchTab } from '@/components/PocketChurchPage';
+import type { ChurchTab, PraySection } from '@/components/PocketChurchPage';
 import { TabBar } from '@/components/TabBar';
 import { ReminderModal } from '@/components/ReminderModal';
 import { FOCUS_ROUTES, parseFocusParam } from '@/lib/pushCore';
@@ -54,7 +54,7 @@ const MAX_HISTORY_TURNS = 8;
  * Everything a companion can name must resolve to a real destination — a dead link at a
  * hard moment is worse than no link at all.
  */
-const TOOL_ROUTES: Record<string, { tab: TabId; churchTab?: ChurchTab; churchLectio?: boolean; todayExamen?: boolean }> = {
+const TOOL_ROUTES: Record<string, { tab: TabId; churchTab?: ChurchTab; churchPray?: PraySection; todayExamen?: boolean }> = {
   // The quick wellness tools were removed from the app entirely (Erik, Nov 12, 2026).
   // A companion's older link naming one of them — or a transcript saved before the
   // removal — still lands somewhere true: Real Help itself, the page, no tool opened.
@@ -63,12 +63,19 @@ const TOOL_ROUTES: Record<string, { tab: TabId; churchTab?: ChurchTab; churchLec
   'grounding': { tab: 'help' },
   'driveway': { tab: 'help' },
   'examen': { tab: 'today', todayExamen: true },
-  'rule': { tab: 'church', churchTab: 'rule' },
-  'scripture': { tab: 'church', churchTab: 'prayer' },
-  'lectio': { tab: 'church', churchTab: 'prayer', churchLectio: true },
-  'rosary': { tab: 'church', churchTab: 'rosary' },
+  // Pocket Church's doors after the re-cut (Nov 12, 2026): Pray (Rosary first,
+  // then the prayer library), Confession, Ask. The Rule of Life surface was
+  // retired the same day (Erik): a saved transcript's rule link lands on the
+  // Pocket Church page itself, at the top — the page, no door opened.
+  'rule': { tab: 'church' },
+  'scripture': { tab: 'church', churchTab: 'pray', churchPray: 'prayers' },
+  // Lectio Divina is not an identifiable surface anywhere in the app (Erik,
+  // Nov 12, 2026): a companion's lectio link lands on Today, on the Gospel card
+  // itself — the Gospel is the destination.
+  'lectio': { tab: 'today' },
+  'rosary': { tab: 'church', churchTab: 'pray', churchPray: 'rosary' },
   'confession': { tab: 'church', churchTab: 'confession' },
-  'catechism': { tab: 'church', churchTab: 'catechism' },
+  'catechism': { tab: 'church', churchTab: 'ask' },
   'bible-year': { tab: 'today' },
   'help': { tab: 'help' },
 };
@@ -119,7 +126,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [tab, setTab] = useState<TabId>('today');
   const [haloNonce, setHaloNonce] = useState(0);
   const [churchTab, setChurchTab] = useState<ChurchTab | null>(null);
-  const [churchLectio, setChurchLectio] = useState(false);
+  const [churchPray, setChurchPray] = useState<PraySection | null>(null);
   const [forceExamen, setForceExamen] = useState(false);
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(null);
   const [pendingGospelContext, setPendingGospelContext] = useState<string | null>(null);
@@ -147,7 +154,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     if (!route) return;
     if (route.todayExamen) setForceExamen(true);
     if (route.churchTab) setChurchTab(route.churchTab);
-    setChurchLectio(Boolean(route.churchLectio));
+    if (route.churchPray) setChurchPray(route.churchPray);
     setTab(route.tab);
     track('tool_open', tool as EventProperty);
   }, []);
@@ -471,6 +478,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     const route = FOCUS_ROUTES[focus];
     if (route.todayExamen) setForceExamen(true);
     if (route.churchTab) setChurchTab(route.churchTab as ChurchTab);
+    if (route.churchPray) setChurchPray(route.churchPray as PraySection);
     setTab(route.tab);
     window.history.replaceState(null, '', window.location.pathname + window.location.hash);
   }, []);
@@ -523,14 +531,10 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           onBack={() => setTab('today')}
           initialTab={churchTab}
           onConsumeTab={() => setChurchTab(null)}
+          initialPraySection={churchPray}
+          onConsumePraySection={() => setChurchPray(null)}
           utilities={utilities}
           audience={audience}
-          onReflectWithCompanion={(message) => {
-            setPendingGospelContext(message);
-            setTab('companions');
-          }}
-          autoOpenLectio={churchLectio}
-          onConsumeLectio={() => setChurchLectio(false)}
           seasonTheme={areaTheme}
         />
       );
@@ -542,7 +546,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           accent={seasonAccent}
           onBack={() => setTab('today')}
           utilities={utilities}
-          onPrayNow={() => { setChurchTab('prayer'); setTab('church'); }}
+          onPrayNow={() => { setChurchTab('pray'); setTab('church'); }}
         />
       );
     } else {
@@ -616,7 +620,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       setIntroActive(false);
       setPersonaId(null);
       setMessages([]);
-      if (dest === 'church') setChurchTab('prayer');
+      if (dest === 'church') setChurchTab('pray');
       setTab(dest);
     };
     return <PersonaIntro persona={persona} onOpenHelp={() => leaveIntroTo('help')} onOpenPray={() => leaveIntroTo('church')} onDone={() => {

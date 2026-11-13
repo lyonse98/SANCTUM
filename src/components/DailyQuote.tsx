@@ -30,6 +30,7 @@ import {
   type Reflection,
 } from '@/lib/reflection';
 import { ListenBar } from '@/components/ListenBar';
+import { TailorToday } from '@/components/TailorToday';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
 import type { Audience, PersonaTheme } from '@/types';
 
@@ -354,6 +355,15 @@ export function DailyQuote({ t, audience, onOpenExamen, onReflectWithCompanion }
             {preparing ? 'Gathering the readings…' : 'Reflect with a Companion'}
           </span>
         </button>
+      )}
+
+      {/* Tailor Today — the personalized devotional (Nov 12, 2026): the free Listen
+          above is the Church's morning for everyone; this is the same morning
+          re-aimed at one person's stated day, through a companion's eyes, read by
+          the day narrator. It sits below Reflect — a second door, never a
+          replacement — and fails calmly without touching anything above it. */}
+      {!loading && readings?.date && (
+        <TailorToday t={t} audience={audience} dateKey={readings.date} />
       )}
 
       {/* Quieter ways to pray it — present, but not competing with the step above. */}

@@ -44,8 +44,10 @@ describe('deep links', () => {
   it('maps every focus to the surface that actually holds it', () => {
     expect(FOCUS_ROUTES.gospel).toEqual({ tab: 'today' });
     expect(FOCUS_ROUTES.examen).toEqual({ tab: 'today', todayExamen: true });
-    expect(FOCUS_ROUTES.rosary).toEqual({ tab: 'church', churchTab: 'rosary' });
-    expect(FOCUS_ROUTES.rule).toEqual({ tab: 'church', churchTab: 'rule' });
+    expect(FOCUS_ROUTES.rosary).toEqual({ tab: 'church', churchTab: 'pray', churchPray: 'rosary' });
+    // The Rule of Life surface was retired Nov 12, 2026: the rule focus lands
+    // on the Pocket Church page itself, at the top.
+    expect(FOCUS_ROUTES.rule).toEqual({ tab: 'church' });
   });
 
   it('agrees with the focus list the app already offers', () => {

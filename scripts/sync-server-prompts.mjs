@@ -12,7 +12,7 @@
  *   npm run sync:prompts     regenerate
  *   npm run check:prompts    fail if the generated files are stale (also covered by tests)
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -76,12 +76,13 @@ let drift = false;
 for (const target of targets) {
   const generated = target.generate();
   const full = join(root, target.path);
-  const current = readFileSync(full, 'utf8');
+  const current = existsSync(full) ? readFileSync(full, 'utf8') : null;
   if (current !== generated) {
     drift = true;
     if (checkOnly) {
       console.error(`DRIFT: ${target.path} is stale. Run: npm run sync:prompts`);
     } else {
+      mkdirSync(dirname(full), { recursive: true });
       writeFileSync(full, generated);
       console.log(`synced ${target.path}`);
     }

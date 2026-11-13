@@ -15,7 +15,7 @@ export const REMINDER_FOCUS_OPTIONS: ReminderFocus[] = [
   { key: 'gospel', label: 'The day’s Gospel', detail: 'The readings for today, with a word to sit with' },
   { key: 'examen', label: 'The Evening Examen', detail: 'A nudge to review the day before bed' },
   { key: 'rosary', label: 'The Rosary', detail: 'A reminder to pray it, with the guide to hand' },
-  { key: 'rule', label: 'My Rule of Life', detail: 'A reminder to keep the things you decided to do daily' },
+  { key: 'rule', label: 'Pocket Church', detail: 'A reminder to pray — the Rosary and the prayers are there' },
 ];
 
 const VALID_KEYS = REMINDER_FOCUS_OPTIONS.map((o) => o.key);

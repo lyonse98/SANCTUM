@@ -95,7 +95,7 @@ describe('women’s-path copy is written for a woman', () => {
     expect(catechismQA).toContain("your wife's conversion journey.");
     // The audience actually reaches the component from the page that holds it.
     expect(pocketCatechism).toContain('audience={audience}');
-    expect(pocketChurchPage).toContain('<PocketCatechism t={t} audience={audience} />');
+    expect(pocketChurchPage).toContain('<PocketCatechism t={t} audience={audience} defaultMode="ask" />');
   });
 
   it('the women’s server grounding speaks of a woman who knows the text', () => {
