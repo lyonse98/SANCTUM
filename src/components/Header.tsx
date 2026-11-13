@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Shield,
   Home,
+  Menu,
 } from 'lucide-react';
 import { COMPANION_PORTRAYAL_SHORT } from '@/lib/privacyCopy';
 import { CompanionAvatar } from '@/components/CompanionAvatar';
@@ -23,6 +24,8 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onPanic: () => void;
   onGoHome: () => void;
+  /** Opens the app menu sheet — the chat shell carries the same menu as home (Nov 13, 2026). */
+  onOpenMenu?: () => void;
 }
 
 export function Header({
@@ -35,6 +38,7 @@ export function Header({
   onOpenSettings,
   onPanic,
   onGoHome,
+  onOpenMenu,
 }: HeaderProps) {
   const t = persona.theme;
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -156,6 +160,22 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-1">
+          {onOpenMenu && (
+            <button
+              onClick={onOpenMenu}
+              className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90 border"
+              style={{
+                backgroundColor: t.card,
+                color: t.textMuted,
+                borderColor: `${t.border}99`,
+              }}
+              aria-label="Menu"
+              title="Menu — Companions, Pocket Church, Real Help, and the app settings"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+          )}
+
           <button
             onClick={onGoHome}
             className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90 border"

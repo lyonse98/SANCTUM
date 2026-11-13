@@ -1,53 +1,55 @@
-import { describe, it, expect, vi } from 'vitest';
-import { createElement } from 'react';
-import { renderToString } from 'react-dom/server';
-import { UtilitiesRow } from '../components/UtilitiesRow';
-import type { PersonaTheme } from '@/types';
+import { describe, it, expect } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const SRC = join(__dirname, '..');
+const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 
 /**
- * The foot-of-page utilities row (Erik's ruling, Nov 11): Settings graduated to the tab
- * ribbon's fifth slot and the companion-chat header gear, so the row keeps only the four
- * in-the-moment actions — About, Share, Feedback, Reminder — in that order, and must not
- * grow a third Settings door again.
+ * The foot-of-page utilities row retired with the tab bar (core diet, Erik,
+ * Nov 13, 2026): About, Share, Feedback, and Reminders — plus Settings, which
+ * had already graduated off the row — now live in the menu sheet's APP group.
+ * UtilitiesRow.tsx stays in the repo UNWIRED, like TabBar, so the diet can be
+ * reverted. These pins keep the row off every page and the actions in the sheet.
  */
-
-const theme = {
-  card: '#F7F4EC',
-  border: '#D8D2C2',
-  textMuted: '#6B6455',
-} as unknown as PersonaTheme;
-
-function renderRow() {
-  return renderToString(
-    createElement(UtilitiesRow, {
-      t: theme,
-      utilities: {
-        onOpenAbout: vi.fn(),
-        onShareInvite: vi.fn(),
-        onOpenSettings: vi.fn(),
-        onOpenFeedback: vi.fn(),
-        onOpenReminder: vi.fn(),
-      },
-    }),
-  );
-}
-
-function labels(html: string): string[] {
-  return [...html.matchAll(/uppercase tracking-wide">([A-Za-z]+)</g)].map((m) => m[1]);
-}
-
-describe('utilities row — four actions, no Settings', () => {
-  it('renders exactly About, Share, Feedback, Reminder, in that order', () => {
-    expect(labels(renderRow())).toEqual(['About', 'Share', 'Feedback', 'Reminder']);
+describe('utilities — in the sheet, off the pages', () => {
+  it('UtilitiesRow.tsx stays in the repo, unwired', () => {
+    expect(existsSync(join(SRC, 'components', 'UtilitiesRow.tsx'))).toBe(true);
+    expect(read('components/UtilitiesRow.tsx')).toContain('export function UtilitiesRow');
   });
 
-  it('has no Settings button', () => {
-    const html = renderRow();
-    expect(html).not.toContain('>Settings<');
-    expect(html).not.toContain('title="Settings"');
+  it('no page mounts or imports the row any more', () => {
+    for (const page of [
+      'components/HomeScreen.tsx',
+      'components/CompanionSelect.tsx',
+      'components/PocketChurchPage.tsx',
+      'components/FindHelpPage.tsx',
+    ]) {
+      expect(read(page), page).not.toContain('UtilitiesRow');
+      expect(read(page), page).not.toContain('utilities');
+    }
   });
 
-  it('lays the four out in a four-column grid', () => {
-    expect(renderRow()).toContain('grid-cols-4');
+  it('the utilities object is handed only to the menu sheets (one per shell)', () => {
+    const app = read('App.tsx');
+    expect(app.match(/utilities=\{utilities\}/g)).toHaveLength(2);
+    // Both hand-offs sit inside MenuSheet mounts.
+    const mounts = [...app.matchAll(/<MenuSheet[\s\S]*?\/>/g)].map((m) => m[0]);
+    expect(mounts).toHaveLength(2);
+    for (const mount of mounts) {
+      expect(mount).toContain('utilities={utilities}');
+    }
+  });
+
+  it('the sheet’s APP group is the five housekeeping actions, Settings first', () => {
+    const sheet = read('components/MenuSheet.tsx');
+    const keys = [...sheet.matchAll(/key: '(settings|reminders|feedback|about|share)'/g)].map((m) => m[1]);
+    expect(keys).toEqual(['settings', 'reminders', 'feedback', 'about', 'share']);
+    // Each one fires the existing utility action — no new flows.
+    expect(sheet).toContain('utilities.onOpenSettings');
+    expect(sheet).toContain('utilities.onOpenReminder');
+    expect(sheet).toContain('utilities.onOpenFeedback');
+    expect(sheet).toContain('utilities.onOpenAbout');
+    expect(sheet).toContain('utilities.onShareInvite');
   });
 });

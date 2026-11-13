@@ -3,19 +3,17 @@ import { ArrowLeft, Compass, Users } from 'lucide-react';
 import { personasForAudience } from '@/personas';
 import { CompanionRouter } from '@/components/CompanionRouter';
 import { COMPANION_PORTRAYAL_LINE } from '@/lib/privacyCopy';
-import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
-import type { Audience, Persona, PersonaId, PersonaTheme, UtilityActions } from '@/types';
+import type { Audience, Persona, PersonaId, PersonaTheme } from '@/types';
 
 interface CompanionSelectProps {
   audience: Audience;
   onSelect: (persona: Persona) => void;
   onBack: () => void;
-  utilities: UtilityActions;
   theme: PersonaTheme;
 }
 
-export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }: CompanionSelectProps) {
+export function CompanionSelect({ audience, onSelect, onBack, theme }: CompanionSelectProps) {
   const cast = personasForAudience(audience);
   const [hoveredId, setHoveredId] = useState<PersonaId | null>(null);
   const [routerOpen, setRouterOpen] = useState(false);
@@ -219,8 +217,6 @@ export function CompanionSelect({ audience, onSelect, onBack, utilities, theme }
             })}
           </div>
         </div>
-
-        <UtilitiesRow t={defaultTheme} utilities={utilities} className="mt-6" />
 
         <p className="text-[11px] text-center mt-6 leading-relaxed max-w-xs" style={{ color: defaultTheme.textDim }}>
           You can switch companions anytime. Each one brings a different voice, different tools, and a different light.

@@ -1,39 +1,41 @@
 import { useRef, useEffect, useState } from 'react';
+import { ArrowRight, HeartHandshake } from 'lucide-react';
 import { DailyQuote } from '@/components/DailyQuote';
-import { SaintOfDayCard } from '@/components/SaintOfDayCard';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { TodayHero } from '@/components/TodayHero';
 import { TonightClosing } from '@/components/TonightClosing';
-import { UtilitiesRow } from '@/components/UtilitiesRow';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
 import { AUDIO_PM_START_HOUR } from '@/lib/narratorCore';
 import { morningResolve } from '@/lib/tonight';
-import type { Audience, Persona, UtilityActions } from '@/types';
+import type { Audience } from '@/types';
 import { PRIVACY_SHORT } from '@/lib/privacyCopy';
 import { MISSION_LINE, MISSION_ATTRIBUTION } from '@/lib/mission';
 
 interface HomeScreenProps {
   audience: Audience;
   onReflectWithCompanion: (message: string) => void;
-  /** Today's saint, when they are in the cast, opens their companion. */
-  onOpenCompanion: (persona: Persona) => void;
   onOpenHelp: () => void;
   /** A push tap on the examen focus lands here: show the Tonight closing whatever the hour. */
   forceTonight?: boolean;
   onConsumeForceTonight?: () => void;
-  utilities: UtilityActions;
 }
 
 /**
- * The Today area — the app's front door. The Gospel leads and the saint follows it in full view;
- * neither is hidden behind a disclosure, because a man should be able to see what the day holds
- * without hunting for it. The day closes the way the examen taught it to — gratitude, one honest
- * look, one resolve — as a short closing section titled simply "Tonight", appearing as the day
- * turns (from the PM hour the audio day already keeps) or whenever a reminder's tap asks for it.
- * It is a shape, not a tool: nothing on it is checked or scored. The utilities close the page as
- * an ordinary card.
+ * The Today area — the app's only home since the core diet (Erik, Nov 13,
+ * 2026). The Gospel card carries the day: the readings as its body, the
+ * reflection, and the three equal doors into it. The saint of the day no
+ * longer holds a card of his own here — he survives in the Gospel card's
+ * header line (the day's celebration and its rank) and in the Tonight
+ * closing's saint line; the standalone saint card's component stays in
+ * the repo, unwired, like the other retired surfaces. The day closes the way the examen
+ * taught it to — gratitude, one honest look, one resolve — as a short closing
+ * section titled simply "Tonight", appearing as the day turns (from the PM
+ * hour the audio day already keeps) or whenever a reminder's tap asks for it.
+ * It is a shape, not a tool: nothing on it is checked or scored. One quiet
+ * line at the foot keeps Real Help in view — help should never be only
+ * behind a menu.
  */
-export function HomeScreen({ audience, onReflectWithCompanion, onOpenCompanion, onOpenHelp, forceTonight, onConsumeForceTonight, utilities }: HomeScreenProps) {
+export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, forceTonight, onConsumeForceTonight }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
   const tonightRef = useRef<HTMLDivElement>(null);
   const seasonTheme = getSeasonTheme(new Date(), audience);
@@ -100,11 +102,6 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenCompanion, 
           />
         </div>
 
-        {/* Saint of the day — always in view, right where the Gospel leads */}
-        <div className="w-full mb-5">
-          <SaintOfDayCard t={seasonTheme} audience={audience} onOpenCompanion={onOpenCompanion} />
-        </div>
-
         {/* Tonight — the day's closing, in its home on Today. Present from the
             PM hour; a reminder's tap lands the eye on it at any hour. */}
         {showTonight && (
@@ -113,7 +110,18 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenCompanion, 
           </div>
         )}
 
-        <UtilitiesRow t={seasonTheme} utilities={utilities} className="mb-4" />
+        {/* Real Help stays in view at the foot of Today — one quiet line, so
+            a hard moment never has to go hunting through the menu. */}
+        <button
+          onClick={onOpenHelp}
+          className="w-full flex items-center justify-center gap-2 text-center transition-opacity hover:opacity-70 mb-4"
+        >
+          <HeartHandshake className="w-3.5 h-3.5 flex-shrink-0" style={{ color: seasonAccent }} />
+          <span className="text-[11px] font-medium text-forge-text-muted">
+            Need real help? A priest, a counselor, or a crisis line —
+          </span>
+          <ArrowRight className="w-3 h-3 flex-shrink-0" style={{ color: seasonAccent }} />
+        </button>
 
         <p className="text-[11px] text-forge-text-dim text-center mt-4 leading-relaxed max-w-xs">
           Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US). {PRIVACY_SHORT}

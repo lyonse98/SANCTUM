@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Church } from 'lucide-react';
-import type { Audience, PersonaTheme, UtilityActions } from '@/types';
-import { UtilitiesRow } from '@/components/UtilitiesRow';
+import type { Audience, PersonaTheme } from '@/types';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { PrayerLibrary } from '@/components/PrayerLibrary';
 import { ConfessionGuide } from '@/components/ConfessionGuide';
@@ -10,7 +9,6 @@ import { RosaryPrayer } from '@/components/RosaryPrayer';
 
 interface PocketChurchPageProps {
   onBack: () => void;
-  utilities: UtilityActions;
   initialTab?: ChurchTab | null;
   onConsumeTab?: () => void;
   /** Opens the Pray door on a named section (a companion's rosary link, a reminder's tap). */
@@ -41,7 +39,7 @@ const TABS: { id: ChurchTab; label: string }[] = [
 
 const VALID_TABS = TABS.map((tab) => tab.id);
 
-export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPraySection, onConsumePraySection, utilities, audience, seasonTheme }: PocketChurchPageProps) {
+export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPraySection, onConsumePraySection, audience, seasonTheme }: PocketChurchPageProps) {
   // A landing (a companion's link, a reminder's tap) names its door up front:
   // the page opens there directly rather than flashing the default door first.
   // The consume effects below still clear the request once it has landed.
@@ -150,8 +148,6 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
           {activeTab === 'confession' && <ConfessionGuide t={t} audience={audience} />}
           {activeTab === 'ask' && <PocketCatechism t={t} audience={audience} defaultMode="ask" />}
         </div>
-
-        <UtilitiesRow t={t} utilities={utilities} className="mt-6" />
 
         <p className="text-[10px] text-center mt-6 leading-relaxed max-w-xs" style={{ color: t.textDim }}>
           Pocket Church is for faith formation, not sacramental absolution. For the sacraments, see a priest.

@@ -183,9 +183,10 @@ describe('the retirement is structural', () => {
     expect(app).toContain("'examen': { tab: 'today', todayExamen: true }");
     // The chat label for the tool now matches the surface it opens.
     expect(read('components/ChatFeed.tsx')).toContain("'examen': \"Tonight's closing\"");
-    // And the center tab's evening word is the closing's name, not the method's.
+    // The tab bar that once carried an evening word is gone entirely (core
+    // diet, Nov 13, 2026) — no surface renames the evening after the method.
     const appSource = read('App.tsx');
-    expect(appSource).toContain("hourOfDay < 17 ? 'Prayer' : 'Tonight'");
+    expect(appSource).not.toContain('<TabBar');
     expect(appSource).not.toContain(": 'Examen'");
   });
 

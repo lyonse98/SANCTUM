@@ -30,7 +30,8 @@ import { FindHelpPage } from '@/components/FindHelpPage';
 import { AboutSanctumPage } from '@/components/AboutSanctumPage';
 import { PersonaIntro } from '@/components/PersonaIntro';
 import type { ChurchTab, PraySection } from '@/components/PocketChurchPage';
-import { TabBar } from '@/components/TabBar';
+import { TopHeader } from '@/components/TopHeader';
+import { MenuSheet } from '@/components/MenuSheet';
 import { ReminderModal } from '@/components/ReminderModal';
 import { FOCUS_ROUTES, parseFocusParam } from '@/lib/pushCore';
 import { ShareInviteModal } from '@/components/ShareInviteModal';
@@ -123,8 +124,8 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [streamingContent, setStreamingContent] = useState('');
   const [remainingMessages, setRemainingMessages] = useState(() => getRemainingMessages());
   const [showCapModal, setShowCapModal] = useState(false);
-  const [tab, setTab] = useState<TabId>('today');
-  const [haloNonce, setHaloNonce] = useState(0);
+  const [view, setView] = useState<TabId>('today');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [churchTab, setChurchTab] = useState<ChurchTab | null>(null);
   const [churchPray, setChurchPray] = useState<PraySection | null>(null);
   const [forceExamen, setForceExamen] = useState(false);
@@ -143,10 +144,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   useEffect(() => {
     document.documentElement.dataset.audience = audience;
   }, [audience]);
-  // The center tab names the thing worth doing at this hour rather than the generic word "Today".
-  // The evening word is "Tonight" — the closing's own name since the Examen retired as a tool.
-  const hourOfDay = new Date().getHours();
-  const todayLabel = hourOfDay < 12 ? 'Gospel' : hourOfDay < 17 ? 'Prayer' : 'Tonight';
   const abortRef = useRef<AbortController | null>(null);
 
   /** Sends a companion's tool link to the area that actually contains that tool. */
@@ -156,7 +153,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     if (route.todayExamen) setForceExamen(true);
     if (route.churchTab) setChurchTab(route.churchTab);
     if (route.churchPray) setChurchPray(route.churchPray);
-    setTab(route.tab);
+    setView(route.tab);
     track('tool_open', tool as EventProperty);
   }, []);
 
@@ -350,7 +347,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       setPersonaId(null);
       setMessages([]);
       setIntroActive(false);
-      setTab('today');
+      setView('today');
       setSettingsOpen(false);
     },
     [audience, isStreaming],
@@ -391,17 +388,18 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     [handleSend],
   );
 
-  // The five utilities are handed to each page so they sit at the foot of the screen he is on,
-  // rather than in a second bar stacked on top of the tab ribbon.
+  // The five utilities live in the menu sheet (Nov 13, 2026): one object of
+  // actions, handed to the sheet wherever it opens — the main shell and the
+  // companion chat alike.
   const utilities: UtilityActions = useMemo(
     () => ({
       onOpenSettings: () => setSettingsOpen(true),
       onShareInvite: () => setShareInviteOpen(true),
-      onOpenFeedback: () => feedback?.openFeedback(tab),
+      onOpenFeedback: () => feedback?.openFeedback(view),
       onOpenAbout: () => setShowAbout(true),
       onOpenReminder: () => setReminderOpen(true),
     }),
-    [feedback, tab],
+    [feedback, view],
   );
 
   // Incognito is a separate, memory-only conversation. Turning it on PAUSES the saved
@@ -429,18 +427,16 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const handleSwitchPersona = useCallback(() => {
     setPersonaId(null);
     setMessages([]);
-    setTab('companions');
+    setView('companions');
   }, []);
 
-  const handleChangeTab = useCallback((next: TabId) => {
+  const handleChangeView = useCallback((next: TabId) => {
     // Switching areas leaves the conversation, but the transcript is kept on the device.
     if (next !== 'companions' && personaId) {
       setPersonaId(null);
       setMessages([]);
     }
-    // Re-fires the halo each time he comes back to Today, and only then.
-    if (next === 'today') setHaloNonce((n) => n + 1);
-    setTab(next);
+    setView(next);
     track('tab_view', next);
   }, [personaId]);
 
@@ -480,7 +476,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     if (route.todayExamen) setForceExamen(true);
     if (route.churchTab) setChurchTab(route.churchTab as ChurchTab);
     if (route.churchPray) setChurchPray(route.churchPray as PraySection);
-    setTab(route.tab);
+    setView(route.tab);
     window.history.replaceState(null, '', window.location.pathname + window.location.hash);
   }, []);
 
@@ -489,7 +485,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   }
 
   if (hardCrisis && persona) {
-    return <CrisisModal theme={persona.theme} onFindHelp={() => { setHardCrisis(false); setTab('help'); }} />;
+    return <CrisisModal theme={persona.theme} onFindHelp={() => { setHardCrisis(false); setView('help'); }} />;
   }
 
   if (panicActive) {
@@ -510,44 +506,44 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   }
 
   if (!persona) {
-    // The tab area, with the conversation closed. The tab bar is present on every one of
-    // these screens, so the whole app is reachable in a single tap from anywhere.
+    // The shell, with the conversation closed. Since the core diet (Nov 13,
+    // 2026) there is no bottom tab bar: Today is the only home under a slim
+    // top header, and Companions / Pocket Church / Real Help plus all the
+    // housekeeping live behind the Menu sheet. Sub-views carry a plain
+    // "‹ Today" return under the header (their own Back buttons remain too).
     const areaTheme = seasonTheme;
     let content: JSX.Element;
-    if (tab === 'companions') {
+    if (view === 'companions') {
       content = (
         <CompanionSelect
           audience={audience}
           onSelect={(p) => {
             handleSelectPersona(p);
           }}
-          onBack={() => setTab('today')}
-          utilities={utilities}
+          onBack={() => setView('today')}
           theme={areaTheme}
         />
       );
-    } else if (tab === 'church') {
+    } else if (view === 'church') {
       content = (
         <PocketChurchPage
-          onBack={() => setTab('today')}
+          onBack={() => setView('today')}
           initialTab={churchTab}
           onConsumeTab={() => setChurchTab(null)}
           initialPraySection={churchPray}
           onConsumePraySection={() => setChurchPray(null)}
-          utilities={utilities}
           audience={audience}
           seasonTheme={areaTheme}
         />
       );
-    } else if (tab === 'help') {
+    } else if (view === 'help') {
       content = (
         <FindHelpPage
           audience={audience}
           t={areaTheme}
           accent={seasonAccent}
-          onBack={() => setTab('today')}
-          utilities={utilities}
-          onPrayNow={() => { setChurchTab('pray'); setTab('church'); }}
+          onBack={() => setView('today')}
+          onPrayNow={() => { setChurchTab('pray'); setView('church'); }}
         />
       );
     } else {
@@ -558,13 +554,11 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             audience={audience}
             onReflectWithCompanion={(message) => {
               setPendingGospelContext(message);
-              setTab('companions');
+              setView('companions');
             }}
-            onOpenCompanion={(p) => handleSelectPersona(p)}
-            onOpenHelp={() => setTab('help')}
+            onOpenHelp={() => setView('help')}
             forceTonight={forceExamen}
             onConsumeForceTonight={() => setForceExamen(false)}
-            utilities={utilities}
           />
         </>
       );
@@ -572,18 +566,31 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
     return (
       <div className="fixed inset-0 flex flex-col" style={{ backgroundColor: areaTheme.bg }}>
+        <TopHeader t={areaTheme} onHome={() => handleChangeView('today')} onOpenMenu={() => setMenuOpen(true)} />
+        {view !== 'today' && (
+          <div
+            className="relative z-20 flex-shrink-0 border-b"
+            style={{ borderColor: `${areaTheme.border}66`, backgroundColor: areaTheme.bg }}
+          >
+            <div className="max-w-2xl mx-auto px-4 py-1.5">
+              <button
+                onClick={() => handleChangeView('today')}
+                className="text-[11px] font-bold uppercase tracking-wider transition-opacity hover:opacity-70"
+                style={{ color: areaTheme.accent }}
+              >
+                &lsaquo; Today
+              </button>
+            </div>
+          </div>
+        )}
         <div className="relative flex-1 overflow-hidden"><Suspense fallback={<TabFallback />}>{content}</Suspense></div>
 
-        <TabBar
-          active={tab}
-          onChange={handleChangeTab}
-          onOpenSettings={() => setSettingsOpen(true)}
-          accent={seasonAccent}
-          cardColor={areaTheme.card}
-          borderColor={areaTheme.border}
-          textDim={areaTheme.textDim}
-          todayLabel={todayLabel}
-          haloKey={haloNonce}
+        <MenuSheet
+          open={menuOpen}
+          t={areaTheme}
+          onClose={() => setMenuOpen(false)}
+          onNavigate={handleChangeView}
+          utilities={utilities}
         />
         {showAbout && (
           <AboutSanctumPage t={areaTheme} accent={seasonAccent} audience={audience} onClose={() => setShowAbout(false)} />
@@ -620,7 +627,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       setPersonaId(null);
       setMessages([]);
       if (dest === 'church') setChurchTab('pray');
-      setTab(dest);
+      setView(dest);
     };
     return <PersonaIntro persona={persona} onOpenHelp={() => leaveIntroTo('help')} onOpenPray={() => leaveIntroTo('church')} onDone={() => {
       setIntroActive(false);
@@ -673,7 +680,8 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         onClear={handleClear}
         onOpenSettings={() => setSettingsOpen(true)}
         onPanic={handlePanic}
-        onGoHome={() => handleChangeTab('today')}
+        onGoHome={() => handleChangeView('today')}
+        onOpenMenu={() => setMenuOpen(true)}
       />
 
       {incognito && (
@@ -715,7 +723,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       <div
         className="px-4 py-2 border-t text-center"
-        style={{ borderColor: `${t.border}4D`, backgroundColor: `${t.bg}80`, paddingBottom: 'calc(env(safe-area-inset-bottom) + 46px)' }}
+        style={{ borderColor: `${t.border}4D`, backgroundColor: `${t.bg}80`, paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
       >
         <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
           Sanctum — a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US).{' '}
@@ -724,7 +732,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           </button>
         </p>
         <button
-          onClick={() => handleChangeTab('help')}
+          onClick={() => handleChangeView('help')}
           className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider mt-1.5 transition-opacity hover:opacity-70"
           style={{ color: t.accent }}
         >
@@ -760,7 +768,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         <MessageCapModal
           t={t}
           onClose={() => setShowCapModal(false)}
-          onOpenHelp={() => { setShowCapModal(false); handleChangeTab('help'); }}
+          onOpenHelp={() => { setShowCapModal(false); handleChangeView('help'); }}
         />
       )}
 
@@ -772,17 +780,24 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       )}
 
       <ReminderModal open={reminderOpen} t={t} onClose={() => setReminderOpen(false)} />
+      <ShareInviteModal
+        open={shareInviteOpen}
+        audience={audience}
+        t={t}
+        onClose={() => setShareInviteOpen(false)}
+      />
 
-      <TabBar
-        active="companions"
-        onChange={handleChangeTab}
-        onOpenSettings={() => setSettingsOpen(true)}
-        accent={seasonAccent}
-        cardColor={t.card}
-        borderColor={t.border}
-        textDim={t.textDim}
-        todayLabel={todayLabel}
-        haloKey={haloNonce}
+      <MenuSheet
+        open={menuOpen}
+        t={t}
+        onClose={() => setMenuOpen(false)}
+        onNavigate={(next) => {
+          // From inside a conversation, the Companions row means the cast
+          // list — which is the switch-companion move, not a view change.
+          if (next === 'companions') handleSwitchPersona();
+          else handleChangeView(next);
+        }}
+        utilities={utilities}
       />
     </div>
   );

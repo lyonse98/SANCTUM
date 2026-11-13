@@ -12,13 +12,11 @@ import {
   RotateCcw,
   type LucideIcon,
 } from 'lucide-react';
-import type { Audience, PersonaTheme, UtilityActions } from '@/types';
-import { UtilitiesRow } from '@/components/UtilitiesRow';
+import type { Audience, PersonaTheme } from '@/types';
 import { HELP_DISCLAIMER, HELP_SECTIONS, getHelpSections, type HelpIconKey } from '@/lib/realHelp';
 
 interface FindHelpPageProps {
   t: PersonaTheme;
-  utilities: UtilityActions;
   audience: Audience;
   accent?: string;
   onBack: () => void;
@@ -39,7 +37,7 @@ const ICONS: Record<HelpIconKey, LucideIcon> = {
  * Hands the man to a real person. Deliberately prominent: it is the one screen that
  * keeps Sanctum honest, so it is reachable from the home toolbar, the chat, and crisis.
  */
-export function FindHelpPage({ t, utilities, audience, accent, onBack, onPrayNow }: FindHelpPageProps) {
+export function FindHelpPage({ t, audience, accent, onBack, onPrayNow }: FindHelpPageProps) {
   const sections = getHelpSections(audience);
   const a = accent ?? t.accent;
 
@@ -111,8 +109,6 @@ export function FindHelpPage({ t, utilities, audience, accent, onBack, onPrayNow
             <span className="text-xs font-bold uppercase tracking-wide">Pray now · Pocket Church</span>
           </button>
         )}
-
-        <UtilitiesRow t={t} utilities={utilities} className="mt-6" />
 
         <p className="text-[10px] text-center mt-6 leading-relaxed max-w-xs" style={{ color: t.textDim }}>
           In crisis right now? Call or text 988 (US), or findahelpline.com outside the US.

@@ -39,6 +39,12 @@ interface TailorTodayProps {
   audience: Audience;
   /** The readings bundle's date — the devotional built is for the Gospel on screen. */
   dateKey: string;
+  /**
+   * Panel mode (the Way-1 tiles, Nov 13, 2026): the tile on the Gospel card is
+   * the door, so the panel opens straight on the intake form instead of
+   * rendering a second "Tailor today" button of its own.
+   */
+  startOpen?: boolean;
 }
 
 function fmt(seconds: number): string {
@@ -56,10 +62,10 @@ function fmt(seconds: number): string {
  * happens on the server in memory and is never stored there — the result
  * lives on this device only (see lib/tailor).
  */
-export function TailorToday({ t, audience, dateKey }: TailorTodayProps) {
+export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorTodayProps) {
   const offered = tailorOffered();
 
-  const [view, setView] = useState<'idle' | 'form' | 'building' | 'done' | 'error'>('idle');
+  const [view, setView] = useState<'idle' | 'form' | 'building' | 'done' | 'error'>(startOpen ? 'form' : 'idle');
   const [devotional, setDevotional] = useState<TailoredDevotional | null>(null);
   const [error, setError] = useState<string | null>(null);
 

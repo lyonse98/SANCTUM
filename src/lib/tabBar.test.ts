@@ -1,93 +1,172 @@
 import { describe, it, expect, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
-import { TabBar, TABS } from '../components/TabBar';
+import { MenuSheet } from '../components/MenuSheet';
+import { TopHeader } from '../components/TopHeader';
+import { FOCUS_ROUTES } from './pushCore';
+import type { PersonaTheme } from '@/types';
 
 const SRC = join(__dirname, '..');
 const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 
 /**
- * The five-slot bar (Erik's ruling, Nov 11, option B): four areas made an even bar, and
- * an even bar has no centre — the raised Today sat third of four, visibly right of the
- * middle. Settings takes the fifth slot as an ACTION, so Today is slot three of five,
- * dead centre, with two slots flanking it on each side. These tests pin that geometry
- * and the action-not-a-tab contract so a later edit cannot quietly un-centre the Gospel
- * or promote Settings into a destination.
+ * The core diet (Erik, Nov 13, 2026): the bottom tab bar is retired. Today is
+ * the only home under a slim top header; everything else — Companions, Pocket
+ * Church, Real Help, and the housekeeping — lives in the menu sheet. TabBar.tsx
+ * stays in the repo UNWIRED, exactly as it was, so the diet can be reverted by
+ * re-mounting it. These tests pin the new shape: no bar mounted in either
+ * shell, the sheet's eight entries in their two groups, and every landing
+ * (push focus, companion tool link) still resolving to a real view.
  */
 
-function renderBar(active: 'church' | 'companions' | 'today' | 'help' = 'today') {
+const theme = {
+  bg: '#E9E6DC',
+  card: '#F7F4EC',
+  border: '#D8D2C2',
+  accent: '#1E6B3A',
+  text: '#3A352E',
+  textBright: '#1B1815',
+  textMuted: '#6B6455',
+  textDim: '#8A8272',
+} as unknown as PersonaTheme;
+
+const utilities = {
+  onOpenSettings: vi.fn(),
+  onShareInvite: vi.fn(),
+  onOpenFeedback: vi.fn(),
+  onOpenAbout: vi.fn(),
+  onOpenReminder: vi.fn(),
+};
+
+function renderSheet() {
   return renderToString(
-    createElement(TabBar, {
-      active,
-      onChange: vi.fn(),
-      accent: '#1E6B3A',
-      cardColor: '#F7F4EC',
-      borderColor: '#D8D2C2',
-      textDim: '#8A8272',
-      onOpenSettings: vi.fn(),
+    createElement(MenuSheet, {
+      open: true,
+      t: theme,
+      onClose: vi.fn(),
+      onNavigate: vi.fn(),
+      utilities,
     }),
   );
 }
 
-function slotOrder(html: string): string[] {
-  return [...html.matchAll(/data-slot="([a-z-]+)"/g)].map((m) => m[1]);
+function entryOrder(html: string): string[] {
+  return [...html.matchAll(/data-menu-entry="([a-z-]+)"/g)].map((m) => m[1]);
 }
 
-describe('five slots, Today dead centre', () => {
-  it('the tab list itself is Church, Companions, Today, Real Help — Today at index 2', () => {
-    expect(TABS.map((t) => t.id)).toEqual(['church', 'companions', 'today', 'help']);
-    expect(TABS[2].id).toBe('today');
+describe('the tab bar is retired, not deleted', () => {
+  it('TabBar.tsx stays in the repo, unwired, with its slot geometry intact for a revert', () => {
+    expect(existsSync(join(SRC, 'components', 'TabBar.tsx'))).toBe(true);
+    const bar = read('components/TabBar.tsx');
+    expect(bar).toContain('export const TABS');
+    expect(bar).toContain('export function TabBar');
   });
 
-  it('renders exactly five slots, settings last, Today the centre slot', () => {
-    const order = slotOrder(renderBar());
-    expect(order).toEqual(['church', 'companions', 'today', 'help', 'settings']);
-    expect(order).toHaveLength(5);
-    expect(order[2]).toBe('today');
+  it('neither shell mounts it any more', () => {
+    const app = read('App.tsx');
+    expect(app).not.toContain('<TabBar');
+    expect(app).not.toContain("from '@/components/TabBar'");
   });
 
-  it('the centre slot is the raised one', () => {
-    const html = renderBar();
-    const todayButton = html.slice(html.indexOf('data-slot="today"'));
-    // The raised treatment: lifted out of the ribbon (-mt-9) on the big ringed circle.
-    expect(todayButton.slice(0, todayButton.indexOf('</button>'))).toContain('-mt-9');
+  it('the main shell wears the slim top header; both shells carry the menu sheet', () => {
+    const app = read('App.tsx');
+    expect(app).toContain('<TopHeader');
+    expect(app.match(/<MenuSheet/g)).toHaveLength(2);
+    // The wordmark is the way home.
+    expect(app).toContain("onHome={() => handleChangeView('today')}");
+    // Sub-views carry the plain return under the header.
+    expect(app).toContain('&lsaquo; Today');
   });
 
-  it('two slots flank Today on each side', () => {
-    const order = slotOrder(renderBar());
-    expect(order.slice(0, 2)).toEqual(['church', 'companions']);
-    expect(order.slice(3)).toEqual(['help', 'settings']);
+  it('the chat shell keeps its own header and gains the Menu button', () => {
+    const app = read('App.tsx');
+    expect(app).toContain('onOpenMenu={() => setMenuOpen(true)}');
+    expect(read('components/Header.tsx')).toContain('onOpenMenu');
   });
 });
 
-describe('settings is an action, not a tab', () => {
-  it('is not in the TabId union and not in the tab list', () => {
-    expect(read('types.ts')).not.toContain("'settings'");
-    expect(TABS.map((t) => t.id)).not.toContain('settings');
+describe('the top header — wordmark and Menu, nothing else', () => {
+  it('renders Sanctum and a Menu button', () => {
+    const html = renderToString(
+      createElement(TopHeader, { t: theme, onHome: vi.fn(), onOpenMenu: vi.fn() }),
+    );
+    expect(html).toContain('Sanctum');
+    expect(html).toContain('Menu');
+    expect(html).not.toContain('Companions');
+    expect(html).not.toContain('Real Help');
+  });
+});
+
+describe('the menu sheet — two groups, eight entries', () => {
+  it('GO holds Companions, Pocket Church, Real Help, in that order', () => {
+    const order = entryOrder(renderSheet());
+    expect(order.slice(0, 3)).toEqual(['companions', 'church', 'help']);
   });
 
-  it('the settings slot carries no active state, whatever tab is active', () => {
-    for (const active of ['church', 'companions', 'today', 'help'] as const) {
-      const html = renderBar(active);
-      const settingsButton = html.slice(html.indexOf('data-slot="settings"'));
-      const settingsMarkup = settingsButton.slice(0, settingsButton.indexOf('</button>'));
-      expect(settingsMarkup).not.toContain('aria-current');
-      // And the genuinely active tab keeps its highlight while settings sits beside it.
-      const activeButton = html.slice(html.indexOf(`data-slot="${active}"`));
-      expect(activeButton.slice(0, activeButton.indexOf('</button>'))).toContain('aria-current="page"');
-    }
+  it('APP holds Settings, Reminders, Feedback, About, Share, in that order', () => {
+    const order = entryOrder(renderSheet());
+    expect(order.slice(3)).toEqual(['settings', 'reminders', 'feedback', 'about', 'share']);
+    expect(order).toHaveLength(8);
   });
 
-  it('the slot is wired to the existing settings-open state in App, on both bars', () => {
+  it('each destination carries its one-line descriptor', () => {
+    const html = renderSheet();
+    expect(html).toContain('Talk through today with a saint');
+    expect(html).toContain('Pray · Confession · Ask');
+    expect(html).toContain('Priests, counselors, crisis lines');
+  });
+
+  it('Real Help is rendered with exactly the same weight as the other destinations', () => {
+    const html = renderSheet();
+    const rowClass = (key: string) => {
+      const start = html.indexOf(`data-menu-entry="${key}"`);
+      const buttonStart = html.lastIndexOf('<button', start);
+      const tag = html.slice(buttonStart, html.indexOf('>', buttonStart));
+      return /class="([^"]*)"/.exec(tag)?.[1];
+    };
+    expect(rowClass('help')).toBe(rowClass('companions'));
+    expect(rowClass('help')).toBe(rowClass('church'));
+    // No alarm styling on the row: the crisis content lives inside Real Help itself.
+    const helpStart = html.indexOf('data-menu-entry="help"');
+    const helpRow = html.slice(html.lastIndexOf('<button', helpStart), html.indexOf('</button>', helpStart));
+    expect(helpRow).not.toContain('988');
+  });
+
+  it('a closed sheet renders nothing', () => {
+    const html = renderToString(
+      createElement(MenuSheet, {
+        open: false,
+        t: theme,
+        onClose: vi.fn(),
+        onNavigate: vi.fn(),
+        utilities,
+      }),
+    );
+    expect(html).toBe('');
+  });
+});
+
+describe('landings still resolve to views', () => {
+  it('push focuses land where they always landed', () => {
+    expect(FOCUS_ROUTES.gospel).toEqual({ tab: 'today' });
+    expect(FOCUS_ROUTES.examen).toEqual({ tab: 'today', todayExamen: true });
+    expect(FOCUS_ROUTES.rosary).toEqual({ tab: 'church', churchTab: 'pray', churchPray: 'rosary' });
+    expect(FOCUS_ROUTES.rule).toEqual({ tab: 'church' });
     const app = read('App.tsx');
-    const bars = [...app.matchAll(/<TabBar[\s\S]*?\/>/g)].map((m) => m[0]);
-    expect(bars.length).toBeGreaterThanOrEqual(2);
-    for (const bar of bars) {
-      expect(bar).toContain('onOpenSettings={() => setSettingsOpen(true)}');
-    }
-    // The modal it opens is the one SettingsModal instance state the app already owned.
-    expect(app).toContain('const [settingsOpen, setSettingsOpen] = useState(false)');
+    expect(app).toContain('parseFocusParam(window.location.search)');
+    expect(app).toContain('setView(route.tab)');
+  });
+
+  it('companion tool links still route — church doors, help, tonight, and chat itself', () => {
+    const app = read('App.tsx');
+    expect(app).toContain("'rosary': { tab: 'church', churchTab: 'pray', churchPray: 'rosary' }");
+    expect(app).toContain("'confession': { tab: 'church', churchTab: 'confession' }");
+    expect(app).toContain("'catechism': { tab: 'church', churchTab: 'ask' }");
+    expect(app).toContain("'help': { tab: 'help' }");
+    expect(app).toContain("'examen': { tab: 'today', todayExamen: true }");
+    // The chat feed still hands its tool links to the router.
+    expect(app).toContain('onOpenTool={openToolLink}');
   });
 });

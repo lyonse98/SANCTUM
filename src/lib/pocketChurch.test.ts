@@ -5,24 +5,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PocketChurchPage, type ChurchTab, type PraySection } from '../components/PocketChurchPage';
 import { getSeasonTheme } from './seasonTheme';
-import type { Audience, UtilityActions } from '@/types';
+import type { Audience } from '@/types';
 
 const SRC = join(__dirname, '..');
 const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
-
-const utilities: UtilityActions = {
-  onOpenSettings: vi.fn(),
-  onShareInvite: vi.fn(),
-  onOpenFeedback: vi.fn(),
-  onOpenAbout: vi.fn(),
-  onOpenReminder: vi.fn(),
-};
 
 function render(audience: Audience, initialTab?: ChurchTab, initialPraySection?: PraySection) {
   return renderToString(
     createElement(PocketChurchPage, {
       onBack: vi.fn(),
-      utilities,
       audience,
       seasonTheme: getSeasonTheme(new Date(), audience),
       initialTab: initialTab ?? null,
