@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, ShieldAlert, Lock, MessageSquare, BarChart3, Download, Users } from 'lucide-react';
+import { X, ShieldAlert, Lock, MessageSquare, BarChart3, Download, Users, Eraser } from 'lucide-react';
 import { useFeedback } from '@/components/FeedbackProvider';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '@/lib/analytics';
 import { PRIVACY_PARAGRAPH, analyticsCopy } from '@/lib/privacyCopy';
+import { eraseTailorProfile, hasTailorProfile } from '@/lib/tailorProfile';
 import type { Audience } from '@/types';
 import { InstallModal } from '@/components/InstallInstructions';
 
@@ -18,10 +19,17 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
   const feedback = useFeedback();
   const [analyticsOn, setAnalyticsOn] = useState(() => isAnalyticsEnabled());
   const [installOpen, setInstallOpen] = useState(false);
+  // The Tailor profile erase shows only when this track actually has one —
+  // re-checked each time the sheet opens, since the profile is edited in the
+  // Tailor panel, not here.
+  const [tailorProfileExists, setTailorProfileExists] = useState(false);
 
   useEffect(() => {
-    if (open) setAnalyticsOn(isAnalyticsEnabled());
-  }, [open ]);
+    if (open) {
+      setAnalyticsOn(isAnalyticsEnabled());
+      setTailorProfileExists(hasTailorProfile(audience));
+    }
+  }, [open, audience]);
 
   if (!open) return null;
 
@@ -154,6 +162,35 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
                 </div>
               </div>
             </div>
+
+            {tailorProfileExists && (
+              <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
+                <div className="flex items-start gap-2">
+                  <Eraser className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
+                  <div className="flex-1">
+                    <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                      Tailor Profile
+                    </p>
+                    <p className="text-[11px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                      Your standing Tailor Today profile — your season of life, the battles you
+                      named, your goal — is kept on this device only. Erase it here whenever you
+                      like; Tailor Today will simply ask each morning afresh.
+                    </p>
+                    <button
+                      onClick={() => {
+                        eraseTailorProfile(audience);
+                        setTailorProfileExists(false);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-all"
+                      style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
+                    >
+                      <Eraser className="w-3.5 h-3.5" />
+                      <span className="text-[11px] font-bold uppercase tracking-wide">Erase Tailor profile</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="pt-1 space-y-2">

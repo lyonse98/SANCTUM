@@ -99,10 +99,22 @@ describe('the card diet — what left the card', () => {
     expect(card).toContain('void loadAllTexts()');
   });
 
-  it('share is a small icon button in the card header, opening the same modal', () => {
-    expect(card).toContain('aria-label="Share today\'s Gospel"');
+  it('share is a full-width secondary button under the tiles (Nov 13 step 2), opening the same modal', () => {
+    // The header icon is gone; the button lives in the card flow, below the tile panels.
+    expect(card).not.toContain('aria-label="Share today\'s Gospel"');
+    expect(card).toContain('data-share-gospel');
+    expect(card).toContain('Share today&rsquo;s Gospel');
     expect(card).toContain('<DailyGospelShareModal');
-    expect(card).not.toContain('>Share</span>');
+    expect(card.indexOf('data-share-gospel')).toBeGreaterThan(card.indexOf('data-tile="reflect"'));
+  });
+
+  it('the share button is card-styled, never a call to action', () => {
+    const start = card.indexOf('data-share-gospel');
+    const buttonSource = card.slice(card.lastIndexOf('<button', start), card.indexOf('</button>', start));
+    expect(buttonSource).toContain('rounded-lg border');
+    expect(buttonSource).not.toContain('animate-cta-glow');
+    expect(buttonSource).not.toContain('border-2');
+    expect(buttonSource).not.toContain('t.accent');
   });
 });
 

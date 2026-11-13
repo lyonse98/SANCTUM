@@ -557,6 +557,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
               setView('companions');
             }}
             onOpenHelp={() => setView('help')}
+            onOpenReminder={() => setReminderOpen(true)}
             forceTonight={forceExamen}
             onConsumeForceTonight={() => setForceExamen(false)}
           />

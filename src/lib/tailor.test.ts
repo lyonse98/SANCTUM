@@ -21,7 +21,7 @@ import { TAILOR_FOCUSES, TAILOR_STATES } from '@/data/tailorBank';
  * and the credit line names the day's narrator only.
  */
 
-const INTAKE = { state: 'anxious' as const, focus: 'work' as const, freeText: 'Big review at 2.' };
+const INTAKE = { state: 'anxious' as const, focus: 'work' as const, tone: 'courage' as const, freeText: 'Big review at 2.' };
 
 const RESPONSE = {
   ok: true,
@@ -31,7 +31,16 @@ const RESPONSE = {
   passage: { citation: 'Psalm 90:17', text: 'And let the brightness of the Lord our God be upon us.', translation: 'Douay-Rheims' },
   reflect: 'A tailored reflection.',
   challenge: 'One tailored act.',
-  media: { type: 'song', title: "They'll Know We Are Christians", creator: 'Peter Scholtes', searchUrl: 'https://www.youtube.com/results?search_query=x' },
+  traditionQuote: { text: 'Pray, hope, and don’t worry.', author: 'St. Padre Pio' },
+  media: {
+    kind: 'song',
+    type: 'song',
+    title: "They'll Know We Are Christians",
+    creator: 'Peter Scholtes',
+    url: 'https://www.youtube.com/results?search_query=x',
+    searchUrl: 'https://www.youtube.com/results?search_query=x',
+    why: 'Chosen for work & career — a little courage for today.',
+  },
   audioBase64: 'QUJD',
   audioSeconds: 240,
 };
@@ -69,14 +78,51 @@ describe('the intake shape', () => {
     expect(intakeHash(INTAKE)).not.toBe(intakeHash({ ...INTAKE, state: 'down' }));
     expect(intakeHash(INTAKE)).not.toBe(intakeHash({ ...INTAKE, freeText: 'Different words.' }));
   });
+
+  it('the hash covers the tone and the standing profile — either change is a new build', () => {
+    expect(intakeHash(INTAKE)).not.toBe(intakeHash({ ...INTAKE, tone: 'comfort' }));
+    const withProfile = {
+      ...INTAKE,
+      profile: { seasonOfLife: 'Married', ongoingBattles: ['Work pressure'], standingGoal: '', mediaPrefs: [] as never[] },
+    };
+    expect(intakeHash(withProfile)).not.toBe(intakeHash(INTAKE));
+    expect(intakeHash(withProfile)).not.toBe(
+      intakeHash({ ...withProfile, profile: { ...withProfile.profile, standingGoal: 'Be patient.' } }),
+    );
+  });
 });
 
 describe('the response parse', () => {
-  it('accepts the function shape, media card included', () => {
+  it('accepts the function shape, media card and tradition quote included', () => {
     const parsed = parseTailorResponse(RESPONSE);
-    expect(parsed?.media.type).toBe('song');
+    expect(parsed?.media.kind).toBe('song');
+    expect(parsed?.media.url).toBe('https://www.youtube.com/results?search_query=x');
+    expect(parsed?.media.why).toContain('courage');
+    expect(parsed?.traditionQuote).toEqual({ text: 'Pray, hope, and don’t worry.', author: 'St. Padre Pio' });
     expect(parsed?.narratorName).toBe('Martin');
     expect(parsed && 'lensId' in parsed).toBe(false);
+  });
+
+  it('a v1-shaped response (type/searchUrl, no quote) still parses, quote null', () => {
+    const v1 = {
+      ...RESPONSE,
+      traditionQuote: undefined,
+      media: { type: 'song', title: 'x', creator: 'y', searchUrl: 'https://www.youtube.com/results?search_query=x' },
+    };
+    const parsed = parseTailorResponse(v1);
+    expect(parsed?.media.kind).toBe('song');
+    expect(parsed?.media.url).toBe('https://www.youtube.com/results?search_query=x');
+    expect(parsed?.traditionQuote).toBeNull();
+  });
+
+  it('found kinds beyond the bank four parse too — video, article, book', () => {
+    for (const kind of ['video', 'article', 'book'] as const) {
+      const parsed = parseTailorResponse({
+        ...RESPONSE,
+        media: { kind, title: 'x', creator: 'y', url: 'https://example.com/work', why: 'w' },
+      });
+      expect(parsed?.media.kind).toBe(kind);
+    }
   });
 
   it('rejects a failed or malformed response', () => {
@@ -91,10 +137,13 @@ describe('the response parse', () => {
     expect(parsed && tailorCreditLine(parsed)).toBe('Tailored for today · read by Martin');
   });
 
-  it('the media action label follows the search host', () => {
-    expect(mediaActionLabel({ type: 'song', title: 'x', creator: 'y', searchUrl: 'https://www.youtube.com/results?search_query=x' })).toBe('Watch on YouTube');
-    expect(mediaActionLabel({ type: 'podcast', title: 'x', creator: 'y', searchUrl: 'https://open.spotify.com/search/x' })).toBe('Find it on Spotify');
-    expect(mediaActionLabel({ type: 'film', title: 'x', creator: 'y', searchUrl: 'https://www.google.com/search?q=x' })).toBe('Look it up');
+  it('the media action label follows the link', () => {
+    const media = (url: string) => ({ kind: 'song' as const, title: 'x', creator: 'y', url, why: '' });
+    expect(mediaActionLabel(media('https://www.youtube.com/results?search_query=x'))).toBe('Watch on YouTube');
+    expect(mediaActionLabel(media('https://open.spotify.com/search/x'))).toBe('Find it on Spotify');
+    expect(mediaActionLabel(media('https://www.google.com/search?q=x'))).toBe('Look it up');
+    expect(mediaActionLabel(media('https://www.youtube.com/watch?v=abc'))).toBe('Watch it');
+    expect(mediaActionLabel(media('https://example.com/some-article'))).toBe('Open it');
   });
 });
 

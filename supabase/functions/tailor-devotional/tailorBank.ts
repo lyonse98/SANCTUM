@@ -78,6 +78,59 @@ export function tailorFocusLabel(id: TailorFocus): string {
   return TAILOR_FOCUSES.find((f) => f.id === id)?.label ?? id;
 }
 
+/**
+ * "What do you want from God today?" — the tone of the ask (Erik, Nov 13, 2026).
+ * The same grief needs a different devotional depending on whether the person
+ * wants to be held or wants to get up: comfort and consolation receive,
+ * courage and challenge move, clarity untangles. One list, both tracks; the
+ * daily intake asks it fresh each morning, and the standing profile carries a
+ * default so most mornings it is already answered.
+ */
+export type TailorTone = 'comfort' | 'courage' | 'challenge' | 'clarity' | 'consolation';
+
+export const TAILOR_TONES: { id: TailorTone; label: string }[] = [
+  { id: 'comfort', label: 'Comfort' },
+  { id: 'courage', label: 'Courage' },
+  { id: 'challenge', label: 'A challenge' },
+  { id: 'clarity', label: 'Clarity' },
+  { id: 'consolation', label: 'Consolation' },
+];
+
+export function isTailorTone(value: unknown): value is TailorTone {
+  return typeof value === 'string' && TAILOR_TONES.some((t) => t.id === value);
+}
+
+export function tailorToneLabel(id: TailorTone): string {
+  return TAILOR_TONES.find((t) => t.id === id)?.label ?? id;
+}
+
+/**
+ * The media kinds a LIVE search may go and find (Tailor v2, Nov 13, 2026) —
+ * broader than the curated bank's own four types, because the web holds more
+ * than the bank can: a video, an article, a book. The standing profile's media
+ * preferences are chosen from this same list, so what a user asks for and
+ * what the search may return are one vocabulary on both sides of the wire.
+ */
+export type TailorSearchKind = 'song' | 'video' | 'talk' | 'podcast' | 'article' | 'book';
+
+export const TAILOR_SEARCH_KINDS: TailorSearchKind[] = ['song', 'video', 'talk', 'podcast', 'article', 'book'];
+
+export const TAILOR_SEARCH_KIND_LABELS: Record<TailorSearchKind, string> = {
+  song: 'Song',
+  video: 'Video',
+  talk: 'Talk',
+  podcast: 'Podcast',
+  article: 'Article',
+  book: 'Book',
+};
+
+export function isTailorSearchKind(value: unknown): value is TailorSearchKind {
+  return typeof value === 'string' && (TAILOR_SEARCH_KINDS as string[]).includes(value);
+}
+
+/** Every kind a media pick on the card can carry: the bank's four, or a found kind. */
+export type TailorMediaKind = TailorMediaType | 'video' | 'article' | 'book';
+
 export interface TailorPassage {
   citation: string;
   text: string;

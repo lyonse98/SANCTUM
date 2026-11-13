@@ -12,13 +12,24 @@ import {
   pickPassage,
 } from '@/data/tailorBank';
 import {
+  buildCorpusQuoteQuery,
+  buildMediaSearchQuery,
   buildTailorSystemPrompt,
   buildTailorUserPrompt,
   composeTailored,
+  mediaWhyLine,
   parseTailorResult,
+  pickGroundedMedia,
+  pickTraditionQuote,
   validateIntake,
+  validateProfile,
   type TailorBundle,
 } from '../../supabase/functions/tailor-devotional/tailorCore';
+import { DAILY_QUOTES, DAILY_QUOTES_WOMEN } from '@/data/quotes';
+import {
+  DAILY_QUOTES as FN_DAILY_QUOTES,
+  DAILY_QUOTES_WOMEN as FN_DAILY_QUOTES_WOMEN,
+} from '../../supabase/functions/tailor-devotional/quotes';
 import { PERSONA_DISPLAY, resolveFeastDay, weekdayPersona } from './narratorCore';
 
 const ROOT = join(__dirname, '..', '..');
@@ -109,7 +120,12 @@ describe('the media bank is real works behind search URLs only', () => {
 describe('intake validation — allowlisted, lens-free', () => {
   it('accepts a plain intake and normalizes the free text', () => {
     const intake = validateIntake({ state: 'anxious', focus: 'work', freeText: '  Big   review at 2. ' });
-    expect(intake).toEqual({ state: 'anxious', focus: 'work', freeText: 'Big review at 2.' });
+    expect(intake).toEqual({ state: 'anxious', focus: 'work', tone: null, freeText: 'Big review at 2.' });
+  });
+
+  it('accepts a real tone, and an invented one reads as no tone rather than a rejection', () => {
+    expect(validateIntake({ state: 'anxious', focus: 'work', tone: 'courage' })?.tone).toBe('courage');
+    expect(validateIntake({ state: 'anxious', focus: 'work', tone: 'wired' })?.tone).toBeNull();
   });
 
   it('rejects unknown states and focuses', () => {
@@ -139,7 +155,7 @@ const BUNDLE: TailorBundle = {
   facet: 'As a man',
 };
 
-const INTAKE = { state: 'anxious' as const, focus: 'work' as const, freeText: 'Big review at 2.' };
+const INTAKE = { state: 'anxious' as const, focus: 'work' as const, tone: 'courage' as const, freeText: 'Big review at 2.' };
 
 describe('composition with the model layer mocked', () => {
   const generateTailored = async () => ({
@@ -174,8 +190,8 @@ describe('composition with the model layer mocked', () => {
     // No scene, no tomorrow teaser in a tailored script.
     expect(composed.script.spokenText).not.toContain('Tomorrow');
     // The media pick rides along with a search URL.
-    expect(composed.media.searchUrl.length).toBeGreaterThan(0);
-    expect(composed.media.searchUrl).not.toContain('watch?v=');
+    expect(composed.media.url.length).toBeGreaterThan(0);
+    expect(composed.media.url).not.toContain('watch?v=');
   });
 
   it('the narrator is the weekday narrator for the track — Thursday: Martin / Marta', async () => {
@@ -270,5 +286,310 @@ describe('privacy pins — the function cannot store what it is told', () => {
     // The copy is the original verbatim under a five-line // header.
     const copyBody = copy.split('\n').slice(5).join('\n');
     expect(copyBody.trim()).toBe(original.trim());
+  });
+});
+
+// ── V2 (Nov 13, 2026): profile, tradition quote, live media ──────────────────
+
+const PROFILE = {
+  seasonOfLife: 'Father of young children',
+  ongoingBattles: ['Work pressure', 'Grief'],
+  standingGoal: 'SENTINEL-GOAL-be-a-patient-father',
+  mediaPrefs: ['song', 'video'] as const,
+};
+
+describe('v2 — the standing profile validates to labels and caps', () => {
+  it('accepts a well-formed profile and drops invented media kinds', () => {
+    const profile = validateProfile({
+      profile: { ...PROFILE, mediaPrefs: ['song', 'hologram', 'video', 'song'] },
+    });
+    expect(profile?.seasonOfLife).toBe('Father of young children');
+    expect(profile?.ongoingBattles).toEqual(['Work pressure', 'Grief']);
+    expect(profile?.mediaPrefs).toEqual(['song', 'video']);
+  });
+
+  it('an absent or empty profile validates to null', () => {
+    expect(validateProfile({})).toBeNull();
+    expect(validateProfile({ profile: null })).toBeNull();
+    expect(validateProfile({ profile: { seasonOfLife: '  ', ongoingBattles: [], standingGoal: '', mediaPrefs: [] } })).toBeNull();
+  });
+
+  it('the user prompt carries the profile phrased for the track — his facet and hers', () => {
+    const menPrompt = buildTailorUserPrompt(BUNDLE, INTAKE, pickPassage('work', 'anxious', '2026-11-12'), { ...PROFILE, mediaPrefs: [...PROFILE.mediaPrefs] }, 'men');
+    expect(menPrompt).toContain('The season of his life: Father of young children.');
+    expect(menPrompt).toContain('Battles he carries in this season: Work pressure, Grief.');
+    expect(menPrompt).toContain('His standing goal');
+    expect(menPrompt).toContain('What he is asking of God today: Courage.');
+
+    const womenBundle = { ...BUNDLE, facet: 'As a woman' };
+    const womenPrompt = buildTailorUserPrompt(womenBundle, INTAKE, pickPassage('work', 'anxious', '2026-11-12'), { ...PROFILE, mediaPrefs: [...PROFILE.mediaPrefs] }, 'women');
+    expect(womenPrompt).toContain('The season of her life: Father of young children.');
+    expect(womenPrompt).toContain('Battles she carries in this season');
+    expect(womenPrompt).toContain('Her standing goal');
+    expect(womenPrompt).toContain('What she is asking of God today: Courage.');
+  });
+
+  it('the system prompts carry each track’s facet (grounding blocks differ by track)', () => {
+    expect(buildTailorSystemPrompt('men')).toContain('like a man who has lived in these texts');
+    expect(buildTailorSystemPrompt('women')).toContain('like a woman who has lived in these texts');
+  });
+});
+
+describe('v2 — the search query is built from enum categories only', () => {
+  it('the query names only categories: kinds, focus, tone, audience', () => {
+    const query = buildMediaSearchQuery({ focus: 'grief', tone: 'consolation', audience: 'women', kinds: ['song', 'video'] });
+    expect(query).toContain('songs, videos');
+    expect(query).toContain('for a Catholic woman');
+    expect(query).toContain('grief');
+    expect(query).toContain('consolation');
+  });
+
+  it('sentinel text in every user-written field never reaches the query (driven through a build)', async () => {
+    const queries: string[] = [];
+    const findMedia = async (query: string) => {
+      queries.push(query);
+      return null;
+    };
+    await composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'men',
+      intake: { state: 'anxious', focus: 'work', tone: 'courage', freeText: 'SENTINEL-FREETEXT-my-review-is-at-two' },
+      bundle: BUNDLE,
+      profile: { ...PROFILE, mediaPrefs: [...PROFILE.mediaPrefs] },
+      generateTailored: async () => ({ reflect: 'A reflection of decent length.', challenge: 'One act.' }),
+      findMedia,
+      hour: 7,
+    });
+    expect(queries).toHaveLength(1);
+    expect(queries[0]).not.toContain('SENTINEL');
+    expect(queries[0]).not.toContain('review');
+    expect(queries[0]).not.toContain('patient');
+    // And the corpus query is categories only too.
+    const corpusQuery = buildCorpusQuoteQuery({ state: 'anxious', focus: 'work', tone: 'courage', freeText: 'SENTINEL-FREETEXT' });
+    expect(corpusQuery).not.toContain('SENTINEL');
+  });
+});
+
+const GROUNDED_OK = {
+  candidates: [
+    {
+      content: {
+        parts: [
+          {
+            text: '{"title": "Be Not Afraid", "creator": "Bob Dufford", "kind": "song", "url": "https://www.youtube.com/watch?v=abc123XYZ"}',
+          },
+        ],
+      },
+      groundingMetadata: {
+        groundingChunks: [
+          { web: { uri: 'https://www.youtube.com/watch?v=abc123XYZ', title: 'Be Not Afraid — YouTube' } },
+          { web: { uri: 'https://en.wikipedia.org/wiki/Be_Not_Afraid', title: 'Be Not Afraid — Wikipedia' } },
+        ],
+      },
+    },
+  ],
+};
+
+describe('v2 — grounded media: the address must come from the search’s own sources', () => {
+  it('accepts a pick whose URL is verbatim among the grounding sources', () => {
+    const pick = pickGroundedMedia(GROUNDED_OK, ['song', 'video', 'talk', 'podcast', 'article', 'book']);
+    expect(pick).toEqual({
+      kind: 'song',
+      title: 'Be Not Afraid',
+      creator: 'Bob Dufford',
+      url: 'https://www.youtube.com/watch?v=abc123XYZ',
+    });
+  });
+
+  it('rejects a URL the model composed — not among the grounding sources', () => {
+    const forged = structuredClone(GROUNDED_OK);
+    forged.candidates[0].content.parts[0].text =
+      '{"title": "Be Not Afraid", "creator": "Bob Dufford", "kind": "song", "url": "https://www.youtube.com/watch?v=INVENTED1"}';
+    expect(pickGroundedMedia(forged, ['song'])).toBeNull();
+  });
+
+  it('rejects a search page even when it is among the sources', () => {
+    const searchy = structuredClone(GROUNDED_OK);
+    searchy.candidates[0].groundingMetadata.groundingChunks.push({
+      web: { uri: 'https://www.youtube.com/results?search_query=be+not+afraid', title: 'Search' },
+    });
+    searchy.candidates[0].content.parts[0].text =
+      '{"title": "Results", "creator": "YouTube", "kind": "video", "url": "https://www.youtube.com/results?search_query=be+not+afraid"}';
+    expect(pickGroundedMedia(searchy, ['video'])).toBeNull();
+  });
+
+  it('rejects a kind the morning did not allow, and non-https addresses', () => {
+    expect(pickGroundedMedia(GROUNDED_OK, ['article', 'book'])).toBeNull();
+    const http = structuredClone(GROUNDED_OK);
+    http.candidates[0].groundingMetadata.groundingChunks[0].web.uri = 'http://www.youtube.com/watch?v=abc123XYZ';
+    http.candidates[0].content.parts[0].text =
+      '{"title": "Be Not Afraid", "creator": "Bob Dufford", "kind": "song", "url": "http://www.youtube.com/watch?v=abc123XYZ"}';
+    expect(pickGroundedMedia(http, ['song'])).toBeNull();
+  });
+
+  it('rejects empty answers and missing grounding entirely', () => {
+    expect(pickGroundedMedia(null, ['song'])).toBeNull();
+    expect(pickGroundedMedia({}, ['song'])).toBeNull();
+    expect(pickGroundedMedia({ candidates: [{ content: { parts: [{ text: '{}' }] } }] }, ['song'])).toBeNull();
+  });
+
+  it('a build with a grounded answer uses it; the why-line is categories only', async () => {
+    const composed = await composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'men',
+      intake: INTAKE,
+      bundle: BUNDLE,
+      generateTailored: async () => ({ reflect: 'A tailored reflection here.', challenge: 'One act.' }),
+      findMedia: async () => GROUNDED_OK,
+      hour: 7,
+    });
+    expect(composed.media.kind).toBe('song');
+    expect(composed.media.url).toBe('https://www.youtube.com/watch?v=abc123XYZ');
+    expect(composed.media.why).toBe(mediaWhyLine('work', 'courage'));
+    expect(composed.media.why).not.toContain('review');
+  });
+
+  it('any search failure falls back to the curated bank, search URL and all', async () => {
+    for (const findMedia of [undefined, async () => null, async () => { throw new Error('down'); }, async () => ({ junk: true })]) {
+      const composed = await composeTailored({
+        dateISO: '2026-11-12',
+        audience: 'men',
+        intake: INTAKE,
+        bundle: BUNDLE,
+        generateTailored: async () => ({ reflect: 'A tailored reflection here.', challenge: 'One act.' }),
+        findMedia,
+        hour: 7,
+      });
+      expect(composed.media.url).toMatch(
+        /^https:\/\/(www\.youtube\.com\/results\?search_query=|open\.spotify\.com\/search\/|www\.google\.com\/search\?q=)/,
+      );
+      expect(composed.media.title.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('the standing profile narrows the hunted kinds — the query and the acceptance agree', async () => {
+    const queries: string[] = [];
+    const composed = await composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'women',
+      intake: { ...INTAKE, focus: 'grief' },
+      bundle: { ...BUNDLE, facet: 'As a woman' },
+      profile: { seasonOfLife: null, ongoingBattles: [], standingGoal: '', mediaPrefs: ['article'] },
+      generateTailored: async () => ({ reflect: 'A tailored reflection here.', challenge: 'One act.' }),
+      findMedia: async (query: string) => {
+        queries.push(query);
+        return GROUNDED_OK; // a song — not among her allowed kinds
+      },
+      hour: 7,
+    });
+    expect(queries[0]).toContain('articles');
+    expect(queries[0]).toContain('for a Catholic woman');
+    // The song was refused (kind not allowed) and the bank answered instead.
+    expect(composed.media.url).not.toBe('https://www.youtube.com/watch?v=abc123XYZ');
+  });
+});
+
+describe('v2 — the tradition quote: corpus first, the dataset shelf behind it', () => {
+  it('the function’s quotes mirror IS the app’s dataset — the transform edits nothing', () => {
+    expect(FN_DAILY_QUOTES).toEqual(DAILY_QUOTES);
+    expect(FN_DAILY_QUOTES_WOMEN).toEqual(DAILY_QUOTES_WOMEN);
+  });
+
+  it('every dataset pick is a member of the track’s own shelf, attributed', () => {
+    for (const audience of ['men', 'women'] as const) {
+      const shelf = audience === 'women' ? DAILY_QUOTES_WOMEN : DAILY_QUOTES;
+      for (const focus of ['work', 'grief', 'temptation', 'today'] as const) {
+        const quote = pickTraditionQuote(audience, focus, 'comfort', '2026-11-12');
+        expect(quote).not.toBeNull();
+        const member = shelf.find(
+          (q) => q.text.trim() === quote!.text && quote!.author.startsWith(q.author),
+        );
+        expect(member, `${audience}/${focus}`).toBeDefined();
+        // Spoken-safety: short, and free of the main segment’s excluded words.
+        expect(quote!.text.length).toBeLessThanOrEqual(240);
+        expect(quote!.text.toLowerCase()).not.toContain('tomorrow');
+      }
+    }
+  });
+
+  it('corpus first: a retrieved quote wins over the dataset pick and is woven after the reflection', async () => {
+    const corpusQuote = { text: 'CORPUS WORD — a retrieved passage from the shelf.', author: 'St. Augustine, Confessions' };
+    const composed = await composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'men',
+      intake: INTAKE,
+      bundle: BUNDLE,
+      generateTailored: async () => ({ reflect: 'TAILORED REFLECTION — aimed at the review.', challenge: 'One act.' }),
+      corpusQuote,
+      hour: 7,
+    });
+    expect(composed.traditionQuote).toEqual(corpusQuote);
+    const spoken = composed.script.spokenText;
+    expect(spoken).toContain('A word from the tradition — St. Augustine, Confessions: CORPUS WORD');
+    expect(spoken.indexOf('CORPUS WORD')).toBeGreaterThan(spoken.indexOf('TAILORED REFLECTION'));
+    expect(spoken.indexOf('CORPUS WORD')).toBeLessThan(spoken.indexOf('One act.'));
+  });
+
+  it('dataset fallback: no corpus word, and the build still carries a quote from the shelf', async () => {
+    const composed = await composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'women',
+      intake: { ...INTAKE, focus: 'grief' },
+      bundle: { ...BUNDLE, facet: 'As a woman' },
+      generateTailored: async () => ({ reflect: 'A tailored reflection here.', challenge: 'One act.' }),
+      corpusQuote: null,
+      hour: 7,
+    });
+    expect(composed.traditionQuote).not.toBeNull();
+    const member = DAILY_QUOTES_WOMEN.find((q) => q.text.trim() === composed.traditionQuote!.text);
+    expect(member).toBeDefined();
+    expect(composed.script.spokenText).toContain('A word from the tradition —');
+  });
+
+  it('absent is fine: no quote anywhere, and the devotional still composes whole', async () => {
+    const composed = await composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'men',
+      intake: INTAKE,
+      bundle: BUNDLE,
+      generateTailored: async () => ({ reflect: 'A tailored reflection here.', challenge: 'One act.' }),
+      corpusQuote: null,
+      datasetQuote: null,
+      hour: 7,
+    });
+    expect(composed.traditionQuote).toBeNull();
+    expect(composed.script.spokenText).not.toContain('A word from the tradition');
+    expect(composed.script.spokenText).toContain(BUNDLE.gospelText);
+  });
+});
+
+describe('v2 — privacy pins for the new payload paths', () => {
+  const fnIndex = readRoot('supabase/functions/tailor-devotional/index.ts');
+  const fnCorpus = readRoot('supabase/functions/tailor-devotional/corpus.ts');
+
+  it('the profile is validated, never persisted — the write-path pins still hold over the new code', () => {
+    expect(fnIndex).toContain('validateProfile(payload)');
+    for (const src of [fnIndex, fnCorpus]) {
+      expect(src).not.toMatch(/\.upsert\(/);
+      expect(src).not.toMatch(/\.insert\(/);
+      expect(src).not.toContain('/storage/v1/object');
+    }
+  });
+
+  it('the corpus door is the configured one: flag, key, and the retrieve function', () => {
+    expect(fnCorpus).toContain('CORPUS_ENABLED');
+    expect(fnCorpus).toContain('CORPUS_RETRIEVE_KEY');
+    expect(fnCorpus).toContain('functions/v1/corpus-retrieve');
+    expect(fnIndex).toContain('corpusEnabled()');
+    expect(fnIndex).toContain('buildCorpusQuoteQuery(intake)');
+  });
+
+  it('the live search rides the function’s existing Gemini key — no new secret appears', () => {
+    expect(fnIndex).toContain('google_search');
+    const envReads = fnIndex.match(/Deno\.env\.get\("([A-Z_]+)"\)/g) ?? [];
+    const names = new Set(envReads.map((s) => s.replace(/.*\("([A-Z_]+)"\).*/, '$1')));
+    expect(names).toEqual(
+      new Set(['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_ANON_KEY', 'GEMINI_API_KEY']),
+    );
   });
 });

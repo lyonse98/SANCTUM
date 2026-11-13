@@ -45,6 +45,8 @@ interface DailyQuoteProps {
   t: PersonaTheme;
   audience: Audience;
   onReflectWithCompanion?: (prompt: string) => void;
+  /** Opens the reminder form — handed to the Listen bar for its one-time post-listen line. */
+  onOpenReminder?: () => void;
 }
 
 /** The three Way-1 tiles share one class string — equals, by construction. */
@@ -76,7 +78,7 @@ export function orderedReadingRows(readings: DailyReadings, texts: ReadingTexts 
   ).filter((row) => row.citation);
 }
 
-export function DailyQuote({ t, audience, onReflectWithCompanion }: DailyQuoteProps) {
+export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder }: DailyQuoteProps) {
   const quote = useMemo(() => quoteForDay(new Date(), audience), [audience]);
   const feast = useMemo(() => getFeastForDate(), []);
   const [readings, setReadings] = useState<DailyReadings | null>(null);
@@ -264,17 +266,6 @@ export function DailyQuote({ t, audience, onReflectWithCompanion }: DailyQuotePr
             <span className="text-[8px] uppercase tracking-widest font-bold truncate" style={{ color: t.textDim }}>
               {readings.season}
             </span>
-          )}
-          {!loading && (
-            <button
-              onClick={() => setShareOpen(true)}
-              aria-label="Share today's Gospel"
-              title="Share today's Gospel"
-              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border transition-all active:scale-95 hover:opacity-70"
-              style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.textMuted }}
-            >
-              <Share2 className="w-3.5 h-3.5" />
-            </button>
           )}
         </span>
       </div>
@@ -476,12 +467,26 @@ export function DailyQuote({ t, audience, onReflectWithCompanion }: DailyQuotePr
               whole; only one is open at a time, in the space under the tiles. */}
           {panel === 'listen' && (
             <div className="mt-3 animate-fade-in">
-              <ListenBar t={t} dateKey={readings.date} citation={readings.gospel ?? null} audience={audience} />
+              <ListenBar t={t} dateKey={readings.date} citation={readings.gospel ?? null} audience={audience} onOpenReminder={onOpenReminder} />
             </div>
           )}
           {panel === 'tailor' && (
             <TailorToday t={t} audience={audience} dateKey={readings.date} startOpen />
           )}
+
+          {/* Share is a flywheel piece (Nov 13, 2026): a full-width secondary
+              button in the card's own flow, under the tiles — present to
+              every eye, styled like a card action and never like the call to
+              action: no glow, no heavy border. */}
+          <button
+            data-share-gospel
+            onClick={() => setShareOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98] mt-3"
+            style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.textMuted }}
+          >
+            <Share2 className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="text-[11px] font-bold uppercase tracking-wide">Share today&rsquo;s Gospel</span>
+          </button>
         </>
       )}
 

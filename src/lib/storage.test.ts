@@ -42,6 +42,10 @@ const KNOWN_KEYS = [
   'sanctum_audience',
   'sanctum_reflection_women_2026-10-24',
   'sanctum_passage_john-1',
+  'sanctum_tailor_profile_men',
+  'sanctum_tailor_profile_women',
+  'sanctum_reminder_prompt_dismissed_at',
+  'sanctum_listen_reminder_prompted',
 ];
 
 beforeEach(() => {

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { ArrowRight, HeartHandshake } from 'lucide-react';
 import { DailyQuote } from '@/components/DailyQuote';
+import { ReminderCard } from '@/components/ReminderCard';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { TodayHero } from '@/components/TodayHero';
 import { TonightClosing } from '@/components/TonightClosing';
@@ -15,6 +16,8 @@ interface HomeScreenProps {
   audience: Audience;
   onReflectWithCompanion: (message: string) => void;
   onOpenHelp: () => void;
+  /** Opens the shell's reminder modal — the reminder card and the post-listen line both lead there. */
+  onOpenReminder: () => void;
   /** A push tap on the examen focus lands here: show the Tonight closing whatever the hour. */
   forceTonight?: boolean;
   onConsumeForceTonight?: () => void;
@@ -35,7 +38,7 @@ interface HomeScreenProps {
  * line at the foot keeps Real Help in view — help should never be only
  * behind a menu.
  */
-export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, forceTonight, onConsumeForceTonight }: HomeScreenProps) {
+export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
   const tonightRef = useRef<HTMLDivElement>(null);
   const seasonTheme = getSeasonTheme(new Date(), audience);
@@ -99,7 +102,15 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, force
             t={seasonTheme}
             audience={audience}
             onReflectWithCompanion={onReflectWithCompanion}
+            onOpenReminder={onOpenReminder}
           />
+        </div>
+
+        {/* The reminder's flywheel face (Nov 13, 2026): an invitation with a
+            fourteen-day dismiss until one is set, then one quiet line naming
+            it — prominent, not pushy. */}
+        <div className="w-full mb-5">
+          <ReminderCard t={seasonTheme} onOpenReminder={onOpenReminder} />
         </div>
 
         {/* Tonight — the day's closing, in its home on Today. Present from the

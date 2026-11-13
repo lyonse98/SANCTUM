@@ -1730,6 +1730,14 @@ export interface TailoredAssembleInputs extends AssembleInputs {
   passageText: string;
   /** Which head the build speaks, from the device's own hour at build time. */
   head: 'am' | 'pm';
+  /**
+   * A word from the tradition for this one morning (Tailor v2, Nov 13, 2026):
+   * a retrieved or dataset passage, chosen for the user's stated need and
+   * woven into the second movement immediately after the reflection, under a
+   * plain introduction. Optional — a build with no quote found simply has
+   * none, exactly as the daily render has none.
+   */
+  traditionQuote?: { text: string; author: string } | null;
 }
 
 export interface TailoredScript {
@@ -1787,10 +1795,26 @@ export function assembleTailoredScript(inputs: TailoredAssembleInputs): Tailored
 
   const passage = `And for what you're carrying today — ${spokenizeOrdinals(inputs.passageCitation)}. ${inputs.passageText}`;
 
-  const spokenText = [head, readings, passage, base.mainB].join('\n\n');
+  // The tradition quote rides inside the second movement, directly after the
+  // reflection it was chosen to answer — the reflection speaks first, then
+  // the tradition has its word, then the challenge. The reflection stands
+  // verbatim in mainB exactly once, so the quote is set after it in place;
+  // a mainB that somehow lacks it is left untouched rather than guessed at.
+  let mainB = base.mainB;
+  const quote = inputs.traditionQuote;
+  if (quote && quote.text.trim() && quote.author.trim()) {
+    const quoteParagraph = `A word from the tradition — ${quote.author}: ${quote.text}`;
+    const at = mainB.indexOf(inputs.reflect);
+    if (at >= 0) {
+      const end = at + inputs.reflect.length;
+      mainB = `${mainB.slice(0, end)}\n\n${quoteParagraph}${mainB.slice(end)}`;
+    }
+  }
+
+  const spokenText = [head, readings, passage, mainB].join('\n\n');
   const script = [
     `HEAD (${inputs.head.toUpperCase()})\n${head}`,
-    `MAIN\n${readings}\n\n${passage}\n\n[${AUDIO_SILENCE_SECONDS.toFixed(1)}s silence]\n\n${base.mainB}`,
+    `MAIN\n${readings}\n\n${passage}\n\n[${AUDIO_SILENCE_SECONDS.toFixed(1)}s silence]\n\n${mainB}`,
   ].join('\n\n');
   return {
     persona: base.persona,
@@ -1799,7 +1823,7 @@ export function assembleTailoredScript(inputs: TailoredAssembleInputs): Tailored
     head,
     readings,
     passage,
-    mainB: base.mainB,
+    mainB,
     spokenText,
     script,
   };

@@ -4,6 +4,12 @@ import type { PersonaTheme } from '@/types';
 import { fetchDailyAudio, headForHour, type DailyAudio } from '@/lib/dailyAudio';
 import { PERSONA_DISPLAY, personaHasBell } from '@/lib/narratorCore';
 import { narratorDisclosureLine } from '@/lib/privacyCopy';
+import { loadPushReminder } from '@/lib/push';
+import {
+  listenReminderLineDue,
+  markListenReminderPrompted,
+  readListenReminderPrompted,
+} from '@/lib/reminderCard';
 import type { Audience } from '@/types';
 
 interface ListenBarProps {
@@ -13,6 +19,8 @@ interface ListenBarProps {
   citation: string | null;
   /** The track whose row to fetch — the two tracks' audio never crosses. */
   audience: Audience;
+  /** Opens the reminder form — for the one-time line after a first completed listen. */
+  onOpenReminder?: () => void;
 }
 
 /** The first-listen disclosure is per track: her first listen shows her line. */
@@ -65,10 +73,11 @@ function encodeWav(buffer: AudioBuffer): ArrayBuffer {
  * then the main). If Web Audio is unavailable, the files play as a plain sequence
  * instead, without the bell.
  */
-export function ListenBar({ t, dateKey, citation, audience }: ListenBarProps) {
+export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: ListenBarProps) {
   const [audio, setAudio] = useState<DailyAudio | null>(null);
   const [gone, setGone] = useState(false);
   const [showDisclosure, setShowDisclosure] = useState(false);
+  const [showListenPrompt, setShowListenPrompt] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [total, setTotal] = useState(0);
@@ -143,6 +152,14 @@ export function ListenBar({ t, dateKey, citation, audience }: ListenBarProps) {
           return;
         }
         setPlaying(false);
+        // A completed listen — the stream ran to its end. Once ever, and
+        // only where there is a form to open and no reminder already set,
+        // the small line under the player asks about tomorrow morning; the
+        // flag is set as it shows, so it can never ask twice.
+        if (onOpenReminder && listenReminderLineDue(loadPushReminder(), readListenReminderPrompted())) {
+          markListenReminderPrompted();
+          setShowListenPrompt(true);
+        }
       });
       el.addEventListener('error', () => {
         setPlaying(false);
@@ -322,6 +339,7 @@ export function ListenBar({ t, dateKey, citation, audience }: ListenBarProps) {
   }
 
   return (
+    <>
     <div
       className="flex items-center gap-3 rounded-xl border px-3 py-2.5 mb-3"
       style={{ backgroundColor: `${t.border}1F`, borderColor: `${t.border}80` }}
@@ -354,5 +372,22 @@ export function ListenBar({ t, dateKey, citation, audience }: ListenBarProps) {
         </button>
       )}
     </div>
+    {showListenPrompt && onOpenReminder && (
+      <button
+        onClick={() => {
+          setShowListenPrompt(false);
+          onOpenReminder();
+        }}
+        className="w-full text-left text-[11px] font-medium mb-3 -mt-1 transition-opacity hover:opacity-70 animate-fade-in"
+        style={{ color: t.textMuted }}
+        data-listen-reminder-line
+      >
+        Want this waiting for you tomorrow morning?{' '}
+        <span className="font-bold underline underline-offset-2" style={{ color: t.accent }}>
+          Set a morning reminder
+        </span>
+      </button>
+    )}
+    </>
   );
 }

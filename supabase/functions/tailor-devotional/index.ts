@@ -12,14 +12,24 @@
   read aloud by the day's NARRATOR, as the narrator companies read the free
   devotional.
 
+  V2 (Nov 13, 2026): the request may also carry the tone of the ask and the
+  user's standing profile (season of life, ongoing battles, a standing goal,
+  media preferences) — phrased for the track, transient like the morning's
+  own words. The composition adds a word from the tradition (the corpus shelf
+  first when configured — corpus.ts — the app's daily-quotes dataset behind
+  it) woven after the tailored reflection, and one media item found by live,
+  search-grounded lookup whose query is built from enum categories only and
+  whose address must come from the search's own grounding sources (the
+  curated bank still stands behind every failure).
+
   PRIVACY — THE HARD RULE OF THIS FUNCTION:
-  The intake (a state, a focus, at most one line in the user's own words) and
-  everything built from it are NEVER stored server-side. There are no database
-  writes and no storage uploads anywhere in this file: the day's bundle is
-  READ, the devotional is composed in memory, and the response carries the
-  text and the audio bytes back to the device, which caches them on-device
-  only. Logs are stage codes and counts — never intake text, never output
-  text. A vitest source pin asserts the absence of write paths.
+  The intake (a state, a focus, a tone, at most one line in the user's own
+  words) and everything built from it are NEVER stored server-side. There are
+  no database writes and no storage uploads anywhere in this file: the day's
+  bundle is READ, the devotional is composed in memory, and the response
+  carries the text and the audio bytes back to the device, which caches them
+  on-device only. Logs are stage codes and counts — never intake text, never
+  output text. A vitest source pin asserts the absence of write paths.
 
   Quota: the companions' shared limiter discipline (hashed IP, durable RPC),
   namespaced to this function, with its own tighter ceilings — 5 builds a
@@ -57,13 +67,16 @@ import {
 } from "./audioEngine.ts";
 import { tailorAccess } from "./tailorAccess.ts";
 import {
+  buildCorpusQuoteQuery,
   buildResponseBody,
   composeTailored,
   parseTailorResult,
   validateIntake,
+  validateProfile,
   type TailorBundle,
   type TailoredParts,
 } from "./tailorCore.ts";
+import { corpusEnabled, retrieveTraditionQuote } from "./corpus.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -321,6 +334,42 @@ async function generateTailored(systemPrompt: string, userPrompt: string): Promi
   return parsed;
 }
 
+// ── The live media search (Gemini, Google-Search-grounded) ───────────────────
+
+// The screening lives in the instruction; the query itself is built in the
+// core from enum categories only (see buildMediaSearchQuery there). The raw
+// grounded response goes back to the core, which accepts a pick only when
+// its address appears verbatim among the response's own grounding sources.
+const MEDIA_SEARCH_INSTRUCTION = `You are Sanctum's media finder. Search the web for the one work the request describes and answer with ONLY a JSON object: {"title": "...", "creator": "...", "kind": "...", "url": "..."}. The url must be copied exactly from a page your search actually found — the work's own page, never a search-results page, never an address you composed or shortened. The title and creator must be the work's real ones. If nothing genuinely fits, answer {"title": "", "creator": "", "kind": "", "url": ""}.`;
+
+async function searchMediaLive(query: string): Promise<unknown> {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: MEDIA_SEARCH_INSTRUCTION }] },
+          contents: [{ role: "user", parts: [{ text: query }] }],
+          tools: [{ google_search: {} }],
+          generationConfig: {
+            maxOutputTokens: 512,
+            thinkingConfig: { thinkingLevel: "low" },
+          },
+        }),
+        signal: AbortSignal.timeout(45000),
+      },
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 // ── Speech (audio-render's exact path and production) ────────────────────────
 
 async function renderSpeech(text: string, voice: string): Promise<Uint8Array> {
@@ -406,6 +455,10 @@ Deno.serve(async (req: Request) => {
   if (!intake) {
     return jsonResponse({ ok: false, error: "That tailoring could not be read. Try again." }, 400);
   }
+  // The standing profile, when the device sent one — validated to labels and
+  // caps in the core, used for phrasing only, and stored nowhere, exactly
+  // like the morning's own words.
+  const profile = validateProfile(payload);
 
   const dateISO =
     typeof payload.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(payload.date)
@@ -429,12 +482,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // The tradition quote's first shelf: the corpus, when it is configured
+    // for this function — one short passage for the day's stated categories.
+    // Fail-open by design: no shelf, no quote from it, and the composition
+    // answers from the dataset shelf instead (see the core).
+    let corpusQuote = null;
+    if (corpusEnabled()) {
+      corpusQuote = await retrieveTraditionQuote(buildCorpusQuoteQuery(intake)).catch(() => null);
+    }
+
     const composed = await composeTailored({
       dateISO,
       audience,
       intake,
       bundle,
+      profile,
       generateTailored,
+      findMedia: searchMediaLive,
+      corpusQuote,
       hour: losAngelesHour(),
     });
 

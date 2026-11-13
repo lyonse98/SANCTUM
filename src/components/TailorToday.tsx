@@ -2,37 +2,58 @@ import { useEffect, useRef, useState } from 'react';
 import {
   BookOpen,
   Clapperboard,
+  Eraser,
   Headphones,
   Loader2,
   Mic,
   Music,
+  Newspaper,
   Pause,
   Play,
+  Quote,
   RefreshCw,
   RotateCcw,
   SlidersHorizontal,
   Sparkles,
   Target,
+  Video,
   X,
 } from 'lucide-react';
 import type { Audience, PersonaTheme } from '@/types';
 import {
   TAILOR_FOCUSES,
+  TAILOR_SEARCH_KINDS,
+  TAILOR_SEARCH_KIND_LABELS,
   TAILOR_STATES,
+  TAILOR_TONES,
   type TailorFocus,
+  type TailorSearchKind,
   type TailorState,
+  type TailorTone,
 } from '@/data/tailorBank';
 import { tailorOffered } from '@/lib/tailorAccess';
 import {
-  MEDIA_TYPE_LABELS,
+  MEDIA_KIND_LABELS,
   getOrBuildTailored,
   loadTodaysTailored,
   mediaActionLabel,
   tailorAudioUrl,
   tailorCreditLine,
+  tailorProgressLines,
   type TailorIntake,
   type TailoredDevotional,
 } from '@/lib/tailor';
+import {
+  EMPTY_TAILOR_PROFILE,
+  SEASONS_OF_LIFE,
+  battlesForAudience,
+  eraseTailorProfile,
+  loadTailorProfile,
+  profileDefaults,
+  profileForRequest,
+  saveTailorProfile,
+  type TailorProfile,
+} from '@/lib/tailorProfile';
 
 interface TailorTodayProps {
   t: PersonaTheme;
@@ -50,6 +71,191 @@ interface TailorTodayProps {
 function fmt(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+/** A chip row for the profile editor — one visual language, single or multi. */
+function ChipRow({
+  t,
+  options,
+  isOn,
+  onToggle,
+}: {
+  t: PersonaTheme;
+  options: { id: string; label: string }[];
+  isOn: (id: string) => boolean;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((opt) => {
+        const on = isOn(opt.id);
+        return (
+          <button
+            key={opt.id}
+            onClick={() => onToggle(opt.id)}
+            aria-pressed={on}
+            className="px-2.5 py-1.5 rounded-full border text-[10px] font-bold transition-all active:scale-95"
+            style={{
+              backgroundColor: on ? t.accentRgba(0.16) : `${t.border}33`,
+              borderColor: on ? t.accent : `${t.border}99`,
+              color: on ? t.accent : t.textMuted,
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * The standing profile editor (Nov 13, 2026): the season a person is in,
+ * kept on this device only, edited here and erased here. The erase is a
+ * two-step act — the first tap arms it, the second carries it out — the
+ * same deliberate posture the app takes toward anything it keeps for you.
+ */
+function TailorProfileEditor({
+  t,
+  audience,
+  onSaved,
+}: {
+  t: PersonaTheme;
+  audience: Audience;
+  onSaved: (profile: TailorProfile) => void;
+}) {
+  const [draft, setDraft] = useState<TailorProfile>(() => loadTailorProfile(audience));
+  const [confirmingErase, setConfirmingErase] = useState(false);
+  const [savedNote, setSavedNote] = useState(false);
+
+  useEffect(() => {
+    setDraft(loadTailorProfile(audience));
+    setConfirmingErase(false);
+  }, [audience]);
+
+  const hasAnything =
+    draft.seasonOfLife !== null ||
+    draft.ongoingBattles.length > 0 ||
+    draft.standingGoal.trim().length > 0 ||
+    draft.mediaPrefs.length > 0 ||
+    draft.defaultTone !== null;
+
+  const labelStyle: React.CSSProperties = { color: t.textDim };
+  const fieldLabel = 'block text-[9px] uppercase tracking-widest font-bold mb-1.5';
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <span className={fieldLabel} style={labelStyle}>Season of life</span>
+        <ChipRow
+          t={t}
+          options={SEASONS_OF_LIFE[audience]}
+          isOn={(id) => draft.seasonOfLife === id}
+          onToggle={(id) => setDraft((d) => ({ ...d, seasonOfLife: d.seasonOfLife === id ? null : id }))}
+        />
+      </div>
+
+      <div>
+        <span className={fieldLabel} style={labelStyle}>Battles you carry in this season</span>
+        <ChipRow
+          t={t}
+          options={battlesForAudience(audience).map((b) => ({ id: b, label: b }))}
+          isOn={(id) => draft.ongoingBattles.includes(id)}
+          onToggle={(id) =>
+            setDraft((d) => ({
+              ...d,
+              ongoingBattles: d.ongoingBattles.includes(id)
+                ? d.ongoingBattles.filter((b) => b !== id)
+                : [...d.ongoingBattles, id],
+            }))
+          }
+        />
+      </div>
+
+      <label className="block">
+        <span className={fieldLabel} style={labelStyle}>A standing goal — one line</span>
+        <input
+          value={draft.standingGoal}
+          onChange={(e) => setDraft((d) => ({ ...d, standingGoal: e.target.value.slice(0, 120) }))}
+          placeholder={audience === 'women' ? 'Become a patient mother.' : 'Become a patient father.'}
+          className="w-full text-xs rounded-lg px-3 py-2.5 border focus:outline-none"
+          style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.text }}
+        />
+      </label>
+
+      <div>
+        <span className={fieldLabel} style={labelStyle}>What lifts you — kinds it may go and find</span>
+        <ChipRow
+          t={t}
+          options={TAILOR_SEARCH_KINDS.map((k) => ({ id: k, label: TAILOR_SEARCH_KIND_LABELS[k] }))}
+          isOn={(id) => draft.mediaPrefs.includes(id as TailorSearchKind)}
+          onToggle={(id) =>
+            setDraft((d) => ({
+              ...d,
+              mediaPrefs: d.mediaPrefs.includes(id as TailorSearchKind)
+                ? d.mediaPrefs.filter((k) => k !== id)
+                : [...d.mediaPrefs, id as TailorSearchKind],
+            }))
+          }
+        />
+      </div>
+
+      <div>
+        <span className={fieldLabel} style={labelStyle}>Usually, from God you want</span>
+        <ChipRow
+          t={t}
+          options={TAILOR_TONES}
+          isOn={(id) => draft.defaultTone === id}
+          onToggle={(id) =>
+            setDraft((d) => ({ ...d, defaultTone: d.defaultTone === id ? null : (id as TailorTone) }))
+          }
+        />
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          onClick={() => {
+            saveTailorProfile(audience, draft);
+            onSaved(draft);
+            setSavedNote(true);
+            setConfirmingErase(false);
+          }}
+          className="flex-1 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all active:scale-[0.98]"
+          style={{ backgroundColor: t.accentRgba(0.14), borderColor: t.accent, color: t.accent }}
+        >
+          {savedNote ? 'Saved — kept on this device' : 'Save profile'}
+        </button>
+        {hasAnything && (
+          <button
+            onClick={() => {
+              if (!confirmingErase) {
+                setConfirmingErase(true);
+                return;
+              }
+              eraseTailorProfile(audience);
+              setDraft({ ...EMPTY_TAILOR_PROFILE });
+              onSaved({ ...EMPTY_TAILOR_PROFILE });
+              setConfirmingErase(false);
+              setSavedNote(false);
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all active:scale-[0.98]"
+            style={{
+              backgroundColor: `${t.border}33`,
+              borderColor: confirmingErase ? t.accent : `${t.border}99`,
+              color: confirmingErase ? t.accent : t.textMuted,
+            }}
+          >
+            <Eraser className="w-3 h-3" />
+            {confirmingErase ? 'Tap again to erase' : 'Erase profile'}
+          </button>
+        )}
+      </div>
+      <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
+        Kept on this device only — never on a server. It stays until you change it, erase it,
+        or clear the app&rsquo;s data.
+      </p>
+    </div>
+  );
 }
 
 /**
@@ -71,7 +277,39 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
 
   const [state, setState] = useState<TailorState>('steady');
   const [focus, setFocus] = useState<TailorFocus>('today');
+  const [tone, setTone] = useState<TailorTone>('comfort');
   const [freeText, setFreeText] = useState('');
+
+  // The standing profile: loaded once per track, its defaults lean the
+  // morning's opening answers, and its snapshot rides with the build. The
+  // prefill happens once — the morning's own taps are never overridden.
+  const [profile, setProfile] = useState<TailorProfile>(() => loadTailorProfile(audience));
+  const [profileOpen, setProfileOpen] = useState(false);
+  const prefilledFor = useRef<Audience | null>(null);
+  useEffect(() => {
+    const loaded = loadTailorProfile(audience);
+    setProfile(loaded);
+    if (prefilledFor.current !== audience) {
+      prefilledFor.current = audience;
+      const defaults = profileDefaults(loaded);
+      if (defaults.state) setState(defaults.state);
+      if (defaults.focus) setFocus(defaults.focus);
+      if (loaded.defaultTone) setTone(loaded.defaultTone);
+    }
+  }, [audience]);
+
+  // The build's staged progress — client-side rotation over honest stages.
+  const [progressIdx, setProgressIdx] = useState(0);
+  useEffect(() => {
+    if (view !== 'building') return;
+    setProgressIdx(0);
+    const lines = tailorProgressLines(focus);
+    const id = setInterval(() => {
+      setProgressIdx((i) => Math.min(i + 1, lines.length - 1));
+    }, 4000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
 
   // If today's build already exists on this device, the card offers it back —
   // playing it again never touches the server.
@@ -142,7 +380,9 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
     const intake: TailorIntake = {
       state,
       focus,
+      tone,
       freeText: freeText.trim(),
+      profile: profileForRequest(audience, profile),
     };
     setView('building');
     setError(null);
@@ -195,8 +435,9 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
           </div>
           <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
             Say how this morning is, and today&rsquo;s devotional is re-aimed at it — the same
-            readings, a passage for your need, and the day&rsquo;s narrator reading it for you.
-            What you write is never stored; the devotional lives on this device only.
+            readings, a passage for your need, a word from the tradition, and the day&rsquo;s
+            narrator reading it for you. What you write for a morning is never stored on a
+            server; the devotional lives on this device only.
           </p>
 
           <label className="block mb-2.5">
@@ -233,6 +474,22 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
 
           <label className="block mb-2.5">
             <span className="block text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
+              What do you want from God today?
+            </span>
+            <select
+              value={tone}
+              onChange={(e) => setTone(e.target.value as TailorTone)}
+              className="w-full text-xs rounded-lg px-3 py-2.5 border focus:outline-none"
+              style={selectStyle}
+            >
+              {TAILOR_TONES.map((tn) => (
+                <option key={tn.id} value={tn.id}>{tn.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block mb-2.5">
+            <span className="block text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
               In your own words <span className="normal-case tracking-normal font-medium">(optional)</span>
             </span>
             <input
@@ -243,6 +500,29 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               style={selectStyle}
             />
           </label>
+
+          {/* The standing profile — collapsed until wanted; it leans every
+              morning without being asked again, and it lives here, on the
+              device, under the user's own hand. */}
+          <div className="mb-3 rounded-lg border px-3 py-2.5" style={{ borderColor: `${t.border}66` }}>
+            <button
+              onClick={() => setProfileOpen((o) => !o)}
+              aria-expanded={profileOpen}
+              className="w-full flex items-center justify-between transition-opacity hover:opacity-70"
+            >
+              <span className="text-[9px] uppercase tracking-widest font-bold" style={{ color: t.textDim }}>
+                Your standing profile
+              </span>
+              <span className="text-[10px]" style={{ color: t.textDim }}>
+                {profileOpen ? 'Close' : profileForRequest(audience, profile) ? 'Set — edit' : 'Not set'}
+              </span>
+            </button>
+            {profileOpen && (
+              <div className="pt-3 animate-fade-in">
+                <TailorProfileEditor t={t} audience={audience} onSaved={setProfile} />
+              </div>
+            )}
+          </div>
 
           {view === 'error' && error && (
             <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>{error}</p>
@@ -262,7 +542,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
       {view === 'building' && (
         <div className="flex items-center justify-center gap-2 py-4" style={{ color: t.textDim }}>
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-[11px]">Composing your morning — the readings, a passage for your need, and the narrator&rsquo;s voice…</span>
+          <span className="text-[11px]">{tailorProgressLines(focus)[progressIdx]}</span>
         </div>
       )}
 
@@ -342,21 +622,40 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
                 <p className="text-xs leading-relaxed" style={{ color: t.text }}>{devotional.challenge}</p>
               </div>
             </div>
+            {devotional.traditionQuote && (
+              <div className="flex items-start gap-2.5">
+                <Quote className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.accent, opacity: 0.7 }} />
+                <div>
+                  <p className="text-[9px] uppercase tracking-widest font-bold mb-0.5" style={{ color: t.textDim }}>
+                    A word from the tradition · {devotional.traditionQuote.author}
+                  </p>
+                  <p className="text-xs leading-relaxed italic" style={{ color: t.textMuted }}>
+                    &ldquo;{devotional.traditionQuote.text}&rdquo;
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <a
-            href={devotional.media.searchUrl}
+            href={devotional.media.url}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98] mb-2"
             style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99` }}
           >
-            {devotional.media.type === 'film' ? (
+            {devotional.media.kind === 'film' ? (
               <Clapperboard className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
-            ) : devotional.media.type === 'podcast' ? (
+            ) : devotional.media.kind === 'podcast' ? (
               <Headphones className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
-            ) : devotional.media.type === 'talk' ? (
+            ) : devotional.media.kind === 'talk' ? (
               <Mic className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
+            ) : devotional.media.kind === 'video' ? (
+              <Video className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
+            ) : devotional.media.kind === 'article' ? (
+              <Newspaper className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
+            ) : devotional.media.kind === 'book' ? (
+              <BookOpen className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
             ) : (
               <Music className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
             )}
@@ -365,8 +664,13 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
                 {devotional.media.title}
               </span>
               <span className="block text-[10px]" style={{ color: t.textDim }}>
-                {MEDIA_TYPE_LABELS[devotional.media.type]} · {devotional.media.creator} · {mediaActionLabel(devotional.media)}
+                {MEDIA_KIND_LABELS[devotional.media.kind]} · {devotional.media.creator} · {mediaActionLabel(devotional.media)}
               </span>
+              {devotional.media.why && (
+                <span className="block text-[10px] italic" style={{ color: t.textDim }}>
+                  {devotional.media.why}
+                </span>
+              )}
             </span>
           </a>
 

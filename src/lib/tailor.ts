@@ -1,5 +1,6 @@
 import type { Audience } from '@/types';
-import type { TailorFocus, TailorMediaType, TailorState } from '@/data/tailorBank';
+import { tailorFocusLabel, type TailorFocus, type TailorMediaKind, type TailorState, type TailorTone } from '@/data/tailorBank';
+import { profileSignature, type TailorRequestProfile } from '@/lib/tailorProfile';
 
 /**
  * Tailor Today, client side (Nov 12, 2026). One build per user per day: the
@@ -21,7 +22,17 @@ import type { TailorFocus, TailorMediaType, TailorState } from '@/data/tailorBan
 export interface TailorIntake {
   state: TailorState;
   focus: TailorFocus;
+  /** "What do you want from God today?" — the tone of the ask (Nov 13, 2026). */
+  tone: TailorTone;
   freeText: string;
+  /**
+   * The standing profile's request shape (labels, not ids), snapshotted at
+   * build time — or null when the user keeps no profile. It rides with the
+   * request transiently; the server stores nothing, and the snapshot is
+   * folded into the cache key so a profile edit makes the same stated
+   * morning a new build rather than a stale replay.
+   */
+  profile?: TailorRequestProfile | null;
 }
 
 export interface TailoredDevotional {
@@ -31,14 +42,30 @@ export interface TailoredDevotional {
   passage: { citation: string; text: string; translation: string };
   reflect: string;
   challenge: string;
-  media: { type: TailorMediaType; title: string; creator: string; searchUrl: string };
+  /** A word from the tradition, chosen for this morning — or null when none was found. */
+  traditionQuote: { text: string; author: string } | null;
+  media: {
+    kind: TailorMediaKind;
+    title: string;
+    creator: string;
+    /** A found item's own page (live search), or a search URL (the curated bank). */
+    url: string;
+    /** One line, from the morning's categories only: why this, today. */
+    why: string;
+  };
   audioBase64: string;
   audioSeconds: number;
 }
 
 /** A stable short hash of the intake — the day's build is keyed by what was asked. */
 export function intakeHash(intake: TailorIntake): string {
-  const seed = `${intake.state}|${intake.focus}|${intake.freeText.trim().toLowerCase()}`;
+  const seed = [
+    intake.state,
+    intake.focus,
+    intake.tone,
+    intake.freeText.trim().toLowerCase(),
+    profileSignature(intake.profile ?? null),
+  ].join('|');
   let hash = 5381;
   for (let i = 0; i < seed.length; i++) {
     hash = ((hash * 33) ^ seed.charCodeAt(i)) >>> 0;
@@ -132,7 +159,7 @@ function defaultStore(): TailorStore {
   return sharedStore;
 }
 
-const MEDIA_TYPES: readonly string[] = ['song', 'film', 'podcast', 'talk'];
+const MEDIA_KINDS: readonly string[] = ['song', 'film', 'podcast', 'talk', 'video', 'article', 'book'];
 
 /** Validates the function's response into the shape the card trusts, or null. */
 export function parseTailorResponse(raw: unknown): TailoredDevotional | null {
@@ -155,9 +182,15 @@ export function parseTailorResponse(raw: unknown): TailoredDevotional | null {
   const pText = str(passage?.text);
   const mTitle = str(media?.title);
   const mCreator = str(media?.creator);
-  const mUrl = str(media?.searchUrl);
-  const mType = typeof media?.type === 'string' && MEDIA_TYPES.includes(media.type) ? (media.type as TailorMediaType) : null;
-  if (!pCitation || !pText || !mTitle || !mCreator || !mUrl || !mType) return null;
+  // v2 names them kind/url; the v1 aliases (type/searchUrl) are still honoured
+  // so a response from either shape of the function parses the same way.
+  const mUrl = str(media?.url) ?? str(media?.searchUrl);
+  const mKindRaw = typeof media?.kind === 'string' ? media.kind : media?.type;
+  const mKind = typeof mKindRaw === 'string' && MEDIA_KINDS.includes(mKindRaw) ? (mKindRaw as TailorMediaKind) : null;
+  if (!pCitation || !pText || !mTitle || !mCreator || !mUrl || !mKind) return null;
+  const quote = r.traditionQuote as Record<string, unknown> | null | undefined;
+  const qText = str(quote?.text);
+  const qAuthor = str(quote?.author);
   return {
     date,
     narratorId,
@@ -169,7 +202,8 @@ export function parseTailorResponse(raw: unknown): TailoredDevotional | null {
     },
     reflect,
     challenge,
-    media: { type: mType, title: mTitle, creator: mCreator, searchUrl: mUrl },
+    traditionQuote: qText && qAuthor ? { text: qText, author: qAuthor } : null,
+    media: { kind: mKind, title: mTitle, creator: mCreator, url: mUrl, why: str(media?.why) ?? '' },
     audioBase64,
     audioSeconds: typeof r.audioSeconds === 'number' && r.audioSeconds > 0 ? r.audioSeconds : 0,
   };
@@ -201,9 +235,16 @@ async function callTailorFunction(
       audience,
       state: intake.state,
       focus: intake.focus,
+      tone: intake.tone,
       freeText: intake.freeText,
+      // The standing profile rides transiently, exactly like the morning's own
+      // words: the function phrases from it and stores nothing (privacy pins).
+      profile: intake.profile ?? null,
     }),
-    signal: AbortSignal.timeout(180000),
+    // A live build (search + composition + a full render) may take a minute
+    // or two; the timeout is generous on purpose, and the card's failure
+    // state is calm either way.
+    signal: AbortSignal.timeout(300000),
   });
   if (!res.ok) throw new Error(`tailor-http-${res.status}`);
   const parsed = parseTailorResponse(await res.json());
@@ -254,23 +295,45 @@ export async function loadTodaysTailored(
   return found && found.date === dateKey ? found : null;
 }
 
+/**
+ * The honest stages of a live build, in the order the work roughly happens.
+ * They rotate on the client's own clock while the one request is in flight —
+ * a truthful account of what the build does, not a fake progress feed.
+ */
+export function tailorProgressLines(focus: TailorFocus): string[] {
+  return [
+    'Reading today’s readings…',
+    `Finding a passage for ${tailorFocusLabel(focus).toLowerCase()}…`,
+    'Choosing something to lift you…',
+    'Your narrator is recording your morning…',
+  ];
+}
+
 /** "Tailored for today · read by Ben" — the credit line over the player. Narrator only: no companion lens exists in Tailor Today. */
 export function tailorCreditLine(devotional: TailoredDevotional): string {
   return `Tailored for today · read by ${devotional.narratorName}`;
 }
 
-/** What the media card's link does, named by where the search URL points. */
+/** What the media card's link does, named by where the link points. */
 export function mediaActionLabel(media: TailoredDevotional['media']): string {
-  if (media.searchUrl.includes('open.spotify.com')) return 'Find it on Spotify';
-  if (media.searchUrl.includes('youtube.com')) return 'Watch on YouTube';
-  return 'Look it up';
+  if (media.url.includes('open.spotify.com/search')) return 'Find it on Spotify';
+  if (media.url.includes('youtube.com/results')) return 'Watch on YouTube';
+  if (media.url.includes('google.com/search')) return 'Look it up';
+  if (media.url.includes('youtube.com') || media.url.includes('youtu.be') || media.url.includes('vimeo.com')) {
+    return 'Watch it';
+  }
+  if (media.url.includes('spotify.com') || media.url.includes('podcasts.apple.com')) return 'Listen';
+  return 'Open it';
 }
 
-export const MEDIA_TYPE_LABELS: Record<TailorMediaType, string> = {
+export const MEDIA_KIND_LABELS: Record<TailorMediaKind, string> = {
   song: 'Song',
   film: 'Film',
   podcast: 'Podcast',
   talk: 'Talk',
+  video: 'Video',
+  article: 'Article',
+  book: 'Book',
 };
 
 /** Decodes the response's base64 audio into a playable object URL. */
