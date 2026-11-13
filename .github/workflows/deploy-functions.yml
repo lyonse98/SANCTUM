@@ -23,7 +23,7 @@ jobs:
           set -e
           for fn in chat-proxy daily-reflection daily-readings push-dispatch audio-render corpus-retrieve corpus-ingest analytics-track tailor-devotional; do
             echo "=== deploying $fn ==="
-            supabase functions deploy "$fn" --no-verify-jwt
+            supabase functions deploy "$fn" --no-verify-jwt --yes
           done
           echo "=== deploying feedback-submit ==="
-          supabase functions deploy feedback-submit
+          supabase functions deploy feedback-submit --yes
