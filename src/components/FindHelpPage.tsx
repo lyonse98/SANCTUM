@@ -12,7 +12,8 @@ import {
   RotateCcw,
   type LucideIcon,
 } from 'lucide-react';
-import type { Audience, PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme, UtilityActions } from '@/types';
+import { UtilitiesLine } from '@/components/UtilitiesLine';
 import { HELP_DISCLAIMER, HELP_SECTIONS, getHelpSections, type HelpIconKey } from '@/lib/realHelp';
 
 interface FindHelpPageProps {
@@ -22,6 +23,8 @@ interface FindHelpPageProps {
   onBack: () => void;
   /** The funnel back to prayer — the foot of Real Help points into Pocket Church. */
   onPrayNow?: () => void;
+  /** The housekeeping actions, fired from the utilities line at the foot of the page. */
+  utilities: UtilityActions;
 }
 
 const ICONS: Record<HelpIconKey, LucideIcon> = {
@@ -37,7 +40,7 @@ const ICONS: Record<HelpIconKey, LucideIcon> = {
  * Hands the man to a real person. Deliberately prominent: it is the one screen that
  * keeps Sanctum honest, so it is reachable from the home toolbar, the chat, and crisis.
  */
-export function FindHelpPage({ t, audience, accent, onBack, onPrayNow }: FindHelpPageProps) {
+export function FindHelpPage({ t, audience, accent, onBack, onPrayNow, utilities }: FindHelpPageProps) {
   const sections = getHelpSections(audience);
   const a = accent ?? t.accent;
 
@@ -113,6 +116,8 @@ export function FindHelpPage({ t, audience, accent, onBack, onPrayNow }: FindHel
         <p className="text-[10px] text-center mt-6 leading-relaxed max-w-xs" style={{ color: t.textDim }}>
           In crisis right now? Call or text 988 (US), or findahelpline.com outside the US.
         </p>
+
+        <UtilitiesLine t={t} utilities={utilities} className="mt-6" />
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Church } from 'lucide-react';
-import type { Audience, PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme, UtilityActions } from '@/types';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
+import { UtilitiesLine } from '@/components/UtilitiesLine';
 import { PrayerLibrary } from '@/components/PrayerLibrary';
 import { ConfessionGuide } from '@/components/ConfessionGuide';
 import { PocketCatechism } from '@/components/PocketCatechism';
@@ -17,6 +18,8 @@ interface PocketChurchPageProps {
   audience: Audience;
   /** The season's theme — so the page wears the day's colour, not a fixed palette. */
   seasonTheme: PersonaTheme;
+  /** The housekeeping actions, fired from the utilities line at the foot of the page. */
+  utilities: UtilityActions;
 }
 
 /**
@@ -39,7 +42,7 @@ const TABS: { id: ChurchTab; label: string }[] = [
 
 const VALID_TABS = TABS.map((tab) => tab.id);
 
-export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPraySection, onConsumePraySection, audience, seasonTheme }: PocketChurchPageProps) {
+export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPraySection, onConsumePraySection, audience, seasonTheme, utilities }: PocketChurchPageProps) {
   // A landing (a companion's link, a reminder's tap) names its door up front:
   // the page opens there directly rather than flashing the default door first.
   // The consume effects below still clear the request once it has landed.
@@ -152,6 +155,8 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
         <p className="text-[10px] text-center mt-6 leading-relaxed max-w-xs" style={{ color: t.textDim }}>
           Pocket Church is for faith formation, not sacramental absolution. For the sacraments, see a priest.
         </p>
+
+        <UtilitiesLine t={t} utilities={utilities} className="mt-6" />
       </div>
     </div>
   );

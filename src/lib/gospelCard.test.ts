@@ -186,9 +186,12 @@ describe('the saint, demoted to the header line', () => {
 });
 
 describe('Real Help stays visible at the foot of Today', () => {
-  it('one quiet line links to the Real Help view', () => {
+  it('the More of Sanctum block carries it as a full row (the old one-line link retired, Nov 13, 2026)', () => {
     const home = read('components/HomeScreen.tsx');
-    expect(home).toContain('Need real help? A priest, a counselor, or a crisis line —');
-    expect(home).toContain('onClick={onOpenHelp}');
+    expect(home).toContain('<MoreOfSanctum');
+    expect(home).not.toContain('Need real help?');
+    const more = read('components/MoreOfSanctum.tsx');
+    expect(more).toContain("key: 'help', label: 'Real Help', hint: 'Priests, counselors, crisis lines'");
+    expect(more).toContain('onNavigate(entry.key)');
   });
 });

@@ -10,6 +10,14 @@ import type { Audience } from '@/types';
 const SRC = join(__dirname, '..');
 const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 
+const utilities = {
+  onOpenSettings: vi.fn(),
+  onShareInvite: vi.fn(),
+  onOpenFeedback: vi.fn(),
+  onOpenAbout: vi.fn(),
+  onOpenReminder: vi.fn(),
+};
+
 function render(audience: Audience, initialTab?: ChurchTab, initialPraySection?: PraySection) {
   return renderToString(
     createElement(PocketChurchPage, {
@@ -18,6 +26,7 @@ function render(audience: Audience, initialTab?: ChurchTab, initialPraySection?:
       seasonTheme: getSeasonTheme(new Date(), audience),
       initialTab: initialTab ?? null,
       initialPraySection: initialPraySection ?? null,
+      utilities,
     }),
   );
 }

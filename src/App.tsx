@@ -30,8 +30,6 @@ import { FindHelpPage } from '@/components/FindHelpPage';
 import { AboutSanctumPage } from '@/components/AboutSanctumPage';
 import { PersonaIntro } from '@/components/PersonaIntro';
 import type { ChurchTab, PraySection } from '@/components/PocketChurchPage';
-import { TopHeader } from '@/components/TopHeader';
-import { MenuSheet } from '@/components/MenuSheet';
 import { ReminderModal } from '@/components/ReminderModal';
 import { FOCUS_ROUTES, parseFocusParam } from '@/lib/pushCore';
 import { ShareInviteModal } from '@/components/ShareInviteModal';
@@ -125,7 +123,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [remainingMessages, setRemainingMessages] = useState(() => getRemainingMessages());
   const [showCapModal, setShowCapModal] = useState(false);
   const [view, setView] = useState<TabId>('today');
-  const [menuOpen, setMenuOpen] = useState(false);
   const [churchTab, setChurchTab] = useState<ChurchTab | null>(null);
   const [churchPray, setChurchPray] = useState<PraySection | null>(null);
   const [forceExamen, setForceExamen] = useState(false);
@@ -388,9 +385,9 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     [handleSend],
   );
 
-  // The five utilities live in the menu sheet (Nov 13, 2026): one object of
-  // actions, handed to the sheet wherever it opens — the main shell and the
-  // companion chat alike.
+  // The five utilities live in the utilities line (Nov 13, 2026): one object
+  // of actions, handed to the line at the foot of every main view — Today
+  // (below the More of Sanctum block) and the three destination pages alike.
   const utilities: UtilityActions = useMemo(
     () => ({
       onOpenSettings: () => setSettingsOpen(true),
@@ -507,10 +504,12 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
   if (!persona) {
     // The shell, with the conversation closed. Since the core diet (Nov 13,
-    // 2026) there is no bottom tab bar: Today is the only home under a slim
-    // top header, and Companions / Pocket Church / Real Help plus all the
-    // housekeeping live behind the Menu sheet. Sub-views carry a plain
-    // "‹ Today" return under the header (their own Back buttons remain too).
+    // 2026) there is no bottom tab bar and no top header either: Today is
+    // the only home, and it ends with the More of Sanctum block (the three
+    // destinations) over the utilities line — Option B, "Foot of Today".
+    // The same utilities line closes the three destination pages. Sub-views
+    // carry a plain "‹ Today" return at the top of the content area (their
+    // own Back buttons remain too).
     const areaTheme = seasonTheme;
     let content: JSX.Element;
     if (view === 'companions') {
@@ -522,6 +521,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           }}
           onBack={() => setView('today')}
           theme={areaTheme}
+          utilities={utilities}
         />
       );
     } else if (view === 'church') {
@@ -534,6 +534,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           onConsumePraySection={() => setChurchPray(null)}
           audience={audience}
           seasonTheme={areaTheme}
+          utilities={utilities}
         />
       );
     } else if (view === 'help') {
@@ -544,6 +545,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           accent={seasonAccent}
           onBack={() => setView('today')}
           onPrayNow={() => { setChurchTab('pray'); setView('church'); }}
+          utilities={utilities}
         />
       );
     } else {
@@ -560,6 +562,8 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             onOpenReminder={() => setReminderOpen(true)}
             forceTonight={forceExamen}
             onConsumeForceTonight={() => setForceExamen(false)}
+            utilities={utilities}
+            onNavigate={handleChangeView}
           />
         </>
       );
@@ -567,7 +571,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
     return (
       <div className="fixed inset-0 flex flex-col" style={{ backgroundColor: areaTheme.bg }}>
-        <TopHeader t={areaTheme} onHome={() => handleChangeView('today')} onOpenMenu={() => setMenuOpen(true)} />
         {view !== 'today' && (
           <div
             className="relative z-20 flex-shrink-0 border-b"
@@ -586,13 +589,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         )}
         <div className="relative flex-1 overflow-hidden"><Suspense fallback={<TabFallback />}>{content}</Suspense></div>
 
-        <MenuSheet
-          open={menuOpen}
-          t={areaTheme}
-          onClose={() => setMenuOpen(false)}
-          onNavigate={handleChangeView}
-          utilities={utilities}
-        />
         {showAbout && (
           <AboutSanctumPage t={areaTheme} accent={seasonAccent} audience={audience} onClose={() => setShowAbout(false)} />
         )}
@@ -682,7 +678,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         onOpenSettings={() => setSettingsOpen(true)}
         onPanic={handlePanic}
         onGoHome={() => handleChangeView('today')}
-        onOpenMenu={() => setMenuOpen(true)}
       />
 
       {incognito && (
@@ -781,25 +776,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       )}
 
       <ReminderModal open={reminderOpen} t={t} onClose={() => setReminderOpen(false)} />
-      <ShareInviteModal
-        open={shareInviteOpen}
-        audience={audience}
-        t={t}
-        onClose={() => setShareInviteOpen(false)}
-      />
-
-      <MenuSheet
-        open={menuOpen}
-        t={t}
-        onClose={() => setMenuOpen(false)}
-        onNavigate={(next) => {
-          // From inside a conversation, the Companions row means the cast
-          // list — which is the switch-companion move, not a view change.
-          if (next === 'companions') handleSwitchPersona();
-          else handleChangeView(next);
-        }}
-        utilities={utilities}
-      />
     </div>
   );
 }

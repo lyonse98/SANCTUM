@@ -1,14 +1,15 @@
 import { useRef, useEffect, useState } from 'react';
-import { ArrowRight, HeartHandshake } from 'lucide-react';
 import { DailyQuote } from '@/components/DailyQuote';
 import { ReminderCard } from '@/components/ReminderCard';
+import { MoreOfSanctum } from '@/components/MoreOfSanctum';
+import { UtilitiesLine } from '@/components/UtilitiesLine';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { TodayHero } from '@/components/TodayHero';
 import { TonightClosing } from '@/components/TonightClosing';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
 import { AUDIO_PM_START_HOUR } from '@/lib/narratorCore';
 import { morningResolve } from '@/lib/tonight';
-import type { Audience } from '@/types';
+import type { Audience, TabId, UtilityActions } from '@/types';
 import { PRIVACY_SHORT } from '@/lib/privacyCopy';
 import { MISSION_LINE, MISSION_ATTRIBUTION } from '@/lib/mission';
 
@@ -21,6 +22,10 @@ interface HomeScreenProps {
   /** A push tap on the examen focus lands here: show the Tonight closing whatever the hour. */
   forceTonight?: boolean;
   onConsumeForceTonight?: () => void;
+  /** The housekeeping actions, fired from the utilities line at the foot of the page. */
+  utilities: UtilityActions;
+  /** The More of Sanctum rows walk to the three destinations. */
+  onNavigate: (view: TabId) => void;
 }
 
 /**
@@ -34,11 +39,12 @@ interface HomeScreenProps {
  * taught it to — gratitude, one honest look, one resolve — as a short closing
  * section titled simply "Tonight", appearing as the day turns (from the PM
  * hour the audio day already keeps) or whenever a reminder's tap asks for it.
- * It is a shape, not a tool: nothing on it is checked or scored. One quiet
- * line at the foot keeps Real Help in view — help should never be only
- * behind a menu.
+ * It is a shape, not a tool: nothing on it is checked or scored. The page
+ * closes with the More of Sanctum block (Erik, Nov 13, 2026 — Option B,
+ * "Foot of Today"): the three destinations as rows under the day itself,
+ * Real Help among them at full weight, and the utilities line last of all.
  */
-export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight }: HomeScreenProps) {
+export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
   const tonightRef = useRef<HTMLDivElement>(null);
   const seasonTheme = getSeasonTheme(new Date(), audience);
@@ -121,22 +127,21 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           </div>
         )}
 
-        {/* Real Help stays in view at the foot of Today — one quiet line, so
-            a hard moment never has to go hunting through the menu. */}
-        <button
-          onClick={onOpenHelp}
-          className="w-full flex items-center justify-center gap-2 text-center transition-opacity hover:opacity-70 mb-4"
-        >
-          <HeartHandshake className="w-3.5 h-3.5 flex-shrink-0" style={{ color: seasonAccent }} />
-          <span className="text-[11px] font-medium text-forge-text-muted">
-            Need real help? A priest, a counselor, or a crisis line —
-          </span>
-          <ArrowRight className="w-3 h-3 flex-shrink-0" style={{ color: seasonAccent }} />
-        </button>
+        {/* More of Sanctum — the three destinations live at the foot of
+            Today now (Option B): under the day, above the housekeeping.
+            This block replaced the old one-line Real Help link; Real Help
+            is its third row, at the same weight as the others. */}
+        <div className="w-full mb-6">
+          <MoreOfSanctum t={seasonTheme} onNavigate={onNavigate} />
+        </div>
 
-        <p className="text-[11px] text-forge-text-dim text-center mt-4 leading-relaxed max-w-xs">
+        <p className="text-[11px] text-forge-text-dim text-center leading-relaxed max-w-xs mb-5">
           Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US). {PRIVACY_SHORT}
         </p>
+
+        {/* The utilities line closes the page — Settings · Reminders ·
+            Feedback · About · Share, footer text, nothing more. */}
+        <UtilitiesLine t={seasonTheme} utilities={utilities} />
       </div>
     </div>
   );
