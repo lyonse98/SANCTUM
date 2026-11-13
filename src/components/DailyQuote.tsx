@@ -497,6 +497,8 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
         celebration={readings?.celebration}
         keyVerse={keyVerse}
         reflection={shown.value}
+        dateKey={readings?.date ?? null}
+        audience={audience}
         onClose={() => setShareOpen(false)}
       />
     </div>

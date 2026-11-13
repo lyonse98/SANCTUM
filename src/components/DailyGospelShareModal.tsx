@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { X, Download, Share2, BookOpen, Sparkles, Target } from 'lucide-react';
+import { X, Download, Share2, BookOpen } from 'lucide-react';
 import {
   CARD_WIDTH,
   STYLE_LABELS,
@@ -10,9 +10,16 @@ import {
   wrapText,
   type CardStyle,
 } from '@/lib/shareCard';
+import {
+  buildSharePieces,
+  cardTextPlan,
+  type SharePiece,
+  type SharePieceId,
+} from '@/lib/sharePieces';
+import { readTailorShare } from '@/lib/tailorShare';
 import type { KeyVerse } from '@/lib/keyVerse';
 import type { Reflection } from '@/lib/reflection';
-import type { PersonaTheme } from '@/types';
+import type { Audience, PersonaTheme } from '@/types';
 
 interface DailyGospelShareModalProps {
   open: boolean;
@@ -21,6 +28,9 @@ interface DailyGospelShareModalProps {
   celebration?: string | null;
   keyVerse: KeyVerse | null;
   reflection: Reflection | null;
+  /** The day on screen — keys the on-device tailored pieces for this date/track. */
+  dateKey?: string | null;
+  audience: Audience;
   onClose: () => void;
 }
 
@@ -47,6 +57,24 @@ function drawParagraph(
   lines.forEach((line, i) => ctx.fillText(line, centerX, startY + i * lineHeight));
 }
 
+/** Type sizes per piece — one text, generously set; Scripture largest. */
+const PIECE_FONT_SIZE: Record<SharePieceId, number> = {
+  verse: 48,
+  passage: 42,
+  tradition: 38,
+  reflection: 38,
+  challenge: 38,
+};
+
+/** Pieces that open with the big decorative quote mark. */
+const QUOTED_PIECES: SharePieceId[] = ['verse', 'passage', 'tradition'];
+
+/**
+ * Draws ONE piece on its own card: the DAILY GOSPEL header, the season /
+ * celebration line, the piece's label, its text, and its attribution. The
+ * words come from cardTextPlan and from nowhere else — a card can never
+ * carry another piece's text.
+ */
 function drawCard(
   canvas: HTMLCanvasElement,
   options: {
@@ -54,42 +82,37 @@ function drawCard(
     style: CardStyle;
     season?: string | null;
     celebration?: string | null;
-    keyVerse: KeyVerse | null;
-    reflection: Reflection | null;
+    facet?: string | null;
+    piece: SharePiece;
   },
 ): string {
-  const { t, style, season, celebration, keyVerse, reflection } = options;
+  const { t, style, season, celebration, facet, piece } = options;
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
+
+  const plan = cardTextPlan(piece, { season, celebration, facet });
 
   const W = CARD_WIDTH;
   const PAD = 110;
   const contentWidth = W - PAD * 2;
 
-  const verseFont = `400 46px Georgia, "Times New Roman", serif`;
-  const verseLineHeight = 66;
-  const bodyFont = '400 30px Georgia, "Times New Roman", serif';
-  const bodyLineHeight = 44;
+  const fontSize = PIECE_FONT_SIZE[piece.id];
+  const font = `${piece.id === 'tradition' ? 'italic ' : ''}400 ${fontSize}px Georgia, "Times New Roman", serif`;
+  const lineHeight = Math.round(fontSize * 1.42);
+  const body = measure(ctx, plan.text, font, contentWidth, lineHeight);
 
-  const verseText = keyVerse?.text ?? '';
-  const verse = measure(ctx, verseText, verseFont, contentWidth, verseLineHeight);
-  const reflect = measure(ctx, reflection?.reflect ?? '', bodyFont, contentWidth, bodyLineHeight);
-  const challenge = measure(ctx, reflection?.challenge ?? '', bodyFont, contentWidth, bodyLineHeight);
-
-  const startY = 300;
-  const verseBlock = verse.height + (keyVerse?.citation ? 54 : 0);
-  const sectionGap = 52;
-  const reflectBlock = 34 + reflect.height;
-  const challengeBlock = 34 + challenge.height;
-  const endY = startY + verseBlock + sectionGap + reflectBlock + sectionGap + challengeBlock + 200;
+  const headerY = 150;
+  const labelY = 300;
+  const textY = labelY + 64;
+  const attributionGap = plan.attribution ? 88 : 36;
+  const endY = textY + body.height + attributionGap + 190;
 
   canvas.width = W;
-  canvas.height = Math.max(W, Math.round(endY));
+  canvas.height = Math.max(880, Math.round(endY));
 
   paintCardBackdrop(ctx, W, canvas.height, t, style);
 
   // ── Header ──
-  const headerY = 150;
   if (style === 'scripture' || style === 'ember') {
     ctx.fillStyle = t.accent;
     ctx.fillRect(W / 2 - 30, headerY - 52, 60, 3);
@@ -98,58 +121,33 @@ function drawCard(
   ctx.textAlign = 'center';
   ctx.fillStyle = t.accent;
   ctx.font = '600 24px system-ui, -apple-system, sans-serif';
-  ctx.fillText('DAILY GOSPEL', W / 2, headerY);
+  ctx.fillText(plan.header, W / 2, headerY);
 
   ctx.fillStyle = t.textDim;
   ctx.font = '400 22px system-ui, -apple-system, sans-serif';
-  const subtitle = [season, celebration].filter(Boolean).join(' \u00b7 ') || 'The Word for today';
-  ctx.fillText(subtitle, W / 2, headerY + 34);
+  ctx.fillText(plan.subtitle, W / 2, headerY + 34);
 
-  // ── Key verse ──
-  if (verseText) {
+  // ── The piece ──
+  ctx.fillStyle = t.accent;
+  ctx.font = '600 20px system-ui, -apple-system, sans-serif';
+  ctx.fillText(plan.label, W / 2, labelY);
+
+  if (QUOTED_PIECES.includes(piece.id)) {
     ctx.fillStyle = t.accentRgba(0.15);
     ctx.font = '400 120px Georgia, serif';
     ctx.textAlign = 'left';
-    ctx.fillText('\u201C', PAD - 40, startY - 6);
-
+    ctx.fillText('\u201C', PAD - 40, textY - 6);
     ctx.textAlign = 'center';
-    ctx.fillStyle = t.textBright;
-    ctx.font = verseFont;
-    drawParagraph(ctx, verse.lines, W / 2, startY, verseLineHeight);
-
-    if (keyVerse?.citation) {
-      ctx.fillStyle = t.accent;
-      ctx.font = 'italic 600 26px Georgia, serif';
-      ctx.fillText(`\u2014 ${keyVerse.citation}`, W / 2, startY + verse.height + 30);
-    }
   }
 
-  // ── Reflect ──
-  let y = startY + verseBlock + sectionGap;
-  if (reflection?.reflect) {
-    ctx.textAlign = 'center';
+  ctx.fillStyle = t.textBright;
+  ctx.font = font;
+  drawParagraph(ctx, body.lines, W / 2, textY, lineHeight);
+
+  if (plan.attribution) {
     ctx.fillStyle = t.accent;
-    ctx.font = '600 20px system-ui, -apple-system, sans-serif';
-    ctx.fillText('REFLECT', W / 2, y);
-    y += 34;
-
-    ctx.fillStyle = t.textMuted;
-    ctx.font = bodyFont;
-    drawParagraph(ctx, reflect.lines, W / 2, y, bodyLineHeight);
-    y += reflect.height + sectionGap;
-  }
-
-  // ── Challenge ──
-  if (reflection?.challenge) {
-    ctx.textAlign = 'center';
-    ctx.fillStyle = t.accent;
-    ctx.font = '600 20px system-ui, -apple-system, sans-serif';
-    ctx.fillText('CHALLENGE', W / 2, y);
-    y += 34;
-
-    ctx.fillStyle = t.textBright;
-    ctx.font = bodyFont;
-    drawParagraph(ctx, challenge.lines, W / 2, y, bodyLineHeight);
+    ctx.font = 'italic 600 26px Georgia, serif';
+    ctx.fillText(plan.attribution, W / 2, textY + body.height + 44);
   }
 
   // ── Footer ──
@@ -164,7 +162,7 @@ function drawCard(
   ctx.textAlign = 'center';
   ctx.fillStyle = t.textMuted;
   ctx.font = 'italic 400 22px Georgia, serif';
-  ctx.fillText(reflection?.facet ?? 'A word for the road', W / 2, bottomY + 46);
+  ctx.fillText(plan.footer, W / 2, bottomY + 46);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = t.textDim;
@@ -179,6 +177,14 @@ function drawCard(
   return canvas.toDataURL('image/png');
 }
 
+const FOOTNOTES: Record<SharePieceId, string> = {
+  verse: 'Scripture from the public-domain World English Bible.',
+  reflection: 'One line from today\u2019s reflection, chosen to stand on its own.',
+  challenge: 'Today\u2019s challenge, standing alone \u2014 the one to send a brother or sister.',
+  passage: 'From your tailored devotional this morning \u00b7 Douay-Rheims.',
+  tradition: 'From your tailored devotional this morning.',
+};
+
 export function DailyGospelShareModal({
   open,
   t,
@@ -186,18 +192,42 @@ export function DailyGospelShareModal({
   celebration,
   keyVerse,
   reflection,
+  dateKey,
+  audience,
   onClose,
 }: DailyGospelShareModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dataUrl, setDataUrl] = useState('');
   const [style, setStyle] = useState<CardStyle>('scripture');
+  const [selectedId, setSelectedId] = useState<SharePieceId>('verse');
+
+  // The tailored pieces live on-device, keyed to this date and track — read
+  // them fresh each time the shelf opens.
+  const tailorShare = useMemo(
+    () => (open && dateKey ? readTailorShare(dateKey, audience) : null),
+    [open, dateKey, audience],
+  );
+
+  const pieces = useMemo(
+    () => buildSharePieces({ keyVerse, reflection, tailorShare }),
+    [keyVerse, reflection, tailorShare],
+  );
+
+  const selected = pieces.find((p) => p.id === selectedId) ?? pieces[0] ?? null;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const url = drawCard(canvas, { t, style, season, celebration, keyVerse, reflection });
+    if (!canvas || !selected) return;
+    const url = drawCard(canvas, {
+      t,
+      style,
+      season,
+      celebration,
+      facet: reflection?.facet,
+      piece: selected,
+    });
     if (url) setDataUrl(url);
-  }, [t, style, season, celebration, keyVerse, reflection]);
+  }, [t, style, season, celebration, reflection, selected]);
 
   useEffect(() => {
     if (open) draw();
@@ -213,11 +243,9 @@ export function DailyGospelShareModal({
   }, [open, onClose]);
 
   const shareText = useMemo(() => {
-    const parts: string[] = [];
-    if (keyVerse) parts.push(`"${keyVerse.text}" \u2014 ${keyVerse.citation}`);
-    if (reflection) parts.push(`Challenge: ${reflection.challenge}`);
-    return parts.join('\n\n');
-  }, [keyVerse, reflection]);
+    if (!selected) return '';
+    return selected.attribution ? `"${selected.text}" ${selected.attribution}` : selected.text;
+  }, [selected]);
 
   if (!open) return null;
 
@@ -255,75 +283,98 @@ export function DailyGospelShareModal({
         </div>
 
         <div className="p-5">
-          <canvas ref={canvasRef} className="w-full rounded-lg" style={{ display: 'block' }} />
+          {/* The choice that matters comes first: WHICH piece of today to send. */}
+          <p
+            className="text-[10px] uppercase tracking-widest font-bold mb-2"
+            style={{ color: t.textDim }}
+          >
+            What would you like to share?
+          </p>
+          <div className="space-y-2" role="radiogroup" aria-label="Shareable pieces">
+            {pieces.map((piece) => {
+              const isSelected = selected?.id === piece.id;
+              return (
+                <button
+                  key={piece.id}
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => setSelectedId(piece.id)}
+                  className="w-full text-left rounded-xl border px-3.5 py-3 transition-all active:scale-[0.99]"
+                  style={
+                    isSelected
+                      ? { borderColor: t.accent, backgroundColor: t.accentRgba(0.08) }
+                      : { borderColor: `${t.border}99`, backgroundColor: `${t.border}26` }
+                  }
+                >
+                  <span
+                    className="block text-[10px] uppercase tracking-widest font-bold mb-1"
+                    style={{ color: isSelected ? t.accent : t.textDim }}
+                  >
+                    {piece.pickerLabel}
+                  </span>
+                  <span className="block text-xs leading-relaxed" style={{ color: t.text }}>
+                    {piece.text}
+                    {piece.attribution && (
+                      <span style={{ color: t.textDim }}> — {piece.attribution}</span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-          {keyVerse && (
-            <p className="text-[10px] uppercase tracking-widest font-bold mt-3 text-center" style={{ color: t.textDim }}>
-              {keyVerse.citation}
-              {reflection?.facet ? ` \u00b7 ${reflection.facet}` : ''}
+          {pieces.length === 0 && (
+            <p className="text-xs text-center py-4" style={{ color: t.textDim }}>
+              Nothing to share yet today — the day is still loading.
             </p>
           )}
 
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
-            <span
-              className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: t.accentRgba(0.12), color: t.accent }}
-            >
-              <BookOpen className="w-2.5 h-2.5" /> Verse
-            </span>
-            <span
-              className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: t.accentRgba(0.12), color: t.accent }}
-            >
-              <Sparkles className="w-2.5 h-2.5" /> Reflect
-            </span>
-            <span
-              className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: t.accentRgba(0.12), color: t.accent }}
-            >
-              <Target className="w-2.5 h-2.5" /> Challenge
-            </span>
-          </div>
+          {selected && (
+            <>
+              <canvas ref={canvasRef} className="w-full rounded-lg mt-4" style={{ display: 'block' }} />
 
-          <div className="flex gap-1.5 mt-3">
-            {(Object.keys(STYLE_LABELS) as CardStyle[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setStyle(s)}
-                className="flex-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all border"
-                style={
-                  style === s
-                    ? { backgroundColor: t.accentRgba(0.12), color: t.accent, borderColor: t.accentRgba(0.3) }
-                    : { backgroundColor: `${t.border}40`, color: t.textDim, borderColor: `${t.border}66` }
-                }
-              >
-                {STYLE_LABELS[s]}
-              </button>
-            ))}
-          </div>
+              {/* Style is the second choice — the same piece, a different dress. */}
+              <div className="flex gap-1.5 mt-3">
+                {(Object.keys(STYLE_LABELS) as CardStyle[]).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setStyle(s)}
+                    className="flex-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all border"
+                    style={
+                      style === s
+                        ? { backgroundColor: t.accentRgba(0.12), color: t.accent, borderColor: t.accentRgba(0.3) }
+                        : { backgroundColor: `${t.border}40`, color: t.textDim, borderColor: `${t.border}66` }
+                    }
+                  >
+                    {STYLE_LABELS[s]}
+                  </button>
+                ))}
+              </div>
 
-          <p className="text-[11px] mt-3 text-center leading-relaxed" style={{ color: t.textDim }}>
-            Scripture from the public-domain World English Bible. Share the verse, the reflection, and the challenge.
-          </p>
+              <p className="text-[11px] mt-3 text-center leading-relaxed" style={{ color: t.textDim }}>
+                {FOOTNOTES[selected.id]}
+              </p>
 
-          <div className="flex gap-3 mt-4">
-            <button
-              onClick={() => downloadDataUrl(dataUrl, filename)}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium border transition-colors"
-              style={{ backgroundColor: t.cardHover, borderColor: t.borderLight, color: t.text }}
-            >
-              <Download className="w-4 h-4" />
-              Save
-            </button>
-            <button
-              onClick={() => void shareDataUrl(dataUrl, filename, 'Sanctum \u2014 Daily Gospel', shareText)}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-opacity"
-              style={{ backgroundColor: t.accent, color: '#fff' }}
-            >
-              <Share2 className="w-4 h-4" />
-              Share
-            </button>
-          </div>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => downloadDataUrl(dataUrl, filename)}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium border transition-colors"
+                  style={{ backgroundColor: t.cardHover, borderColor: t.borderLight, color: t.text }}
+                >
+                  <Download className="w-4 h-4" />
+                  Save
+                </button>
+                <button
+                  onClick={() => void shareDataUrl(dataUrl, filename, 'Sanctum \u2014 Daily Gospel', shareText)}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-opacity"
+                  style={{ backgroundColor: t.accent, color: '#fff' }}
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

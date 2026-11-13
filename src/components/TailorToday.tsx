@@ -43,6 +43,7 @@ import {
   type TailorIntake,
   type TailoredDevotional,
 } from '@/lib/tailor';
+import { shareEntryFromDevotional, writeTailorShare } from '@/lib/tailorShare';
 import {
   EMPTY_TAILOR_PROFILE,
   SEASONS_OF_LIFE,
@@ -326,6 +327,16 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
       active = false;
     };
   }, [dateKey, audience]);
+
+  // The completed build's two shareable pieces — the supplement passage and
+  // the word from the tradition — are copied to the share shelf's on-device
+  // store, so the Gospel card can offer them without reopening this cache.
+  // Only those pieces are copied (see lib/tailorShare); the morning's intake
+  // never leaves this component.
+  useEffect(() => {
+    if (!devotional) return;
+    writeTailorShare(dateKey, audience, shareEntryFromDevotional(devotional));
+  }, [devotional, dateKey, audience]);
 
   // ── Playback (a plain single stream — the tailored render is one file) ──
   const audioRef = useRef<HTMLAudioElement | null>(null);

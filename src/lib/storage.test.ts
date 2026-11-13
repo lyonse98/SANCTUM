@@ -44,6 +44,7 @@ const KNOWN_KEYS = [
   'sanctum_passage_john-1',
   'sanctum_tailor_profile_men',
   'sanctum_tailor_profile_women',
+  'sanctum_tailor_share_2026-11-13_men',
   'sanctum_reminder_prompt_dismissed_at',
   'sanctum_listen_reminder_prompted',
 ];
