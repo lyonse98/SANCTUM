@@ -234,8 +234,8 @@ async function storeBundle(dateKey: string, payload: unknown): Promise<void> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        apikey: <redacted>
-        Authorization: <redacted>
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
         Prefer: "resolution=merge-duplicates",
       },
       body: JSON.stringify({ date: dateKey, payload }),
