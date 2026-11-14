@@ -59,7 +59,6 @@ import {
 } from "./narratorCore.ts";
 import {
   SAMPLE_RATE,
-  concatPcm,
   decodeSpeechAudio,
   secondsOf,
   silenceSamples,
@@ -77,6 +76,7 @@ import {
   type TailoredParts,
 } from "./tailorCore.ts";
 import { corpusEnabled, retrieveTraditionQuote } from "./corpus.ts";
+import { splitReadingsParagraphs } from "./renderPieces.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -319,7 +319,6 @@ async function generateTailored(systemPrompt: string, userPrompt: string): Promi
         generationConfig: {
           maxOutputTokens: 1024,
           thinkingConfig: { thinkingLevel: "low" },
-          responseMimeType: "application/json",
         },
       }),
       signal: AbortSignal.timeout(60000),
@@ -419,6 +418,22 @@ function encodeMp3(samples: Int16Array): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+/**
+ * Join MP3 pieces encoded at identical settings (24 kHz mono CBR 64 kbps,
+ * bare lamejs frames) into one stream — the byte concatenation audio-render's
+ * finalize relies on across invocations, applied here across pieces.
+ */
+function concatMp3(pieces: Uint8Array[]): Uint8Array {
+  const total = pieces.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const piece of pieces) {
+    out.set(piece, at);
+    at += piece.length;
+  }
+  return out;
+}
+
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   const CHUNK = 0x8000;
@@ -505,8 +520,12 @@ Deno.serve(async (req: Request) => {
 
     // Render the script with the day narrator's voice and production — the
     // same profile lookup, lexicon, tempo, and encoding as the daily render.
+    // (Named narratorProfile, NOT profile: this block already passes the
+    // standing `profile` to composeTailored above, and a same-named const
+    // here shadows it for the whole block — the compose call then hits the
+    // temporal dead zone and throws before any generation happens.)
     const script = composed.script;
-    const profile =
+    const narratorProfile =
       script.persona === "lector"
         ? audience === "women"
           ? LECTOR_BANK_WOMEN
@@ -515,34 +534,59 @@ Deno.serve(async (req: Request) => {
           ? BANK_WOMEN[script.persona as keyof typeof BANK_WOMEN]
           : BANK[script.persona as keyof typeof BANK];
 
-    const toPcm = async (text: string): Promise<Int16Array> => {
-      const bytes = await renderSpeech(applyLexicon(text), profile.voice);
-      return stretchPcm(decodeSpeechAudio(bytes), profile.tempo);
+    // Piece-work render (Nov 13, 2026 — the free-plan fix): the whole
+    // program used to be held in the sample domain at once — every part
+    // decoded and stretched, concatenated into one multi-minute PCM block,
+    // then encoded in a single pass — and that peak is what the free-plan
+    // worker limit kills. Now each spoken piece goes TTS → decode → stretch
+    // → encode on its own and its PCM is released before the next piece
+    // starts; the encoded pieces are joined as bytes at the end (identical
+    // encoder settings throughout — the frame concatenation audio-render's
+    // finalize relies on). The readings, the one long piece, are split on
+    // their paragraph boundaries (renderPieces.ts), so no single PCM block
+    // exceeds one reading part. Order and production are unchanged — head,
+    // readings, passage, the produced silence, mainB — and nothing is
+    // stored: the joined bytes leave as base64 in the response, as before.
+    const toMp3 = async (text: string): Promise<{ mp3: Uint8Array; seconds: number }> => {
+      const bytes = await renderSpeech(applyLexicon(text), narratorProfile.voice);
+      const pcm = stretchPcm(decodeSpeechAudio(bytes), narratorProfile.tempo);
+      return { mp3: encodeMp3(pcm), seconds: secondsOf(pcm) };
     };
 
-    const headPcm = await toPcm(script.head);
-    const readingsPcm = await toPcm(script.readings);
-    const passagePcm = await toPcm(script.passage);
-    const mainBPcm = await toPcm(script.mainB);
-    const fullPcm = concatPcm(
-      headPcm,
-      readingsPcm,
-      passagePcm,
-      silenceSamples(AUDIO_SILENCE_SECONDS),
-      mainBPcm,
-    );
-    const mp3 = encodeMp3(fullPcm);
-    const seconds = Math.round(secondsOf(fullPcm) * 10) / 10;
+    const pieces: Uint8Array[] = [];
+    let totalSeconds = 0;
+    const addPiece = async (text: string): Promise<void> => {
+      const piece = await toMp3(text);
+      pieces.push(piece.mp3);
+      totalSeconds += piece.seconds;
+    };
+
+    await addPiece(script.head);
+    for (const paragraph of splitReadingsParagraphs(script.readings)) {
+      await addPiece(paragraph);
+    }
+    await addPiece(script.passage);
+    pieces.push(encodeMp3(silenceSamples(AUDIO_SILENCE_SECONDS)));
+    totalSeconds += AUDIO_SILENCE_SECONDS;
+    await addPiece(script.mainB);
+
+    const mp3 = concatMp3(pieces);
+    const seconds = Math.round(totalSeconds * 10) / 10;
 
     console.log(
       `tailor-devotional: date=${dateISO} audience=${audience} persona=${script.persona} seconds=${seconds}`,
     );
     return jsonResponse(buildResponseBody(dateISO, composed, bytesToBase64(mp3), seconds));
   } catch (err) {
-    // Stage codes only — never the intake, never the output (privacy rule).
+    // The error MESSAGE is logged — and it is safe to log: every error this
+    // function raises is a stage code by construction (a fixed phrase or an
+    // HTTP status from generateTailored / renderSpeech / the audio engine),
+    // never intake text, never output text. That keeps the privacy rule
+    // (logs are stage codes and counts) while making a failed build
+    // diagnosable instead of a silent catch-all.
     console.error(
-      `tailor-devotional failed: date=${dateISO} audience=${audience} stage=${
-        err instanceof Error ? "generation" : "error"
+      `tailor-devotional failed: date=${dateISO} audience=${audience} error=${
+        err instanceof Error ? err.message : "error"
       }`,
     );
     return jsonResponse(
