@@ -58,7 +58,7 @@ async function askAquinas(question) {
   const res = await fetch(`${base}/chat-proxy`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${anon}` },
-    body: JSON.stringify({ persona: 'aquinas', messages: [{ role: 'user', content: question }] }),
+    body: JSON.stringify({ personaId: 'aquinas', messages: [{ role: 'user', content: question }] }),
     signal: AbortSignal.timeout(90000),
   });
   if (!res.ok) throw new Error(`chat-proxy ${res.status}`);
@@ -77,7 +77,11 @@ async function askAquinas(question) {
 }
 
 const results = [];
+let first = true;
 for (const item of gold) {
+  // chat-proxy allows 20 requests/minute per IP — pace the bank under it.
+  if (!first) await new Promise((r) => setTimeout(r, 3500));
+  first = false;
   process.stdout.write(`${item.id} … `);
   try {
     const retrieved = await retrieveLabels(item.question);
