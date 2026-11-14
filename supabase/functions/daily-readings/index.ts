@@ -8,6 +8,8 @@
 //
 // verify_jwt is false: no-auth app, public daily content.
 
+import { parseCitation, type Segment } from "./citation.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -20,39 +22,10 @@ const GETBIBLE_BASE = "https://api.getbible.net/v2";
 const DEFAULT_TRANSLATION = "web";
 const FALLBACK_TRANSLATION = "douayrheims";
 
-// ── Bible text (ported from src/lib/bible.ts — the two must render identically) ──
-
-const BOOK_NUMBERS: Record<string, number> = {
-  Genesis: 1, Exodus: 2, Leviticus: 3, Numbers: 4, Deuteronomy: 5, Joshua: 6,
-  Judges: 7, Ruth: 8, "1 Samuel": 9, "2 Samuel": 10, "1 Kings": 11, "2 Kings": 12,
-  "1 Chronicles": 13, "2 Chronicles": 14, Ezra: 15, Nehemiah: 16, Esther: 17,
-  Job: 18, Psalms: 19, Proverbs: 20, Ecclesiastes: 21, "Song of Solomon": 22,
-  Isaiah: 23, Jeremiah: 24, Lamentations: 25, Ezekiel: 26, Daniel: 27, Hosea: 28,
-  Joel: 29, Amos: 30, Obadiah: 31, Jonah: 32, Micah: 33, Nahum: 34, Habakkuk: 35,
-  Zephaniah: 36, Haggai: 37, Zechariah: 38, Malachi: 39, Matthew: 40, Mark: 41,
-  Luke: 42, John: 43, Acts: 44, Romans: 45, "1 Corinthians": 46, "2 Corinthians": 47,
-  Galatians: 48, Ephesians: 49, Philippians: 50, Colossians: 51, "1 Thessalonians": 52,
-  "2 Thessalonians": 53, "1 Timothy": 54, "2 Timothy": 55, Titus: 56, Philemon: 57,
-  Hebrews: 58, James: 59, "1 Peter": 60, "2 Peter": 61, "1 John": 62, "2 John": 63,
-  "3 John": 64, Jude: 65, "Revelation of John": 66,
-  Tobit: 69, Judith: 70, Wisdom: 73, Sirach: 74, Baruch: 75,
-  "1 Maccabees": 80, "2 Maccabees": 81,
-};
-
-const BOOK_ALIASES: Record<string, string> = {
-  psalm: "Psalms",
-  ps: "Psalms",
-  song: "Song of Solomon",
-  "song of songs": "Song of Solomon",
-  "canticle of canticles": "Song of Solomon",
-  revelation: "Revelation of John",
-  revelations: "Revelation of John",
-  apocalypse: "Revelation of John",
-  ecclesiasticus: "Sirach",
-};
+// ── Bible text (ported from src/lib/bible.ts — the two must render identically;
+// the citation grammar itself lives in ./citation.ts) ──
 
 interface Verse { verse: number; text: string }
-interface Segment { start: number; end: number }
 
 function liturgicalize(text: string): string {
   return text.replace(/\bYahweh\b/g, "the LORD").replace(/\bYah\b/g, "the LORD");
@@ -60,40 +33,6 @@ function liturgicalize(text: string): string {
 
 function normalizedCitation(citation: string): string {
   return citation.replace(/ /g, " ").split(/\s+or\s+/i)[0].trim();
-}
-
-function normalizeBook(raw: string): number | null {
-  const cleaned = raw.trim().replace(/\./g, "").replace(/\s+/g, " ");
-  const lower = cleaned.toLowerCase();
-  const alias = BOOK_ALIASES[lower];
-  if (alias) return BOOK_NUMBERS[alias] ?? null;
-  for (const [name, num] of Object.entries(BOOK_NUMBERS)) {
-    if (name.toLowerCase() === lower) return num;
-  }
-  return null;
-}
-
-function parseCitation(citation: string): { book: number; chapter: number; segments: Segment[] } | null {
-  const primary = citation.split(/\s+or\s+/i)[0];
-  const normalized = primary.replace(/ /g, " ").trim();
-  const match = normalized.match(/^((?:[1-3]\s+)?[A-Za-z][A-Za-z\s.]*?)\s+(\d+)(?::\s*(.+))?$/);
-  if (!match) return null;
-  const book = normalizeBook(match[1]);
-  if (book === null) return null;
-  const chapter = parseInt(match[2], 10);
-  if (!Number.isFinite(chapter)) return null;
-  const segments: Segment[] = [];
-  if (match[3]) {
-    for (const raw of match[3].split(",")) {
-      const clean = raw.replace(/[^\d-]/g, "");
-      if (!clean) continue;
-      const [a, b] = clean.split("-");
-      const start = parseInt(a, 10);
-      const end = b ? parseInt(b, 10) : start;
-      if (Number.isFinite(start)) segments.push({ start, end: Number.isFinite(end) ? end : start });
-    }
-  }
-  return { book, chapter, segments };
 }
 
 const chapterCache = new Map<string, Verse[]>();
