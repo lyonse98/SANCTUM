@@ -98,9 +98,11 @@ describe('the passage bank is total and cited', () => {
   });
 });
 
-describe('the media catalog — ~200 works, scored on three axes (Nov 13, 2026)', () => {
-  it('holds at least 200 curated works, every one behind a real, verified-shape watch address', () => {
-    expect(MEDIA_CATALOG.length).toBeGreaterThanOrEqual(200);
+describe('the media seed — evergreen anchor behind a search-primary slot (Nov 13, 2026)', () => {
+  it('is a seed, not a library: the 16 originals plus verified additions, capped small', () => {
+    // Erik's redirect: live search is the primary source; the seed is the
+    // fallback/anchor and stays evergreen-sized on purpose.
+    expect(MEDIA_CATALOG.length).toBe(48);
     const urls = new Set<string>();
     const kinds = new Set<string>();
     for (const m of MEDIA_CATALOG) {
@@ -142,12 +144,12 @@ describe('the media catalog — ~200 works, scored on three axes (Nov 13, 2026)'
     }
   });
 
-  it('keeps every focus deep: at least a dozen above-floor entries per focus', () => {
+  it('every focus carries a real bench above the floor, so the fallback never comes up empty', () => {
     for (const focus of TAILOR_FOCUSES) {
       const depth = MEDIA_CATALOG.filter(
         (m) => m.focuses.includes(focus.id) && m.values >= MEDIA_VALUES_FLOOR,
       ).length;
-      expect(depth, focus.id).toBeGreaterThanOrEqual(12);
+      expect(depth, focus.id).toBeGreaterThanOrEqual(5);
     }
   });
 

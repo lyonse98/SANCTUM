@@ -324,7 +324,7 @@ export function buildCorpusQuoteQuery(intake: TailorIntake): string {
   return parts.join(" ");
 }
 
-// ── The media pick: gather, verify, exclude, score — the catalog behind it ───
+// ── The media pick: gather, verify, exclude, score — the seed behind it ─────
 //
 // REWORKED Nov 13, 2026 (Erik): the card is POP CULTURE — the worldly voice
 // answering the day, in the register of a David Goggins interview or a
@@ -332,19 +332,22 @@ export function buildCorpusQuoteQuery(intake: TailorIntake): string {
 // so church content (worship music, hymns, sermons, church or ministry
 // podcasts) is HARD-EXCLUDED before scoring, however well it would fit.
 //
-// REBUILT Nov 13, 2026, later the same day (Erik: "16 is nowhere near
-// enough"): behind the live hunt stands a CATALOG of ~200 curated,
-// live-verified works (tailorBank.ts), and selection is ONE unified
-// scoring on three axes — FIT (0–40), ALIGNMENT WITH CHURCH VALUES
-// (0–35), POPULARITY (0–25) — with a hard values floor: a work whose
-// substance falls below the floor is excluded however popular or fitting
-// it is. Catalog entries carry their popularity and values scores from
-// curation and take their fit from their tags; live finds are estimated
-// on the same axes by the one scoring call. The live winner and the
-// catalog's best then compete on the same totals — the found work must
-// beat the catalog outright; a tie keeps the catalog's verified address.
-// Any failure along the way degrades to the catalog's best, and the
-// catalog always has one: there is never zero media.
+// REBUILT Nov 13, 2026, later the same day, and corrected the same
+// evening (Erik): the architecture is SEARCH-PRIMARY — the live hunt
+// above is the main source of candidates on every build, so the slot
+// stays current; hand-curation does not scale and goes stale. Behind
+// the hunt stands a small evergreen SEED (tailorBank.ts, 48 verified
+// works) as fallback and anchor. Selection is ONE unified scoring on
+// three axes — FIT (0–40), ALIGNMENT WITH CHURCH VALUES (0–35),
+// POPULARITY (0–25) — with a hard values floor: a work whose substance
+// falls below the floor is excluded however popular or fitting it is.
+// Seed entries carry their popularity and values scores from curation
+// and take their fit from their tags; live finds are estimated on the
+// same axes by the one scoring call. The live winner and the seed's
+// best then compete on the same totals — the found work must beat the
+// seed outright; a tie keeps the seed's verified address. Any failure
+// along the way degrades to the seed's best, and the seed always has
+// one: there is never zero media.
 
 export interface ComposedMedia {
   kind: TailorMediaKind;
@@ -823,9 +826,9 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
   const tailored = await deps.generateTailored(systemPrompt, userPrompt);
 
   // The media: gather → verify → exclude → score, then ONE unified
-  // competition — the catalog's best for this morning is computed first,
+  // competition — the seed's best for this morning is computed first,
   // and a live find must beat its total outright to take the card (a tie
-  // keeps the catalog's curated, verified address). Three grounded
+  // keeps the seed's curated, verified address). Three grounded
   // searches (focus angle, state angle, reflection-theme angle) run in
   // parallel through the morning's allowed kinds; each contributes at
   // most one candidate, and a candidate counts only when the grounding
