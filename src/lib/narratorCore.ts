@@ -1516,7 +1516,7 @@ function joinParagraphs(paragraphs: string[], beatsBetween: number[]): string {
 }
 
 /** Solemnities the Lector does NOT take: the days spec §7 reserves for a sober brother. */
-function lectorTakes(dateISO: string, feast: FeastDayN): boolean {
+export function lectorTakes(dateISO: string, feast: FeastDayN): boolean {
   if (feast.rank !== 'solemnity') return false;
   if (isGoodFriday(dateISO) || isHolySaturday(dateISO)) return false;
   if (feast.name === 'Palm Sunday') return false;

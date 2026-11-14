@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  concatBase64Mp3,
+  fetchTailorAudio,
   getOrBuildTailored,
   intakeHash,
   loadTodaysTailored,
   mediaActionLabel,
+  parseAudioPlan,
   parseTailorResponse,
   tailorAudioUrl,
   tailorCreditLine,
@@ -45,6 +48,16 @@ const RESPONSE = {
   audioBase64: 'QUJD',
   audioSeconds: 240,
 };
+
+/** A build's audio plan as the function issues it (three pieces, one silent). */
+const PLAN = [
+  { index: 0, text: 'The head of the program.', token: 'tok-0' },
+  { index: 1, text: '', token: 'tok-1' },
+  { index: 2, text: 'The second movement.', token: 'tok-2' },
+];
+
+/** The pieces' audio, by index — 'ABC' + 'DEF' + 'GHI' when stitched. */
+const PIECE_AUDIO: Record<number, string> = { 0: 'QUJD', 1: 'REVG', 2: 'R0hJ' };
 
 function memoryStore(): TailorStore & { map: Map<string, TailoredDevotional> } {
   const map = new Map<string, TailoredDevotional>();
@@ -156,6 +169,31 @@ describe('the response parse', () => {
     expect(parsed && tailorCreditLine(parsed)).toBe('Tailored for today · read by Martin');
   });
 
+  it('a planned build parses its audio plan; no plan parses as none', () => {
+    const planned = parseTailorResponse({ ...RESPONSE, audioBase64: null, audioSeconds: 0, audioPlan: PLAN });
+    expect(planned?.audioBase64).toBeNull();
+    expect(planned?.audioPlan).toEqual(PLAN);
+    expect(parseTailorResponse(RESPONSE)?.audioPlan).toBeNull();
+    expect(parseTailorResponse({ ...RESPONSE, audioPlan: null })?.audioPlan).toBeNull();
+  });
+
+  it('the plan parse sorts by index and refuses malformed plans without refusing the package', () => {
+    const shuffled = [PLAN[2], PLAN[0], PLAN[1]];
+    expect(parseAudioPlan(shuffled)?.map((e) => e.index)).toEqual([0, 1, 2]);
+    for (const bad of [
+      [{ index: 0, text: 'x' }], // no token
+      [{ index: -1, text: 'x', token: 't' }],
+      [{ index: 0.5, text: 'x', token: 't' }],
+      [{ index: 0, text: 4, token: 't' }],
+      'not-an-array',
+      [],
+    ]) {
+      expect(parseAudioPlan(bad)).toBeNull();
+      // The package itself still parses whole — the plan is additive.
+      expect(parseTailorResponse({ ...RESPONSE, audioBase64: null, audioPlan: bad })).not.toBeNull();
+    }
+  });
+
   it('the media action label follows the link', () => {
     const media = (url: string) => ({ kind: 'song' as const, title: 'x', creator: 'y', url, why: '' });
     expect(mediaActionLabel(media('https://www.youtube.com/results?search_query=x'))).toBe('Watch on YouTube');
@@ -227,5 +265,136 @@ describe('the on-device cache — build once, replay without the server', () => 
     await expect(getOrBuildTailored('2026-11-12', 'men', INTAKE, { fetchImpl, store })).rejects.toThrow();
     expect(store.map.size).toBe(0);
     expect(localStorage.getItem(tailorMetaKey('2026-11-12', 'men'))).toBeNull();
+  });
+});
+
+describe('the MP3 byte concatenation', () => {
+  it('joins pieces in the order given — frame concatenation, byte for byte', () => {
+    expect(concatBase64Mp3(['QUJD', 'REVG', 'R0hJ'])).toBe('QUJDREVGR0hJ'); // ABCDEFGHI
+    expect(concatBase64Mp3(['R0hJ', 'QUJD'])).toBe('R0hJQUJD'); // GHIABC — order is the caller's
+  });
+
+  it('a single piece round-trips; no pieces is no audio', () => {
+    expect(concatBase64Mp3(['QUJD'])).toBe('QUJD');
+    expect(concatBase64Mp3([])).toBeNull();
+  });
+});
+
+describe('the audio plan, fetched and stitched on-device', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      data: new Map<string, string>(),
+      getItem(k: string) { return this.data.get(k) ?? null; },
+      setItem(k: string, v: string) { this.data.set(k, v); },
+      removeItem(k: string) { this.data.delete(k); },
+    });
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  type FetchCall = { url: string; body: Record<string, unknown> };
+
+  /** Fetch that answers piece posts from PIECE_AUDIO and records the calls. */
+  function pieceFetch(calls: FetchCall[], failIndex?: number, failOnce = false) {
+    let failedAlready = false;
+    return vi.fn(async (url: string, init?: { body?: string }) => {
+      const body = JSON.parse(init?.body ?? '{}') as Record<string, unknown>;
+      calls.push({ url, body });
+      const piece = body.piece as { index: number };
+      const shouldFail = piece.index === failIndex && (!failOnce || !failedAlready);
+      if (shouldFail) {
+        failedAlready = true;
+        return { ok: false, status: 403, json: async () => ({ ok: false }) } as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, audioBase64: PIECE_AUDIO[piece.index], seconds: 10 }),
+      } as Response;
+    }) as unknown as typeof fetch;
+  }
+
+  async function plannedBuild(calls: FetchCall[]) {
+    const store = memoryStore();
+    const buildFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ ...RESPONSE, audioBase64: null, audioSeconds: 0, audioPlan: PLAN }),
+    }) as Response) as unknown as typeof fetch;
+    void calls;
+    const built = await getOrBuildTailored('2026-11-12', 'men', INTAKE, { fetchImpl: buildFetch, store });
+    return { store, devotional: built.devotional };
+  }
+
+  it('fetches every piece with its token, stitches in plan order, and caches the joined audio', async () => {
+    const calls: FetchCall[] = [];
+    const { store, devotional } = await plannedBuild(calls);
+    expect(devotional.audioBase64).toBeNull();
+
+    const merged = await fetchTailorAudio('2026-11-12', 'men', devotional, {
+      fetchImpl: pieceFetch(calls),
+      store,
+    });
+    expect(merged?.audioBase64).toBe('QUJDREVGR0hJ'); // the plan's pieces, in order
+    expect(merged?.audioSeconds).toBe(30); // the pieces' own seconds, summed
+
+    // Every call carried exactly its plan entry — date, track, index, text, token.
+    expect(calls).toHaveLength(3);
+    for (const call of calls) {
+      expect(call.url).toBe('https://example.supabase.co/functions/v1/tailor-devotional');
+      const piece = call.body.piece as { date: string; audience: string; index: number; text: string; token: string };
+      expect(piece.date).toBe('2026-11-12');
+      expect(piece.audience).toBe('men');
+      expect(piece.text).toBe(PLAN[piece.index].text);
+      expect(piece.token).toBe(PLAN[piece.index].token);
+    }
+
+    // The cache now holds the stitched package: replay needs no second fetch.
+    const replay = await loadTodaysTailored('2026-11-12', 'men', { store });
+    expect(replay?.audioBase64).toBe('QUJDREVGR0hJ');
+  });
+
+  it('a piece that fails its one retry leaves the package text-only, plan intact', async () => {
+    const calls: FetchCall[] = [];
+    const { store, devotional } = await plannedBuild(calls);
+    const merged = await fetchTailorAudio('2026-11-12', 'men', devotional, {
+      fetchImpl: pieceFetch(calls, 1),
+      store,
+    });
+    expect(merged).toBeNull();
+    // The failing piece was called twice (first try + the one retry).
+    const pieceOneCalls = calls.filter(
+      (c) => (c.body.piece as { index: number }).index === 1,
+    );
+    expect(pieceOneCalls).toHaveLength(2);
+    // Nothing was written over the cached package — a later open may retry.
+    const cached = await loadTodaysTailored('2026-11-12', 'men', { store });
+    expect(cached?.audioBase64).toBeNull();
+    expect(cached?.audioPlan).toEqual(PLAN);
+  });
+
+  it('a piece that fails once and then answers completes the stitch', async () => {
+    const calls: FetchCall[] = [];
+    const { store, devotional } = await plannedBuild(calls);
+    const merged = await fetchTailorAudio('2026-11-12', 'men', devotional, {
+      fetchImpl: pieceFetch(calls, 2, true),
+      store,
+    });
+    expect(merged?.audioBase64).toBe('QUJDREVGR0hJ');
+  });
+
+  it('no plan — or audio already present — means no piece calls at all', async () => {
+    const calls: FetchCall[] = [];
+    const fetchImpl = pieceFetch(calls);
+    const textOnly = parseTailorResponse({ ...RESPONSE, audioBase64: null, audioSeconds: 0 });
+    expect(await fetchTailorAudio('2026-11-12', 'men', textOnly!, { fetchImpl })).toBeNull();
+    const baked = parseTailorResponse(RESPONSE);
+    expect(await fetchTailorAudio('2026-11-12', 'men', baked!, { fetchImpl })).toBeNull();
+    expect(calls).toHaveLength(0);
   });
 });

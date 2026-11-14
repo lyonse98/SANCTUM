@@ -65,6 +65,7 @@ import {
   SCRIPTURE_GROUNDING_WOMEN,
   buildTailorTask,
 } from "./prompts.ts";
+import type { TailorAudioPlanEntry } from "./audioPlan.ts";
 
 export interface TailorIntake {
   state: TailorState;
@@ -565,15 +566,20 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
 
 /**
  * The response body the client parses — text, quote, media card, credit, and
- * the audio. audioBase64 is null while the function's in-render is interim-
- * disabled (see TAILOR_AUDIO_ENABLED in index.ts): the text package is
- * complete without it, and the client's audio field is optional by design.
+ * the audio. audioBase64 is null while the function's in-render is disabled
+ * (see TAILOR_AUDIO_ENABLED in index.ts): the text package is complete
+ * without it, and the client's audio field is optional by design. In its
+ * place the body carries the audio PLAN (audioPlan.ts) when the render key
+ * is configured: the signed pieces the device fetches one call at a time
+ * and stitches on-device. audioPlan is null when no key is configured —
+ * the same text-only package the interim builds returned.
  */
 export function buildResponseBody(
   dateISO: string,
   composed: ComposedTailored,
   audioBase64: string | null,
   audioSeconds: number,
+  audioPlan: TailorAudioPlanEntry[] | null = null,
 ): Record<string, unknown> {
   return {
     ok: true,
@@ -600,5 +606,6 @@ export function buildResponseBody(
     },
     audioBase64,
     audioSeconds,
+    audioPlan,
   };
 }

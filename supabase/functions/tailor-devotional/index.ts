@@ -36,16 +36,22 @@
   minute, 3 builds a day per caller. One tailored build a day is the product
   shape; three leaves room for a rebuild and a mistake.
 
-  INTERIM — TEXT-ONLY BUILDS (Nov 13, 2026, round 3): the in-function audio
-  render is disabled (TAILOR_AUDIO_ENABLED below). Supabase's binding limit
-  is 2 s of CPU per edge request on every plan, and a full tailored program
+  AUDIO — CLIENT-ORCHESTRATED (Nov 13, 2026): the in-function audio render
+  stays disabled (TAILOR_AUDIO_ENABLED below). Supabase's binding limit is
+  2 s of CPU per edge request on every plan, and a full tailored program
   prices at ~6 s of cumulative stretch+encode CPU — the worker kill is
-  uncatchable, so an audio build lost even its finished TEXT. Until the
-  client-orchestrated per-piece audio lands (each piece rendered by its own
-  call, the daily render's proven shape), a build returns the complete text
-  package with audioBase64 null, and the client shows the package with no
-  Listen bar. The render code below stays in place behind the flag; nothing
-  about composition, quota, or privacy changes.
+  uncatchable, so an in-invocation render loses even the finished TEXT.
+  The live route is the audio plan (TAILOR_AUDIO_PLAN, audioPlan.ts): the
+  build returns the complete text package at once, plus the assembled
+  script cut into ≤200-char pieces, each signed with an HMAC token. The
+  device then fetches each piece through this function's piece mode — one
+  TTS + decode + stretch + encode per call, the daily render's proven
+  envelope — and concatenates the MP3 bytes on-device. The token is the
+  only authorization a piece fetch needs (no build quota is consumed);
+  a bad token is a 403. If AUDIO_RENDER_KEY is unset, the build omits the
+  plan and returns the text-only package, exactly as the interim builds
+  did. The in-function render code below stays in place behind its flag;
+  nothing about composition, quota, or privacy changes.
 
   Entitlement: tailorAccess() (mirrored from src/lib/tailorAccess.ts) is the
   premium seam. Today it allows everyone — Tailor Today is free for the
@@ -66,6 +72,10 @@ import {
   LECTOR_BANK_WOMEN,
   addDaysISO,
   applyLexicon,
+  lectorTakes,
+  resolveFeastDay,
+  weekdayOfISO,
+  weekdayPersona,
   type NarratorAudience,
 } from "./narratorCore.ts";
 import {
@@ -88,6 +98,11 @@ import {
 } from "./tailorCore.ts";
 import { corpusEnabled, retrieveTraditionQuote } from "./corpus.ts";
 import { splitReadingsParagraphs } from "./renderPieces.ts";
+import {
+  buildAudioPlan,
+  verifyPieceToken,
+  type TailorAudioPlanEntry,
+} from "./audioPlan.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -107,12 +122,18 @@ const RATE_WINDOW_LIMIT = 5;
 const RATE_DAY_LIMIT = 3;
 const FALLBACK_WINDOW_LIMIT = 2;
 
-// INTERIM (round 3, see the header): false = builds return the complete text
-// package with no audio. Flip to true only when the render below no longer
-// runs inside one invocation (client-orchestrated per-piece audio) — as a
-// single in-function render it exceeds the platform's 2 s CPU ceiling and
-// the uncatchable kill takes the text package with it.
+// The in-function render (see the header): false, and it stays false — as a
+// single in-invocation render it exceeds the platform's 2 s CPU ceiling and
+// the uncatchable kill takes the text package with it. The render block is
+// kept whole below as the reference production the piece mode reuses.
 const TAILOR_AUDIO_ENABLED = false;
+
+// TAILOR AUDIO PLAN (the live route, see the header + audioPlan.ts): true =
+// a build also returns the signed piece plan, and this function's piece mode
+// renders those pieces one call at a time for the device to stitch. The plan
+// is issued only when AUDIO_RENDER_KEY is configured; without the key there
+// is nothing to sign with, and the build is the text-only package.
+const TAILOR_AUDIO_PLAN_ENABLED = true;
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
@@ -461,6 +482,119 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+// ── The piece mode (the audio plan's other half) ─────────────────────────────
+
+/**
+ * The narrator profile for (date, audience), derived exactly as the build
+ * derives it: assembleScript's own rule — the Lector takes a solemnity (the
+ * calendar's exceptions aside), otherwise the weekday reader of the track —
+ * and the same bank lookup the render block performs. Voice and tempo are
+ * the whole of what a piece render needs from the profile.
+ */
+function narratorProfileFor(dateISO: string, audience: NarratorAudience) {
+  const feast = resolveFeastDay(dateISO);
+  const persona =
+    feast && lectorTakes(dateISO, feast)
+      ? "lector"
+      : weekdayPersona(audience, weekdayOfISO(dateISO));
+  return persona === "lector"
+    ? audience === "women"
+      ? LECTOR_BANK_WOMEN
+      : LECTOR_BANK
+    : audience === "women"
+      ? BANK_WOMEN[persona as keyof typeof BANK_WOMEN]
+      : BANK[persona as keyof typeof BANK];
+}
+
+interface PieceRequest {
+  dateISO: string;
+  audience: NarratorAudience;
+  index: number;
+  text: string;
+  token: string;
+}
+
+/**
+ * A piece fetch must be one of the plan's own entries coming home: a real
+ * date, one of the two tracks, a sane index, text under a hard cap (plan
+ * pieces are ≤200 chars by construction; the cap here only refuses abuse),
+ * and the token the entry carried. Anything else is not a piece fetch.
+ */
+function validatePieceRequest(raw: unknown): PieceRequest | null {
+  if (!raw || typeof raw !== "object") return null;
+  const p = raw as Record<string, unknown>;
+  if (typeof p.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(p.date)) return null;
+  if (p.audience !== "men" && p.audience !== "women") return null;
+  if (typeof p.index !== "number" || !Number.isInteger(p.index) || p.index < 0 || p.index >= 500) {
+    return null;
+  }
+  if (typeof p.text !== "string" || p.text.length > 1000) return null;
+  if (typeof p.token !== "string") return null;
+  return { dateISO: p.date, audience: p.audience, index: p.index, text: p.text, token: p.token };
+}
+
+/**
+ * Renders ONE plan piece: the token is verified first (it is the whole
+ * authorization — no build quota is consumed, no bundle is read), then the
+ * piece goes through the identical production the in-function render used:
+ * lexicon, the day narrator's voice, decode, tempo stretch, the same MP3
+ * encoding. The silence piece (empty text) is the produced silence itself,
+ * encoded the same way. Logs are stage codes and timings only, as everywhere
+ * in this function — the piece's words never reach a log.
+ */
+async function handlePieceRequest(raw: unknown): Promise<Response> {
+  const piece = validatePieceRequest(raw);
+  if (!piece) {
+    return jsonResponse({ ok: false, error: "That audio piece could not be read." }, 400);
+  }
+  const secret = Deno.env.get("AUDIO_RENDER_KEY") ?? "";
+  const authorized =
+    secret.length > 0 &&
+    (await verifyPieceToken(secret, piece.dateISO, piece.audience, piece.index, piece.text, piece.token));
+  if (!authorized) {
+    return jsonResponse({ ok: false, error: "That audio piece is not authorized." }, 403);
+  }
+
+  const started = Date.now();
+  let ttsMs = 0;
+  let stretchMs = 0;
+  try {
+    let mp3: Uint8Array;
+    let seconds: number;
+    if (piece.text === "") {
+      mp3 = encodeMp3(silenceSamples(AUDIO_SILENCE_SECONDS));
+      seconds = AUDIO_SILENCE_SECONDS;
+    } else {
+      const narratorProfile = narratorProfileFor(piece.dateISO, piece.audience);
+      const speechStart = Date.now();
+      const bytes = await renderSpeech(applyLexicon(piece.text), narratorProfile.voice);
+      ttsMs = Date.now() - speechStart;
+      const stretchStart = Date.now();
+      const pcm = stretchPcm(decodeSpeechAudio(bytes), narratorProfile.tempo);
+      stretchMs = Date.now() - stretchStart;
+      seconds = secondsOf(pcm);
+      mp3 = encodeMp3(pcm);
+    }
+    console.log(
+      `tailor-devotional piece: date=${piece.dateISO} audience=${piece.audience} piece=${piece.index} chars=${piece.text.length} tts=${ttsMs}ms stretch=${stretchMs}ms total=${Date.now() - started}ms`,
+    );
+    return jsonResponse({
+      ok: true,
+      audioBase64: bytesToBase64(mp3),
+      seconds: Math.round(seconds * 10) / 10,
+    });
+  } catch (err) {
+    // Stage codes only, as in the build path: TTS and engine errors are
+    // fixed phrases or HTTP statuses by construction, never piece text.
+    console.error(
+      `tailor-devotional piece failed: date=${piece.dateISO} audience=${piece.audience} piece=${piece.index} error=${
+        err instanceof Error ? err.message : "error"
+      }`,
+    );
+    return jsonResponse({ ok: false, error: "That audio piece could not be read just now." }, 200);
+  }
+}
+
 // ── The request ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -481,6 +615,13 @@ Deno.serve(async (req: Request) => {
     payload = (await req.json()) as Record<string, unknown>;
   } catch {
     return jsonResponse({ ok: false, error: "Invalid request body." }, 400);
+  }
+
+  // The piece mode: a device fetching one signed plan piece. The token is
+  // the authorization — the build quota below is for builds, and a piece
+  // fetch is not one — so this branch stands ahead of the intake and quota.
+  if (payload.piece !== undefined) {
+    return handlePieceRequest(payload.piece);
   }
 
   const audience: NarratorAudience = payload.audience === "women" ? "women" : "men";
@@ -536,11 +677,11 @@ Deno.serve(async (req: Request) => {
       hour: losAngelesHour(),
     });
 
-    // INTERIM (round 3): with TAILOR_AUDIO_ENABLED false, the build returns
-    // here with the complete text package and audioBase64 null — the render
-    // block below is out of the execution path, kept whole for the
-    // client-orchestrated per-piece design that replaces it. The client's
-    // audio field is optional; a null renders the package with no Listen bar.
+    // With TAILOR_AUDIO_ENABLED false, the render block below is out of the
+    // execution path (kept whole as the reference production) and the build
+    // returns the text package with audioBase64 null, plus the audio PLAN
+    // further down — the client-orchestrated route that replaced it. The
+    // client's audio field is optional; a null renders the package whole.
     let audioBase64: string | null = null;
     let audioSeconds = 0;
     if (TAILOR_AUDIO_ENABLED) {
@@ -603,10 +744,34 @@ Deno.serve(async (req: Request) => {
       audioSeconds = Math.round(totalSeconds * 10) / 10;
     }
 
+    // TAILOR AUDIO PLAN (the live route): sign the assembled script's pieces
+    // for the device to fetch one call at a time through the piece mode. No
+    // render key configured → no plan, and the package is the text-only one.
+    // A plan failure must never cost the finished text: it is caught, logged
+    // as a stage, and the build answers without a plan.
+    let audioPlan: TailorAudioPlanEntry[] | null = null;
+    if (!TAILOR_AUDIO_ENABLED && TAILOR_AUDIO_PLAN_ENABLED) {
+      const renderKey = Deno.env.get("AUDIO_RENDER_KEY") ?? "";
+      if (renderKey) {
+        audioPlan = await buildAudioPlan(renderKey, dateISO, audience, composed.script).catch(
+          (err) => {
+            console.error(
+              `tailor-devotional plan failed: date=${dateISO} audience=${audience} error=${
+                err instanceof Error ? err.message : "error"
+              }`,
+            );
+            return null;
+          },
+        );
+      }
+    }
+
     console.log(
-      `tailor-devotional: date=${dateISO} audience=${audience} persona=${composed.script.persona} seconds=${audioSeconds} audio=${audioBase64 ? "present" : "absent"}`,
+      `tailor-devotional: date=${dateISO} audience=${audience} persona=${composed.script.persona} seconds=${audioSeconds} audio=${
+        audioBase64 ? "present" : audioPlan ? `plan-${audioPlan.length}` : "absent"
+      }`,
     );
-    return jsonResponse(buildResponseBody(dateISO, composed, audioBase64, audioSeconds));
+    return jsonResponse(buildResponseBody(dateISO, composed, audioBase64, audioSeconds, audioPlan));
   } catch (err) {
     // The error MESSAGE is logged — and it is safe to log: every error this
     // function raises is a stage code by construction (a fixed phrase or an

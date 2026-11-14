@@ -34,6 +34,7 @@ import {
 import { tailorOffered } from '@/lib/tailorAccess';
 import {
   MEDIA_KIND_LABELS,
+  fetchTailorAudio,
   getOrBuildTailored,
   loadTodaysTailored,
   mediaActionLabel,
@@ -338,18 +339,47 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
     writeTailorShare(dateKey, audience, shareEntryFromDevotional(devotional));
   }, [devotional, dateKey, audience]);
 
+  // The narration, fetched piece by piece (the build's audio plan): the
+  // text package is already on screen, so the fetch rides behind it — the
+  // play bar waits in its preparing state, then the stitched audio takes
+  // the plan's place. One attempt per shown package; a failed stitch
+  // leaves the text standing and a later open tries again.
+  const [audioPreparing, setAudioPreparing] = useState(false);
+  const audioAttemptedFor = useRef<TailoredDevotional | null>(null);
+  useEffect(() => {
+    if (!devotional || devotional.audioBase64 || !devotional.audioPlan) return;
+    if (audioAttemptedFor.current === devotional) return;
+    audioAttemptedFor.current = devotional;
+    let active = true;
+    setAudioPreparing(true);
+    void fetchTailorAudio(dateKey, audience, devotional).then((merged) => {
+      if (!active) return;
+      setAudioPreparing(false);
+      if (merged) setDevotional(merged);
+    });
+    return () => {
+      active = false;
+    };
+  }, [devotional, dateKey, audience]);
+
   // ── Playback (a plain single stream — the tailored render is one file) ──
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const urlRef = useRef<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
+  // While the listener drags the seek slider, this holds the scrub position
+  // so the timeupdate-driven elapsed updates can't fight the thumb; the
+  // seek itself commits on release (the Listen bar's pattern).
+  const [scrubValue, setScrubValue] = useState<number | null>(null);
+  const scrubbingRef = useRef(false);
 
   useEffect(() => {
     if (!devotional) return;
     const url = tailorAudioUrl(devotional);
-    // A text-only build (interim — the function returns no audio) has no
-    // player to wire: the package below renders in full without one.
+    // A build whose narration hasn't been stitched yet (or that carries no
+    // plan at all) has no player to wire: the package below renders in full
+    // without one, and the plan effect above completes the audio behind it.
     if (!url) return;
     urlRef.current = url;
     const el = new Audio(url);
@@ -388,6 +418,38 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
     if (!el) return;
     el.currentTime = 0;
     void el.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+  };
+
+  // One stitched stream: a seek is a direct currentTime set, play/pause
+  // state untouched. Fail-silent — a refused seek leaves playback as it was.
+  const seekTo = (value: number) => {
+    const el = audioRef.current;
+    if (!el) return;
+    try {
+      el.currentTime = value;
+      setElapsed(value);
+    } catch {
+      // A failed seek leaves playback as-is.
+    }
+  };
+
+  const displayElapsed = scrubValue ?? elapsed;
+
+  const handleScrubStart = () => {
+    scrubbingRef.current = true;
+    setScrubValue(displayElapsed);
+  };
+
+  const handleScrubInput = (value: number) => {
+    setScrubValue(value);
+    if (!scrubbingRef.current) seekTo(value);
+  };
+
+  const handleScrubEnd = () => {
+    if (!scrubbingRef.current) return;
+    scrubbingRef.current = false;
+    if (scrubValue !== null) seekTo(scrubValue);
+    setScrubValue(null);
   };
 
   const build = async () => {
@@ -569,8 +631,27 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
             {tailorCreditLine(devotional)}
           </p>
 
-          {/* The play bar — distinct from the free Listen above it. Absent
-              entirely on a text-only build (interim): no dead player. */}
+          {/* The play bar — distinct from the free Listen above it. While the
+              build's audio plan is being fetched and stitched on-device, the
+              bar waits in a preparing state (disabled, honest); absent
+              entirely on a build with neither audio nor a plan. */}
+          {!devotional.audioBase64 && devotional.audioPlan && audioPreparing && (
+            <div
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border mb-3"
+              style={{ backgroundColor: t.accentRgba(0.08), borderColor: t.accentRgba(0.3) }}
+              aria-live="polite"
+            >
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: t.accentRgba(0.35), color: '#ffffff' }}
+              >
+                <Loader2 className="w-4 h-4 animate-spin" />
+              </div>
+              <p className="text-[10px]" style={{ color: t.textDim }}>
+                Preparing the narration…
+              </p>
+            </div>
+          )}
           {devotional.audioBase64 && (
           <div
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl border mb-3"
@@ -585,17 +666,31 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
             </button>
             <div className="flex-1 min-w-0">
-              <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: `${t.border}80` }}>
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    backgroundColor: t.accent,
-                    width: duration > 0 ? `${Math.min(100, (elapsed / duration) * 100)}%` : '0%',
-                  }}
+              {(duration > 0 || devotional.audioSeconds > 0) ? (
+                <input
+                  type="range"
+                  min={0}
+                  max={duration > 0 ? duration : devotional.audioSeconds}
+                  step={1}
+                  value={Math.min(displayElapsed, duration > 0 ? duration : devotional.audioSeconds)}
+                  aria-label="Seek through your tailored devotional"
+                  onPointerDown={handleScrubStart}
+                  onPointerUp={handleScrubEnd}
+                  onPointerCancel={handleScrubEnd}
+                  onChange={(e) => handleScrubInput(Number(e.target.value))}
+                  className="w-full h-4 cursor-pointer"
+                  style={{ accentColor: t.accent }}
                 />
-              </div>
+              ) : (
+                <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: `${t.border}80` }}>
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ backgroundColor: t.accent, width: '0%' }}
+                  />
+                </div>
+              )}
               <p className="text-[10px] mt-1" style={{ color: t.textDim }}>
-                {fmt(elapsed)} / {fmt(duration || devotional.audioSeconds)}
+                {fmt(displayElapsed)} / {fmt(duration || devotional.audioSeconds)}
               </p>
             </div>
             <button

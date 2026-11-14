@@ -588,8 +588,17 @@ describe('v2 — privacy pins for the new payload paths', () => {
     expect(fnIndex).toContain('google_search');
     const envReads = fnIndex.match(/Deno\.env\.get\("([A-Z_]+)"\)/g) ?? [];
     const names = new Set(envReads.map((s) => s.replace(/.*\("([A-Z_]+)"\).*/, '$1')));
+    // AUDIO_RENDER_KEY joined the set with the audio plan (Nov 13, 2026):
+    // the project's existing render secret, reused as the plan's signing
+    // key — a configured project secret, not a new one minted for Tailor.
     expect(names).toEqual(
-      new Set(['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_ANON_KEY', 'GEMINI_API_KEY']),
+      new Set([
+        'SUPABASE_URL',
+        'SUPABASE_SERVICE_ROLE_KEY',
+        'SUPABASE_ANON_KEY',
+        'GEMINI_API_KEY',
+        'AUDIO_RENDER_KEY',
+      ]),
     );
   });
 });
