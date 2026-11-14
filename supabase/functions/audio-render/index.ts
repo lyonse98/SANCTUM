@@ -41,6 +41,11 @@
                                                    (piece-work, Nov 13, 2026): renders the
                                                    next unfinished piece and chains onward.
                                                    Without the key it is just a normal call.
+  - { "audition": true, "text", "voiceName",       hear one short passage in a candidate
+      "model", "tempo" } + x-render-key            voice recipe (./audition.ts, Nov 13,
+                                                   2026): a pure render returned as base64 —
+                                                   no uploads, no row writes. Without the
+                                                   key the flag is inert, like `step`.
   - { "retention": true }                          delete segment files older than 90
                                                    days; rows are kept, marked expired
 
@@ -80,6 +85,12 @@ import {
   silenceSamples,
   stretchPcm,
 } from "./audioEngine.ts";
+import {
+  bytesToBase64,
+  isAuditionRequest,
+  parseAuditionRequest,
+  renderAudition,
+} from "./audition.ts";
 import {
   finalFilePaths,
   isMainPiece,
@@ -331,13 +342,15 @@ async function ensureBundle(dateISO: string, audience: NarratorAudience): Promis
 
 // ── Speech (spec §8.3) ────────────────────────────────────────────────────────
 
-async function renderSpeech(text: string, voice: string): Promise<Uint8Array> {
+async function renderSpeech(text: string, voice: string, model: string = TTS_MODEL): Promise<Uint8Array> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) throw new StageError("tts", "GEMINI_API_KEY not configured");
   // Exactly the samples' request shape. No Referer header (production uses Sanctum's
   // own key — §12.1), and no style prompt: a spoken instruction risks being read aloud.
+  // `model` defaults to the production TTS_MODEL; only the audition path names
+  // another (from its closed allow-list, see ./audition.ts).
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -935,6 +948,37 @@ async function runRender(
   }
 }
 
+// ── Audition (Nov 13, 2026) ───────────────────────────────────────────────────
+
+/**
+ * One short passage rendered one way, for Erik's ear (see ./audition.ts): the
+ * production engine — lexicon, TTS, decode, MP3 at production settings — with
+ * the caller's model, voice, and tempo, where tempo 1.0 bypasses the stretch
+ * entirely so the current recipe and its challengers differ in exactly the
+ * knobs under test. Nothing is uploaded and no daily_audio row moves.
+ * Validation failures answer 400; a stage failure answers 200 with the stage
+ * code, as every shape in this function does (§8.2.9). Metadata only in logs.
+ */
+async function runAudition(payload: Record<string, unknown>): Promise<Response> {
+  const parsed = parseAuditionRequest(payload, TTS_MODEL);
+  if (!parsed.ok) {
+    return jsonResponse({ ok: false, error: parsed.error }, 400);
+  }
+  const { model, voiceName, tempo } = parsed.request;
+  try {
+    const { mp3, seconds } = await renderAudition(parsed.request, {
+      speak: (text, voice, namedModel) => renderSpeech(text, voice, namedModel),
+      encode: encodeMp3,
+    });
+    console.log(`audio-render audition: model=${model} voice=${voiceName} tempo=${tempo} seconds=${seconds}`);
+    return jsonResponse({ ok: true, audioBase64: bytesToBase64(mp3), seconds });
+  } catch (err) {
+    const stage: Stage | "error" = err instanceof StageError ? err.stage : "error";
+    console.error(`audio-render audition failed: model=${model} voice=${voiceName} tempo=${tempo} stage=${stage}`);
+    return jsonResponse({ ok: false, stage });
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -973,6 +1017,13 @@ Deno.serve(async (req: Request) => {
     // honored as a continuation only with the render key. Without the key the
     // flag is inert — the call is simply a normal (gate-respecting) call.
     const viaStep = payload.step === true && keyMatches;
+
+    // Audition mode (Nov 13, 2026): hear one passage in a candidate voice
+    // recipe before it ships. Key-guarded exactly like force/step — without
+    // the key the flag is inert and the call follows the normal paths below.
+    if (isAuditionRequest(payload, keyMatches)) {
+      return await runAudition(payload);
+    }
 
     return await runRender(dateISO, audience, force, payload.dryRun === true, viaStep);
   } catch (err) {
