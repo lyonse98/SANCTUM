@@ -11,9 +11,14 @@
 
   Piece-work (Nov 13, 2026): the render used to do all of that in ONE invocation,
   and the free-tier worker killed it mid-flight (WORKER_RESOURCE_LIMIT) before it
-  could record anything. Now each invocation renders at most one segment — one
+  could record anything. Now each invocation renders at most one piece — one
   TTS call, one decode/stretch, one encode — persists it, and chains to itself
-  (an authenticated `step` call, see ./renderPlan.ts) for the next piece. Storage
+  (an authenticated `step` call, see ./renderPlan.ts) for the next piece. The
+  heads are single pieces (proven size); the main track is cut at paragraph
+  boundaries into ≤800-character chunks (parts/main-000.mp3, main-001.mp3, …)
+  after the first round showed a multi-minute main half still kills the
+  worker, and finalize joins the chunks as encoded bytes with the produced
+  silence between the A and B groups, exactly where it always sat. Storage
   is the progress ledger: a crashed or killed invocation leaves its finished
   pieces behind, and any later call resumes from exactly there. The schedule's
   plain { date, audience } call still drives the whole chain; the row, the file
@@ -74,12 +79,15 @@ import {
   stretchPcm,
 } from "./audioEngine.ts";
 import {
-  allPiecePaths,
+  finalFilePaths,
   isMainPiece,
+  mainJoinPlan,
+  mainPieceId,
   mp3SecondsFromBytes,
   pieceStoragePath,
   planNext,
-  type RenderPiece,
+  splitMainScript,
+  type PieceSpec,
 } from "./renderPlan.ts";
 
 // The edge runtime's background-task hook: a chained step call is dispatched
@@ -96,7 +104,14 @@ const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
 const TTS_MODEL = "gemini-3.8-flash-tts";
 const BUCKET = "daily-audio";
-const MAX_ATTEMPTS = 3; // hard cap on renders per date (spec §8.2)
+// Hard cap on fresh starts per date (spec §8.2, adapted): a fresh start
+// costs one bundle fetch plus at most one short TTS call before the first
+// piece exists, so 6 buys a day room for a morning worker kill, a retry
+// kill, and several manual kicks — the old 3 let dead kicks alone exhaust a
+// day (women's 2026-11-13). Recorded failures still stop earlier, at
+// RETRY_ATTEMPTS, and a zero-piece `rendering` fossil is never capped at
+// all (see renderPlan.ts).
+const MAX_ATTEMPTS = 6;
 const RETRY_ATTEMPTS = 2; // a failed day at this many attempts is done (spec §8.2.9)
 const RENDERING_STALE_MS = 10 * 60 * 1000;
 const RETENTION_DAYS = 90;
@@ -504,8 +519,8 @@ interface AudioRow {
 async function listPieceInventory(
   dateISO: string,
   audience: NarratorAudience,
-): Promise<Set<RenderPiece>> {
-  const done = new Set<RenderPiece>();
+): Promise<Set<string>> {
+  const done = new Set<string>();
   const finals = await storageList(`${dateISO}/${audience}`);
   for (const entry of finals) {
     if (!entry.id) continue;
@@ -515,8 +530,8 @@ async function listPieceInventory(
   const parts = await storageList(`${dateISO}/${audience}/parts`);
   for (const entry of parts) {
     if (!entry.id) continue;
-    if (entry.name === "main-a.mp3") done.add("main-a");
-    if (entry.name === "main-b.mp3") done.add("main-b");
+    const m = entry.name.match(/^(main-\d{3})\.mp3$/);
+    if (m) done.add(m[1]);
   }
   return done;
 }
@@ -649,6 +664,18 @@ async function runRender(
     persona = assembled.persona;
 
     if (dryRun) {
+      // The piece report is additive diagnostics: the day's cut, on the
+      // canonical texts (the render itself cuts the lexicon-applied texts,
+      // whose lengths differ only by the lexicon's respellings).
+      const report = splitMainScript(assembled.mainA, assembled.mainB);
+      const reportChars = new Map<string, number>([
+        ["head-am", assembled.headAM.length],
+        ["head-pm", assembled.headPM.length],
+      ]);
+      report.aChunks.forEach((t, i) => reportChars.set(mainPieceId(i), t.length));
+      report.bChunks.forEach((t, j) =>
+        reportChars.set(mainPieceId(report.aChunks.length + j), t.length),
+      );
       return jsonResponse({
         ok: true,
         dryRun: true,
@@ -665,14 +692,44 @@ async function runRender(
         mainA: assembled.mainA,
         mainB: assembled.mainB,
         script: assembled.script,
+        pieceCount: report.specs.length,
+        pieces: report.specs.map((s) => ({
+          id: s.id,
+          kind: s.kind,
+          group: s.group,
+          chars: reportChars.get(s.id) ?? 0,
+        })),
       });
     }
 
     // A force re-render starts from a clean slate: wipe every piece file so
     // no fragment of the previous render can be mistaken for fresh progress.
+    // The staged chunks are wiped by listing parts/ — their count is the
+    // script's, not a constant.
     if (force) {
-      await storageDelete(allPiecePaths(dateISO, audience));
+      const partEntries = await storageList(`${dateISO}/${audience}/parts`);
+      const partPaths = partEntries
+        .filter((e) => e.id)
+        .map((e) => `${dateISO}/${audience}/parts/${e.name}`);
+      await storageDelete([...finalFilePaths(dateISO, audience), ...partPaths]);
     }
+
+    // The day's cut, on the speech payloads themselves: the lexicon
+    // transforms the payloads only (the stored script stays canonical, and
+    // the hash at finalize is of the canonical text, §8.2 step 6), so the
+    // split — and with it the piece list every chained invocation rebuilds —
+    // is taken over exactly the texts that will be spoken.
+    const split = splitMainScript(
+      applyLexicon(assembled.mainA),
+      applyLexicon(assembled.mainB),
+    );
+    const specById = new Map<string, PieceSpec>(split.specs.map((s) => [s.id, s]));
+    const textById = new Map<string, string>([
+      ["head-am", applyLexicon(assembled.headAM)],
+      ["head-pm", applyLexicon(assembled.headPM)],
+    ]);
+    split.aChunks.forEach((t, i) => textById.set(mainPieceId(i), t));
+    split.bChunks.forEach((t, j) => textById.set(mainPieceId(split.aChunks.length + j), t));
 
     const piecesDone = await listPieceInventory(dateISO, audience);
     const action = planNext({
@@ -684,6 +741,7 @@ async function runRender(
       force,
       viaStep,
       lector: assembled.lector,
+      pieces: split.specs,
       piecesDone,
       maxAttempts: MAX_ATTEMPTS,
       retryAttempts: RETRY_ATTEMPTS,
@@ -714,24 +772,32 @@ async function runRender(
     const mainPath = audioSegmentPath(dateISO, audience, "main");
 
     if (action.kind === "finalize") {
-      // Join main from its encoded halves. Every segment comes out of the
+      // Join main from its encoded chunks. Every chunk comes out of the
       // same encoder at the same settings (24 kHz mono CBR 64 kbps, spec
       // §3.3), and lamejs writes bare frames — no Xing/ID3 header to strand
       // mid-file — so the joined bytes are one ordinary MP3 stream to any
-      // player: A, then the produced silence encoded on its own, then B.
-      // The sample-domain result is identical to the monolith's concatPcm:
-      // the same stretch, the same 2.0 s gap (AUDIO_SILENCE_SECONDS), the
-      // same order. Only the peak memory moved — from a whole track of PCM
-      // to one file of MP3 bytes.
-      const aBytes = await downloadMp3(pieceStoragePath(dateISO, audience, "main-a"));
-      const bBytes = await downloadMp3(pieceStoragePath(dateISO, audience, "main-b"));
-      const silenceMp3 = encodeMp3(silenceSamples(AUDIO_SILENCE_SECONDS));
-      const mainMp3 = concatBytes(aBytes, silenceMp3, bBytes);
+      // player: the A group's chunks, then the produced silence encoded on
+      // its own, then the B group's. The sample-domain result is identical
+      // to the monolith's concatPcm: the same stretch, the same 2.0 s gap
+      // (AUDIO_SILENCE_SECONDS), the same order. Only the peak memory moved
+      // — from a whole track of PCM to one file of MP3 bytes.
+      const byteParts: Uint8Array[] = [];
+      for (const part of mainJoinPlan(split.specs)) {
+        if (part.kind === "silence") {
+          byteParts.push(encodeMp3(silenceSamples(AUDIO_SILENCE_SECONDS)));
+        } else {
+          const spec = specById.get(part.id);
+          if (!spec) throw new StageError("assemble", `join references unknown piece ${part.id}`);
+          byteParts.push(await downloadMp3(pieceStoragePath(dateISO, audience, spec)));
+        }
+      }
+      const mainMp3 = concatBytes(...byteParts);
       await uploadMp3(mainPath, mainMp3);
-      await storageDelete([
-        pieceStoragePath(dateISO, audience, "main-a"),
-        pieceStoragePath(dateISO, audience, "main-b"),
-      ]);
+      await storageDelete(
+        split.specs
+          .filter((s) => isMainPiece(s))
+          .map((s) => pieceStoragePath(dateISO, audience, s)),
+      );
 
       // Durations: the heads' were recorded from their PCM as each rendered;
       // fall back to the CBR byte count if a value never landed. The main
@@ -793,21 +859,19 @@ async function runRender(
             ? BANK_WOMEN[persona as keyof typeof BANK_WOMEN]
             : BANK[persona as keyof typeof BANK];
 
-      // The lexicon transforms the speech payloads only — the stored script
-      // stays canonical, and the hash at finalize is of the canonical text
-      // (§8.2 step 6).
-      const payloads: Record<RenderPiece, string> = {
-        "head-am": applyLexicon(assembled.headAM),
-        "head-pm": applyLexicon(assembled.headPM),
-        "main-a": applyLexicon(assembled.mainA),
-        "main-b": applyLexicon(assembled.mainB),
-      };
+      // The piece's speech payload, from the lexicon-applied cut built
+      // before the plan (the stored script stays canonical; the hash at
+      // finalize is of the canonical text, §8.2 step 6).
+      const payload = textById.get(action.piece.id);
+      if (payload === undefined) {
+        throw new StageError("assemble", `no speech payload for piece ${action.piece.id}`);
+      }
 
       // Speech → samples → tempo (§8.4). renderSpeech's StageError (tts)
       // propagates; decode/stretch failures are assembly-stage.
       let pcm: Int16Array;
       try {
-        const bytes = await renderSpeech(payloads[action.piece], profile.voice);
+        const bytes = await renderSpeech(payload, profile.voice);
         pcm = stretchPcm(decodeSpeechAudio(bytes), profile.tempo);
       } catch (err) {
         if (err instanceof StageError) throw err;
@@ -817,18 +881,18 @@ async function runRender(
       await uploadMp3(pieceStoragePath(dateISO, audience, action.piece), encodeMp3(pcm));
 
       // A head's duration is recorded from its PCM, exactly as the monolith
-      // reported it; main's halves are priced at finalize from their bytes.
+      // reported it; main's chunks are priced at finalize from their bytes.
       if (!isMainPiece(action.piece)) {
         await patchRows("daily_audio", `date=eq.${dateISO}&audience=eq.${audience}`, {
-          [`${action.piece.replace("-", "_")}_seconds`]: Math.round(secondsOf(pcm) * 10) / 10,
+          [`${action.piece.id.replace("-", "_")}_seconds`]: Math.round(secondsOf(pcm) * 10) / 10,
           updated_at: new Date().toISOString(),
         });
       }
     }
 
-    console.log(`audio-render piece: date=${dateISO} audience=${audience} persona=${persona} piece=${action.piece} attempts=${attempt}`);
+    console.log(`audio-render piece: date=${dateISO} audience=${audience} persona=${persona} piece=${action.piece.id} attempts=${attempt}`);
     chainNextStep(dateISO, audience);
-    return jsonResponse({ ok: true, piece: action.piece, chained: true });
+    return jsonResponse({ ok: true, piece: action.piece.id, chained: true });
   } catch (err) {
     const stage: Stage | "error" = err instanceof StageError ? err.stage : "error";
     console.error(`audio-render failed: date=${dateISO} audience=${audience} stage=${stage}`);
