@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Church, Lock, Zap } from 'lucide-react';
+import { Church } from 'lucide-react';
 import { SeasonBadge } from '@/components/SeasonBadge';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getDailyVisual } from '@/lib/liturgicalVisuals';
@@ -146,21 +146,6 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
         <p className="text-[11px] text-forge-text-muted stamped mb-1" style={{ color: accent }}>
           {greeting}
         </p>
-        <p className="text-xs text-forge-text-muted max-w-sm mx-auto leading-relaxed mb-3">
-          {audience === 'women'
-            ? 'A private sanctuary for women seeking counsel, stillness, and strength'
-            : 'A private sanctuary for men seeking counsel, stillness, and strength'}
-        </p>
-
-        <div className="flex items-center justify-center gap-2 flex-wrap mb-4">
-          <span className="text-[10px] text-forge-text-dim stamped flex items-center gap-1">
-            <Lock className="w-3 h-3" /> Nothing Stored on a Server
-          </span>
-          <span className="text-forge-text-dim text-[10px]">•</span>
-          <span className="text-[10px] text-forge-text-dim stamped flex items-center gap-1">
-            <Zap className="w-3 h-3" /> No Account Needed
-          </span>
-        </div>
 
         <div className="flex flex-col items-center gap-1.5">
           <SeasonBadge />

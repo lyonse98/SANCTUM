@@ -1,6 +1,7 @@
 /**
- * The ONE canonical statement of why Sanctum exists. The thesis line renders on the
- * Today masthead, the welcome gate, and the About page's "Why Sanctum exists" block —
+ * The ONE canonical statement of why Sanctum exists. The thesis line renders at the
+ * FOOT of Today (Erik, Nov 14, 2026 — the brand statement closes the day rather than
+ * opening it), the welcome gate, and the About page's "Why Sanctum exists" block —
  * always from these constants, so the wording can never drift apart between surfaces.
  *
  * The line is Erik's rendering of Léon Bloy: "There is but one sadness: not to be a
