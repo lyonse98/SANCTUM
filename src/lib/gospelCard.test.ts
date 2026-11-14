@@ -10,11 +10,14 @@ const SRC = join(__dirname, '..');
 const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 
 /**
- * The Gospel card rebuilt (core diet step 1, Erik, Nov 13, 2026): the readings
- * are the card's body again — full text, in lectionary order, no expander;
- * the key verse and the "From the tradition" quote are off the card; the
- * saint's standalone card is demoted to the header's celebration line; and
- * Listen / Tailor Today / Reflect stand as three equal Way-1 tiles.
+ * The Gospel card rebuilt (core diet step 1, Erik, Nov 13, 2026), then revised
+ * by Erik the same evening: he preferred the older arrangement — the card
+ * collapsed to the most quotable part of the Gospel (the key verse) by
+ * default, with all the readings — First, Psalm, Second, Gospel — available
+ * collapsibly behind an expander, in lectionary order. The "From the
+ * tradition" quote stays off the card; the saint's standalone card stays
+ * demoted to the header's celebration line; and Listen / Tailor Today /
+ * Reflect stand as three equal Way-1 tiles.
  */
 
 const SUNDAY: DailyReadings = {
@@ -74,12 +77,13 @@ describe('the readings, in lectionary order', () => {
   });
 });
 
-describe('the card diet — what left the card', () => {
+describe('the card, revised the same evening — what came back, what stayed gone', () => {
   const card = read('components/DailyQuote.tsx');
 
-  it('no expander, no collapsible reading blocks', () => {
-    expect(card).not.toContain('Read the full readings');
-    expect(card).not.toContain('toggleExpanded');
+  it('the expander is back: one toggle for the full readings, no per-reading accordion blocks', () => {
+    expect(card).toContain('Read the full readings');
+    expect(card).toContain('Hide the full readings');
+    expect(card).toContain('toggleExpanded');
     expect(card).not.toContain('ReadingBlock');
   });
 
@@ -87,15 +91,26 @@ describe('the card diet — what left the card', () => {
     expect(card).not.toContain('From the tradition');
   });
 
-  it('no key-verse block on the card — the verse survives only for the share card', () => {
-    expect(card).not.toContain('The Gospel &middot; {keyVerse.citation}');
+  it('the key verse is the card’s collapsed face again — and still feeds the share card', () => {
+    expect(card).toContain('The Gospel &middot; {keyVerse.citation}');
+    expect(card).toContain('{keyVerse.text}');
     expect(card).toContain('keyVerse={keyVerse}');
   });
 
-  it('the readings are visible in the body, with the official-text link at their foot', () => {
+  it('collapsed, the card defaults to the key verse — it renders before the expander toggle', () => {
+    expect(card.indexOf('The Gospel &middot; {keyVerse.citation}')).toBeGreaterThan(-1);
+    expect(card.indexOf('The Gospel &middot; {keyVerse.citation}')).toBeLessThan(
+      card.indexOf('Read the full readings'),
+    );
+    // The full readings render only inside the expanded section.
+    expect(card).toContain('{expanded && readings && (');
+  });
+
+  it('the full readings live in the expander, in lectionary order, with the official-text link at their foot', () => {
     expect(card).toContain('orderedReadingRows(readings, allTexts)');
     expect(card).toContain('Official reading text');
-    // The full-text fetch fires on citations, not on an expansion.
+    // The full-text fetch still fires on citations in the background, so the
+    // expansion — and the companion prompt — never wait on it.
     expect(card).toContain('void loadAllTexts()');
   });
 

@@ -8,6 +8,8 @@ import {
   Loader2,
   Share2,
   Headphones,
+  ChevronDown,
+  X,
 } from 'lucide-react';
 import { quoteForDay } from '@/data/quotes';
 import { fetchDailyReadings, type DailyReadings } from '@/lib/readings';
@@ -88,6 +90,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
   const [loadingAll, setLoadingAll] = useState(false);
   const [preparing, setPreparing] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [staleDate, setStaleDate] = useState<string | null>(null);
   const [panel, setPanel] = useState<CardPanel>('none');
 
@@ -123,8 +126,10 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     };
   }, []);
 
-  // The key verse no longer sits on the card — the full Gospel is the card's
-  // body now — but the share card still paints from it, so it is still picked.
+  // The key verse is the card's collapsed face again (Erik, Nov 13, 2026
+  // evening — the pre-diet arrangement restored): the most quotable line of
+  // the day's Gospel, picked by the deterministic scorer in lib/keyVerse.
+  // The share card also paints from it, exactly as before.
   const keyVerse: KeyVerse | null = useMemo(
     () => (gospelVerses ? pickKeyVerse(gospelVerses) : null),
     [gospelVerses],
@@ -135,7 +140,9 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
   const [localDateKey] = useState(() => isoDate(new Date()));
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const [reflectionFor, setReflectionFor] = useState<string | null>(null);
+  const [reflectionAudience, setReflectionAudience] = useState<Audience | null>(null);
   const [reflectionBusyFor, setReflectionBusyFor] = useState<string | null>(null);
+  const [reflectionBusyAudience, setReflectionBusyAudience] = useState<Audience | null>(null);
   const reflectionFetchSeq = useRef(0);
 
   // The reflection is pre-generated server-side from the day's readings, the way a
@@ -145,32 +152,51 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
   // load, keyed to the locally computed date, instead of waiting behind it. When the
   // bundle does resolve, its date is authoritative: if it differs (a midnight edge,
   // or a stale bundle), the reflection realigns to the bundle's date — the reflection
-  // shown always matches the Gospel shown. The coordination rules live with the
-  // fetcher (nextReflectionFetch / reflectionDisplay in lib/reflection).
+  // shown always matches the Gospel shown. The settled state is a (date, audience)
+  // pair, so a track switch in Settings owes the new track its own fetch: the other
+  // track's reflection — facet included — is never displayed here. The coordination
+  // rules live with the fetcher (nextReflectionFetch / reflectionDisplay in lib/reflection).
   useEffect(() => {
     const want = nextReflectionFetch(
-      { settledFor: reflectionFor, inFlightFor: reflectionBusyFor },
+      {
+        settledFor: reflectionFor,
+        inFlightFor: reflectionBusyFor,
+        settledAudience: reflectionAudience,
+        inFlightAudience: reflectionBusyAudience,
+      },
       localDateKey,
       readings?.date ?? null,
+      audience,
     );
     if (!want) return;
     const seq = ++reflectionFetchSeq.current;
     setReflectionBusyFor(want);
+    setReflectionBusyAudience(audience);
     void (async () => {
       const result = await fetchReflection(want, audience);
       if (reflectionFetchSeq.current !== seq) return;
       setReflection(result);
       setReflectionFor(want);
+      setReflectionAudience(audience);
       setReflectionBusyFor(null);
+      setReflectionBusyAudience(null);
     })();
-  }, [localDateKey, readings, reflectionFor, reflectionBusyFor]);
+  }, [localDateKey, readings, reflectionFor, reflectionBusyFor, reflectionAudience, reflectionBusyAudience, audience]);
 
   // What the reflection block may show right now: the settled reflection once it
-  // belongs to the day on display, a pending state while a fetch (or the realigning
-  // fetch) is outstanding — never another date's reflection.
+  // belongs to the day — and the track — on display, a pending state while a fetch
+  // (or the realigning fetch) is outstanding — never another date's reflection,
+  // and never the other track's.
   const shown = reflectionDisplay(
-    { settledFor: reflectionFor, inFlightFor: reflectionBusyFor, value: reflection },
+    {
+      settledFor: reflectionFor,
+      inFlightFor: reflectionBusyFor,
+      settledAudience: reflectionAudience,
+      inFlightAudience: reflectionBusyAudience,
+      value: reflection,
+    },
     readings?.date ?? null,
+    audience,
   );
 
   const loadAllTexts = async (): Promise<ReadingTexts | null> => {
@@ -188,9 +214,15 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     return texts;
   };
 
-  // The readings are the card's body now (Nov 13, 2026), so the full-text fetch
-  // fires as soon as the citations land — nothing waits for an expander that
-  // no longer exists.
+  const toggleExpanded = () => {
+    const next = !expanded;
+    setExpanded(next);
+    if (next) void loadAllTexts();
+  };
+
+  // The full-text fetch fires in the background as soon as the citations land,
+  // so expanding the readings — and building the companion reflection prompt —
+  // never waits on it.
   useEffect(() => {
     if (readings && !allTexts && !loadingAll) {
       void loadAllTexts();
@@ -297,57 +329,20 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
         </div>
       )}
 
-      {/* The readings are the body of the card (Erik, Nov 13, 2026): full text,
-          in lectionary order, visible without expanding anything — First,
-          Psalm, Second where the day has one, and the Gospel last, the way
-          they are heard at Mass. */}
-      {!loading && readings && (
-        <div className="space-y-4 mb-4">
-          {orderedReadings
-            .filter((row) => row.passage?.text)
-            .map((row) => (
-              <div key={row.label}>
-                <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.accent }}>
-                  {row.label} &middot; {row.passage!.citation}
-                </p>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: row.label === 'Gospel' ? t.textBright : t.text }}
-                >
-                  {row.passage!.text}
-                </p>
-                {row.label === 'Gospel' && (
-                  <p className="text-[9px] mt-1.5" style={{ color: t.textDim }}>
-                    Text: {row.passage!.translation === 'douayrheims' ? 'Douay-Rheims' : 'World English Bible'} (public domain).
-                  </p>
-                )}
-              </div>
-            ))}
-
-          {/* Citations the translation could not supply — named, never dropped. */}
-          {orderedReadings
-            .filter((row) => !row.passage?.text)
-            .map((row) => (
-              <p key={row.label} className="text-[10px]" style={{ color: t.textDim }}>
-                {row.label}: {row.citation}
-                {loadingAll ? ' — loading…' : ''}
-              </p>
-            ))}
-
-          {readings.usccbLink && (
-            <a
-              href={readings.usccbLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] font-bold transition-opacity hover:opacity-70"
-              style={{ color: t.accent }}
-            >
-              <BookOpen className="w-3 h-3" />
-              Official reading text
-              <ExternalLink className="w-2.5 h-2.5" />
-            </a>
-          )}
-        </div>
+      {/* The verse to sit with — the card's collapsed face (Erik, Nov 13, 2026
+          evening, restoring the arrangement he preferred): before anything is
+          expanded, the card defaults to the most quotable part of the Gospel.
+          The full readings — all of them, in lectionary order — live behind
+          the expander at the card's foot. */}
+      {!loading && readings && keyVerse && (
+        <>
+          <p className="text-[9px] uppercase tracking-widest font-bold mb-1.5" style={{ color: t.textDim }}>
+            The Gospel &middot; {keyVerse.citation}
+          </p>
+          <p className="text-[15px] leading-relaxed mb-3 font-display" style={{ color: t.textBright }}>
+            {keyVerse.text}
+          </p>
+        </>
       )}
 
       {/* Offline fallback — only when the readings themselves could not be
@@ -488,6 +483,90 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
             <span className="text-[11px] font-bold uppercase tracking-wide">Share today&rsquo;s Gospel</span>
           </button>
         </>
+      )}
+
+      {/* Expand for the full readings — all of them, collapsible with the
+          Gospel as they were before the diet: full text in lectionary order,
+          First, Psalm, Second where the day has one, and the Gospel last,
+          the way they are heard at Mass. */}
+      {!loading && readings && (
+        <button
+          onClick={toggleExpanded}
+          aria-expanded={expanded}
+          className="w-full flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest mt-3 transition-opacity hover:opacity-70"
+          style={{ color: t.accent }}
+        >
+          {expanded ? 'Hide the full readings' : 'Read the full readings'}
+          <ChevronDown
+            className="w-3 h-3 transition-transform"
+            style={{ transform: expanded ? 'rotate(180deg)' : 'none' }}
+          />
+        </button>
+      )}
+
+      {expanded && readings && (
+        <div className="space-y-4 pt-3 mt-3 border-t animate-fade-in" style={{ borderColor: `${t.border}66` }}>
+          {loadingAll && !allTexts && (
+            <div className="flex items-center gap-2" style={{ color: t.textDim }}>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span className="text-[10px]">Loading the day&rsquo;s readings&hellip;</span>
+            </div>
+          )}
+
+          {orderedReadings
+            .filter((row) => row.passage?.text)
+            .map((row) => (
+              <div key={row.label}>
+                <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.accent }}>
+                  {row.label} &middot; {row.passage!.citation}
+                </p>
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{ color: row.label === 'Gospel' ? t.textBright : t.text }}
+                >
+                  {row.passage!.text}
+                </p>
+                {row.label === 'Gospel' && (
+                  <p className="text-[9px] mt-1.5" style={{ color: t.textDim }}>
+                    Text: {row.passage!.translation === 'douayrheims' ? 'Douay-Rheims' : 'World English Bible'} (public domain).
+                  </p>
+                )}
+              </div>
+            ))}
+
+          {/* Citations the translation could not supply — named, never dropped. */}
+          {orderedReadings
+            .filter((row) => !row.passage?.text)
+            .map((row) => (
+              <p key={row.label} className="text-[10px]" style={{ color: t.textDim }}>
+                {row.label}: {row.citation}
+                {loadingAll ? ' — loading…' : ''}
+              </p>
+            ))}
+
+          {readings.usccbLink && (
+            <a
+              href={readings.usccbLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-bold transition-opacity hover:opacity-70"
+              style={{ color: t.accent }}
+            >
+              <BookOpen className="w-3 h-3" />
+              Official reading text
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          )}
+
+          <button
+            onClick={() => setExpanded(false)}
+            className="w-full flex items-center justify-center gap-1 text-[10px] transition-opacity hover:opacity-70"
+            style={{ color: t.textDim }}
+          >
+            <X className="w-3 h-3" />
+            <span>Close</span>
+          </button>
+        </div>
       )}
 
       <DailyGospelShareModal

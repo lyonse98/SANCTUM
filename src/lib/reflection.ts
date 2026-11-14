@@ -53,12 +53,24 @@ export function reflectionRequestBody(dateKey: string, audience: Audience): { da
  * the block renders on the reflection's own state. Once the bundle resolves, its
  * date is authoritative: a reflection settled for any other date is never displayed
  * (the reflection shown must match the Gospel shown) and a realigning fetch is owed.
+ * The pair rule extends to the track: settled state is a (date, audience) pair, so
+ * a reflection fetched for one track is never displayed on the other — a Settings
+ * track switch owes a fresh fetch for the new track, facet included.
  */
 export interface ReflectionFetchState {
   /** Date the settled reflection (or settled failure) belongs to. */
   settledFor: string | null;
   /** Date of the fetch currently in flight, if any. */
   inFlightFor: string | null;
+  /**
+   * Track the settled reflection was fetched for. A reflection only ever
+   * answers for its own (date, audience) pair: the men's reflection settled
+   * for today is NOT settled for a woman who switches tracks — its words,
+   * and its "As a man" facet, belong to the other track.
+   */
+  settledAudience: Audience | null;
+  /** Track the in-flight fetch is for, if any. */
+  inFlightAudience: Audience | null;
 }
 
 /** The date a fetch should start for now, or null when none is owed. */
@@ -66,23 +78,29 @@ export function nextReflectionFetch(
   state: ReflectionFetchState,
   localDate: string,
   bundleDate: string | null,
+  audience: Audience,
 ): string | null {
   if (state.inFlightFor) return null;
   const want = bundleDate ?? localDate;
-  return state.settledFor === want ? null : want;
+  const settled = state.settledFor === want && state.settledAudience === audience;
+  return settled ? null : want;
 }
 
 /**
  * What the reflection block may show. `pending` covers both an in-flight fetch and a
- * settled reflection whose date the resolved bundle has superseded (realigning) —
- * in both cases the block renders its spinner rather than another date's words.
+ * settled reflection the current view has superseded — because the resolved bundle
+ * moved the day (realigning), or because the track switched and the settled words
+ * are the other audience's. In both cases the block renders its spinner rather
+ * than another date's — or another track's — words.
  */
 export function reflectionDisplay(
   state: ReflectionFetchState & { value: Reflection | null },
   bundleDate: string | null,
+  audience: Audience,
 ): { value: Reflection | null; pending: boolean } {
   const superseded =
-    bundleDate !== null && state.settledFor !== null && state.settledFor !== bundleDate;
+    (bundleDate !== null && state.settledFor !== null && state.settledFor !== bundleDate) ||
+    (state.settledAudience !== null && state.settledAudience !== audience);
   return {
     value: superseded ? null : state.value,
     pending: state.inFlightFor !== null || superseded,

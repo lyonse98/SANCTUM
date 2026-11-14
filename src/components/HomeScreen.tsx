@@ -30,8 +30,9 @@ interface HomeScreenProps {
 
 /**
  * The Today area — the app's only home since the core diet (Erik, Nov 13,
- * 2026). The Gospel card carries the day: the readings as its body, the
- * reflection, and the three equal doors into it. The saint of the day no
+ * 2026). The Gospel card carries the day: the key verse as its face, the
+ * full readings behind its expander, the reflection, and the three equal
+ * doors into it. The saint of the day no
  * longer holds a card of his own here — he survives in the Gospel card's
  * header line (the day's celebration and its rank) and in the Tonight
  * closing's saint line; the standalone saint card's component stays in
