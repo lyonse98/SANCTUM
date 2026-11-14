@@ -19,7 +19,9 @@ import {
   pickVariant,
   resolveFeastDay,
   saintLineFor,
+  spokenCelebrationName,
   spokenizeOrdinals,
+  withSpokenArticle,
   validateScene,
   type AssembleInputs,
   type PersonaId,
@@ -87,7 +89,9 @@ describe('bank integrity (§10.1)', () => {
       expect(bank.frameMemorialPM.length).toBeGreaterThan(10);
       expect(bank.soberFrame.length).toBeGreaterThan(5);
       expect(bank.reflectionHandoff.length).toBeGreaterThan(3);
-      expect(bank.challengeHandoff).toContain('{facetLower}');
+      // The facet is never spoken: the hand-off names no "as a man" (Nov 13, 2026).
+      expect(bank.challengeHandoff).not.toContain('{facetLower}');
+      expect(bank.challengeHandoff).not.toMatch(/as a (man|woman)/i);
     }
   });
 
@@ -239,7 +243,9 @@ describe('week labels (§10.2, §12.6)', () => {
 describe('frame forms (§10.2 golden fixtures)', () => {
   it('feria frames reproduce the approved character-sheet wording for all seven', () => {
     const expected: Record<PersonaId, string> = {
-      henry: "It's Sunday of the Thirtieth Week in Ordinary Time. No feast today. An ordinary day — and He shows up in those, same as the great ones.",
+      // A plain Sunday is not a "no feast today" day (Nov 13, 2026): the date line
+      // stands, and the frame closes with the Resurrection sentence.
+      henry: 'Sunday of the Thirtieth Week in Ordinary Time. Sunday — the day of the Resurrection.',
       coach: 'Monday of the Thirtieth Week in Ordinary Time. No feast today. Just a regular Monday — and regular days are where this gets built.',
       frank: "Tuesday of the Thirtieth Week in Ordinary Time. No feast today. Plain workday — He's in it all the same.",
       ben: "It's Wednesday of the Thirtieth Week in Ordinary Time. No feast today — an ordinary Wednesday.",
@@ -431,10 +437,12 @@ describe('time-neutrality of the main segment (§10.2)', () => {
 describe('the verbatim contract (§10.3) — Ben, Oct 30, 2026', () => {
   // The approved character-pass payloads (ben-a.txt / ben-b.txt) are reconstructed
   // inline: segment A is the head (now split off) + main-through-acclamation;
-  // segment B is the reflection-through-teaser. The one deliberate deviation from
-  // the sample payload is the teaser: the sample's line was written for that day
-  // alone ("stays at this same table"); production speaks the slot-generalized
-  // template. Everything else must match byte-for-byte.
+  // segment B is the reflection-through-teaser. Two deliberate deviations from
+  // the sample payload: the teaser (the sample's line was written for that day
+  // alone — "stays at this same table"; production speaks the slot-generalized
+  // template), and the challenge hand-off, which no longer speaks the facet
+  // clause ("— as a man") aloud (Nov 13, 2026; the facet lives on in the
+  // reflection text and the UI). Everything else must match byte-for-byte.
   const sampleA = [
     'Morning, brother. Before the house wakes — the Gospel first.',
     "It's Friday of the Thirtieth Week in Ordinary Time. No feast today — an ordinary Friday.",
@@ -448,7 +456,7 @@ describe('the verbatim contract (§10.3) — Ben, Oct 30, 2026', () => {
   const sampleB = [
     "Sit with that a second. Here's today's reflection.",
     OCT30.reflect,
-    "And today's challenge — as a man. One thing, today:",
+    "And today's challenge. One thing, today:",
     OCT30.challenge,
     'Same time tomorrow, brother. Pray first. Then fight.',
     "Tomorrow's Saturday, still the Thirtieth Week — and the Gospel stays at this same table: Luke, chapter fourteen.",
@@ -466,7 +474,7 @@ describe('the verbatim contract (§10.3) — Ben, Oct 30, 2026', () => {
     expect(assembled.mainA).toBe(mainParts.join('\n\n'));
   });
 
-  it('segment B matches except the generalized teaser line', () => {
+  it('segment B matches except the generalized teaser and the unspoken facet', () => {
     const productionTeaser =
       "Tomorrow's Saturday, still the Thirtieth Week — and the Gospel is Luke, chapter fourteen.";
     expect(assembled.mainB).toBe(sampleB.replace(sampleB.split('\n\n').pop()!, productionTeaser));
@@ -509,6 +517,84 @@ describe('the scene lint (§10.5)', () => {
     expect(
       validateScene('A synagogue on the Sabbath. A man with a withered hand stands where everyone can see him.'),
     ).toEqual({ ok: true });
+  });
+});
+
+describe('spoken labels — dual memorials and Sundays (Nov 13, 2026)', () => {
+  const DUAL = 'Saint Margaret of Scotland/Saint Gertrude the Great, Virgin';
+  const JOINED = 'Saint Margaret of Scotland and Saint Gertrude the Great';
+
+  it('the label helper joins co-memorials with "and" and drops the dangling shared title', () => {
+    expect(spokenCelebrationName(DUAL)).toBe(JOINED);
+    // Single-name labels pass through untouched, internal titles and all.
+    expect(spokenCelebrationName('Saints Cornelius, Pope, and Cyprian, Bishop, Martyrs')).toBe(
+      'Saints Cornelius, Pope, and Cyprian, Bishop, Martyrs',
+    );
+    expect(spokenCelebrationName('Saint Catherine of Siena, Virgin and Doctor of The Church')).toBe(
+      'Saint Catherine of Siena, Virgin and Doctor of The Church',
+    );
+  });
+
+  it('a dual-memorial day speaks the joined label in the frame, on both tracks', () => {
+    for (const audience of ['men', 'women'] as const) {
+      const s = assembleScript({
+        ...OCT30,
+        audience,
+        facet: audience === 'women' ? 'As a woman' : 'As a man',
+        dateISO: '2026-11-16', // Monday — Coach / Coach Dana
+        celebration: DUAL,
+        gospelCitation: 'Luke 18:35-43',
+      });
+      expect(s.headAM, audience).toContain(JOINED);
+      expect(s.headPM, audience).toContain(JOINED);
+      expect(s.headAM, audience).not.toContain('/');
+      expect(s.headAM, audience).not.toContain(', Virgin');
+    }
+  });
+
+  it('the tomorrow teaser speaks the joined label too, on both tracks', () => {
+    for (const audience of ['men', 'women'] as const) {
+      const s = assembleScript({
+        ...OCT30,
+        audience,
+        facet: audience === 'women' ? 'As a woman' : 'As a man',
+        dateISO: '2026-11-15', // Sunday — tomorrow is the dual memorial
+        celebration: '33rd Sunday of Ordinary Time',
+        gospelCitation: 'Luke 21:5-19',
+        tomorrowCelebration: DUAL,
+        tomorrowGospelCitation: 'Luke 18:35-43',
+      });
+      expect(s.teaserIncluded, audience).toBe(true);
+      expect(s.mainB, audience).toContain(JOINED);
+      expect(s.mainB, audience).not.toContain('/');
+    }
+  });
+
+  it('a plain Sunday: the Resurrection sentence, the article restored, no feria language', () => {
+    expect(withSpokenArticle('Thirty-Third Sunday of Ordinary Time')).toBe(
+      'the Thirty-Third Sunday of Ordinary Time',
+    );
+    expect(withSpokenArticle('Friday of the Thirtieth Week in Ordinary Time')).toBe(
+      'Friday of the Thirtieth Week in Ordinary Time',
+    );
+    for (const audience of ['men', 'women'] as const) {
+      const s = assembleScript({
+        ...OCT30,
+        audience,
+        facet: audience === 'women' ? 'As a woman' : 'As a man',
+        dateISO: '2026-11-15',
+        celebration: '33rd Sunday of Ordinary Time',
+        gospelCitation: 'Luke 21:5-19',
+        tomorrowCelebration: null,
+        tomorrowGospelCitation: null,
+      });
+      for (const head of [s.headAM, s.headPM]) {
+        expect(head, audience).toContain('The Thirty-Third Sunday of Ordinary Time.');
+        expect(head, audience).toContain('Sunday — the day of the Resurrection.');
+        expect(head, audience).not.toContain('No feast today');
+        expect(head, audience).not.toContain('ordinary day');
+      }
+    }
   });
 });
 

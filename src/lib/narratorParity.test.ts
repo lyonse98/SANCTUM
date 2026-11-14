@@ -159,15 +159,21 @@ describe('voice parity — the cast table, unique within and across tracks', () 
 });
 
 describe('women\u2019s bank integrity — the same discipline as the men\u2019s (§10.1)', () => {
-  it('every sister carries the full slot set, with the charter\u2019s own sign-on and sign-off first', () => {
+  it('every sister carries the full slot set, with her own canonical sign-on and sign-off first', () => {
+    // Her canonical lines are HER OWN (Nov 13, 2026): the sheets as first built
+    // carried the brothers' canonical lines verbatim — Ruth spoke Henry's, Dana
+    // Coach's, Marta Martin's, June Tom's, Rose Ed's — and the borrowed lines
+    // were replaced throughout the bank. The one line both companies still
+    // share is deliberate: the brand sign-off the charter assigns to the peer
+    // of each company (Ben and Claire alike).
     const canonical: Record<WomenPersonaId, [string, string]> = {
-      ruth: ["Well. Let's see what He has for us today.", "Same time tomorrow. He'll be here. So will I."],
-      dana: ["Let's get after it.", 'Now go live it.'],
+      ruth: ["Well. Sixty years I've been hearing these words, and they still find me. Listen.", "Same time tomorrow. I'll be here — and so will He."],
+      dana: ["Gospel first. Then we take on the week. Let's go.", 'Now get out there and live it.'],
       grace: ['Alright. First things first.', 'Now go do the next right thing.'],
       claire: ["Morning, sister. Let's start where we always start.", 'Pray first. Then fight.'],
-      marta: ["The hour is His. Let's keep it.", 'Keep the rhythm.'],
-      june: ["Still up? You're not the only one.", 'He keeps watch with you. Rest when you can.'],
-      rose: ["Morning. Coffee's on. Let's sit a minute.", "I'll be here tomorrow."],
+      marta: ["The hour is here, and it's His. Let's keep it.", 'Keep the rhythm — He keeps you.'],
+      june: ["Still up? You're not the only one awake.", 'He keeps the watch with you. Rest when you can.'],
+      rose: ["Morning. Coffee's on — come sit a minute.", "I'll be right here tomorrow."],
     };
     for (const id of WOMEN) {
       const bank = BANK_WOMEN[id];
@@ -178,7 +184,9 @@ describe('women\u2019s bank integrity — the same discipline as the men\u2019s 
       expect(bank.teaserTemplates.length, `${id} teaserTemplates`).toBeGreaterThanOrEqual(2);
       expect(bank.soberSignOnsAM.length, `${id} soberAM`).toBeGreaterThanOrEqual(1);
       expect(bank.soberSignOnsPM.length, `${id} soberPM`).toBeGreaterThanOrEqual(1);
-      expect(bank.challengeHandoff).toContain('{facetLower}');
+      // The facet is never spoken: the hand-off names no "as a woman" (Nov 13, 2026).
+      expect(bank.challengeHandoff).not.toContain('{facetLower}');
+      expect(bank.challengeHandoff).not.toMatch(/as a (man|woman)/i);
       // Her sheet's canonical sign-on is in the day's sets (AM or PM — June's is a
       // PM line by sheet, Grace's an AM one, exactly as Tom's and Frank's split).
       const [signOn, signOff] = canonical[id];
@@ -238,22 +246,68 @@ describe('women\u2019s bank integrity — the same discipline as the men\u2019s 
   });
 });
 
-describe('her script — Zone 1 verbatim, her facet, her brand line', () => {
-  it('Claire\u2019s Wednesday carries the Gospel byte-for-byte and hands off \u201cas a woman\u201d', () => {
+describe('her script — Zone 1 verbatim, her brand line, no spoken facet', () => {
+  it('Claire\u2019s Wednesday carries the Gospel byte-for-byte and hands off without speaking her facet', () => {
     const input = fixture('2026-10-28', 'Wednesday of the 30th week of Ordinary Time', 'women');
     const s = assembleScript(input);
     expect(s.persona).toBe('claire');
     expect(s.script).toContain(input.gospelText);
     expect(s.script).toContain(input.reflect);
     expect(s.script).toContain(input.challenge);
-    expect(s.mainB).toContain('challenge — as a woman');
+    // The hand-off is spoken plainly; the facet lives in the reflection text
+    // and the UI, never in the narrator's mouth (Nov 13, 2026).
+    expect(s.mainB).toContain("And today's challenge.");
+    expect(s.mainB).not.toContain('as a woman');
+    expect(s.mainB).not.toContain('as a man');
     expect(BANK_WOMEN.claire.signOffs).toContain('Pray first. Then fight.');
   });
 
-  it('the same day in the men\u2019s track says \u201cas a man\u201d — the facets never cross', () => {
+  it('the same day in the men\u2019s track likewise speaks no facet', () => {
     const his = assembleScript(fixture('2026-10-28', 'Wednesday of the 30th week of Ordinary Time', 'men'));
-    expect(his.mainB).toContain('challenge — as a man');
+    expect(his.mainB).toContain("And today's challenge.");
+    expect(his.mainB).not.toContain('as a man');
     expect(his.mainB).not.toContain('as a woman');
+  });
+});
+
+describe('the Nov 13, 2026 borrow purge — her lines are hers, pinned', () => {
+  // The ONE string the two companies share on purpose: the brand sign-off the
+  // charter assigns to the peer of each company. It is exempt from the purge
+  // by design; every other sign-on/sign-off must be track-original.
+  const BRAND_SIGN_OFF = 'Pray first. Then fight.';
+
+  it('no women’s sign-on or sign-off string-equals any men’s entry', () => {
+    const mensLines = new Set<string>();
+    for (const id of MEN) {
+      const b = BANK[id];
+      for (const line of [...b.signOnsAM, ...b.signOnsPM, ...b.signOffs, ...b.soberSignOnsAM, ...b.soberSignOnsPM]) {
+        mensLines.add(line);
+      }
+    }
+    mensLines.delete(BRAND_SIGN_OFF);
+    for (const id of WOMEN) {
+      const b = BANK_WOMEN[id];
+      const hers = [...b.signOnsAM, ...b.signOnsPM, ...b.signOffs, ...b.soberSignOnsAM, ...b.soberSignOnsPM];
+      for (const line of hers) {
+        if (line === BRAND_SIGN_OFF) continue;
+        expect(mensLines.has(line), `${id}: "${line}"`).toBe(false);
+      }
+    }
+    // And the brand line itself really is carried by both Wednesday peers.
+    expect(BANK.ben.signOffs).toContain(BRAND_SIGN_OFF);
+    expect(BANK_WOMEN.claire.signOffs).toContain(BRAND_SIGN_OFF);
+  });
+
+  it('the whole sample week, both tracks: no assembled script speaks a facet in the hand-off', () => {
+    WEEK.forEach(([dateISO, celebration]) => {
+      for (const audience of ['men', 'women'] as const) {
+        const s = assembleScript(fixture(dateISO, celebration, audience));
+        expect(s.mainB, `${dateISO}/${audience}`).not.toContain('as a man');
+        expect(s.mainB, `${dateISO}/${audience}`).not.toContain('as a woman');
+        const bank = audience === 'women' ? BANK_WOMEN[s.persona as WomenPersonaId] : BANK[s.persona as PersonaId];
+        expect(s.mainB, `${dateISO}/${audience}`).toContain(bank.challengeHandoff);
+      }
+    });
   });
 });
 

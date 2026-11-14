@@ -286,10 +286,44 @@ export function sentenceStart(text: string): string {
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
 }
 
-/** "As a man" → "as a man" for the challenge hand-off slot. */
-export function facetLower(facet: string): string {
-  const t = facet.trim();
-  return t ? t.charAt(0).toLowerCase() + t.slice(1) : t;
+/**
+ * Trailing titles the lectionary hangs on the LAST name of a shared memorial label
+ * ("…, Virgin"). Once the names are joined for speech the title would dangle over
+ * both saints, so it is dropped rather than misassigned.
+ */
+const SPOKEN_TITLE_SUFFIXES: readonly string[] = [
+  'Virgin and Martyr', 'Bishop and Martyr', 'Doctor of the Church',
+  'Virgin', 'Martyr', 'Martyrs', 'Bishop', 'Pope', 'Religious', 'Widow',
+  'Apostle', 'Evangelist', 'Deacon', 'Abbot', 'Priest', 'King', 'Queen',
+];
+
+/**
+ * A celebration label for SPEECH. Co-memorials arrive slashed together with one
+ * shared title ("Saint Margaret of Scotland/Saint Gertrude the Great, Virgin") —
+ * spoken that way it is neither English nor reverent. Joined with "and", the
+ * trailing shared title dropped: "Saint Margaret of Scotland and Saint Gertrude
+ * the Great" (Nov 13, 2026). Single-name labels pass through untouched, commas
+ * and all.
+ */
+export function spokenCelebrationName(name: string): string {
+  if (!name.includes('/')) return name;
+  const parts = name.split('/').map((p) => p.trim()).filter(Boolean);
+  if (parts.length < 2) return name;
+  let joined = parts.join(' and ');
+  const trailing = joined.match(/^(.*),\s*([^,]+)$/);
+  if (trailing && SPOKEN_TITLE_SUFFIXES.includes(trailing[2].trim())) joined = trailing[1];
+  return joined;
+}
+
+/**
+ * The lectionary names Sundays "33rd Sunday of Ordinary Time", which the ordinal
+ * pass speaks as "Thirty-Third Sunday of Ordinary Time" — a date line needs its
+ * article: "the Thirty-Third Sunday of Ordinary Time" (Nov 13, 2026). Only that
+ * ordinal-first Sunday shape gains the article; every other label is untouched.
+ */
+export function withSpokenArticle(label: string): string {
+  if (/^the /i.test(label)) return label;
+  return label.replace(/^([A-Z][a-z]+(?:-[A-Z][a-z]+)?)( Sunday of )/, 'the $1$2');
 }
 
 // ── Feast resolution (ported from src/data/feastDays.ts, reduced to name + rank) ──
@@ -747,7 +781,11 @@ export interface PersonaBank {
   frameMemorialPM: string;
   sceneLeadIns: string[];
   reflectionHandoff: string;
-  /** Template with a {facetLower} slot. */
+  /**
+   * The spoken hand-off to the challenge. It names no facet: the facet ("as a man" /
+   * "as a woman") lives in the reflection text and the UI, and is never read aloud
+   * (Nov 13, 2026 — the spoken clause trailed every challenge like a label).
+   */
   challengeHandoff: string;
   /** Templates with slots {tomorrowWeekday} {tomorrowCelebration} {tomorrowWeek} {bookChapter}. */
   teaserTemplates: string[];
@@ -786,7 +824,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
       'Look at the room:', // DRAFT §5.3
     ],
     reflectionHandoff: "Listen to that silence once more. Here is today's reflection.",
-    challengeHandoff: "And here is today's challenge — {facetLower}.",
+    challengeHandoff: "And here is today's challenge.",
     teaserTemplates: [
       "Tomorrow's {tomorrowWeekday} — and the Gospel is {bookChapter}.",
       "Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.", // DRAFT §5.3
@@ -822,7 +860,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
       'Watch this scene.', // DRAFT §5.3
     ],
     reflectionHandoff: "Sit with that for a second. Here's today's reflection.",
-    challengeHandoff: 'Now the challenge — {facetLower}.',
+    challengeHandoff: 'Now the challenge.',
     teaserTemplates: [
       'Tomorrow: {tomorrowWeekday}. {bookChapter}. Be ready.',
       'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.', // DRAFT §5.3
@@ -858,7 +896,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
       'The scene:', // DRAFT §5.3
     ],
     reflectionHandoff: "Here's today's reflection.",
-    challengeHandoff: "And today's challenge — {facetLower}.",
+    challengeHandoff: "And today's challenge.",
     teaserTemplates: [
       'Tomorrow: {tomorrowWeekday}. {bookChapter}.',
       'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.', // DRAFT §5.3
@@ -895,7 +933,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
       "Here's the room:", // DRAFT §5.3
     ],
     reflectionHandoff: "Sit with that a second. Here's today's reflection.",
-    challengeHandoff: "And today's challenge — {facetLower}. One thing, today:",
+    challengeHandoff: "And today's challenge. One thing, today:",
     teaserTemplates: [
       "Tomorrow's {tomorrowWeekday}, still {tomorrowWeek} — and the Gospel is {bookChapter}.",
       'Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.', // DRAFT §5.3
@@ -931,7 +969,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
       'Picture the room:', // DRAFT §5.3
     ],
     reflectionHandoff: "Keep that room in mind. Here is today's reflection.",
-    challengeHandoff: "And today's challenge — {facetLower}.",
+    challengeHandoff: "And today's challenge.",
     teaserTemplates: [
       'Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.',
       'Tomorrow, {tomorrowWeekday} of {tomorrowWeek} — the Gospel is {bookChapter}.', // DRAFT §5.3
@@ -970,7 +1008,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
       'Look:', // DRAFT §5.3
     ],
     reflectionHandoff: "Sit in that silence a moment. Here's today's reflection.",
-    challengeHandoff: 'And the challenge — {facetLower}.',
+    challengeHandoff: 'And the challenge.',
     teaserTemplates: [
       "Tomorrow is {tomorrowWeekday}, the week's end. The Gospel is {bookChapter}.",
       'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.', // DRAFT §5.3
@@ -1006,7 +1044,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
       "Here's the scene:", // DRAFT §5.3
     ],
     reflectionHandoff: "Now here's today's reflection.",
-    challengeHandoff: "And today's challenge — {facetLower}.",
+    challengeHandoff: "And today's challenge.",
     teaserTemplates: [
       "Tomorrow's {tomorrowWeekday} — {tomorrowCelebration} — and the Gospel is {bookChapter}.",
       'Tomorrow is {tomorrowWeekday}. The Gospel is {bookChapter}.', // DRAFT §5.3
@@ -1024,7 +1062,7 @@ export const LECTOR_BANK = {
   pauseBeats: { ...NO_BEATS } as PauseBeats,
   frameSolemnity: '{weekday} — and today the Church keeps the Solemnity of {celebrationBare}.',
   reflectionHandoff: "Today's reflection.",
-  challengeHandoff: "Today's challenge — {facetLower}.", // DRAFT §5.3 (formulation)
+  challengeHandoff: "Today's challenge.", // DRAFT §5.3 (formulation)
 };
 
 // ── The women's company (Charter addendum, Nov 11, 2026) ──────────────────────
@@ -1032,9 +1070,15 @@ export const LECTOR_BANK = {
 // Cast by Erik on Nov 11, 2026, reversing the earlier women's-audio exclusion. The
 // sheets live in the charter's addendum; the bank below is their voice in the same
 // Zone 3 discipline as the men's: selected, never improvised; framing points at
-// the text, never concludes it. Each woman's sign-on and brand sign-off are her
-// sheet's canonical lines; the remaining variants were authored for this build in
-// her register, mirroring her weekday counterpart's devotion and cadence profile.
+// the text, never concludes it. Each woman mirrors her weekday counterpart's
+// devotion and cadence profile — and speaks her OWN lines throughout: the sheets
+// as first built borrowed the brothers' wording verbatim in slot after slot, and
+// Erik's ear caught it on Nov 13, 2026 (Ruth was reading Henry's sign-ons word
+// for word). Every borrowed entry was replaced that day with an original line in
+// her own voice; a parity test now pins the two companies' sign-ons and sign-offs
+// apart. The one deliberate exception is the brand sign-off "Pray first. Then
+// fight." — the charter assigns it to the peer of EACH company (Ben and Claire),
+// and it is a brand slot, not a borrowed persona line.
 // Voices are Gemini TTS stock, assigned by descriptor in the charter's table.
 
 export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
@@ -1043,35 +1087,35 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     tempo: 0.88,
     pauseBeats: { afterScene: 1, afterGospel: 1, beforeChallenge: 1, afterChallenge: 1 },
     signOnsAM: [
-      "Well. Let's see what He has for us today.",
-      "Well. Sit down a minute. He's never in a hurry, and neither are we.",
-      "Well. I've heard these Gospels a good many years now. They haven't worn out. Listen.",
+      "Well. Sixty years I've been hearing these words, and they still find me. Listen.",
+      "Well. Come sit by me a minute. There's no hurry in this house.",
+      "Well. The Lord's Day again — and He's kept the best of the week for it. Listen.",
     ],
     signOnsPM: [
-      "Well. Let's see what He has for us today.",
-      "Well. Sit down a minute. He's never in a hurry, and neither are we.",
+      "Well. The day's nearly spent, and the Gospel keeps. Let's hear it.",
+      "Well. Sit down with me a while. He's as patient at this hour as at dawn.",
     ],
     signOffs: [
-      "Same time tomorrow. He'll be here. So will I.",
-      "That's enough for today. Same time tomorrow — He'll be here, and so will I.",
+      "Same time tomorrow. I'll be here — and so will He.",
+      "That's enough for today. Rest in it — He's nearer than you think.",
     ],
-    frameFeriaAM: "It's {label}. No feast today. An ordinary day — and He shows up in those, same as the great ones.",
-    frameFeriaPM: "It's {label}. No feast today. An ordinary day — and He shows up in those, same as the great ones.",
-    frameMemorialAM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
-    frameMemorialPM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
+    frameFeriaAM: "It's {label}. No feast today. A plain day — and He's never once skipped one of those.",
+    frameFeriaPM: "It's {label}. No feast today. A plain day — and He's never once skipped one of those.",
+    frameMemorialAM: "It's {label}. Today the Church gives us {celebration}.{saintLine}",
+    frameMemorialPM: "It's {label}. Today the Church gives us {celebration}.{saintLine}",
     sceneLeadIns: [
-      'See the scene:',
-      'Look at the room:',
+      'Sit with the scene first:',
+      'Rest in the scene a moment:',
     ],
-    reflectionHandoff: "Listen to that silence once more. Here is today's reflection.",
-    challengeHandoff: "And here is today's challenge — {facetLower}.",
+    reflectionHandoff: "Hold that quiet a second longer. Here is today's reflection.",
+    challengeHandoff: "And here is today's challenge.",
     teaserTemplates: [
-      "Tomorrow's {tomorrowWeekday} — and the Gospel is {bookChapter}.",
-      "Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.",
+      "Tomorrow is {tomorrowWeekday}, and the Gospel is {bookChapter}.",
+      "Tomorrow is {tomorrowWeekday} — the Church gives us {tomorrowCelebration}, and the Gospel is {bookChapter}.",
     ],
-    soberSignOnsAM: ["Well. Today is a solemn day. Sit down, and let's hear it."],
-    soberSignOnsPM: ["Well. The day is nearly done, and it is a solemn one. Let's hear the Gospel."],
-    soberFrame: 'A solemn day on the calendar. We keep it quietly.',
+    soberSignOnsAM: ["Well. A solemn day today. Sit with me, and we'll hear it together."],
+    soberSignOnsPM: ["Well. The day is nearly done, and it has been a solemn one. Let's hear the Gospel together."],
+    soberFrame: 'A solemn day. We keep it quietly, the way the Church keeps it.',
   },
 
   dana: {
@@ -1079,35 +1123,35 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     tempo: 1.08,
     pauseBeats: { ...NO_BEATS },
     signOnsAM: [
-      "Let's get after it.",
-      "First rep of the day. Let's get after the Gospel.",
-      'No speeches today. Just the Gospel, then we work.',
+      "Gospel first. Then we take on the week. Let's go.",
+      "New week, same foundation. Let's hear the Gospel.",
+      'Short speech today: the Gospel, then we work.',
     ],
     signOnsPM: [
-      "Let's get after it.",
-      'No speeches today. Just the Gospel, then we work.',
+      "Day's not over yet. Let's hear the Gospel.",
+      'We finish the day the way we started it — with the Gospel.',
     ],
     signOffs: [
-      'Now go live it.',
-      "That's the word. Now go live it.",
+      'Now get out there and live it.',
+      "That's the word. The rest is yours to run.",
     ],
-    frameFeriaAM: '{label}. No feast today. Just a regular {weekday} — and regular days are where this gets built.',
-    frameFeriaPM: '{label}. No feast today. Just a regular {weekday} — and regular days are where this gets built.',
-    frameMemorialAM: '{label} — and today the Church gives us {celebration}.{saintLine}',
-    frameMemorialPM: '{label} — and today the Church gives us {celebration}.{saintLine}',
+    frameFeriaAM: '{label}. No feast today. A regular {weekday} — and regular days are where a week is won.',
+    frameFeriaPM: '{label}. No feast today. A regular {weekday} — and regular days are where a week is won.',
+    frameMemorialAM: '{label} — and the Church puts {celebration} on the board today.{saintLine}',
+    frameMemorialPM: '{label} — and the Church puts {celebration} on the board today.{saintLine}',
     sceneLeadIns: [
-      "Here's the scene.",
-      'Watch this scene.',
+      "Here's the scene — watch it close.",
+      'Eyes on the scene.',
     ],
-    reflectionHandoff: "Sit with that for a second. Here's today's reflection.",
-    challengeHandoff: 'Now the challenge — {facetLower}.',
+    reflectionHandoff: "Hold that a second. Here's today's reflection.",
+    challengeHandoff: 'Now the challenge.',
     teaserTemplates: [
-      'Tomorrow: {tomorrowWeekday}. {bookChapter}. Be ready.',
-      'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.',
+      'Tomorrow: {tomorrowWeekday}. {bookChapter}. Same time — be ready.',
+      'Tomorrow: {tomorrowCelebration}. Gospel: {bookChapter}.',
     ],
-    soberSignOnsAM: ['No speeches today. This one we just hear.'],
-    soberSignOnsPM: ['No speeches tonight. This one we just hear.'],
-    soberFrame: 'A hard, holy day. We take it straight.',
+    soberSignOnsAM: ['Keep the speeches down today. This one we just hear.'],
+    soberSignOnsPM: ['No speeches tonight. We just hear this one.'],
+    soberFrame: 'A hard, holy day. We take it as it comes, straight.',
   },
 
   grace: {
@@ -1116,8 +1160,8 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     pauseBeats: { ...NO_BEATS, afterGospel: 1 },
     signOnsAM: [
       'Alright. First things first.',
-      "Alright. Day's already moving. Gospel before the work.",
-      'Alright. Before the day gets loud — the Gospel.',
+      "Alright. The day's already moving — Gospel before rounds.",
+      'Alright. Before the noise starts — the Gospel.',
     ],
     signOnsPM: [
       'Alright. The work can wait a minute. First things first.',
@@ -1127,23 +1171,23 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
       'Now go do the next right thing.',
       "That's the day's first job done. Now go do the next right thing.",
     ],
-    frameFeriaAM: "{label}. No feast today. Plain workday — He's in it all the same.",
-    frameFeriaPM: "{label}. No feast today. Plain workday — He's in it all the same.",
-    frameMemorialAM: '{label} — and today the Church gives us {celebration}.{saintLine}',
-    frameMemorialPM: '{label} — and today the Church gives us {celebration}.{saintLine}',
+    frameFeriaAM: "{label}. No feast today. A plain workday — and He's on shift in it too.",
+    frameFeriaPM: "{label}. No feast today. A plain workday — and He's on shift in it too.",
+    frameMemorialAM: '{label} — the Church gives us {celebration} today.{saintLine}',
+    frameMemorialPM: '{label} — the Church gives us {celebration} today.{saintLine}',
     sceneLeadIns: [
-      "Here's the picture:",
-      'The scene:',
+      'The picture:',
+      'See the room:',
     ],
-    reflectionHandoff: "Here's today's reflection.",
-    challengeHandoff: "And today's challenge — {facetLower}.",
+    reflectionHandoff: "And here's today's reflection.",
+    challengeHandoff: "And today's challenge.",
     teaserTemplates: [
-      'Tomorrow: {tomorrowWeekday}. {bookChapter}.',
-      'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.',
+      'Tomorrow: {tomorrowWeekday}, and {bookChapter}.',
+      'Tomorrow: {tomorrowCelebration} — and the Gospel is {bookChapter}.',
     ],
-    soberSignOnsAM: ['Alright. Quiet today. Just the Gospel, plain.'],
-    soberSignOnsPM: ['Alright. Tools down. A solemn one today — just the Gospel.'],
-    soberFrame: 'A solemn day. Plain and quiet, like it should be.',
+    soberSignOnsAM: ['Alright. Quiet one today. Just the Gospel, plain and simple.'],
+    soberSignOnsPM: ['Alright. Hands still. A solemn one today — just the Gospel.'],
+    soberFrame: 'A solemn day. Plain, quiet — the way it ought to be.',
   },
 
   claire: {
@@ -1164,23 +1208,23 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
       'Pray first. Then fight.',
       'Same time tomorrow, sister. Pray first. Then fight.',
     ],
-    frameFeriaAM: "It's {label}. No feast today — an ordinary {weekday}.",
-    frameFeriaPM: "It's {label}. No feast today — an ordinary {weekday}.",
-    frameMemorialAM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
-    frameMemorialPM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
+    frameFeriaAM: "It's {label}. No feast today — an ordinary {weekday}. Most of life is lived on those.",
+    frameFeriaPM: "It's {label}. No feast today — an ordinary {weekday}. Most of life is lived on those.",
+    frameMemorialAM: "It's {label} — today the Church gives us {celebration}.{saintLine}",
+    frameMemorialPM: "It's {label} — today the Church gives us {celebration}.{saintLine}",
     sceneLeadIns: [
-      "Here's the scene:",
-      "Here's the room:",
+      'Look at the scene:',
+      'The room, as it was:',
     ],
-    reflectionHandoff: "Sit with that a second. Here's today's reflection.",
-    challengeHandoff: "And today's challenge — {facetLower}. One thing, today:",
+    reflectionHandoff: "Stay with that a second. Here's today's reflection.",
+    challengeHandoff: "And today's challenge. One thing, today:",
     teaserTemplates: [
-      "Tomorrow's {tomorrowWeekday}, still {tomorrowWeek} — and the Gospel is {bookChapter}.",
-      'Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.',
+      "Tomorrow, {tomorrowWeekday}, still in {tomorrowWeek} — the Gospel is {bookChapter}.",
+      'Tomorrow is {tomorrowWeekday}, and the Church gives us {tomorrowCelebration}. The Gospel is {bookChapter}.',
     ],
     soberSignOnsAM: ['Morning, sister. A hard day today. We read it anyway.'],
     soberSignOnsPM: ['Evening, sister. A hard day. We end it with the Gospel anyway.'],
-    soberFrame: 'A solemn day — we take it as it comes.',
+    soberFrame: 'A solemn day. We take it as it comes — together.',
   },
 
   marta: {
@@ -1188,35 +1232,35 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     tempo: 0.94,
     pauseBeats: { afterScene: 1, afterGospel: 1, beforeChallenge: 0, afterChallenge: 1 },
     signOnsAM: [
-      "The hour is His. Let's keep it.",
-      "Another hour, given. Let's spend this one on the Gospel.",
-      'We keep the hours, and the hours keep us. Begin.',
+      "The hour is here, and it's His. Let's keep it.",
+      'Twenty years of hours, and not one of them wasted. The Gospel.',
+      'The bell, the hour, the Gospel. Begin.',
     ],
     signOnsPM: [
-      "The hour is His. Let's keep it.",
-      'We keep the hours, and the hours keep us. Begin.',
+      'The day is folding into evening. One more hour, kept with Him.',
+      'The hours keep us, when we keep them. Begin.',
     ],
     signOffs: [
-      'Keep the rhythm.',
-      "Until tomorrow's hour. Keep the rhythm.",
+      'Keep the rhythm — He keeps you.',
+      "Until tomorrow's hour — keep the rhythm, and rest.",
     ],
-    frameFeriaAM: '{label}. The calendar gives no feast today — an ordinary hour, kept like all the rest.',
-    frameFeriaPM: '{label}. The calendar gives no feast today — an ordinary hour, kept like all the rest.',
-    frameMemorialAM: '{label}. Today the hours carry {celebration}.{saintLine}',
-    frameMemorialPM: '{label}. Today the hours carry {celebration}.{saintLine}',
+    frameFeriaAM: '{label}. No feast on the calendar today — an ordinary hour, and we keep it like all the rest.',
+    frameFeriaPM: '{label}. No feast on the calendar today — an ordinary hour, and we keep it like all the rest.',
+    frameMemorialAM: '{label}. Today the hours carry a name: {celebration}.{saintLine}',
+    frameMemorialPM: '{label}. Today the hours carry a name: {celebration}.{saintLine}',
     sceneLeadIns: [
-      'See the scene:',
-      'Picture the room:',
+      'Picture the scene:',
+      'The room, in stillness:',
     ],
-    reflectionHandoff: "Keep that room in mind. Here is today's reflection.",
-    challengeHandoff: "And today's challenge — {facetLower}.",
+    reflectionHandoff: "Keep the room before you. Here is today's reflection.",
+    challengeHandoff: "And today's challenge.",
     teaserTemplates: [
-      'Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.',
-      'Tomorrow, {tomorrowWeekday} of {tomorrowWeek} — the Gospel is {bookChapter}.',
+      'Tomorrow the hours bring {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.',
+      'Tomorrow, {tomorrowWeekday} in {tomorrowWeek} — the Gospel is {bookChapter}.',
     ],
-    soberSignOnsAM: ["The hour is His — and today it is a solemn one. Let's keep it."],
-    soberSignOnsPM: ["Another hour, given — a solemn one. Let's keep it."],
-    soberFrame: 'A solemn day. The hours are kept quietly today.',
+    soberSignOnsAM: ["This hour is His — and today it is a solemn one. We keep it quietly."],
+    soberSignOnsPM: ['Another hour, given, and a solemn one. We keep it quietly.'],
+    soberFrame: 'A solemn day. Today the hours are kept in quiet.',
   },
 
   june: {
@@ -1224,36 +1268,36 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     tempo: 0.9,
     pauseBeats: { ...NO_BEATS, afterGospel: 1, afterChallenge: 1 },
     signOnsAM: [
-      "Whatever hour this finds you — He's awake. Listen.",
-      "The watch is ending. He's been with you all night. Listen.",
-      "Morning's coming. One more thing before you rest — the Gospel.",
+      "Whatever shift you're on — He's awake too. Listen.",
+      'The long night is ending. He never left your side. Listen.',
+      "Morning's almost here. Before you rest — the Gospel, one more thing.",
     ],
     signOnsPM: [
-      "Still up? You're not the only one.",
-      "The dark hours are His hours too. Here's the Gospel.",
-      "Whatever hour this finds you — He's awake. Listen.",
+      "Still up? You're not the only one awake.",
+      "The dark hours belong to Him too. Here's the Gospel.",
+      "Whatever hour this is for you — He's here. Listen.",
     ],
     signOffs: [
-      'He keeps watch with you. Rest when you can.',
-      'The watch goes on. He keeps watch with you. Rest when you can.',
+      'He keeps the watch with you. Rest when you can.',
+      'The watch goes on, and so does He. Rest when you can.',
     ],
-    frameFeriaAM: '{label}. No feast on the calendar. An ordinary watch, ending — He keeps those, too.',
-    frameFeriaPM: '{label}. No feast on the calendar tonight. An ordinary watch — He keeps those, too.',
-    frameMemorialAM: '{label} — and today the Church gives us {celebration}.{saintLine}',
-    frameMemorialPM: '{label}. Tonight the Church gives us {celebration}.{saintLine}',
+    frameFeriaAM: '{label}. No feast on the calendar. An ordinary watch, nearly over — He keeps those too.',
+    frameFeriaPM: '{label}. No feast on the calendar tonight. Just an ordinary watch — and He keeps those too.',
+    frameMemorialAM: '{label} — and the Church gives us {celebration} today.{saintLine}',
+    frameMemorialPM: '{label}. The Church gives us {celebration} tonight.{saintLine}',
     sceneLeadIns: [
-      'The scene, plain:',
-      'Look:',
+      'The scene, quiet:',
+      'Look closely:',
     ],
-    reflectionHandoff: "Sit in that silence a moment. Here's today's reflection.",
-    challengeHandoff: 'And the challenge — {facetLower}.',
+    reflectionHandoff: "Rest in that silence a moment. Here's today's reflection.",
+    challengeHandoff: 'And the challenge.',
     teaserTemplates: [
-      "Tomorrow is {tomorrowWeekday}, the week's end. The Gospel is {bookChapter}.",
-      'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.',
+      "Tomorrow is {tomorrowWeekday} — the week's end — and the Gospel is {bookChapter}.",
+      'Tomorrow: {tomorrowCelebration} — and the Gospel is {bookChapter}.',
     ],
-    soberSignOnsAM: ["The watch ends on a solemn morning. He's here. Listen."],
-    soberSignOnsPM: ["Still up? Tonight of all nights — He's here. Listen."],
-    soberFrame: 'A solemn watch. We keep it with Him.',
+    soberSignOnsAM: ["The watch ends on a solemn morning. He's here with you. Listen."],
+    soberSignOnsPM: ["Still up? On a night like this — He's here. Listen."],
+    soberFrame: "A solemn watch — and we don't keep it alone.",
   },
 
   rose: {
@@ -1261,35 +1305,35 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     tempo: 1.02,
     pauseBeats: { ...NO_BEATS, afterGospel: 1 },
     signOnsAM: [
-      "Morning. Coffee's on. Let's sit a minute.",
-      'Morning, neighbor. Pull up a chair — Gospel first, then the day.',
-      'Morning. You look like you could use a minute. Here it is.',
+      "Morning. Coffee's on — come sit a minute.",
+      'Morning, neighbor. Pull up a chair. Gospel first — then the day can start.',
+      'Morning. You look like you could use a quiet minute. Here it is.',
     ],
     signOnsPM: [
-      "Evening, neighbor. Pull up a chair — Gospel before the day's done.",
-      "Neighbor. Day's winding down. Let's sit a minute with the Gospel.",
+      "Evening, neighbor. Come sit — Gospel before the day's done.",
+      "Neighbor, the day's winding down. Let's sit with the Gospel a minute.",
     ],
     signOffs: [
-      "I'll be here tomorrow.",
-      "You know where to find me. I'll be here tomorrow.",
+      "I'll be right here tomorrow.",
+      "You know where to find me — right here tomorrow.",
     ],
-    frameFeriaAM: "It's {label}. No feast today — just an ordinary {weekday}, the kind most of life is made of.",
-    frameFeriaPM: "It's {label}. No feast today — just an ordinary {weekday}, the kind most of life is made of.",
-    frameMemorialAM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
-    frameMemorialPM: "It's {label} — and today the Church gives us {celebration}.{saintLine}",
+    frameFeriaAM: "It's {label}. No feast today — just an ordinary {weekday}, the kind most of life is made of, and most of heaven too.",
+    frameFeriaPM: "It's {label}. No feast today — just an ordinary {weekday}, the kind most of life is made of, and most of heaven too.",
+    frameMemorialAM: "It's {label} — and today the Church brings {celebration} to the table.{saintLine}",
+    frameMemorialPM: "It's {label} — and today the Church brings {celebration} to the table.{saintLine}",
     sceneLeadIns: [
-      'Picture this:',
-      "Here's the scene:",
+      'Picture this with me:',
+      "Here's the scene, neighbor:",
     ],
-    reflectionHandoff: "Now here's today's reflection.",
-    challengeHandoff: "And today's challenge — {facetLower}.",
+    reflectionHandoff: "Here's today's reflection, then.",
+    challengeHandoff: "And today's challenge.",
     teaserTemplates: [
-      "Tomorrow's {tomorrowWeekday} — {tomorrowCelebration} — and the Gospel is {bookChapter}.",
-      'Tomorrow is {tomorrowWeekday}. The Gospel is {bookChapter}.',
+      "Tomorrow's {tomorrowWeekday}: {tomorrowCelebration}, and the Gospel is {bookChapter}.",
+      "Tomorrow's {tomorrowWeekday}. The Gospel is {bookChapter} — I'll have the coffee on.",
     ],
-    soberSignOnsAM: ["Morning, neighbor. A solemn one today. Let's sit with it."],
-    soberSignOnsPM: ["Evening, neighbor. A solemn day, this one. Let's sit with it a while."],
-    soberFrame: "A solemn day — the kind we don't rush past.",
+    soberSignOnsAM: ["Morning, neighbor. A solemn one today. We'll sit with it together."],
+    soberSignOnsPM: ["Evening, neighbor. A solemn day, this one. We'll sit with it a while."],
+    soberFrame: "A solemn day — the kind nobody should rush past alone.",
   },
 };
 
@@ -1300,7 +1344,7 @@ export const LECTOR_BANK_WOMEN = {
   pauseBeats: { ...NO_BEATS } as PauseBeats,
   frameSolemnity: '{weekday} — and today the Church keeps the Solemnity of {celebrationBare}.',
   reflectionHandoff: "Today's reflection.",
-  challengeHandoff: "Today's challenge — {facetLower}.",
+  challengeHandoff: "Today's challenge.",
 };
 
 /** All Souls (Nov 2) — the commemoration frame, approved wording (character-pass sheet). */
@@ -1559,7 +1603,7 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
   // ── Frame slots ──
   const celebrationName = (inputs.celebration ?? feast?.name ?? '').trim();
   const feriaLabel = celebrationName
-    ? spokenizeOrdinals(sentenceStart(celebrationName))
+    ? withSpokenArticle(spokenizeOrdinals(sentenceStart(celebrationName)))
     : (computeWeekLabel(dateISO) ?? weekday);
   const weekLabel = computeWeekLabel(dateISO);
   const personDay = celebrationName ? isPersonCelebration(celebrationName) : false;
@@ -1567,9 +1611,9 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
   const frameSlots: Record<string, string> = {
     weekday,
     label: weekLabel ?? '',
-    celebration: spokenizeOrdinals(celebrationName),
+    celebration: spokenizeOrdinals(spokenCelebrationName(celebrationName)),
     saintLine: saint ? ` ${saint}` : '',
-    celebrationBare: celebrationName.replace(/^The /, 'the '),
+    celebrationBare: spokenCelebrationName(celebrationName).replace(/^The /, 'the '),
   };
 
   let headAM: string;
@@ -1593,7 +1637,7 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
       [
         lectorBank.reflectionHandoff,
         inputs.reflect,
-        fillTemplate(lectorBank.challengeHandoff, { facetLower: facetLower(inputs.facet) }),
+        lectorBank.challengeHandoff,
         inputs.challenge,
       ],
       [0, 0, 0],
@@ -1611,6 +1655,13 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
           return `${weekday} — today the Church gives us ${frameSlots.celebration}.${frameSlots.saintLine}`;
         }
         return fillTemplate(ampm === 'AM' ? bank.frameMemorialAM : bank.frameMemorialPM, frameSlots);
+      }
+      // The Lord's Day is never a "no feast today" day (Nov 13, 2026): a plain
+      // Sunday keeps its date line and closes with the Resurrection sentence,
+      // the same on both tracks. Feasts, memorials, sober days, and All Souls
+      // have already returned above — this is only the feria tail.
+      if (weekdayOfISO(dateISO) === 0) {
+        return `${sentenceStart(feriaLabel)}. Sunday — the day of the Resurrection.`;
       }
       return fillTemplate(ampm === 'AM' ? bank.frameFeriaAM : bank.frameFeriaPM, {
         ...frameSlots,
@@ -1649,7 +1700,7 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
     const bParagraphs: string[] = [
       bank.reflectionHandoff,
       inputs.reflect,
-      fillTemplate(bank.challengeHandoff, { facetLower: facetLower(inputs.facet) }),
+      bank.challengeHandoff,
       inputs.challenge,
       signOff,
     ];
@@ -1661,12 +1712,33 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
       const teaserSlots: Record<string, string> = {
         tomorrowWeekday: weekdayNameOfISO(tomorrowISO),
         tomorrowCelebration: inputs.tomorrowCelebration
-          ? spokenizeOrdinals(sentenceStart(inputs.tomorrowCelebration))
+          ? spokenizeOrdinals(sentenceStart(spokenCelebrationName(inputs.tomorrowCelebration)))
           : '',
         tomorrowWeek: computeWeekShort(tomorrowISO) ?? '',
         bookChapter: bookChapter ?? '',
       };
-      const template = bank.teaserTemplates[pick('teaser', bank.teaserTemplates.length)];
+      let teaserIdx = pick('teaser', bank.teaserTemplates.length);
+      let template = bank.teaserTemplates[teaserIdx];
+      // Women's alignment (Nov 13, 2026): when tomorrow carries a celebration,
+      // her teaser names it — the same slots his teaser carries — instead of
+      // letting the variant hash land on a weekday-only template and omitting
+      // the memorial entirely. His rotation is untouched.
+      if (
+        audience === 'women' &&
+        teaserSlots.tomorrowCelebration !== '' &&
+        !templateSlots(template).includes('tomorrowCelebration')
+      ) {
+        const named = bank.teaserTemplates.findIndex(
+          (t) =>
+            templateSlots(t).includes('tomorrowCelebration') &&
+            templateSlots(t).every((s) => (teaserSlots[s] ?? '') !== ''),
+        );
+        if (named >= 0) {
+          teaserIdx = named;
+          template = bank.teaserTemplates[named];
+          selections.teaser = teaserIdx;
+        }
+      }
       const needed = templateSlots(template);
       if (bookChapter && needed.every((s) => (teaserSlots[s] ?? '') !== '')) {
         bParagraphs.push(fillTemplate(template, teaserSlots));
