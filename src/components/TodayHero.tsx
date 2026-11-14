@@ -4,6 +4,7 @@ import { SeasonBadge } from '@/components/SeasonBadge';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getDailyVisual } from '@/lib/liturgicalVisuals';
 import { getFeastArt, getFeastEmblem } from '@/lib/feastArt';
+import { PRINT_SERIF } from '@/lib/print';
 import type { Audience, PersonaTheme } from '@/types';
 
 interface TodayHeroProps {
@@ -24,9 +25,16 @@ function greetingForHour(hour: number): string {
 }
 
 /**
- * The masthead for the Today area. It exists to make the front door feel like a place he has
- * arrived at rather than a list he has scrolled to: the season's colour, the hour of his day,
- * and the one thing worth doing — all above the Gospel card, in a single glance.
+ * The masthead for the Today area — the running head of the day's page
+ * (Stage 1 of the printed-page re-skin, Erik, Nov 14, 2026). It exists to
+ * make the front door feel like a place he has arrived at rather than a
+ * list he has scrolled to: the season's colour, the hour of his day, and
+ * the one thing worth doing — all above the Gospel, in a single glance.
+ * The feast emblem is re-set, not removed: on feasts and solemnities the
+ * rank, the day's name, and its motif stand in the print language — the
+ * glyph as a decorated initial in the day's colour, the name in the serif
+ * display voice — where the panel used to be. Her feast art keeps its
+ * photograph, its frame flattened to the page's hairline.
  */
 export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
   const season = useMemo(() => getCurrentSeason(), []);
@@ -47,17 +55,11 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
 
   return (
     <header className="masthead-motif relative w-full text-center">
-      <div
-        className="absolute inset-x-0 -top-8 h-40 pointer-events-none"
-        aria-hidden="true"
-        style={{ background: `radial-gradient(ellipse at 50% 30%, ${accent}26 0%, transparent 68%)` }}
-      />
-
       <div className="relative">
         {feastArt && (
           <figure
-            className="relative w-full h-48 rounded-2xl overflow-hidden mb-5 border text-left"
-            style={{ borderColor: t.accentRgba(0.35), boxShadow: `0 14px 34px -14px ${t.accent}66` }}
+            className="relative w-full h-48 overflow-hidden mb-5 border text-left"
+            style={{ borderColor: t.accentRgba(0.35) }}
           >
             <img
               src={feastArt.image}
@@ -74,12 +76,15 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
             />
             <figcaption className="absolute inset-x-0 bottom-0 p-4">
               <span
-                className="inline-block text-[9px] font-bold uppercase tracking-[0.22em] px-2 py-0.5 rounded-full border mb-1.5"
+                className="inline-block text-[9px] font-bold uppercase tracking-[0.22em] px-2 py-0.5 border mb-1.5"
                 style={{ color: '#FFF6E8', borderColor: 'rgba(255,246,232,0.55)', backgroundColor: 'rgba(24,14,10,0.35)' }}
               >
                 {feastArt.feast.rank}
               </span>
-              <p className="font-display text-[22px] leading-tight" style={{ color: '#FFFBF2' }}>
+              <p
+                className="text-[22px] leading-tight"
+                style={{ fontFamily: PRINT_SERIF, color: '#FFFBF2' }}
+              >
                 {feastArt.feast.name}
               </p>
               <p className="text-[10px] uppercase tracking-[0.18em] mt-0.5" style={{ color: 'rgba(255,246,232,0.85)' }}>
@@ -90,30 +95,36 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
         )}
 
         {feastEmblem && (
-          <figure
-            className="relative w-full rounded-2xl border mb-5 px-4 py-6"
-            style={{
-              borderColor: t.accentRgba(0.35),
-              background: `linear-gradient(180deg, ${t.accentRgba(0.07)} 0%, transparent 100%)`,
-            }}
-          >
-            <span
-              className="inline-block text-[9px] font-bold uppercase tracking-[0.22em] px-2 py-0.5 rounded-full border mb-2"
-              style={{ color: t.accent, borderColor: t.accentRgba(0.4), backgroundColor: t.accentRgba(0.08) }}
-            >
-              {feastEmblem.rank}
-            </span>
+          <figure className="relative w-full mb-5 px-4 pt-1 pb-5">
+            <div className="flex items-center justify-center gap-3 mb-3" aria-hidden="true">
+              <span className="h-px w-10" style={{ backgroundColor: t.accentRgba(0.45) }} />
+              <span
+                className="text-[9px] font-bold uppercase tracking-[0.22em]"
+                style={{ color: t.accent }}
+              >
+                {feastEmblem.rank}
+              </span>
+              <span className="h-px w-10" style={{ backgroundColor: t.accentRgba(0.45) }} />
+            </div>
             <div className="text-6xl leading-none mb-2" style={{ color: accent }} aria-hidden="true">
               {feastEmblem.glyph}
             </div>
             <figcaption>
-              <p className="font-display text-[22px] leading-tight" style={{ color: t.textBright }}>
+              <p
+                className="text-[22px] leading-tight"
+                style={{ fontFamily: PRINT_SERIF, color: accent }}
+              >
                 {feastEmblem.name}
               </p>
               <p className="text-[10px] uppercase tracking-[0.18em] mt-0.5" style={{ color: t.textDim }}>
                 {feastEmblem.motif}
               </p>
             </figcaption>
+            <div
+              aria-hidden="true"
+              className="mx-auto mt-4 w-24"
+              style={{ borderTop: `1px solid ${t.accentRgba(0.35)}` }}
+            />
           </figure>
         )}
 
@@ -129,18 +140,12 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
           />
         </div>
 
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center border mx-auto mb-3"
-          style={{
-            backgroundColor: `${accent}14`,
-            borderColor: `${accent}45`,
-            boxShadow: `0 8px 24px -12px ${accent}99`,
-          }}
-        >
-          <Church className="w-6 h-6" style={{ color: accent }} strokeWidth={2.2} />
-        </div>
+        <Church className="w-5 h-5 mx-auto mb-2" style={{ color: accent }} strokeWidth={2.2} aria-hidden="true" />
 
-        <h1 className="text-3xl font-bold text-forge-text-bright font-display uppercase tracking-wide mb-1">
+        <h1
+          className="text-3xl font-bold text-forge-text-bright uppercase tracking-wide mb-1"
+          style={{ fontFamily: PRINT_SERIF }}
+        >
           Sanctum
         </h1>
         <p className="text-[11px] text-forge-text-muted stamped mb-1" style={{ color: accent }}>
@@ -155,8 +160,11 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
         </div>
 
         <div
-          className="mt-4 rounded-xl border px-4 py-3 text-left"
-          style={{ backgroundColor: t.accentRgba(0.06), borderColor: t.accentRgba(0.28) }}
+          className="mt-4 px-1 py-3 text-left"
+          style={{
+            borderTop: `1px solid ${t.accentRgba(0.35)}`,
+            borderBottom: `1px solid ${t.accentRgba(0.35)}`,
+          }}
         >
           <p
             className="text-[9px] font-bold uppercase tracking-[0.2em] mb-1"
@@ -164,7 +172,7 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
           >
             One thing today
           </p>
-          <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
+          <p className="text-[13px] leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             Read the Gospel below, then sit with it alongside a companion. That is the whole ask.
           </p>
         </div>

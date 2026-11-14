@@ -1,4 +1,5 @@
 import { Church, HeartHandshake, Users, type LucideIcon } from 'lucide-react';
+import { PRINT_SERIF } from '@/lib/print';
 import type { PersonaTheme, TabId } from '@/types';
 
 interface MoreOfSanctumProps {
@@ -26,45 +27,51 @@ const ENTRIES: MoreEntry[] = [
  * and above the utilities line. The rows are the old menu sheet's GO rows,
  * unchanged in structure and weight — Real Help rendered exactly like the
  * others, neither hidden nor alarmed; the crisis content itself stays at
- * the top inside Real Help, as it already is.
+ * the top inside Real Help, as it already is. Stage 1 of the printed-page
+ * re-skin (Nov 14, 2026) sets them as a book's contents: the name, a
+ * dotted leader, and the hint where the page number would sit, each row
+ * divided from the next by a hairline.
  */
-export function MoreOfSanctum({ t, onNavigate }: MoreOfSanctumProps) {
-  const rowStyle: React.CSSProperties = {
-    backgroundColor: t.card,
-    borderColor: `${t.border}99`,
-  };
+const ROW_CLASS =
+  'w-full flex items-baseline gap-2 px-1 py-2.5 text-left transition-opacity hover:opacity-75 active:opacity-60';
 
+export function MoreOfSanctum({ t, onNavigate }: MoreOfSanctumProps) {
   return (
     <section aria-label="More of Sanctum" data-more-of-sanctum className="w-full">
       <p
         className="text-[9px] font-bold uppercase tracking-[0.2em] mb-2 text-center"
-        style={{ color: t.textDim }}
+        style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
       >
         More of Sanctum
       </p>
-      <div className="space-y-2">
-        {ENTRIES.map((entry) => {
-          const Icon = entry.icon;
-          return (
-            <button
-              key={entry.key}
-              data-more-entry={entry.key}
-              onClick={() => onNavigate(entry.key)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all active:scale-[0.99]"
-              style={rowStyle}
+      <div>
+        {ENTRIES.map((entry) => (
+          <button
+            key={entry.key}
+            data-more-entry={entry.key}
+            onClick={() => onNavigate(entry.key)}
+            className={ROW_CLASS}
+            style={{ borderBottom: `1px solid ${t.border}99` }}
+          >
+            <span
+              className="text-[15px] font-semibold flex-shrink-0"
+              style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
             >
-              <Icon className="w-5 h-5 flex-shrink-0" style={{ color: t.accent }} />
-              <span className="flex-1 min-w-0">
-                <span className="block text-sm font-bold" style={{ color: t.textBright }}>
-                  {entry.label}
-                </span>
-                <span className="block text-[11px]" style={{ color: t.textDim }}>
-                  {entry.hint}
-                </span>
-              </span>
-            </button>
-          );
-        })}
+              {entry.label}
+            </span>
+            <span
+              aria-hidden="true"
+              className="flex-1"
+              style={{ borderBottom: `1px dotted ${t.textDim}`, transform: 'translateY(-3px)' }}
+            />
+            <span
+              className="text-[11px] italic flex-shrink-0"
+              style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+            >
+              {entry.hint}
+            </span>
+          </button>
+        ))}
       </div>
     </section>
   );

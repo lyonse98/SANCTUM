@@ -4,6 +4,7 @@ import type { PersonaTheme } from '@/types';
 import { fetchDailyAudio, headForHour, sequenceSeekTarget, type DailyAudio } from '@/lib/dailyAudio';
 import { PERSONA_DISPLAY, personaHasBell } from '@/lib/narratorCore';
 import { narratorDisclosureLine } from '@/lib/privacyCopy';
+import { PRINT_SERIF } from '@/lib/print';
 import { loadPushReminder } from '@/lib/push';
 import {
   listenReminderLineDue,
@@ -103,7 +104,22 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
     let active = true;
     void (async () => {
       const row = await fetchDailyAudio(dateKey, audience);
-      if (active) setAudio(row);
+      if (!active) return;
+      setAudio(row);
+      // The program strip names the day's length before a note is played
+      // (the re-skin's promotion, Nov 14, 2026): the row already carries
+      // the head and main durations, so the total is known at rest — the
+      // head is the one the device's own hour would choose, the same pick
+      // prepareAndPlay locks in at the first tap. Once playback is
+      // prepared, the true stitched (or sequenced) duration replaces it.
+      if (row && row.status === 'ready') {
+        const head = headForHour(new Date().getHours());
+        const headSeconds = head === 'am' ? row.headAmSeconds : row.headPmSeconds;
+        if (headSeconds && row.mainSeconds) {
+          totalRef.current = headSeconds + row.mainSeconds;
+          setTotal(headSeconds + row.mainSeconds);
+        }
+      }
     })();
     return () => {
       active = false;
@@ -414,20 +430,20 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
   if (showDisclosure) {
     return (
       <div
-        className="rounded-xl border p-3.5 mb-3 animate-fade-in"
+        className="border p-3.5 mb-3 animate-fade-in"
         style={{ backgroundColor: `${t.border}1F`, borderColor: `${t.border}80` }}
       >
-        <p className="text-xs font-bold mb-1" style={{ color: t.textBright }}>
+        <p className="text-xs font-bold mb-1" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
           {audio.persona === 'lector'
             ? "Today's reader is the Lector."
             : `Today's reader is ${display.displayName} — ${display.weekdayName}'s narrator.`}
         </p>
-        <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
+        <p className="text-[11px] leading-relaxed mb-3" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
           {narratorDisclosureLine(audience)}
         </p>
         <button
           onClick={handleListenFromCard}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md border transition-all active:scale-[0.98]"
           style={{ backgroundColor: t.accentRgba(0.16), borderColor: t.accent, color: t.accent }}
         >
           <Play className="w-3.5 h-3.5" />
@@ -439,25 +455,37 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
 
   return (
     <>
+    {/* The program strip (Stage 1 of the printed-page re-skin, Erik,
+        Nov 14, 2026): the day's listening set at the head of the Gospel
+        section, between hairline rules — the reader's name, the length,
+        the play control, and the same seek slider, in the page's serif
+        voice. Every behaviour beneath the setting is the bar it replaces. */}
     <div
-      className="flex items-center gap-3 rounded-xl border px-3 py-2.5 mb-3"
-      style={{ backgroundColor: `${t.border}1F`, borderColor: `${t.border}80` }}
+      className="flex items-center gap-3 px-1 py-3 mb-3"
+      style={{
+        borderTop: `1px solid ${t.border}`,
+        borderBottom: `1px solid ${t.border}`,
+      }}
     >
       <button
         onClick={handlePlayTap}
         aria-label={playing ? 'Pause the reading' : 'Listen to today’s Gospel'}
         className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-all active:scale-95"
-        style={{ backgroundColor: t.accentRgba(0.16), borderColor: t.accent, color: t.accent }}
+        style={{ backgroundColor: t.accentRgba(0.1), borderColor: t.accent, color: t.accent }}
       >
         {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
       </button>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: t.textBright }}>
+        <p
+          className="text-[10px] font-bold uppercase tracking-widest"
+          style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
+        >
           Listen to the Gospel
         </p>
-        <p className="text-[10px] truncate" style={{ color: t.textDim }}>
+        <p className="text-[10px] truncate" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
           Read by {display.displayName}
-          {total > 0 && ` · ${fmt(displayElapsed)} / ${fmt(total)}`}
+          {total > 0 &&
+            (preparedRef.current ? ` · ${fmt(displayElapsed)} / ${fmt(total)}` : ` · ${fmt(total)}`)}
         </p>
         {preparedRef.current && total > 0 && (
           <input

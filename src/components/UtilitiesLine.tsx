@@ -1,3 +1,4 @@
+import { PRINT_SERIF } from '@/lib/print';
 import type { PersonaTheme, UtilityActions } from '@/types';
 
 interface UtilitiesLineProps {
@@ -23,6 +24,9 @@ const ENTRIES: { key: string; label: string; action: (u: UtilityActions) => () =
  * Pocket Church, and Real Help pages too, so the housekeeping is reachable
  * from every main view without a bar or a sheet. Deliberately lighter than
  * the retired UtilitiesRow card: footer typography, no boxes, no icons.
+ * Stage 1 of the printed-page re-skin (Nov 14, 2026) sets the line in the
+ * page's serif voice; the entries, their order, and their actions are
+ * untouched, and it still closes the page, dead last.
  */
 export function UtilitiesLine({ t, utilities, className = '' }: UtilitiesLineProps) {
   return (
@@ -42,7 +46,7 @@ export function UtilitiesLine({ t, utilities, className = '' }: UtilitiesLinePro
             data-utilities-entry={entry.key}
             onClick={entry.action(utilities)}
             className="text-[11px] font-medium transition-opacity hover:opacity-70"
-            style={{ color: t.textMuted }}
+            style={{ fontFamily: PRINT_SERIF, letterSpacing: '0.06em', color: t.textMuted }}
           >
             {entry.label}
           </button>
