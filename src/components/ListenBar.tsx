@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pause, Play, RotateCcw } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
-import { fetchDailyAudio, headForHour, type DailyAudio } from '@/lib/dailyAudio';
+import { fetchDailyAudio, headForHour, sequenceSeekTarget, type DailyAudio } from '@/lib/dailyAudio';
 import { PERSONA_DISPLAY, personaHasBell } from '@/lib/narratorCore';
 import { narratorDisclosureLine } from '@/lib/privacyCopy';
 import { loadPushReminder } from '@/lib/push';
@@ -81,6 +81,10 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
   const [playing, setPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [total, setTotal] = useState(0);
+  // While the listener drags the seek slider, this holds the scrub position so
+  // the timeupdate-driven elapsed updates can't fight the thumb; the seek
+  // itself commits on release.
+  const [scrubValue, setScrubValue] = useState<number | null>(null);
 
   const elRef = useRef<HTMLAudioElement | null>(null);
   const modeRef = useRef<'stitched' | 'sequence'>('stitched');
@@ -89,6 +93,11 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
   const baseOffsetRef = useRef(0);
   const preparedRef = useRef(false);
   const blobUrlRef = useRef<string | null>(null);
+  const scrubbingRef = useRef(false);
+  // Sequence-mode per-file durations (head, main) from the row — the seek
+  // mapping's ruler, and the same numbers the displayed total is summed from.
+  const durationsRef = useRef<number[]>([]);
+  const totalRef = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -142,6 +151,7 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
       el.preload = 'auto';
       el.addEventListener('timeupdate', () => {
         setElapsed(baseOffsetRef.current + el.currentTime);
+        syncPositionState();
       });
       el.addEventListener('ended', () => {
         if (modeRef.current === 'sequence' && queueIndexRef.current < queueRef.current.length - 1) {
@@ -170,6 +180,74 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
     return elRef.current;
   };
 
+  const applyTotal = (seconds: number) => {
+    totalRef.current = seconds;
+    setTotal(seconds);
+  };
+
+  /** Lock-screen position, kept honest in either playback mode. */
+  const syncPositionState = () => {
+    try {
+      if (!('mediaSession' in navigator)) return;
+      const el = elRef.current;
+      const duration = totalRef.current;
+      if (!el || !(duration > 0)) return;
+      const position = Math.min(duration, Math.max(0, baseOffsetRef.current + el.currentTime));
+      navigator.mediaSession.setPositionState({ duration, position, playbackRate: el.playbackRate || 1 });
+    } catch {
+      // Position state is lock-screen garnish; it never throws into playback.
+    }
+  };
+
+  /**
+   * Seeks to a position in the whole day's listening, in either playback
+   * mode: the stitched stream takes the second directly; the sequence maps
+   * it onto a file and an offset, switching files when the target lands in
+   * the other one. Play/pause state is preserved — playing keeps playing,
+   * paused stays paused at the new position. Fail-silent throughout: any
+   * error leaves playback exactly as it was.
+   */
+  const seekToGlobal = (target: number) => {
+    try {
+      const el = element();
+      const wasPlaying = !el.paused;
+      const clamped = totalRef.current > 0 ? Math.min(Math.max(0, target), totalRef.current) : Math.max(0, target);
+      if (modeRef.current === 'sequence') {
+        const landing = sequenceSeekTarget(clamped, durationsRef.current);
+        baseOffsetRef.current = landing.baseOffset;
+        if (landing.index !== queueIndexRef.current) {
+          queueIndexRef.current = landing.index;
+          // A fresh src starts at 0 — the offset applies once its metadata
+          // lands, and playback resumes there only if it was playing.
+          el.addEventListener(
+            'loadedmetadata',
+            () => {
+              try {
+                el.currentTime = landing.offset;
+              } catch {
+                // fail-silent
+              }
+              if (wasPlaying) void el.play().catch(() => setPlaying(false));
+            },
+            { once: true },
+          );
+          el.src = queueRef.current[landing.index];
+        } else {
+          el.currentTime = landing.offset;
+          if (wasPlaying) void el.play().catch(() => setPlaying(false));
+        }
+      } else {
+        el.currentTime = clamped;
+        if (wasPlaying) void el.play().catch(() => setPlaying(false));
+      }
+      setElapsed(clamped);
+      setPlaying(wasPlaying);
+      syncPositionState();
+    } catch {
+      // A failed seek leaves playback as-is.
+    }
+  };
+
   const setMediaSession = () => {
     try {
       if (!('mediaSession' in navigator)) return;
@@ -182,14 +260,12 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
       });
       navigator.mediaSession.setActionHandler('play', () => void el.play().catch(() => {}));
       navigator.mediaSession.setActionHandler('pause', () => el.pause());
-      navigator.mediaSession.setActionHandler('seekbackward', () => {
-        el.currentTime = Math.max(0, el.currentTime - 10);
-      });
-      navigator.mediaSession.setActionHandler('seekforward', () => {
-        el.currentTime = Math.min(el.duration || el.currentTime + 10, el.currentTime + 10);
-      });
+      // Lock-screen seeks speak in whole-listening seconds, like the slider.
+      const currentGlobal = () => baseOffsetRef.current + el.currentTime;
+      navigator.mediaSession.setActionHandler('seekbackward', () => seekToGlobal(currentGlobal() - 10));
+      navigator.mediaSession.setActionHandler('seekforward', () => seekToGlobal(currentGlobal() + 10));
       navigator.mediaSession.setActionHandler('seekto', (details) => {
-        if (typeof details.seekTime === 'number') el.currentTime = details.seekTime;
+        if (typeof details.seekTime === 'number') seekToGlobal(details.seekTime);
       });
     } catch {
       // Media Session is a garnish; its absence changes nothing.
@@ -243,7 +319,7 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
       modeRef.current = 'stitched';
       blobUrlRef.current = stitched.url;
       el.src = stitched.url;
-      setTotal(stitched.duration);
+      applyTotal(stitched.duration);
     } catch {
       // Fallback: a plain sequence of the files — the bell is dropped rather than
       // risk a broken sequence (§11.3).
@@ -251,8 +327,9 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
       queueRef.current = [headUrl, audio.mainUrl];
       queueIndexRef.current = 0;
       baseOffsetRef.current = 0;
+      durationsRef.current = [headSeconds ?? 0, audio.mainSeconds ?? 0];
       el.src = headUrl;
-      setTotal((headSeconds ?? 0) + (audio.mainSeconds ?? 0));
+      applyTotal((headSeconds ?? 0) + (audio.mainSeconds ?? 0));
     }
     preparedRef.current = true;
     setMediaSession();
@@ -312,6 +389,28 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
     void el.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
   };
 
+  // While scrubbing, the displayed position is the thumb's, not the
+  // element's; the seek commits once, on release. Keyboard and assistive
+  // changes arrive without a pointer drag and commit as they land.
+  const displayElapsed = scrubValue ?? elapsed;
+
+  const handleScrubStart = () => {
+    scrubbingRef.current = true;
+    setScrubValue(displayElapsed);
+  };
+
+  const handleScrubInput = (value: number) => {
+    setScrubValue(value);
+    if (!scrubbingRef.current) seekToGlobal(value);
+  };
+
+  const handleScrubEnd = () => {
+    if (!scrubbingRef.current) return;
+    scrubbingRef.current = false;
+    if (scrubValue !== null) seekToGlobal(scrubValue);
+    setScrubValue(null);
+  };
+
   if (showDisclosure) {
     return (
       <div
@@ -358,8 +457,24 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
         </p>
         <p className="text-[10px] truncate" style={{ color: t.textDim }}>
           Read by {display.displayName}
-          {total > 0 && ` · ${fmt(elapsed)} / ${fmt(total)}`}
+          {total > 0 && ` · ${fmt(displayElapsed)} / ${fmt(total)}`}
         </p>
+        {preparedRef.current && total > 0 && (
+          <input
+            type="range"
+            min={0}
+            max={total}
+            step={1}
+            value={Math.min(displayElapsed, total)}
+            aria-label="Seek through the reading"
+            onPointerDown={handleScrubStart}
+            onPointerUp={handleScrubEnd}
+            onPointerCancel={handleScrubEnd}
+            onChange={(e) => handleScrubInput(Number(e.target.value))}
+            className="w-full mt-1 h-4 cursor-pointer"
+            style={{ accentColor: t.accent }}
+          />
+        )}
       </div>
       {preparedRef.current && (
         <button

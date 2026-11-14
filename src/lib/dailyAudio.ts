@@ -93,6 +93,41 @@ export function headForHour(hour: number): 'am' | 'pm' {
   return hour < AUDIO_PM_START_HOUR ? 'am' : 'pm';
 }
 
+/** Where a global second lands inside a sequence of files (§11.3 seek mapping). */
+export interface SequenceSeekTarget {
+  /** Index of the file that holds the target second. */
+  index: number;
+  /** Seconds into that file. */
+  offset: number;
+  /** Seconds before that file — the player's base offset while it plays. */
+  baseOffset: number;
+}
+
+/**
+ * Maps a position in the whole day's listening (what the seek slider and the
+ * lock-screen controls speak) to a file and an offset within it, for the
+ * sequence fallback where head and main are separate files. The target is
+ * clamped into [0, total]; a position exactly on a boundary belongs to the
+ * following file at offset 0 (the same audible instant, without resting on
+ * the earlier file's ended edge), except the very end, which rests at the
+ * last file's end. Zero-length segments are passed over; an empty or
+ * all-zero sequence resolves to the origin.
+ */
+export function sequenceSeekTarget(globalSeconds: number, durations: number[]): SequenceSeekTarget {
+  const total = durations.reduce((n, d) => n + (Number.isFinite(d) && d > 0 ? d : 0), 0);
+  const target = Number.isFinite(globalSeconds) ? Math.min(Math.max(0, globalSeconds), total) : 0;
+  let base = 0;
+  for (let i = 0; i < durations.length; i++) {
+    const d = Number.isFinite(durations[i]) && durations[i] > 0 ? durations[i] : 0;
+    const isLast = i === durations.length - 1;
+    if (d > 0 && (target < base + d || isLast)) {
+      return { index: i, offset: Math.min(target - base, d), baseOffset: base };
+    }
+    base += d;
+  }
+  return { index: 0, offset: 0, baseOffset: 0 };
+}
+
 function readCache(dateKey: string, audience: Audience, supabaseUrl: string): DailyAudio | null {
   try {
     const raw = localStorage.getItem(audioCacheKey(dateKey, audience));
