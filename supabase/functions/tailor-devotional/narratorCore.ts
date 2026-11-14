@@ -464,7 +464,7 @@ export function resolveFeastDay(dateISO: string): FeastDayN | null {
  */
 const SAINT_LINES_N: Record<string, { name: string; line: string }> = {
   '01-28': { name: "St. Thomas Aquinas", line: "The Dominican friar who married faith and reason." },
-  '02-31': { name: "St. John Bosco", line: "A priest who dedicated his life to troubled youth, founding schools and orphanages for boys others had given up on." },
+  '01-31': { name: "St. John Bosco", line: "A priest who dedicated his life to troubled youth, founding schools and orphanages for boys others had given up on." },
   '08-14': { name: "St. Maximilian Kolbe", line: "A Franciscan friar who volunteered to die in place of a stranger at Auschwitz." },
   '08-28': { name: "St. Augustine", line: "A philosopher, partygoer, and seeker who chased pleasure for years before his mother's prayers and a Bible verse brought him to his knees." },
   '08-27': { name: "St. Monica", line: "A mother who prayed for her wayward son Augustine for 17 years without giving up." },
