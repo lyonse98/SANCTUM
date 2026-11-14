@@ -27,3 +27,22 @@ export const PRINT_SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif
  */
 export const PRINT_PLATE_CLASS =
   'w-full min-h-[48px] flex items-center gap-2.5 px-3.5 py-3 text-left transition-opacity hover:opacity-80 active:opacity-60';
+
+/**
+ * The stamped label (Stage 2 of the re-skin, Erik, Nov 14, 2026): small
+ * caps, letterspaced, set in the serif voice — the way a printed book
+ * stamps a section's name in the margin or over a rule. Callers supply
+ * PRINT_SERIF and the calendar-owned accent (or a quieter ink) inline,
+ * exactly as Stage 1's Gospel header does. Rooms use this for every
+ * section label so the stamp is one by construction.
+ */
+export const PRINT_STAMP_CLASS = 'text-[10px] font-bold uppercase tracking-[0.2em]';
+
+/**
+ * The chosen state for a printed choice (Stage 2): where the form or the
+ * doors offer several printed lines and one is taken, the taken line is
+ * unmistakable — the day's accent for its frame and a wash of the same
+ * accent behind the words, the label itself in the accent. Callers merge
+ * this with the plate's frame/fill inline styles when a choice is on.
+ */
+export const PRINT_CHOSEN_FILL_ALPHA = '29';

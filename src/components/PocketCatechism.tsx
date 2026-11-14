@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, Shield, Heart, Hand, ChevronRight, Quote, Users, Swords, ShieldAlert, Sparkles } from 'lucide-react';
+import { PRINT_CHOSEN_FILL_ALPHA, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import type { Audience, PersonaTheme } from '@/types';
 import { CatechismQA } from '@/components/CatechismQA';
 import {
@@ -42,11 +43,11 @@ export function PocketCatechism({ t, audience, defaultMode }: PocketCatechismPro
   const modeBtn = (id: typeof mode, label: string) => (
     <button
       onClick={() => { setMode(id); setExpandedId(null); }}
-      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-lg text-[11px] font-bold transition-all border whitespace-nowrap"
+      className="flex-1 min-h-[44px] flex items-center justify-center gap-1 px-2 py-2 text-[11px] font-bold transition-opacity hover:opacity-80 active:opacity-60 whitespace-nowrap"
       style={
         mode === id
-          ? { backgroundColor: t.accentRgba(0.15), color: t.accent, borderColor: t.accentRgba(0.4) }
-          : { backgroundColor: `${t.border}40`, color: t.textDim, borderColor: `${t.border}66` }
+          ? { backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, color: t.accent, border: `1px solid ${t.accent}` }
+          : { backgroundColor: `${t.border}1F`, color: t.textDim, border: `1px solid ${t.border}` }
       }
     >
       {id === 'ask' && <Sparkles className="w-3 h-3" />}
@@ -55,10 +56,10 @@ export function PocketCatechism({ t, audience, defaultMode }: PocketCatechismPro
   );
 
   return (
-    <div className="rounded-xl p-4 border" style={{ backgroundColor: t.card, borderColor: `${t.border}66` }}>
+    <div className="px-1 pt-4" style={{ borderTop: `3px double ${t.border}`, fontFamily: PRINT_SERIF }}>
       <div className="flex items-center gap-2 mb-3">
         <BookOpen className="w-4 h-4" style={{ color: t.accent }} />
-        <h3 className="text-sm font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>
+        <h3 className={PRINT_STAMP_CLASS} style={{ color: t.accent }}>
           Catechism
         </h3>
       </div>
@@ -88,11 +89,11 @@ export function PocketCatechism({ t, audience, defaultMode }: PocketCatechismPro
                   <button
                     key={p.id}
                     onClick={() => { setActivePillar(p.id); setExpandedId(null); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all border"
+                    className="min-h-[40px] flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-opacity hover:opacity-80 active:opacity-60"
                     style={
                       activePillar === p.id
-                        ? { backgroundColor: t.accentRgba(0.12), color: t.accent, borderColor: t.accentRgba(0.3) }
-                        : { backgroundColor: `${t.border}40`, color: t.textDim, borderColor: `${t.border}66` }
+                        ? { backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, color: t.accent, border: `1px solid ${t.accent}` }
+                        : { backgroundColor: `${t.border}1F`, color: t.textDim, border: `1px solid ${t.border}` }
                     }
                   >
                     <Icon className="w-3 h-3" />
@@ -152,10 +153,10 @@ function CatechismCard({
 }) {
   return (
     <div
-      className="rounded-lg border transition-all cursor-pointer"
+      className="border transition-opacity cursor-pointer"
       style={{
-        backgroundColor: expanded ? t.accentRgba(0.05) : `${t.border}40`,
-        borderColor: expanded ? t.accentRgba(0.2) : `${t.border}66`,
+        backgroundColor: expanded ? t.accentRgba(0.05) : `${t.border}1F`,
+        borderColor: expanded ? t.accent : t.border,
       }}
       onClick={onToggle}
     >
@@ -183,7 +184,7 @@ function CatechismCard({
               </div>
 
               <div
-                className="pt-2 border-t rounded-md p-2"
+                className="pt-2 border-t p-2"
                 style={{ borderColor: 'rgba(185,28,28,0.2)', backgroundColor: 'rgba(153,27,27,0.06)' }}
               >
                 <div className="flex items-center gap-1.5 mb-1">
@@ -194,7 +195,7 @@ function CatechismCard({
               </div>
 
               <div
-                className="pt-2 border-t rounded-md p-2"
+                className="pt-2 border-t p-2"
                 style={{ borderColor: `${t.accentRgba(0.2)}`, backgroundColor: t.accentRgba(0.05) }}
               >
                 <div className="flex items-center gap-1.5 mb-1">
@@ -224,10 +225,10 @@ function ObjectionCard({
 }) {
   return (
     <div
-      className="rounded-lg border transition-all cursor-pointer"
+      className="border transition-opacity cursor-pointer"
       style={{
-        backgroundColor: expanded ? t.accentRgba(0.05) : `${t.border}40`,
-        borderColor: expanded ? t.accentRgba(0.2) : `${t.border}66`,
+        backgroundColor: expanded ? t.accentRgba(0.05) : `${t.border}1F`,
+        borderColor: expanded ? t.accent : t.border,
       }}
       onClick={onToggle}
     >

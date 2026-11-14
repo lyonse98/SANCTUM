@@ -66,9 +66,10 @@ export interface Persona {
   struggles: string[];
   /**
    * The life-issues this companion speaks to, in the user's own vocabulary of need —
-   * set only on the women's cast, where the companion select screen surfaces them as
-   * chips and a "browse by need" row. The men's cast carries none: its select screen
-   * is unchanged.
+   * set only on the women's cast, where the companion select screen sets them as the
+   * entry's counsel line (the browse-by-need tag cloud was retired in the printed-page
+   * re-skin, Erik, Nov 14, 2026). The men's cast carries none: its select screen
+   * reads the same line from `struggles`.
    */
   issues?: string[];
   description: string;

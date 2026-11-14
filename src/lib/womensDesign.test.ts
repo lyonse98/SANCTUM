@@ -295,12 +295,18 @@ describe("companion issue tags — hers, on her screen only", () => {
     expect(carriers('Dryness')).toEqual(expect.arrayContaining(['teresa', 'therese-women']));
   });
 
-  it('the select screen surfaces the tags as chips and a browse-by-need row', () => {
+  it('the select screen sets the tags as each entry’s counsel line (the tag cloud retired, Erik, Nov 14, 2026)', () => {
+    // Stage 2 of the printed-page re-skin removed the browse-by-need tag
+    // cloud as a surface, on Erik's ruling: the needs now stand as the
+    // counsel line under each companion's name on the contents list, and
+    // entry by need runs through the quiz at the page's head. The data
+    // path is unchanged — needsOf still reads her issues, his struggles.
     const src = read('../components/CompanionSelect.tsx');
-    expect(src).toContain('Browse by need');
-    expect(src).toContain('persona.issues');
+    expect(src).not.toContain('Browse by need');
+    expect(src).toContain('p.issues');
     expect(src).toContain("audience === 'women'");
     expect(src).toContain('needsOf');
+    expect(src).toContain("join(' · ')");
   });
 });
 
@@ -388,11 +394,13 @@ describe('the rank ladder — the season leads, feasts deepen, solemnities deepe
     }
   });
 
-  it("browse-by-need chips wear the day accent — on St. Luke's feast, the martyr red", () => {
-    // Calendar supremacy: the chips' colour source is the day theme's
-    // accent itself, so on a feast the chips wear the feast's own colour.
+  it("the companions contents rows wear the day accent — on St. Luke's feast, the martyr red", () => {
+    // Calendar supremacy: the rows' colour source is the day theme's
+    // accent itself, so on a feast the rows wear the feast's own colour.
+    // (This pin covered the browse-by-need chips until Stage 2 retired
+    // the tag cloud, Erik, Nov 14, 2026; the contents rows inherit it.)
     const src = read('../components/CompanionSelect.tsx');
-    expect(src).toContain('const chipAccent = defaultTheme.accent;');
+    expect(src).toContain('color: defaultTheme.accent');
     expect(src).not.toContain('secondaryAccent');
     const feastDay = new Date('2026-10-18T12:00:00');
     for (const audience of ['men', 'women'] as const) {

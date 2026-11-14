@@ -3,6 +3,7 @@ import { Send, Square } from 'lucide-react';
 import type { Persona } from '@/types';
 import { DAILY_MESSAGE_CAP } from '@/lib/messageCap';
 import { audienceNoun } from '@/lib/audience';
+import { PRINT_SERIF } from '@/lib/print';
 
 const MAX_CHARS = 800;
 const RATE_LIMIT_COUNT = 10;
@@ -87,9 +88,11 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
       )}
 
       <div className="flex items-end gap-2 max-w-2xl mx-auto">
+        {/* The write-back line, ruled like the form lines elsewhere:
+            the words sit on a hairline, not in a box. */}
         <div
-          className="flex-1 rounded-xl flex items-end overflow-hidden border transition-colors"
-          style={{ backgroundColor: t.card, borderColor: `${t.border}80` }}
+          className="flex-1 flex items-end transition-colors"
+          style={{ borderBottom: `1px solid ${t.border}` }}
         >
           <textarea
             ref={textareaRef}
@@ -99,8 +102,8 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
             placeholder={`Speak plainly, ${kin}...`}
             rows={1}
             maxLength={MAX_CHARS}
-            className="flex-1 bg-transparent text-sm px-4 py-3 resize-none outline-none max-h-[120px] leading-relaxed"
-            style={{ color: t.text }}
+            className="flex-1 bg-transparent text-sm px-1 py-3 resize-none outline-none max-h-[120px] leading-relaxed"
+            style={{ fontFamily: PRINT_SERIF, color: t.text }}
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
@@ -109,7 +112,7 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
         {isStreaming ? (
           <button
             onClick={onStop}
-            className="w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 flex-shrink-0 border"
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 flex-shrink-0 border"
             style={{
               backgroundColor: 'rgba(153,27,27,0.1)',
               borderColor: 'rgba(185,28,28,0.35)',
@@ -123,7 +126,7 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
           <button
             onClick={handleSend}
             disabled={!text.trim() || overLimit || rateLimited}
-            className="w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-30 disabled:pointer-events-none flex-shrink-0 shadow-md"
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-30 disabled:pointer-events-none flex-shrink-0 shadow-md"
             style={{
               backgroundColor: t.accent,
               color: '#ffffff',

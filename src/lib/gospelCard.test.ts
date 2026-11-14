@@ -111,6 +111,19 @@ describe('the card, revised the same evening — what came back, what stayed gon
     expect(card).toContain('{expanded && readings && (');
   });
 
+  // Erik's order (Nov 14, 2026): snippet, then the full readings, then the
+  // reflection and the challenge — the expander and its section moved up
+  // from the card's foot to directly beneath the key verse. This pin
+  // replaces the foot arrangement the section order previously implied.
+  it('the expander and its readings stand between the key verse and the reflection', () => {
+    const toggle = card.indexOf('Read the full readings');
+    const expanded = card.indexOf('{expanded && readings && (');
+    const reflection = card.indexOf('(shown.value || shown.pending)');
+    expect(toggle).toBeGreaterThan(-1);
+    expect(expanded).toBeGreaterThan(toggle);
+    expect(reflection).toBeGreaterThan(expanded);
+  });
+
   it('the full readings live in the expander, in lectionary order, with the official-text link at their foot', () => {
     expect(card).toContain('orderedReadingRows(readings, allTexts)');
     expect(card).toContain('Official reading text');

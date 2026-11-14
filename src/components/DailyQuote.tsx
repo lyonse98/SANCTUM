@@ -346,7 +346,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           evening, restoring the arrangement he preferred): before anything is
           expanded, the card defaults to the most quotable part of the Gospel.
           The full readings — all of them, in lectionary order — live behind
-          the expander at the card's foot. */}
+          the expander directly beneath it (Erik's order, Nov 14, 2026). */}
       {!loading && readings && keyVerse && (
         <>
           <p className="text-[9px] uppercase tracking-widest font-bold mb-1.5" style={{ color: t.textDim }}>
@@ -403,6 +403,93 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
             {quote.source && <span className="opacity-70">, {quote.source}</span>}
           </p>
         </>
+      )}
+
+      {/* The full readings, directly under the verse (Erik's order,
+          Nov 14, 2026): snippet, then the readings entire, then the
+          reflection and the challenge. The toggle and its expanded
+          section — all of them, in lectionary order, First, Psalm,
+          Second where the day has one, and the Gospel last, the way
+          they are heard at Mass — moved up here from the card's foot;
+          the state and the labels are unchanged. */}
+      {!loading && readings && (
+        <button
+          onClick={toggleExpanded}
+          aria-expanded={expanded}
+          className="w-full flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest mt-3 transition-opacity hover:opacity-70"
+          style={{ color: t.accent }}
+        >
+          {expanded ? 'Hide the full readings' : 'Read the full readings'}
+          <ChevronDown
+            className="w-3 h-3 transition-transform"
+            style={{ transform: expanded ? 'rotate(180deg)' : 'none' }}
+          />
+        </button>
+      )}
+
+      {expanded && readings && (
+        <div className="space-y-4 pt-3 mt-3 border-t animate-fade-in" style={{ borderColor: `${t.border}66` }}>
+          {loadingAll && !allTexts && (
+            <div className="flex items-center gap-2" style={{ color: t.textDim }}>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span className="text-[10px]">Loading the day&rsquo;s readings&hellip;</span>
+            </div>
+          )}
+
+          {orderedReadings
+            .filter((row) => row.passage?.text)
+            .map((row) => (
+              <div key={row.label}>
+                <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.accent }}>
+                  {row.label} &middot; {row.passage!.citation}
+                </p>
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{ fontFamily: PRINT_SERIF, color: row.label === 'Gospel' ? t.textBright : t.text }}
+                >
+                  {row.passage!.text}
+                </p>
+                {row.label === 'Gospel' && (
+                  <p className="text-[9px] mt-1.5" style={{ color: t.textDim }}>
+                    Text: {row.passage!.translation === 'douayrheims' ? 'Douay-Rheims' : 'World English Bible'} (public domain).
+                  </p>
+                )}
+              </div>
+            ))}
+
+          {/* Citations the translation could not supply — named, never dropped. */}
+          {orderedReadings
+            .filter((row) => !row.passage?.text)
+            .map((row) => (
+              <p key={row.label} className="text-[10px]" style={{ color: t.textDim }}>
+                {row.label}: {row.citation}
+                {loadingAll ? ' — loading…' : ''}
+              </p>
+            ))}
+
+          {readings.usccbLink && (
+            <a
+              href={readings.usccbLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-bold transition-opacity hover:opacity-70"
+              style={{ color: t.accent }}
+            >
+              <BookOpen className="w-3 h-3" />
+              Official reading text
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          )}
+
+          <button
+            onClick={() => setExpanded(false)}
+            className="w-full flex items-center justify-center gap-1 text-[10px] transition-opacity hover:opacity-70"
+            style={{ color: t.textDim }}
+          >
+            <X className="w-3 h-3" />
+            <span>Close</span>
+          </button>
+        </div>
       )}
 
       {/* Reflect and challenge — pre-generated server-side from the day's readings.
@@ -548,90 +635,6 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
             <span className="text-[11px] font-bold uppercase tracking-wide">Share today&rsquo;s Gospel</span>
           </button>
         </>
-      )}
-
-      {/* Expand for the full readings — all of them, collapsible with the
-          Gospel as they were before the diet: full text in lectionary order,
-          First, Psalm, Second where the day has one, and the Gospel last,
-          the way they are heard at Mass. */}
-      {!loading && readings && (
-        <button
-          onClick={toggleExpanded}
-          aria-expanded={expanded}
-          className="w-full flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest mt-3 transition-opacity hover:opacity-70"
-          style={{ color: t.accent }}
-        >
-          {expanded ? 'Hide the full readings' : 'Read the full readings'}
-          <ChevronDown
-            className="w-3 h-3 transition-transform"
-            style={{ transform: expanded ? 'rotate(180deg)' : 'none' }}
-          />
-        </button>
-      )}
-
-      {expanded && readings && (
-        <div className="space-y-4 pt-3 mt-3 border-t animate-fade-in" style={{ borderColor: `${t.border}66` }}>
-          {loadingAll && !allTexts && (
-            <div className="flex items-center gap-2" style={{ color: t.textDim }}>
-              <Loader2 className="w-3 h-3 animate-spin" />
-              <span className="text-[10px]">Loading the day&rsquo;s readings&hellip;</span>
-            </div>
-          )}
-
-          {orderedReadings
-            .filter((row) => row.passage?.text)
-            .map((row) => (
-              <div key={row.label}>
-                <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.accent }}>
-                  {row.label} &middot; {row.passage!.citation}
-                </p>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ fontFamily: PRINT_SERIF, color: row.label === 'Gospel' ? t.textBright : t.text }}
-                >
-                  {row.passage!.text}
-                </p>
-                {row.label === 'Gospel' && (
-                  <p className="text-[9px] mt-1.5" style={{ color: t.textDim }}>
-                    Text: {row.passage!.translation === 'douayrheims' ? 'Douay-Rheims' : 'World English Bible'} (public domain).
-                  </p>
-                )}
-              </div>
-            ))}
-
-          {/* Citations the translation could not supply — named, never dropped. */}
-          {orderedReadings
-            .filter((row) => !row.passage?.text)
-            .map((row) => (
-              <p key={row.label} className="text-[10px]" style={{ color: t.textDim }}>
-                {row.label}: {row.citation}
-                {loadingAll ? ' — loading…' : ''}
-              </p>
-            ))}
-
-          {readings.usccbLink && (
-            <a
-              href={readings.usccbLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] font-bold transition-opacity hover:opacity-70"
-              style={{ color: t.accent }}
-            >
-              <BookOpen className="w-3 h-3" />
-              Official reading text
-              <ExternalLink className="w-2.5 h-2.5" />
-            </a>
-          )}
-
-          <button
-            onClick={() => setExpanded(false)}
-            className="w-full flex items-center justify-center gap-1 text-[10px] transition-opacity hover:opacity-70"
-            style={{ color: t.textDim }}
-          >
-            <X className="w-3 h-3" />
-            <span>Close</span>
-          </button>
-        </div>
       )}
 
       <DailyGospelShareModal

@@ -1,3 +1,4 @@
+import { PRINT_SERIF } from '@/lib/print';
 import type { PresetChip, Persona } from '@/types';
 
 interface PresetChipsProps {
@@ -18,11 +19,12 @@ export function PresetChips({ presets, onSelect, disabled }: PresetChipsProps) {
             key={chip.id}
             onClick={() => onSelect(chip)}
             disabled={disabled}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none border"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium whitespace-nowrap transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none border"
             style={{
               backgroundColor: 'var(--p-card)',
               borderColor: 'color-mix(in srgb, var(--p-border) 50%, transparent)',
               color: 'var(--p-text-muted)',
+              fontFamily: PRINT_SERIF,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--p-accent) 40%, transparent)';

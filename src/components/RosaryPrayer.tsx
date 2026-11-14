@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, RotateCcw, CircleDot } from 'lucide-react';
+import { PRINT_CHOSEN_FILL_ALPHA, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import type { PersonaTheme } from '@/types';
 
 interface RosaryPrayerProps {
@@ -143,46 +144,47 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
   };
 
   return (
-    <div className="rounded-xl p-4 border" style={{ backgroundColor: t.card, borderColor: `${t.border}66` }}>
+    <div className="px-1 pt-4" style={{ borderTop: `3px double ${t.border}` }}>
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <CircleDot className="w-4 h-4" style={{ color: t.accent }} />
-        <h3 className="text-sm font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>
+        <h3 className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
           The Holy Rosary
         </h3>
       </div>
 
-      {/* Mystery set selector */}
+      {/* Mystery set selector — small plates; the day's set wears the accent. */}
       <div className="flex gap-1.5 mb-4 flex-wrap">
         {(Object.keys(MYSTERIES) as MysterySet[]).map((set) => (
           <button
             key={set}
             onClick={() => handleSetChange(set)}
-            className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border"
+            aria-pressed={mysterySet === set}
+            className="min-h-[40px] px-3 py-1.5 text-[11px] font-bold transition-opacity hover:opacity-80 active:opacity-60"
             style={
               mysterySet === set
-                ? { backgroundColor: t.accentRgba(0.15), color: t.accent, borderColor: t.accentRgba(0.4) }
-                : { backgroundColor: `${t.border}40`, color: t.textDim, borderColor: `${t.border}80` }
+                ? { backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, color: t.accent, border: `1px solid ${t.accent}` }
+                : { backgroundColor: `${t.border}1F`, color: t.textDim, border: `1px solid ${t.border}` }
             }
           >
-            {SET_LABELS[set]}
+            <span style={{ fontFamily: PRINT_SERIF }}>{SET_LABELS[set]}</span>
           </button>
         ))}
       </div>
 
-      {/* Mystery name banner (during decades) */}
+      {/* Mystery name banner (during decades) — a ruled inset. */}
       {currentMystery && (
         <div
-          className="rounded-lg px-4 py-3 mb-4 border text-center animate-fade-in"
+          className="px-4 py-3 mb-4 border text-center animate-fade-in"
           style={{ backgroundColor: t.accentRgba(0.06), borderColor: t.accentRgba(0.2) }}
         >
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-1" style={{ color: t.accent }}>
+          <p className="text-[10px] uppercase tracking-widest font-bold mb-1" style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
             {SET_LABELS[mysterySet]} Mystery · {phase.kind === 'decade' ? phase.decadeIndex + 1 : 1} of 5
           </p>
-          <p className="text-sm font-bold font-display" style={{ color: t.textBright }}>
+          <p className="text-sm font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
             {currentMystery.name}
           </p>
-          <p className="text-[11px] mt-1" style={{ color: t.textDim }}>
+          <p className="text-[11px] mt-1" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             {currentMystery.scripture} · Fruit: {currentMystery.fruit}
           </p>
         </div>
@@ -205,20 +207,20 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
         </div>
       )}
 
-      {/* Prayer text */}
+      {/* Prayer text — a ruled inset on the leaf. */}
       <div
-        className="rounded-lg px-4 py-4 mb-4 border"
-        style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}33` }}
+        className="px-4 py-4 mb-4 border"
+        style={{ backgroundColor: `${t.border}14`, borderColor: t.border }}
       >
-        <p className="text-xs uppercase tracking-widest font-bold mb-2" style={{ color: t.accent }}>
+        <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
           {prayer.title}
         </p>
         {prayer.sub && (
-          <p className="text-[11px] italic mb-2" style={{ color: t.textDim }}>
+          <p className="text-[11px] italic mt-2" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             {prayer.sub}
           </p>
         )}
-        <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: t.text }}>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap mt-2" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
           {prayer.text}
         </p>
       </div>
@@ -226,10 +228,10 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
       {/* Progress bar */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: t.textDim }}>
+          <span className="text-[10px] uppercase tracking-widest font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             Progress
           </span>
-          <span className="text-[10px] font-bold" style={{ color: t.textDim }}>
+          <span className="text-[10px] font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             {progress}%
           </span>
         </div>
@@ -241,22 +243,22 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Controls — plates to step back or restart; the way forward is solid. */}
       <div className="flex items-center gap-2">
         <button
           onClick={handlePrev}
           disabled={step === 0}
-          className="flex items-center gap-1 px-3 py-2.5 rounded-lg border transition-all active:scale-95 disabled:opacity-30"
-          style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}66`, color: t.textMuted }}
+          className="min-h-[48px] flex items-center gap-1 px-3 py-2.5 border transition-opacity hover:opacity-80 active:opacity-60 disabled:opacity-30"
+          style={{ backgroundColor: `${t.border}1F`, borderColor: t.border, color: t.textMuted }}
         >
           <ChevronLeft className="w-4 h-4" />
-          <span className="text-xs font-bold">Back</span>
+          <span className="text-xs font-bold" style={{ fontFamily: PRINT_SERIF }}>Back</span>
         </button>
 
         <button
           onClick={handleReset}
-          className="flex items-center gap-1 px-3 py-2.5 rounded-lg border transition-all active:scale-95"
-          style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}66`, color: t.textDim }}
+          className="min-h-[48px] flex items-center gap-1 px-3 py-2.5 border transition-opacity hover:opacity-80 active:opacity-60"
+          style={{ backgroundColor: `${t.border}1F`, borderColor: t.border, color: t.textDim }}
           aria-label="Restart rosary"
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -265,10 +267,10 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
         <button
           onClick={handleNext}
           disabled={step === maxStep}
-          className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg transition-all active:scale-95 disabled:opacity-50"
+          className="flex-1 min-h-[48px] flex items-center justify-center gap-1.5 px-4 py-2.5 transition-opacity hover:opacity-90 active:opacity-70 disabled:opacity-50"
           style={{ backgroundColor: t.accent, color: '#ffffff' }}
         >
-          <span className="text-xs font-bold">
+          <span className="text-xs font-bold" style={{ fontFamily: PRINT_SERIF }}>
             {step === maxStep ? 'Complete' : 'Next Prayer'}
           </span>
           {step < maxStep && <ChevronRight className="w-4 h-4" />}
@@ -276,7 +278,7 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
       </div>
 
       {step === maxStep && (
-        <p className="text-center text-xs mt-4 animate-fade-in" style={{ color: t.accent }}>
+        <p className="text-center text-xs italic mt-4 animate-fade-in" style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
           You have prayed the Rosary. May Mary present your intentions to her Son.
         </p>
       )}

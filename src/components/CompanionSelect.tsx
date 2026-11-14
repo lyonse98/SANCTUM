@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { ArrowLeft, Compass, Users } from 'lucide-react';
+import { ChevronRight, Compass } from 'lucide-react';
 import { personasForAudience } from '@/personas';
+import { CompanionAvatar } from '@/components/CompanionAvatar';
 import { CompanionRouter } from '@/components/CompanionRouter';
+import { PrintPageHead } from '@/components/PrintPageHead';
 import { UtilitiesLine } from '@/components/UtilitiesLine';
+import { PRINT_PLATE_CLASS, PRINT_SERIF } from '@/lib/print';
 import { COMPANION_PORTRAYAL_LINE } from '@/lib/privacyCopy';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
-import type { Audience, Persona, PersonaId, PersonaTheme, UtilityActions } from '@/types';
+import type { Audience, Persona, PersonaTheme, UtilityActions } from '@/types';
 
 interface CompanionSelectProps {
   audience: Audience;
@@ -16,212 +19,121 @@ interface CompanionSelectProps {
   utilities: UtilityActions;
 }
 
+/**
+ * The companions index in the printed page's language (Stage 2 of the
+ * re-skin, Erik, Nov 14, 2026): the page opens with the quiz — "Not sure
+ * who to talk to?" — as its head, and below it the company set as a
+ * contents list. Each companion is a ruled plate: their portrait in a
+ * circular medallion (the portraits stay, Erik's ruling), the name, and
+ * their counsel line — the needs they speak to — as the entry's hint.
+ * The browse-by-need tag cloud is gone as a surface (Erik's ruling, same
+ * day): the needs data still lives on the cast and still routes the
+ * quiz; it is simply no longer a wall of tags over the company. The
+ * column is a leaf of the track's paper, as on Today.
+ */
+const ROW_CLASS =
+  'w-full min-h-[48px] flex items-start gap-3 px-3.5 py-3 text-left transition-opacity hover:opacity-80 active:opacity-60';
+
 export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }: CompanionSelectProps) {
   const cast = personasForAudience(audience);
-  const [hoveredId, setHoveredId] = useState<PersonaId | null>(null);
   const [routerOpen, setRouterOpen] = useState(false);
-  const [activeNeed, setActiveNeed] = useState<string | null>(null);
   const defaultTheme = theme;
 
-  // Browse by need — both casts carry their needs, in their own register: her
-  // companions carry `issues`, written for her; his carry the `struggles` they
-  // have always carried. The row serves both tracks from the same machinery,
-  // and the chips wear the day theme's accent — under calendar supremacy
-  // (Erik, Nov 11, 2026) the calendar's colour is the only accent anywhere
-  // in the app, this row included.
+  // The counsel line — both casts carry their needs, in their own
+  // register: her companions carry `issues`, written for her; his carry
+  // the `struggles` they have always carried. The line is the entry's
+  // hint now, where the chips used to sit.
   const needsOf = (p: Persona) => (audience === 'women' ? (p.issues ?? p.struggles) : p.struggles);
-  const needTags = [...new Set(cast.flatMap((p) => needsOf(p)))];
-  const visibleCast = activeNeed
-    ? cast.filter((p) => needsOf(p).includes(activeNeed))
-    : cast;
 
   return (
     <div className="absolute inset-0 overflow-y-auto chat-scroll" style={{ backgroundColor: defaultTheme.bg }}>
       <SeasonBackdrop />
-      <div className="relative z-10 min-h-full flex flex-col items-center px-5 py-6 max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="w-full flex items-center justify-between mb-6">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all active:scale-95"
-            style={{ backgroundColor: defaultTheme.card, borderColor: `${defaultTheme.border}99`, color: defaultTheme.textMuted }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-xs font-bold font-display uppercase tracking-wide">Back</span>
-          </button>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center border"
-              style={{ backgroundColor: defaultTheme.accentRgba(0.12), borderColor: defaultTheme.accentRgba(0.3) }}
-            >
-              <Users className="w-4 h-4" style={{ color: defaultTheme.accent }} />
-            </div>
-            <h1 className="text-lg font-bold font-display uppercase tracking-wide" style={{ color: defaultTheme.textBright }}>
-              Companions
-            </h1>
-          </div>
-          <div className="w-20" />
-        </div>
+      <div
+        className="relative z-10 min-h-full flex flex-col items-center px-5 py-6 max-w-2xl mx-auto"
+        style={{
+          backgroundColor: defaultTheme.card,
+          borderLeft: `1px solid ${defaultTheme.border}`,
+          borderRight: `1px solid ${defaultTheme.border}`,
+        }}
+      >
+        <PrintPageHead t={defaultTheme} title="Companions" onBack={onBack} />
 
-        <p className="text-sm leading-relaxed text-center max-w-sm mx-auto mb-5" style={{ color: defaultTheme.textMuted }}>
+        <p className="text-sm leading-relaxed text-center max-w-sm mx-auto mb-5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textMuted }}>
           Each one has walked the road you're on. Answer three quick questions to find your fit, or pick a voice yourself.
         </p>
 
-        <p className="text-[11px] leading-relaxed text-center max-w-sm mx-auto -mt-3 mb-5" style={{ color: defaultTheme.textDim }}>
+        <p className="text-[11px] leading-relaxed text-center max-w-sm mx-auto -mt-3 mb-5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
           {COMPANION_PORTRAYAL_LINE}
         </p>
 
-        {/* Three-question quiz */}
+        {/* The head of the page — the three-question quiz, on the plate. */}
         <button
           onClick={() => setRouterOpen(true)}
-          className="w-full mb-6 flex items-center gap-3 px-4 py-3 rounded-xl border transition-all active:scale-[0.98] group"
-          style={{
-            backgroundColor: `${defaultTheme.border}26`,
-            borderColor: `${defaultTheme.border}80`,
-          }}
+          className={`${PRINT_PLATE_CLASS} mb-6`}
+          style={{ border: `1px solid ${defaultTheme.border}`, backgroundColor: `${defaultTheme.border}1F` }}
         >
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
-            style={{ backgroundColor: defaultTheme.accentRgba(0.08), borderColor: defaultTheme.accentRgba(0.2) }}
-          >
-            <Compass className="w-5 h-5" style={{ color: defaultTheme.accent }} />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-sm font-bold font-display" style={{ color: defaultTheme.textBright }}>
+          <Compass className="w-5 h-5 flex-shrink-0" style={{ color: defaultTheme.accent }} />
+          <span className="flex-1 min-w-0">
+            <span className="block text-[15px] font-semibold" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textBright }}>
               Not sure who to talk to?
-            </p>
-            <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: defaultTheme.textDim }}>
+            </span>
+            <span className="block text-[11px] leading-relaxed mt-0.5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
               Answer three quick questions and we'll point you to the right companion.
-            </p>
-          </div>
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: defaultTheme.accent }} strokeWidth={2.5} aria-hidden="true" />
         </button>
 
-        {/* Browse by need — both tracks, each in its own register */}
-        {needTags.length > 0 && (
-          <div className="w-full mb-6">
-            <p
-              className="text-[10px] font-bold uppercase tracking-[0.2em] text-center mb-2.5"
-              style={{ color: defaultTheme.textDim }}
+        {/* The company, as a contents list — portrait medallion, name,
+            the counsel line as the hint. */}
+        <div className="w-full space-y-2">
+          {cast.map((persona) => (
+            <button
+              key={persona.id}
+              onClick={() => onSelect(persona)}
+              className={ROW_CLASS}
+              style={{ border: `1px solid ${defaultTheme.border}`, backgroundColor: `${defaultTheme.border}1F` }}
             >
-              Browse by need
-            </p>
-            <div className="flex flex-wrap justify-center gap-1.5">
-              {needTags.map((tag) => {
-                const isActive = activeNeed === tag;
-                const chipAccent = defaultTheme.accent;
-                return (
-                  <button
-                    key={tag}
-                    onClick={() => setActiveNeed(isActive ? null : tag)}
-                    aria-pressed={isActive}
-                    className="text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all active:scale-95"
-                    style={{
-                      color: isActive ? '#ffffff' : defaultTheme.textMuted,
-                      borderColor: isActive ? chipAccent : `${defaultTheme.border}99`,
-                      backgroundColor: isActive ? chipAccent : `${defaultTheme.border}26`,
-                    }}
+              {/* The medallion — the portrait in its frame. The frame
+                  class is the one the select screen has always worn:
+                  a circle on his track, the cathedral arch on hers. */}
+              <span className="portrait-arch-banner flex-shrink-0 rounded-full overflow-hidden mt-0.5">
+                <CompanionAvatar personaId={persona.id} theme={persona.theme} size={44} />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="flex items-baseline gap-2 flex-wrap">
+                  <span
+                    className="text-[15px] font-semibold"
+                    style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textBright }}
                   >
-                    {tag}
-                  </button>
-                );
-              })}
-            </div>
-            {activeNeed && (
-              <p className="text-[11px] text-center mt-2.5" style={{ color: defaultTheme.textDim }}>
-                Companions who speak to {activeNeed.toLowerCase()} — tap the tag again to see everyone.
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Companion grid */}
-        <div className="w-full">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {visibleCast.map((persona) => {
-              const isHovered = hoveredId === persona.id;
-              // Her cards carry her issue tags; his carry his struggles, as always.
-              const chips = audience === 'women' ? (persona.issues ?? persona.struggles) : persona.struggles;
-              return (
-                <button
-                  key={persona.id}
-                  onClick={() => onSelect(persona)}
-                  onMouseEnter={() => setHoveredId(persona.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className="group relative overflow-hidden rounded-xl border transition-all duration-300 text-left animate-fade-in"
-                  style={{
-                    background: isHovered ? persona.theme.cardHover : persona.theme.card,
-                    borderColor: isHovered ? persona.theme.accentRgba(0.4) : persona.theme.border,
-                  }}
+                    {persona.name}
+                  </span>
+                  <span
+                    className="text-[9px] uppercase tracking-widest font-bold"
+                    style={{ color: defaultTheme.textDim }}
+                  >
+                    {persona.title}
+                  </span>
+                </span>
+                <span
+                  className="block text-[11px] leading-snug mt-0.5"
+                  style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textMuted }}
                 >
-                  <div
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                    style={{ background: persona.theme.glow }}
-                  />
-                  <div className="portrait-arch-banner relative h-32 overflow-hidden">
-                    <img
-                      src={persona.portrait}
-                      alt={persona.name}
-                      loading="lazy"
-                      decoding="async"
-                      width={760}
-                      height={415}
-                      className="portrait-grade w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div
-                      className="absolute inset-0"
-                      style={{ background: `linear-gradient(180deg, transparent 0%, ${persona.theme.bg}CC 100%)` }}
-                    />
-                  </div>
-
-                  <div className="relative p-4 pt-2">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <h3
-                        className="text-base font-bold font-display uppercase tracking-wide transition-colors duration-300"
-                        style={{ color: isHovered ? persona.theme.textBright : persona.theme.text }}
-                      >
-                        {persona.name}
-                      </h3>
-                      <span
-                        className="text-[10px] uppercase tracking-widest font-medium transition-colors duration-300"
-                        style={{ color: isHovered ? persona.theme.accent : persona.theme.textDim }}
-                      >
-                        {persona.title}
-                      </span>
-                    </div>
-                    <p
-                      className="text-xs leading-relaxed mb-2 transition-colors duration-300"
-                      style={{ color: isHovered ? persona.theme.textMuted : persona.theme.textDim }}
-                    >
-                      {persona.description}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {chips.map((struggle) => (
-                        <span
-                          key={struggle}
-                          className="text-[10px] px-2 py-0.5 rounded-full border font-medium transition-colors duration-300"
-                          style={{
-                            color: isHovered ? persona.theme.accent : persona.theme.textDim,
-                            borderColor: isHovered ? persona.theme.accentRgba(0.3) : persona.theme.border,
-                            backgroundColor: isHovered ? persona.theme.accentRgba(0.06) : 'transparent',
-                          }}
-                        >
-                          {struggle}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div
-                    className="absolute bottom-0 left-0 h-0.5 transition-all duration-300"
-                    style={{ width: isHovered ? '100%' : '0%', background: persona.theme.accent }}
-                  />
-                </button>
-              );
-            })}
-          </div>
+                  {persona.description}
+                </span>
+                <span
+                  className="block text-[10px] italic mt-1"
+                  style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}
+                >
+                  {needsOf(persona).join(' · ')}
+                </span>
+              </span>
+              <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: defaultTheme.accent }} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+          ))}
         </div>
 
-        <p className="text-[11px] text-center mt-6 leading-relaxed max-w-xs" style={{ color: defaultTheme.textDim }}>
+        <p className="text-[11px] text-center mt-6 leading-relaxed max-w-xs" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
           You can switch companions anytime. Each one brings a different voice, different tools, and a different light.
         </p>
 

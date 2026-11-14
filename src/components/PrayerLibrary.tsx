@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, ChevronDown } from 'lucide-react';
+import { PRINT_CHOSEN_FILL_ALPHA, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import type { PersonaTheme } from '@/types';
 
 interface PrayerLibraryProps {
@@ -90,10 +91,10 @@ export function PrayerLibrary({ t }: PrayerLibraryProps) {
   const [referenceOpen, setReferenceOpen] = useState(false);
 
   return (
-    <div className="rounded-xl p-4 border" style={{ backgroundColor: t.card, borderColor: `${t.border}66` }}>
+    <div className="px-1 pt-4" style={{ borderTop: `3px double ${t.border}` }}>
       <div className="flex items-center gap-2 mb-3">
         <BookOpen className="w-4 h-4" style={{ color: t.accent }} />
-        <h3 className="text-sm font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>Prayer</h3>
+        <h3 className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>Prayer</h3>
       </div>
 
       {/* The reference — fourteen texts, collapsed by default. A man who already knows what he
@@ -103,20 +104,21 @@ export function PrayerLibrary({ t }: PrayerLibraryProps) {
           the day's Gospel is prayed.) */}
       <button
         onClick={() => setReferenceOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all"
+        aria-expanded={referenceOpen}
+        className="w-full min-h-[48px] flex items-center justify-between px-3 py-2.5 border transition-opacity hover:opacity-80 active:opacity-60"
         style={{
-          backgroundColor: referenceOpen ? t.accentRgba(0.06) : `${t.border}33`,
-          borderColor: referenceOpen ? t.accentRgba(0.25) : `${t.border}66`,
+          backgroundColor: referenceOpen ? `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}` : `${t.border}1F`,
+          borderColor: referenceOpen ? t.accent : t.border,
         }}
       >
         <span
           className="text-[11px] font-bold uppercase tracking-widest"
-          style={{ color: referenceOpen ? t.accent : t.textDim }}
+          style={{ fontFamily: PRINT_SERIF, color: referenceOpen ? t.accent : t.textDim }}
         >
           Prayer reference
         </span>
         <span className="flex items-center gap-2" style={{ color: t.textDim }}>
-          <span className="text-[10px]">{PRAYERS.length} prayers</span>
+          <span className="text-[10px]" style={{ fontFamily: PRINT_SERIF }}>{PRAYERS.length} prayers</span>
           <ChevronDown
             className={`w-3.5 h-3.5 transition-transform duration-200 ${referenceOpen ? 'rotate-180' : ''}`}
           />
@@ -130,15 +132,16 @@ export function PrayerLibrary({ t }: PrayerLibraryProps) {
             return (
               <div key={prayer.title}>
                 <button onClick={() => setExpanded(isOpen ? null : prayer.title)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all"
-                  style={isOpen ? { backgroundColor: t.accentRgba(0.1), borderColor: t.accentRgba(0.3) } : { backgroundColor: `${t.border}40`, borderColor: `${t.border}4D` }}>
-                  <span className="text-xs font-medium text-left" style={{ color: isOpen ? t.accent : t.textMuted }}>{prayer.title}</span>
+                  aria-expanded={isOpen}
+                  className="w-full min-h-[44px] flex items-center justify-between px-3 py-2.5 border transition-opacity hover:opacity-80 active:opacity-60"
+                  style={isOpen ? { backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, borderColor: t.accent } : { backgroundColor: `${t.border}1F`, borderColor: t.border }}>
+                  <span className="text-xs font-medium text-left" style={{ fontFamily: PRINT_SERIF, color: isOpen ? t.accent : t.textMuted }}>{prayer.title}</span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: t.textDim }} />
                 </button>
                 {isOpen && (
-                  <div className="mt-1.5 px-3 py-3 rounded-lg border animate-fade-in" style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}33` }}>
-                    <p className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: t.text }}>{prayer.text}</p>
-                    {prayer.source && <p className="text-[10px] mt-2 italic" style={{ color: t.textDim }}>— {prayer.source}</p>}
+                  <div className="mt-1.5 px-3 py-3 border animate-fade-in" style={{ backgroundColor: `${t.border}14`, borderColor: t.border }}>
+                    <p className="text-xs leading-relaxed whitespace-pre-wrap" style={{ fontFamily: PRINT_SERIF, color: t.text }}>{prayer.text}</p>
+                    {prayer.source && <p className="text-[10px] mt-2 italic" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>— {prayer.source}</p>}
                   </div>
                 )}
               </div>

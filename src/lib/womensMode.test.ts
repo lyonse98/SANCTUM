@@ -163,8 +163,11 @@ describe('real help by audience', () => {
     for (const id of ['mass', 'director', 'therapist', 'marriage', 'addiction']) {
       expect(womenIds).toContain(id);
     }
-    // Mass & Confession is the same object on both tracks — universal by construction.
+    // Mass (and Confession, beside it) is the same object on both tracks —
+    // universal by construction. (The two doors stood lumped as one
+    // "Mass & Confession" entry until Erik's Real Help split, Nov 14, 2026.)
     expect(getHelpSections('women')[0]).toBe(getHelpSections('men')[0]);
+    expect(getHelpSections('women')[1]).toBe(getHelpSections('men')[1]);
   });
 
   it('every outbound link on both tracks is an https URL', () => {

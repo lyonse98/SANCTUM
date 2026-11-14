@@ -1,6 +1,6 @@
 import type { Audience } from '@/types';
 
-export type HelpIconKey = 'church' | 'compass' | 'heart' | 'users' | 'marriage' | 'recovery';
+export type HelpIconKey = 'church' | 'confession' | 'compass' | 'heart' | 'users' | 'marriage' | 'recovery';
 
 export interface HelpLink {
   label: string;
@@ -22,25 +22,54 @@ export interface HelpSection {
 }
 
 /**
+ * The two sacramental doors, split apart (Erik's Real Help ruling, Nov 14,
+ * 2026): Mass and Confession each stand as their own entry now, where they
+ * used to be lumped as one "Mass & Confession" card. Every word below is
+ * the lumped card's own — its why divided at the sentence's own seam (the
+ * Eucharist clause to Mass, the forgiveness clause to Confession), its
+ * script (which was always about Confession) carried whole into the
+ * Confession entry, and both of its links kept reachable: Mass Times
+ * stands under both doors, as its own detail line has always named both
+ * ("Mass and confession times for any ZIP code"), and Discover Mass under
+ * Mass. The two objects are shared by both tracks, object-for-object.
+ */
+const MASS_SECTION: HelpSection = {
+  id: 'mass',
+  icon: 'church',
+  title: 'Mass',
+  tagline: 'Get to a parish this week',
+  why:
+    'Nothing in this app can feed you with the Eucharist. Only a priest can. The sacrament is the real thing — everything here is only a road toward it.',
+  scriptLabel: 'What to do',
+  script: '',
+  links: [
+    { label: 'Discover Mass', href: 'https://discovermass.com', detail: 'Find a parish near you' },
+    { label: 'Mass Times', href: 'https://www.masstimes.org', detail: 'Mass and confession times for any ZIP code' },
+  ],
+};
+
+const CONFESSION_SECTION: HelpSection = {
+  id: 'confession',
+  icon: 'confession',
+  title: 'Confession',
+  tagline: 'If you have not been in years',
+  why:
+    'Nothing in this app can forgive a sin. Only a priest can. The sacrament is the real thing — everything here is only a road toward it.',
+  scriptLabel: 'What to do',
+  script:
+    'Look up the confession times for a parish near you. You do not need an appointment, a reason, or an introduction. Walk in, say "Bless me, Father, for I have sinned," and let him lead. If you have not been in years, tell him that first — he has heard it before and he will be glad you came.',
+  links: [
+    { label: 'Mass Times', href: 'https://www.masstimes.org', detail: 'Mass and confession times for any ZIP code' },
+  ],
+};
+
+/**
  * Curated, static referrals. Sanctum points a man to real people; it never pretends
  * to be one. Kept as plain data — no accounts, no server, nothing to moderate.
  */
 export const HELP_SECTIONS: HelpSection[] = [
-  {
-    id: 'mass',
-    icon: 'church',
-    title: 'Mass & Confession',
-    tagline: 'Get to a parish this week',
-    why:
-      'Nothing in this app can forgive a sin or feed you with the Eucharist. Only a priest can. The sacrament is the real thing — everything here is only a road toward it.',
-    scriptLabel: 'What to do',
-    script:
-      'Look up the confession times for a parish near you. You do not need an appointment, a reason, or an introduction. Walk in, say "Bless me, Father, for I have sinned," and let him lead. If you have not been in years, tell him that first — he has heard it before and he will be glad you came.',
-    links: [
-      { label: 'Mass Times', href: 'https://www.masstimes.org', detail: 'Mass and confession times for any ZIP code' },
-      { label: 'Discover Mass', href: 'https://discovermass.com', detail: 'Find a parish near you' },
-    ],
-  },
+  MASS_SECTION,
+  CONFESSION_SECTION,
   {
     id: 'director',
     icon: 'compass',
@@ -129,14 +158,15 @@ export const HELP_DISCLAIMER =
 
 /**
  * The women's Real Help — the same doors, held open the way a woman actually walks
- * through them. Mass & Confession is universal and shared object-for-object. The
+ * through them. Mass and Confession are universal and shared object-for-object. The
  * women's-group links were each verified live (HTTP 200) when this list was built:
  * Walking with Purpose, Blessed Is She, and ENDOW. (Magnificat was considered and
  * left out — its site could not be reached to verify.) STRIVE, a men's program,
  * does not appear here; Catholic in Recovery serves everyone.
  */
 export const HELP_SECTIONS_WOMEN: HelpSection[] = [
-  HELP_SECTIONS[0],
+  MASS_SECTION,
+  CONFESSION_SECTION,
   {
     id: 'director',
     icon: 'compass',

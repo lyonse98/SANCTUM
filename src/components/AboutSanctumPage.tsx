@@ -1,7 +1,9 @@
-import { ArrowLeft, X, Church, ShieldCheck, HeartHandshake, Users, BookOpen, Lock, Zap } from 'lucide-react';
+import { Church, ShieldCheck, HeartHandshake, Users, BookOpen, Lock, Zap } from 'lucide-react';
 import type { Audience, PersonaTheme } from '@/types';
 import { MISSION_LINE, MISSION_ATTRIBUTION, MISSION_SENTENCE } from '@/lib/mission';
 import { NARRATOR_DISCLOSURE_LINE, NARRATOR_DISCLOSURE_LINE_WOMEN } from '@/lib/privacyCopy';
+import { PrintPageHead } from '@/components/PrintPageHead';
+import { PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 
 interface AboutSanctumPageProps {
   t: PersonaTheme;
@@ -20,6 +22,11 @@ interface Point {
  * The page a priest, catechist, or men's group leader reads before deciding whether to pass
  * Sanctum on. Its whole job is to state plainly what the app is and, more importantly, what it
  * is not — the boundaries are the thing a referrer is actually checking for.
+ *
+ * Stage 2 of the printed-page re-skin (Nov 14, 2026) sets it as the book's
+ * colophon: a leaf of the track's paper under the shared chapter head, the
+ * Bloy thesis at its head, and every section below ruled off by hairlines.
+ * The words are the page's own, unchanged.
  */
 export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumPageProps) {
   const a = accent ?? t.accent;
@@ -65,60 +72,34 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
 
   return (
     <div className="fixed inset-0 z-[70] overflow-y-auto chat-scroll" style={{ backgroundColor: t.bg }}>
-      <div className="min-h-full flex flex-col items-center px-5 py-6 max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="w-full flex items-center justify-between mb-6">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all active:scale-95"
-            style={{ backgroundColor: t.card, borderColor: `${t.border}99`, color: t.textMuted }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-xs font-bold font-display uppercase tracking-wide">Back</span>
-          </button>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center border"
-              style={{ backgroundColor: `${a}1F`, borderColor: `${a}4D` }}
-            >
-              <Church className="w-4 h-4" style={{ color: a }} />
-            </div>
-            <h1 className="text-lg font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>
-              About Sanctum
-            </h1>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all active:scale-90 border"
-            style={{ backgroundColor: t.card, color: t.textMuted, borderColor: `${t.border}99` }}
-            aria-label="Close"
-            title="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+      <div
+        className="min-h-full flex flex-col items-center px-5 py-6 max-w-2xl mx-auto"
+        style={{
+          backgroundColor: t.card,
+          borderLeft: `1px solid ${t.border}`,
+          borderRight: `1px solid ${t.border}`,
+        }}
+      >
+        <PrintPageHead t={t} title="About Sanctum" onBack={onClose} withClose />
 
-        {/* Why Sanctum exists */}
+        {/* Why Sanctum exists — the thesis at the head of the colophon. */}
         <div className="w-full text-center px-4 mb-6 animate-fade-in">
-          <p
-            className="text-[10px] font-bold font-display uppercase tracking-[0.25em] mb-2"
-            style={{ color: a }}
-          >
+          <p className={`${PRINT_STAMP_CLASS} mb-2`} style={{ fontFamily: PRINT_SERIF, color: a }}>
             Why Sanctum exists
           </p>
-          <p className="font-display italic text-base leading-snug" style={{ color: t.textBright }}>
+          <p className="italic text-[17px] leading-snug" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
             {MISSION_LINE}
           </p>
-          <p className="text-[9px] uppercase tracking-[0.25em] mt-1.5" style={{ color: t.textDim }}>
+          <p className={`${PRINT_STAMP_CLASS} mt-1.5`} style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             {MISSION_ATTRIBUTION}
           </p>
-          <p className="text-sm leading-relaxed mt-3" style={{ color: t.text }}>
+          <p className="text-sm leading-relaxed mt-3" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
             {MISSION_SENTENCE}
           </p>
           {/* The brand statement's second home (Erik, Nov 14, 2026): the
               tagline and the two stamped chips stand with the thesis here
               and at the welcome gate — nowhere else. */}
-          <p className="text-xs leading-relaxed mt-4 max-w-sm mx-auto" style={{ color: t.textMuted }}>
+          <p className="text-xs leading-relaxed mt-4 max-w-sm mx-auto" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             {w
               ? 'A private sanctuary for women seeking counsel, stillness, and strength'
               : 'A private sanctuary for men seeking counsel, stillness, and strength'}
@@ -136,10 +117,10 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
 
         {/* Opening */}
         <div
-          className="w-full rounded-xl border p-5 mb-6 animate-fade-in"
+          className="w-full border p-5 mb-6 animate-fade-in"
           style={{ backgroundColor: `${a}0F`, borderColor: `${a}33` }}
         >
-          <p className="text-sm leading-relaxed text-center font-medium" style={{ color: t.text }}>
+          <p className="text-sm leading-relaxed text-center font-medium" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
             {w
               ? 'A Catholic companion for women. It is built for the woman who will not walk into a church yet, and for the woman who will, but has nowhere to put the weight at two in the morning.'
               : 'A Catholic companion for men. It is built for the man who will not walk into a church yet, and for the man who will, but has nowhere to put the weight at two in the morning.'}
@@ -147,14 +128,11 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
         </div>
 
         {/* The shape of a day — the Ignatian arc the whole app is built to walk. */}
-        <div
-          className="w-full rounded-xl border p-5 mb-6 animate-fade-in"
-          style={{ backgroundColor: t.card, borderColor: `${t.border}99` }}
-        >
-          <h2 className="text-sm font-bold font-display uppercase tracking-wide mb-2" style={{ color: t.textBright }}>
+        <div className="w-full pt-5 mb-6 animate-fade-in" style={{ borderTop: `3px double ${t.border}` }}>
+          <h2 className="text-[15px] font-semibold mb-2" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
             The shape of a day
           </h2>
-          <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
+          <p className="text-xs leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             A day here has a shape, and it is an old one. Hear the Gospel. Sit with it — reflect,
             and take the day&rsquo;s challenge. Walk a while with a companion who has walked the
             road before. Pray. Be reconciled: the app points to a priest, to Confession, and to
@@ -165,36 +143,35 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
           </p>
         </div>
 
-        {/* The points */}
-        <div className="w-full space-y-4">
+        {/* The points — ruled sections of the colophon. */}
+        <div className="w-full">
           {points.map((point, index) => {
             const Icon = point.icon;
             return (
               <div
                 key={point.title}
-                className="rounded-2xl border p-4 animate-slide-up"
+                className="pt-5 pb-5 animate-slide-up"
                 style={{
-                  backgroundColor: t.card,
-                  borderColor: `${t.border}99`,
+                  borderTop: `1px solid ${t.border}`,
                   animationDelay: `${index * 60}ms`,
                   animationFillMode: 'backwards',
                 }}
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border"
+                    className="w-10 h-10 flex items-center justify-center flex-shrink-0 border"
                     style={{ backgroundColor: `${a}1A`, borderColor: `${a}3D` }}
                   >
                     <Icon className="w-5 h-5" style={{ color: a }} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h2
-                      className="text-sm font-bold font-display uppercase tracking-wide mb-1.5"
-                      style={{ color: t.textBright }}
+                      className="text-[15px] font-semibold mb-1.5"
+                      style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
                     >
                       {point.title}
                     </h2>
-                    <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
+                    <p className="text-xs leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
                       {point.body}
                     </p>
                   </div>
@@ -205,19 +182,16 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
         </div>
 
         {/* For leaders */}
-        <div
-          className="w-full rounded-2xl border p-5 mt-6 animate-fade-in"
-          style={{ backgroundColor: `${a}0D`, borderColor: `${a}33` }}
-        >
-          <h2 className="text-sm font-bold font-display uppercase tracking-wide mb-2" style={{ color: t.textBright }}>
+        <div className="w-full pt-5 mt-1 animate-fade-in" style={{ borderTop: `3px double ${t.border}` }}>
+          <h2 className="text-[15px] font-semibold mb-2" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
             For priests and group leaders
           </h2>
-          <p className="text-xs leading-relaxed mb-3" style={{ color: t.textMuted }}>
+          <p className="text-xs leading-relaxed mb-3" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             Sanctum is meant to sit alongside your work, not replace it. It will not hear a confession,
             counsel a marriage, or stand in for a pastor. What it can do is stay with {w ? 'a woman' : 'a man'} on the
             ordinary nights in between, and keep pointing {w ? 'her' : 'him'} back to you.
           </p>
-          <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
+          <p className="text-xs leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             It costs {w ? 'her' : 'him'} nothing, asks for no account, keeps no record of what {w ? 'she' : 'he'} writes, and hands {w ? 'her' : 'him'}
             to real help when {w ? 'she' : 'he'} needs more than a conversation. If you would like to see exactly what a
             companion is and is not allowed to say, the boundaries are the same ones written on this page.
@@ -225,14 +199,11 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
         </div>
 
         {/* The voices the listener hears — named as what they are, beside the companion copy. */}
-        <div
-          className="w-full rounded-2xl border p-5 mt-6 animate-fade-in"
-          style={{ backgroundColor: `${a}0D`, borderColor: `${a}33` }}
-        >
-          <h2 className="text-sm font-bold font-display uppercase tracking-wide mb-2" style={{ color: t.textBright }}>
+        <div className="w-full pt-5 mt-6 animate-fade-in" style={{ borderTop: `1px solid ${t.border}` }}>
+          <h2 className="text-[15px] font-semibold mb-2" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
             The Gospel, read aloud
           </h2>
-          <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
+          <p className="text-xs leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             {w ? (
               <>
                 Every morning the day&rsquo;s Gospel and reflection can be listened to as well as
@@ -247,7 +218,7 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
           </p>
         </div>
 
-        <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>
+        <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
           Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US),
           or findahelpline.com outside the US.
         </p>
