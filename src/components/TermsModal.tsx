@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Scroll, Heart, HandHeart } from 'lucide-react';
+import { Scroll, Heart, HandHeart, Lock, Zap } from 'lucide-react';
 import { PRIVACY_PARAGRAPH } from '@/lib/privacyCopy';
 import type { Audience } from '@/types';
 import { MISSION_LINE, MISSION_ATTRIBUTION } from '@/lib/mission';
@@ -63,6 +63,28 @@ export function TermsModal({ onAccept }: TermsModalProps) {
           <p className="text-[9px] uppercase tracking-[0.25em] mt-1" style={{ color: '#A39A8A' }}>
             {MISSION_ATTRIBUTION}
           </p>
+          {/* The brand statement's first home (Erik, Nov 14, 2026): the
+              tagline and the two stamped chips live at this door and on the
+              About page — nowhere else; Today carries none of it. The
+              tagline follows the track chosen below, the way the greeting
+              above does, so it appears once a track is picked; the chips
+              stand either way. */}
+          {choice && (
+            <p className="text-xs leading-relaxed mt-4" style={{ color: '#635C51' }}>
+              {choice === 'women'
+                ? 'A private sanctuary for women seeking counsel, stillness, and strength'
+                : 'A private sanctuary for men seeking counsel, stillness, and strength'}
+            </p>
+          )}
+          <div className="flex items-center justify-center gap-2 flex-wrap mt-3">
+            <span className="text-[10px] stamped flex items-center gap-1" style={{ color: '#A39A8A' }}>
+              <Lock className="w-3 h-3" /> Nothing Stored on a Server
+            </span>
+            <span className="text-[10px]" style={{ color: '#A39A8A' }}>•</span>
+            <span className="text-[10px] stamped flex items-center gap-1" style={{ color: '#A39A8A' }}>
+              <Zap className="w-3 h-3" /> No Account Needed
+            </span>
+          </div>
         </div>
 
         <div className="px-6 py-5 space-y-4">

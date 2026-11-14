@@ -1,4 +1,4 @@
-import { ArrowLeft, X, Church, ShieldCheck, HeartHandshake, Users, BookOpen } from 'lucide-react';
+import { ArrowLeft, X, Church, ShieldCheck, HeartHandshake, Users, BookOpen, Lock, Zap } from 'lucide-react';
 import type { Audience, PersonaTheme } from '@/types';
 import { MISSION_LINE, MISSION_ATTRIBUTION, MISSION_SENTENCE } from '@/lib/mission';
 import { NARRATOR_DISCLOSURE_LINE, NARRATOR_DISCLOSURE_LINE_WOMEN } from '@/lib/privacyCopy';
@@ -115,6 +115,23 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
           <p className="text-sm leading-relaxed mt-3" style={{ color: t.text }}>
             {MISSION_SENTENCE}
           </p>
+          {/* The brand statement's second home (Erik, Nov 14, 2026): the
+              tagline and the two stamped chips stand with the thesis here
+              and at the welcome gate — nowhere else. */}
+          <p className="text-xs leading-relaxed mt-4 max-w-sm mx-auto" style={{ color: t.textMuted }}>
+            {w
+              ? 'A private sanctuary for women seeking counsel, stillness, and strength'
+              : 'A private sanctuary for men seeking counsel, stillness, and strength'}
+          </p>
+          <div className="flex items-center justify-center gap-2 flex-wrap mt-3">
+            <span className="text-[10px] stamped flex items-center gap-1" style={{ color: t.textDim }}>
+              <Lock className="w-3 h-3" /> Nothing Stored on a Server
+            </span>
+            <span className="text-[10px]" style={{ color: t.textDim }}>•</span>
+            <span className="text-[10px] stamped flex items-center gap-1" style={{ color: t.textDim }}>
+              <Zap className="w-3 h-3" /> No Account Needed
+            </span>
+          </div>
         </div>
 
         {/* Opening */}

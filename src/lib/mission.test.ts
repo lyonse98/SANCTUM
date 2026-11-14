@@ -14,7 +14,6 @@ const termsModal = readFileSync(new URL('../components/TermsModal.tsx', import.m
 const aboutPage = readFileSync(new URL('../components/AboutSanctumPage.tsx', import.meta.url), 'utf8');
 
 const SURFACES: [string, string][] = [
-  ['Today (HomeScreen)', homeScreen],
   ['Welcome gate (TermsModal)', termsModal],
   ['About (AboutSanctumPage)', aboutPage],
 ];
@@ -49,5 +48,25 @@ describe('mission placements', () => {
   it('About carries the "Why Sanctum exists" block with the mission sentence', () => {
     expect(aboutPage).toContain('Why Sanctum exists');
     expect(aboutPage).toContain('{MISSION_SENTENCE}');
+  });
+
+  // Erik, Nov 14, 2026: the brand statement lives at the door and on the
+  // About page only — Today carries none of it, in any position.
+  it('Today (HomeScreen) renders none of the brand statement', () => {
+    expect(homeScreen).not.toContain("from '@/lib/mission'");
+    expect(homeScreen).not.toContain('{MISSION_LINE}');
+    expect(homeScreen).not.toContain('{MISSION_ATTRIBUTION}');
+    expect(homeScreen).not.toContain('private sanctuary');
+    expect(homeScreen).not.toContain('Nothing Stored on a Server');
+    expect(homeScreen).not.toContain('No Account Needed');
+  });
+
+  it('the tagline and chips stand at the gate and on About', () => {
+    for (const source of [termsModal, aboutPage]) {
+      expect(source).toContain('A private sanctuary for men seeking counsel, stillness, and strength');
+      expect(source).toContain('A private sanctuary for women seeking counsel, stillness, and strength');
+      expect(source).toContain('Nothing Stored on a Server');
+      expect(source).toContain('No Account Needed');
+    }
   });
 });

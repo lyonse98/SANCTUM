@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState } from 'react';
-import { Lock, Zap } from 'lucide-react';
 import { DailyQuote } from '@/components/DailyQuote';
 import { ReminderCard } from '@/components/ReminderCard';
 import { MoreOfSanctum } from '@/components/MoreOfSanctum';
@@ -12,7 +11,6 @@ import { AUDIO_PM_START_HOUR } from '@/lib/narratorCore';
 import { morningResolve } from '@/lib/tonight';
 import type { Audience, TabId, UtilityActions } from '@/types';
 import { PRIVACY_SHORT } from '@/lib/privacyCopy';
-import { MISSION_LINE, MISSION_ATTRIBUTION } from '@/lib/mission';
 
 interface HomeScreenProps {
   audience: Audience;
@@ -124,35 +122,6 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
             is its third row, at the same weight as the others. */}
         <div className="w-full mb-6">
           <MoreOfSanctum t={seasonTheme} onNavigate={onNavigate} />
-        </div>
-
-        {/* The colophon (Erik, Nov 14, 2026): the brand statement — the
-            sanctuary tagline, the two stamped chips, and the Bloy thesis —
-            closes the day rather than opening it. It once stood at the top
-            of Today and in the hero's masthead; the day now begins with the
-            Gospel and ends with why Sanctum exists. The utilities line
-            below remains dead last. */}
-        <div className="w-full text-center mb-6">
-          <p className="text-xs text-forge-text-muted leading-relaxed max-w-sm mx-auto mb-3">
-            {audience === 'women'
-              ? 'A private sanctuary for women seeking counsel, stillness, and strength'
-              : 'A private sanctuary for men seeking counsel, stillness, and strength'}
-          </p>
-          <div className="flex items-center justify-center gap-2 flex-wrap mb-4">
-            <span className="text-[10px] text-forge-text-dim stamped flex items-center gap-1">
-              <Lock className="w-3 h-3" /> Nothing Stored on a Server
-            </span>
-            <span className="text-forge-text-dim text-[10px]">•</span>
-            <span className="text-[10px] text-forge-text-dim stamped flex items-center gap-1">
-              <Zap className="w-3 h-3" /> No Account Needed
-            </span>
-          </div>
-          <p className="font-display italic text-[13px] leading-snug text-forge-text-muted">
-            {MISSION_LINE}
-          </p>
-          <p className="text-[9px] uppercase tracking-[0.25em] text-forge-text-dim mt-1">
-            {MISSION_ATTRIBUTION}
-          </p>
         </div>
 
         <p className="text-[11px] text-forge-text-dim text-center leading-relaxed max-w-xs mb-5">
