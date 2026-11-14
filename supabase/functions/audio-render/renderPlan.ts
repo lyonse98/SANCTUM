@@ -1,6 +1,6 @@
 /*
   Piece planner for the daily audio render (rework, Nov 13, 2026; finer
-  pieces, Nov 13, 2026 second round).
+  pieces, Nov 13, 2026 second round; head-scale pieces, third round).
 
   A full day's render used to run inside ONE edge invocation: four Gemini TTS
   calls, four PCM decodes + WSOLA tempo stretches, and three MP3 encodes, with
@@ -11,9 +11,18 @@
   the heads but not the main track: a multi-minute main half is still too
   much PCM for one invocation — decode + WSOLA + lamejs on minutes of audio
   kills the worker exactly the same way. So the main track is cut at
-  paragraph boundaries into pieces of roughly MAIN_PIECE_MAX_CHARS of speech
-  text (~45–60 s of audio) and each invocation renders at most ONE piece,
-  persists it, and chains to itself for the next.
+  paragraph boundaries into pieces of at most MAIN_PIECE_MAX_CHARS of speech
+  text and each invocation renders at most ONE piece, persists it, and
+  chains to itself for the next.
+
+  Third round (Nov 13, 2026): the binding limit is not memory or wall-clock
+  but CPU — Supabase allows 2 seconds of CPU per edge request on EVERY plan,
+  and the local engine timings price stretch+encode at ≈0.83 s of CPU for
+  ~13 s of audio (the head pieces, which succeed live) against ≈2.1 s for
+  ~55 s (an 800-char main piece, which died live). The cap therefore drops
+  to the proven head envelope: 200 chars ≈ 15 s of speech per piece. A day's
+  main track becomes more, smaller pieces — the chain and the storage ledger
+  absorb the count; what they cannot absorb is a single over-budget call.
 
   This module is the pure decision core: given the day's piece list (built
   deterministically from the assembled script), the daily_audio row state,
@@ -53,12 +62,14 @@ import { audioSegmentPath, type NarratorAudience } from "./narratorCore.ts";
 
 /**
  * Target ceiling for one main-track piece, in characters of speech text.
- * At narration pace (~800–900 chars/minute) 800 chars is ~45–60 s of audio:
- * small enough that one TTS decode + WSOLA stretch + MP3 encode fits the
- * free-tier worker with room to spare (the proven heads are this size),
- * large enough that a day's main track is a dozen-odd pieces, not a hundred.
+ * At narration pace (~800–900 chars/minute) 200 chars is ~13–15 s of audio —
+ * the proven head-piece envelope. The budget that binds is CPU: 2 s per edge
+ * request on every Supabase plan, and stretch+encode measures ≈0.83 s of CPU
+ * at this size against ≈2.1 s at the old 800-char cap (which died live). A
+ * day's main track is therefore a few dozen small pieces, not a dozen large
+ * ones — the chain absorbs the count, and no single call is over budget.
  */
-export const MAIN_PIECE_MAX_CHARS = 800;
+export const MAIN_PIECE_MAX_CHARS = 200;
 
 /**
  * One unit of render work. Heads are single pieces at their final paths

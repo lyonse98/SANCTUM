@@ -36,6 +36,17 @@
   minute, 3 builds a day per caller. One tailored build a day is the product
   shape; three leaves room for a rebuild and a mistake.
 
+  INTERIM — TEXT-ONLY BUILDS (Nov 13, 2026, round 3): the in-function audio
+  render is disabled (TAILOR_AUDIO_ENABLED below). Supabase's binding limit
+  is 2 s of CPU per edge request on every plan, and a full tailored program
+  prices at ~6 s of cumulative stretch+encode CPU — the worker kill is
+  uncatchable, so an audio build lost even its finished TEXT. Until the
+  client-orchestrated per-piece audio lands (each piece rendered by its own
+  call, the daily render's proven shape), a build returns the complete text
+  package with audioBase64 null, and the client shows the package with no
+  Listen bar. The render code below stays in place behind the flag; nothing
+  about composition, quota, or privacy changes.
+
   Entitlement: tailorAccess() (mirrored from src/lib/tailorAccess.ts) is the
   premium seam. Today it allows everyone — Tailor Today is free for the
   current circle. When premium ships, that one function changes, here and in
@@ -95,6 +106,13 @@ const RATE_WINDOW_SECONDS = 60;
 const RATE_WINDOW_LIMIT = 5;
 const RATE_DAY_LIMIT = 3;
 const FALLBACK_WINDOW_LIMIT = 2;
+
+// INTERIM (round 3, see the header): false = builds return the complete text
+// package with no audio. Flip to true only when the render below no longer
+// runs inside one invocation (client-orchestrated per-piece audio) — as a
+// single in-function render it exceeds the platform's 2 s CPU ceiling and
+// the uncatchable kill takes the text package with it.
+const TAILOR_AUDIO_ENABLED = false;
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
@@ -518,65 +536,77 @@ Deno.serve(async (req: Request) => {
       hour: losAngelesHour(),
     });
 
-    // Render the script with the day narrator's voice and production — the
-    // same profile lookup, lexicon, tempo, and encoding as the daily render.
-    // (Named narratorProfile, NOT profile: this block already passes the
-    // standing `profile` to composeTailored above, and a same-named const
-    // here shadows it for the whole block — the compose call then hits the
-    // temporal dead zone and throws before any generation happens.)
-    const script = composed.script;
-    const narratorProfile =
-      script.persona === "lector"
-        ? audience === "women"
-          ? LECTOR_BANK_WOMEN
-          : LECTOR_BANK
-        : audience === "women"
-          ? BANK_WOMEN[script.persona as keyof typeof BANK_WOMEN]
-          : BANK[script.persona as keyof typeof BANK];
+    // INTERIM (round 3): with TAILOR_AUDIO_ENABLED false, the build returns
+    // here with the complete text package and audioBase64 null — the render
+    // block below is out of the execution path, kept whole for the
+    // client-orchestrated per-piece design that replaces it. The client's
+    // audio field is optional; a null renders the package with no Listen bar.
+    let audioBase64: string | null = null;
+    let audioSeconds = 0;
+    if (TAILOR_AUDIO_ENABLED) {
+      // Render the script with the day narrator's voice and production — the
+      // same profile lookup, lexicon, tempo, and encoding as the daily render.
+      // (Named narratorProfile, NOT profile: this block already passes the
+      // standing `profile` to composeTailored above, and a same-named const
+      // here shadows it for the whole block — the compose call then hits the
+      // temporal dead zone and throws before any generation happens.)
+      const script = composed.script;
+      const narratorProfile =
+        script.persona === "lector"
+          ? audience === "women"
+            ? LECTOR_BANK_WOMEN
+            : LECTOR_BANK
+          : audience === "women"
+            ? BANK_WOMEN[script.persona as keyof typeof BANK_WOMEN]
+            : BANK[script.persona as keyof typeof BANK];
 
-    // Piece-work render (Nov 13, 2026 — the free-plan fix): the whole
-    // program used to be held in the sample domain at once — every part
-    // decoded and stretched, concatenated into one multi-minute PCM block,
-    // then encoded in a single pass — and that peak is what the free-plan
-    // worker limit kills. Now each spoken piece goes TTS → decode → stretch
-    // → encode on its own and its PCM is released before the next piece
-    // starts; the encoded pieces are joined as bytes at the end (identical
-    // encoder settings throughout — the frame concatenation audio-render's
-    // finalize relies on). The readings, the one long piece, are split on
-    // their paragraph boundaries (renderPieces.ts), so no single PCM block
-    // exceeds one reading part. Order and production are unchanged — head,
-    // readings, passage, the produced silence, mainB — and nothing is
-    // stored: the joined bytes leave as base64 in the response, as before.
-    const toMp3 = async (text: string): Promise<{ mp3: Uint8Array; seconds: number }> => {
-      const bytes = await renderSpeech(applyLexicon(text), narratorProfile.voice);
-      const pcm = stretchPcm(decodeSpeechAudio(bytes), narratorProfile.tempo);
-      return { mp3: encodeMp3(pcm), seconds: secondsOf(pcm) };
-    };
+      // Piece-work render (Nov 13, 2026 — the free-plan fix): the whole
+      // program used to be held in the sample domain at once — every part
+      // decoded and stretched, concatenated into one multi-minute PCM block,
+      // then encoded in a single pass — and that peak is what the free-plan
+      // worker limit kills. Now each spoken piece goes TTS → decode → stretch
+      // → encode on its own and its PCM is released before the next piece
+      // starts; the encoded pieces are joined as bytes at the end (identical
+      // encoder settings throughout — the frame concatenation audio-render's
+      // finalize relies on). The readings, the one long piece, are split on
+      // their paragraph boundaries (renderPieces.ts), so no single PCM block
+      // exceeds one reading part. Order and production are unchanged — head,
+      // readings, passage, the produced silence, mainB — and nothing is
+      // stored: the joined bytes leave as base64 in the response, as before.
+      // NOTE (round 3): piece-work lowered the PEAK but not the SUM — the
+      // pieces still render inside this one invocation, ~6 s of CPU against
+      // the platform's 2 s ceiling. That is why the flag above is off.
+      const toMp3 = async (text: string): Promise<{ mp3: Uint8Array; seconds: number }> => {
+        const bytes = await renderSpeech(applyLexicon(text), narratorProfile.voice);
+        const pcm = stretchPcm(decodeSpeechAudio(bytes), narratorProfile.tempo);
+        return { mp3: encodeMp3(pcm), seconds: secondsOf(pcm) };
+      };
 
-    const pieces: Uint8Array[] = [];
-    let totalSeconds = 0;
-    const addPiece = async (text: string): Promise<void> => {
-      const piece = await toMp3(text);
-      pieces.push(piece.mp3);
-      totalSeconds += piece.seconds;
-    };
+      const pieces: Uint8Array[] = [];
+      let totalSeconds = 0;
+      const addPiece = async (text: string): Promise<void> => {
+        const piece = await toMp3(text);
+        pieces.push(piece.mp3);
+        totalSeconds += piece.seconds;
+      };
 
-    await addPiece(script.head);
-    for (const paragraph of splitReadingsParagraphs(script.readings)) {
-      await addPiece(paragraph);
+      await addPiece(script.head);
+      for (const paragraph of splitReadingsParagraphs(script.readings)) {
+        await addPiece(paragraph);
+      }
+      await addPiece(script.passage);
+      pieces.push(encodeMp3(silenceSamples(AUDIO_SILENCE_SECONDS)));
+      totalSeconds += AUDIO_SILENCE_SECONDS;
+      await addPiece(script.mainB);
+
+      audioBase64 = bytesToBase64(concatMp3(pieces));
+      audioSeconds = Math.round(totalSeconds * 10) / 10;
     }
-    await addPiece(script.passage);
-    pieces.push(encodeMp3(silenceSamples(AUDIO_SILENCE_SECONDS)));
-    totalSeconds += AUDIO_SILENCE_SECONDS;
-    await addPiece(script.mainB);
-
-    const mp3 = concatMp3(pieces);
-    const seconds = Math.round(totalSeconds * 10) / 10;
 
     console.log(
-      `tailor-devotional: date=${dateISO} audience=${audience} persona=${script.persona} seconds=${seconds}`,
+      `tailor-devotional: date=${dateISO} audience=${audience} persona=${composed.script.persona} seconds=${audioSeconds} audio=${audioBase64 ? "present" : "absent"}`,
     );
-    return jsonResponse(buildResponseBody(dateISO, composed, bytesToBase64(mp3), seconds));
+    return jsonResponse(buildResponseBody(dateISO, composed, audioBase64, audioSeconds));
   } catch (err) {
     // The error MESSAGE is logged — and it is safe to log: every error this
     // function raises is a stage code by construction (a fixed phrase or an

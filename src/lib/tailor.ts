@@ -5,8 +5,13 @@ import { profileSignature, type TailorRequestProfile } from '@/lib/tailorProfile
 /**
  * Tailor Today, client side (Nov 12, 2026). One build per user per day: the
  * intake goes to the tailor-devotional function, which composes the devotional
- * in memory and returns text + audio in the response — the server stores
+ * in memory and returns the package in the response — the server stores
  * NOTHING (see the function's header; the privacy promise is the feature).
+ * INTERIM (Nov 13, 2026, round 3): the function returns text only, its audio
+ * field null — an in-function render exceeds the platform's per-request CPU
+ * ceiling and took whole builds down with it. Audio returns with the
+ * client-orchestrated per-piece design; until then the field is optional
+ * here and the panel simply shows no Listen bar.
  * What the user keeps lives here, on the device: the full payload in Cache
  * Storage (audio included), a small metadata line in localStorage so the
  * Gospel card knows today's tailored devotional exists without opening the
@@ -53,7 +58,12 @@ export interface TailoredDevotional {
     /** One line, from the morning's categories only: why this, today. */
     why: string;
   };
-  audioBase64: string;
+  /**
+   * The build's narration, base64 MP3 — or null while the function returns
+   * text-only builds (interim, round 3). A null renders the full package
+   * with the Listen bar simply absent; older cached builds keep their audio.
+   */
+  audioBase64: string | null;
   audioSeconds: number;
 }
 
@@ -172,8 +182,11 @@ export function parseTailorResponse(raw: unknown): TailoredDevotional | null {
   const narratorName = str(r.narratorName);
   const reflect = str(r.reflect);
   const challenge = str(r.challenge);
+  // Audio is the one optional field: the text package stands on its own,
+  // and a build without narration (absent, null, or empty) parses whole
+  // with audioBase64 null — the panel then shows no Listen bar.
   const audioBase64 = str(r.audioBase64);
-  if (!date || !narratorId || !narratorName || !reflect || !challenge || !audioBase64) {
+  if (!date || !narratorId || !narratorName || !reflect || !challenge) {
     return null;
   }
   const passage = r.passage as Record<string, unknown> | undefined;
@@ -336,8 +349,9 @@ export const MEDIA_KIND_LABELS: Record<TailorMediaKind, string> = {
   book: 'Book',
 };
 
-/** Decodes the response's base64 audio into a playable object URL. */
-export function tailorAudioUrl(devotional: TailoredDevotional): string {
+/** Decodes the response's base64 audio into a playable object URL — null when the build carries no audio. */
+export function tailorAudioUrl(devotional: TailoredDevotional): string | null {
+  if (!devotional.audioBase64) return null;
   const binary = atob(devotional.audioBase64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);

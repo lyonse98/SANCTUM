@@ -5,6 +5,7 @@ import {
   loadTodaysTailored,
   mediaActionLabel,
   parseTailorResponse,
+  tailorAudioUrl,
   tailorCreditLine,
   tailorMetaKey,
   type TailorStore,
@@ -128,8 +129,26 @@ describe('the response parse', () => {
   it('rejects a failed or malformed response', () => {
     expect(parseTailorResponse({ ...RESPONSE, ok: false })).toBeNull();
     expect(parseTailorResponse({ ...RESPONSE, media: { type: 'hologram', title: 'x', creator: 'y', searchUrl: 'z' } })).toBeNull();
-    expect(parseTailorResponse({ ...RESPONSE, audioBase64: '' })).toBeNull();
     expect(parseTailorResponse(null)).toBeNull();
+  });
+
+  it('a text-only build (interim function shape — audio null or absent) parses whole, audio absent', () => {
+    // Round 3: the function returns the complete text package with
+    // audioBase64 null while its in-render is disabled. The package must
+    // NOT be rejected for lacking narration — only the Listen bar goes away.
+    for (const audio of [null, '', undefined]) {
+      const parsed = parseTailorResponse({ ...RESPONSE, audioBase64: audio, audioSeconds: 0 });
+      expect(parsed).not.toBeNull();
+      expect(parsed?.reflect).toBe('A tailored reflection.');
+      expect(parsed?.challenge).toBe('One tailored act.');
+      expect(parsed?.audioBase64).toBeNull();
+      expect(parsed?.audioSeconds).toBe(0);
+      expect(parsed && tailorAudioUrl(parsed)).toBeNull();
+    }
+    // A build WITH audio keeps it, exactly as before.
+    const withAudio = parseTailorResponse(RESPONSE);
+    expect(withAudio?.audioBase64).toBe('QUJD');
+    expect(withAudio?.audioSeconds).toBe(240);
   });
 
   it('the credit line names the narrator only — no eyes, no lens', () => {

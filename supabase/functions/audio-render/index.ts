@@ -15,9 +15,11 @@
   TTS call, one decode/stretch, one encode — persists it, and chains to itself
   (an authenticated `step` call, see ./renderPlan.ts) for the next piece. The
   heads are single pieces (proven size); the main track is cut at paragraph
-  boundaries into ≤800-character chunks (parts/main-000.mp3, main-001.mp3, …)
-  after the first round showed a multi-minute main half still kills the
-  worker, and finalize joins the chunks as encoded bytes with the produced
+  boundaries into ≤200-character chunks (parts/main-000.mp3, main-001.mp3, …)
+  — the third round (Nov 13, 2026) sized the chunks to the platform's real
+  budget, 2 s of CPU per request on every plan: ~15 s of speech per piece is
+  the proven head envelope, where the second round's ~55 s pieces died — and
+  finalize joins the chunks as encoded bytes with the produced
   silence between the A and B groups, exactly where it always sat. Storage
   is the progress ledger: a crashed or killed invocation leaves its finished
   pieces behind, and any later call resumes from exactly there. The schedule's
@@ -868,17 +870,34 @@ async function runRender(
       }
 
       // Speech → samples → tempo (§8.4). renderSpeech's StageError (tts)
-      // propagates; decode/stretch failures are assembly-stage.
+      // propagates; decode/stretch failures are assembly-stage. Each stage
+      // is timed (round 3): the platform's binding limit is 2 s of CPU per
+      // request, so a future failure should arrive with its measurements
+      // attached instead of another round of guessing.
       let pcm: Int16Array;
+      let ttsMs = 0;
+      let stretchMs = 0;
       try {
+        const ttsStart = performance.now();
         const bytes = await renderSpeech(payload, profile.voice);
+        ttsMs = Math.round(performance.now() - ttsStart);
+        const stretchStart = performance.now();
         pcm = stretchPcm(decodeSpeechAudio(bytes), profile.tempo);
+        stretchMs = Math.round(performance.now() - stretchStart);
       } catch (err) {
         if (err instanceof StageError) throw err;
         throw new StageError("assemble", err instanceof Error ? err.message : "assembly failed");
       }
 
-      await uploadMp3(pieceStoragePath(dateISO, audience, action.piece), encodeMp3(pcm));
+      const encodeStart = performance.now();
+      const mp3 = encodeMp3(pcm);
+      const encodeMs = Math.round(performance.now() - encodeStart);
+      const uploadStart = performance.now();
+      await uploadMp3(pieceStoragePath(dateISO, audience, action.piece), mp3);
+      const uploadMs = Math.round(performance.now() - uploadStart);
+      console.log(
+        `audio-render timing: date=${dateISO} audience=${audience} piece=${action.piece.id} chars=${payload.length} tts=${ttsMs}ms stretch=${stretchMs}ms encode=${encodeMs}ms upload=${uploadMs}ms`,
+      );
 
       // A head's duration is recorded from its PCM, exactly as the monolith
       // reported it; main's chunks are priced at finalize from their bytes.

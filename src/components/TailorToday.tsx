@@ -348,6 +348,9 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
   useEffect(() => {
     if (!devotional) return;
     const url = tailorAudioUrl(devotional);
+    // A text-only build (interim — the function returns no audio) has no
+    // player to wire: the package below renders in full without one.
+    if (!url) return;
     urlRef.current = url;
     const el = new Audio(url);
     audioRef.current = el;
@@ -566,7 +569,9 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
             {tailorCreditLine(devotional)}
           </p>
 
-          {/* The play bar — distinct from the free Listen above it. */}
+          {/* The play bar — distinct from the free Listen above it. Absent
+              entirely on a text-only build (interim): no dead player. */}
+          {devotional.audioBase64 && (
           <div
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl border mb-3"
             style={{ backgroundColor: t.accentRgba(0.08), borderColor: t.accentRgba(0.3) }}
@@ -602,6 +607,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               <RotateCcw className="w-4 h-4" />
             </button>
           </div>
+          )}
 
           <div className="space-y-2 mb-3">
             <div className="flex items-start gap-2.5">

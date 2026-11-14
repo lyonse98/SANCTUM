@@ -563,11 +563,16 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
   };
 }
 
-/** The response body the client parses — text, quote, media card, credit, and the audio. */
+/**
+ * The response body the client parses — text, quote, media card, credit, and
+ * the audio. audioBase64 is null while the function's in-render is interim-
+ * disabled (see TAILOR_AUDIO_ENABLED in index.ts): the text package is
+ * complete without it, and the client's audio field is optional by design.
+ */
 export function buildResponseBody(
   dateISO: string,
   composed: ComposedTailored,
-  audioBase64: string,
+  audioBase64: string | null,
   audioSeconds: number,
 ): Record<string, unknown> {
   return {

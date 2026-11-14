@@ -15,10 +15,12 @@ import {
   type PlanInput,
 } from './renderPlan.ts';
 
-// The piece planner (Nov 13, 2026 rework; finer pieces, second round): one
-// invocation renders at most one piece, storage is the progress ledger, the
-// main track is cut into ≤800-char chunks, and an attempt is consumed only
-// by a fresh start — never by resuming a day that holds pieces.
+// The piece planner (Nov 13, 2026 rework; finer pieces, second round;
+// head-scale pieces, third round): one invocation renders at most one piece,
+// storage is the progress ledger, the main track is cut into ≤200-char
+// chunks (the platform's 2 s CPU budget, priced in renderPlan.ts), and an
+// attempt is consumed only by a fresh start — never by resuming a day that
+// holds pieces.
 
 const STALE = 10 * 60 * 1000;
 const NOW = 1_700_000_000_000;
@@ -274,6 +276,44 @@ describe('splitMainScript', () => {
   });
 });
 
+describe('piece counts at the 200-char cap (round 3 — the 2 s CPU budget)', () => {
+  // Paragraphs under the cap pack one-per-chunk when two cannot share:
+  // p + '\n\n' + p exceeds 200 for both fixtures below, so the counts are
+  // exactly the paragraph counts — derived from the packing rule, then
+  // asserted against the splitter.
+  const para = (ch: string, n: number) => ch.repeat(n);
+
+  it('a weekday-scale main (~900 + ~550 chars) is 8 main pieces, 10 with heads', () => {
+    const mainA = Array.from({ length: 5 }, () => para('w', 180)).join('\n\n');
+    const mainB = Array.from({ length: 3 }, () => para('w', 180)).join('\n\n');
+    const { aChunks, bChunks, specs } = splitMainScript(mainA, mainB);
+    expect(aChunks).toHaveLength(5);
+    expect(bChunks).toHaveLength(3);
+    expect(specs).toHaveLength(10);
+    for (const c of [...aChunks, ...bChunks]) expect(c.length).toBeLessThanOrEqual(200);
+  });
+
+  it('a Sunday-scale main (~2,300 + ~770 chars) is 16 main pieces, 18 with heads', () => {
+    const mainA = Array.from({ length: 12 }, () => para('s', 190)).join('\n\n');
+    const mainB = Array.from({ length: 4 }, () => para('s', 190)).join('\n\n');
+    const { aChunks, bChunks, specs } = splitMainScript(mainA, mainB);
+    expect(aChunks).toHaveLength(12);
+    expect(bChunks).toHaveLength(4);
+    expect(specs).toHaveLength(18);
+    const mains = specs.filter((s) => s.kind === 'main');
+    expect(mains.map((s) => s.id)).toEqual(mains.map((_, i) => mainPieceId(i)));
+  });
+
+  it('an over-cap paragraph falls to sentences and packs them to the cap', () => {
+    const sentence = 's'.repeat(44) + '.'; // 45 chars, terminator attached
+    const paragraph = Array.from({ length: 6 }, () => sentence).join(' '); // 275 chars
+    const chunks = splitSpeechText(paragraph);
+    // 45, then +1+45 steps: 91, 137, 183 fit; a fifth sentence (229) does not.
+    expect(chunks.map((c) => c.length)).toEqual([183, 91]);
+    expect(chunks.join(' ')).toBe(paragraph);
+  });
+});
+
 describe('mainJoinPlan — silence placement', () => {
   it('silence sits exactly once, between the last A chunk and the first B chunk', () => {
     const { specs } = splitMainScript(
@@ -307,8 +347,8 @@ describe('piece storage paths', () => {
     expect(pieceStoragePath('2026-11-13', 'men', chunk)).toBe('2026-11-13/men/parts/main-007.mp3');
   });
 
-  it('the default cap is the ~45–60 s target', () => {
-    expect(MAIN_PIECE_MAX_CHARS).toBe(800);
+  it('the default cap is the proven head envelope — ~15 s of speech', () => {
+    expect(MAIN_PIECE_MAX_CHARS).toBe(200);
   });
 });
 
