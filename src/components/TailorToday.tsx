@@ -758,11 +758,11 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
           >
             {devotional.media.kind === 'film' ? (
               <Clapperboard className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
-            ) : devotional.media.kind === 'podcast' ? (
+            ) : devotional.media.kind === 'podcast' || devotional.media.kind === 'interview' ? (
               <Headphones className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
-            ) : devotional.media.kind === 'talk' ? (
+            ) : devotional.media.kind === 'talk' || devotional.media.kind === 'speech' ? (
               <Mic className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
-            ) : devotional.media.kind === 'video' ? (
+            ) : devotional.media.kind === 'video' || devotional.media.kind === 'clip' ? (
               <Video className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
             ) : devotional.media.kind === 'article' ? (
               <Newspaper className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />

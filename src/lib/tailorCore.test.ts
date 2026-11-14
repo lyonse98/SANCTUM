@@ -4,13 +4,17 @@ import { join } from 'node:path';
 import {
   PASSAGES_BY_FOCUS,
   PASSAGES_BY_STATE,
-  MEDIA_BY_FOCUS,
+  MEDIA_CATALOG,
+  MEDIA_VALUES_FLOOR,
   TAILOR_FOCUSES,
   TAILOR_STATES,
   TAILOR_TONES,
+  bestCatalogMedia,
+  mediaAxisTotal,
   pickMedia,
   pickPassage,
-  scoreBankMedia,
+  scoreCatalogMedia,
+  type TailorMedia,
 } from '@/data/tailorBank';
 import {
   buildCorpusQuoteQuery,
@@ -94,65 +98,224 @@ describe('the passage bank is total and cited', () => {
   });
 });
 
-describe('the media bank is pop culture behind live-verified addresses', () => {
-  it('every focus carries two picks, spanning songs, talks, and a podcast', () => {
-    const types = new Set<string>();
-    for (const focus of TAILOR_FOCUSES) {
-      const bank = MEDIA_BY_FOCUS[focus.id];
-      expect(bank.length).toBe(2);
-      for (const m of bank) {
-        types.add(m.type);
-        expect(m.title.length).toBeGreaterThan(0);
-        expect(m.creator.length).toBeGreaterThan(0);
-        expect(m.blurb.length).toBeGreaterThan(10);
-        expect(m.states.length).toBeGreaterThan(0);
-        expect(m.tones.length).toBeGreaterThan(0);
-        for (const s of m.states) expect(TAILOR_STATES.map((x) => x.id)).toContain(s);
-        for (const t of m.tones) expect(TAILOR_TONES.map((x) => x.id)).toContain(t);
-      }
+describe('the media catalog — ~200 works, scored on three axes (Nov 13, 2026)', () => {
+  it('holds at least 200 curated works, every one behind a real, verified-shape watch address', () => {
+    expect(MEDIA_CATALOG.length).toBeGreaterThanOrEqual(200);
+    const urls = new Set<string>();
+    const kinds = new Set<string>();
+    for (const m of MEDIA_CATALOG) {
+      kinds.add(m.kind);
+      // The work's OWN YouTube page, verified live at curation through
+      // oEmbed — never a search page, an embed, or an address from memory.
+      expect(m.url).toMatch(/^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/);
+      expect(m.url).not.toContain('results?search_query=');
+      expect(m.url).not.toContain('/embed/');
+      expect(urls.has(m.url), m.title).toBe(false);
+      urls.add(m.url);
+      expect(m.title.length).toBeGreaterThan(0);
+      expect(m.creator.length).toBeGreaterThan(0);
+      expect(m.blurb.length).toBeGreaterThan(10);
+      expect(m.valuesNote.length).toBeGreaterThan(0);
     }
-    expect(types).toEqual(new Set(['song', 'podcast', 'talk']));
+    expect(kinds).toEqual(new Set(['song', 'talk', 'speech', 'interview', 'clip']));
   });
 
-  it('every bank address is the work’s own YouTube page — verified live at curation', () => {
-    for (const focus of TAILOR_FOCUSES) {
-      for (const m of MEDIA_BY_FOCUS[focus.id]) {
-        expect(m.url).toMatch(/^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/);
-        expect(m.url).not.toContain('results?search_query=');
-        expect(m.url).not.toContain('/embed/');
-      }
-    }
-  });
-
-  it('no bank entry is church content — the exclusion filter passes the whole bank', () => {
-    for (const focus of TAILOR_FOCUSES) {
-      for (const m of MEDIA_BY_FOCUS[focus.id]) {
-        expect(isChurchMedia({ title: m.title, creator: m.creator, url: m.url }), m.title).toBe(false);
+  it('scores every entry in range on the popularity and values axes', () => {
+    for (const m of MEDIA_CATALOG) {
+      for (const score of [m.popularity, m.values]) {
+        expect(Number.isInteger(score), m.title).toBe(true);
+        expect(score, m.title).toBeGreaterThanOrEqual(0);
+        expect(score, m.title).toBeLessThanOrEqual(100);
       }
     }
   });
 
-  it('tag-fit scoring: a state+tone match beats a state-only match beats no tag match', () => {
-    const [brene, headlee] = MEDIA_BY_FOCUS.conversation;
-    // Headlee is tagged scattered + clarity; Brené is not tagged scattered.
-    expect(scoreBankMedia(headlee, 'scattered', 'clarity')).toBeGreaterThan(
-      scoreBankMedia(brene, 'scattered', 'clarity'),
-    );
-    // And the unique tag winner is the pick, on any date.
-    for (const date of DATES) {
-      expect(pickMedia('conversation', 'scattered', 'clarity', date).title).toContain('Better Conversation');
+  it('tags every entry with valid focuses, states, and tones only', () => {
+    const focusIds = TAILOR_FOCUSES.map((x) => x.id);
+    const stateIds = TAILOR_STATES.map((x) => x.id);
+    const toneIds = TAILOR_TONES.map((x) => x.id);
+    for (const m of MEDIA_CATALOG) {
+      expect(m.focuses.length, m.title).toBeGreaterThan(0);
+      for (const f of m.focuses) expect(focusIds, m.title).toContain(f);
+      for (const s of m.states) expect(stateIds, m.title).toContain(s);
+      for (const t of m.tones) expect(toneIds, m.title).toContain(t);
     }
   });
 
-  it('picks are deterministic and always members of the focus bank', () => {
+  it('keeps every focus deep: at least a dozen above-floor entries per focus', () => {
+    for (const focus of TAILOR_FOCUSES) {
+      const depth = MEDIA_CATALOG.filter(
+        (m) => m.focuses.includes(focus.id) && m.values >= MEDIA_VALUES_FLOOR,
+      ).length;
+      expect(depth, focus.id).toBeGreaterThanOrEqual(12);
+    }
+  });
+
+  it('keeps the 16 seeds of the first bank, at their verified addresses', () => {
+    const seeds: [string, string][] = [
+      ['Joe Rogan Experience, Episode 1080 — David Goggins', '5tSTk1083VY'],
+      ['Hall of Fame', 'mk48xRzuNvA'],
+      ['All of Me', '450p7goxZqg'],
+      ['Thinking Out Loud', 'lp-EO5I60KA'],
+      ['Count on Me', '6k8cpUkKK4c'],
+      ['Counting Stars', 'hT_nvWreIhg'],
+      ['The Power of Vulnerability', 'iCvmsMzlF7o'],
+      ['10 Ways to Have a Better Conversation', 'R1vskiVDwl4'],
+      ['Fix You', 'k4V3Mo61fJM'],
+      ['See You Again', 'RgKAFK5djSk'],
+      ['Demons', 'mWRsgZuwf_8'],
+      ['Numb', 'kXYiU_JCYtU'],
+      ['Make Your Bed — UT Austin Commencement Address', 'pxBQLFLei70'],
+      ['Unwritten', 'b7k0a5hYnSI'],
+      ['Here Comes the Sun', 'KQetemT1sWc'],
+      ['Three Little Birds', 'HNBCVM4KbUM'],
+    ];
+    expect(seeds.length).toBe(16);
+    for (const [title, vid] of seeds) {
+      const entry = MEDIA_CATALOG.find((m) => m.title === title);
+      expect(entry, title).toBeDefined();
+      expect(entry!.url, title).toBe(`https://www.youtube.com/watch?v=${vid}`);
+    }
+  });
+
+  it('no catalog entry is church content — the exclusion filter passes the whole catalog', () => {
+    for (const m of MEDIA_CATALOG) {
+      expect(isChurchMedia({ title: m.title, creator: m.creator, url: m.url }), m.title).toBe(false);
+    }
+  });
+
+  it('never picks a below-floor work — not even a famous, perfectly-fitting one', () => {
+    const floored = MEDIA_CATALOG.filter((m) => m.values < MEDIA_VALUES_FLOOR);
+    // The anchors exist and carry honest low scores (Imagine, Take Me to
+    // Church) — the floor has real works to bite on.
+    expect(floored.length).toBeGreaterThan(0);
+    for (const focus of TAILOR_FOCUSES) {
+      for (const state of TAILOR_STATES) {
+        for (const tone of [...TAILOR_TONES.map((x) => x.id), null]) {
+          const pick = pickMedia(focus.id, state.id, tone, '2026-11-13');
+          expect(pick.values, pick.title).toBeGreaterThanOrEqual(MEDIA_VALUES_FLOOR);
+          expect(floored).not.toContain(pick);
+        }
+      }
+    }
+  });
+
+  it('picks are deterministic and vary by the morning', () => {
     for (const focus of TAILOR_FOCUSES) {
       for (const date of DATES) {
         const a = pickMedia(focus.id, 'anxious', 'courage', date);
         const b = pickMedia(focus.id, 'anxious', 'courage', date);
         expect(a).toBe(b);
-        expect(MEDIA_BY_FOCUS[focus.id]).toContain(a);
+        expect(MEDIA_CATALOG).toContain(a);
       }
     }
+    const picks = new Set<string>();
+    for (const focus of TAILOR_FOCUSES) {
+      for (const state of TAILOR_STATES) {
+        picks.add(pickMedia(focus.id, state.id, 'courage', '2026-11-13').url);
+      }
+    }
+    expect(picks.size).toBeGreaterThan(8);
+  });
+});
+
+describe('three-axis scoring — fit 40, alignment 35, popularity 25, one floor (Nov 13, 2026)', () => {
+  const axes = (fit: number, alignment: number, popularity: number) => ({
+    fit,
+    alignment,
+    popularity,
+    total: mediaAxisTotal(fit, alignment, popularity),
+  });
+  const entry = (over: Partial<TailorMedia>): TailorMedia => ({
+    kind: 'song',
+    title: 'Test Work',
+    creator: 'Tester',
+    url: 'https://www.youtube.com/watch?v=AAAAAAAAAAA',
+    blurb: 'A test work.',
+    focuses: ['work'],
+    states: ['anxious'],
+    tones: ['courage'],
+    popularity: 50,
+    values: 80,
+    valuesNote: 'A test virtue.',
+    ...over,
+  });
+
+  it('weights the axes and sums one total', () => {
+    const scored = scoreCatalogMedia(entry({}), 'work', 'anxious', 'courage')!;
+    expect(scored.fit).toBe(40); // focus 18 + state 12 + tone 10
+    expect(scored.alignment).toBe(28); // 80 × 0.35
+    expect(scored.popularity).toBe(12.5); // 50 × 0.25
+    expect(scored.total).toBe(80.5);
+    expect(mediaAxisTotal(40, 35, 25)).toBe(100);
+  });
+
+  it('the floor is absolute: a popular, perfectly-fitting, low-values work scores null', () => {
+    const viral = entry({ popularity: 100, values: MEDIA_VALUES_FLOOR - 1 });
+    expect(scoreCatalogMedia(viral, 'work', 'anxious', 'courage')).toBeNull();
+    const atFloor = entry({ values: MEDIA_VALUES_FLOOR });
+    expect(scoreCatalogMedia(atFloor, 'work', 'anxious', 'courage')).not.toBeNull();
+  });
+
+  it('popularity breaks a fit tie: equal fit and values, the better-known work wins', () => {
+    const known = scoreCatalogMedia(entry({ popularity: 90 }), 'work', 'anxious', 'courage')!;
+    const obscure = scoreCatalogMedia(entry({ popularity: 30 }), 'work', 'anxious', 'courage')!;
+    expect(known.fit).toBe(obscure.fit);
+    expect(known.alignment).toBe(obscure.alignment);
+    expect(known.total).toBeGreaterThan(obscure.total);
+  });
+
+  it('alignment outweighs a popularity gap of the same raw size, per the weights', () => {
+    // A 40-point values gap is 14 axis points; a 40-point popularity gap
+    // is 10. The aligned work wins despite being the less famous one.
+    const aligned = scoreCatalogMedia(entry({ values: 90, popularity: 50 }), 'work', 'anxious', 'courage')!;
+    const famous = scoreCatalogMedia(entry({ values: 50, popularity: 90 }), 'work', 'anxious', 'courage')!;
+    expect(aligned.total).toBeGreaterThan(famous.total);
+  });
+
+  it('the floor bites in live selection: a below-floor estimate never wins, however scored', () => {
+    const viral: MediaCandidate = {
+      kind: 'song',
+      title: 'Viral and Empty',
+      creator: 'Some Band',
+      url: 'https://www.youtube.com/watch?v=mWRsgZuwf_8',
+    };
+    const modest: MediaCandidate = {
+      kind: 'song',
+      title: 'Hall of Fame',
+      creator: 'The Script feat. will.i.am',
+      url: 'https://www.youtube.com/watch?v=mk48xRzuNvA',
+    };
+    // The viral work: perfect fit (40), top popularity (25), but its
+    // estimated alignment (13/35 ≈ values 37) sits below the floor.
+    expect(selectScoredMedia([viral, modest], [axes(40, 13, 25), axes(20, 28, 10)])?.candidate).toBe(modest);
+    expect(selectScoredMedia([viral], [axes(40, 13, 25)])).toBeNull();
+    // Exactly on the floor (alignment 14 = values 40) survives, as a
+    // catalog entry at values 40 does.
+    expect(selectScoredMedia([viral], [axes(40, 14, 25)])?.candidate).toBe(viral);
+    // No scores at all: no live total exists, so no live winner.
+    expect(selectScoredMedia([modest], null)).toBeNull();
+  });
+
+  it('parseMediaScores clamps each axis to its weight and totals the three', () => {
+    const raw = JSON.stringify({ scores: [{ fit: 99, alignment: 40, popularity: 30 }] });
+    expect(parseMediaScores(raw, 1)).toEqual([{ fit: 40, alignment: 35, popularity: 25, total: 100 }]);
+    expect(parseMediaScores(JSON.stringify({ scores: [{ fit: 1 }] }), 1)).toBeNull();
+    expect(parseMediaScores(JSON.stringify({ scores: [] }), 1)).toBeNull();
+    expect(parseMediaScores(JSON.stringify({ scores: [42] }), 1)).toBeNull();
+    expect(parseMediaScores('no json here', 1)).toBeNull();
+  });
+
+  it('the scorer prompt carries the three axes and the floor’s terms', () => {
+    const prompt = buildMediaScorePrompt(
+      [{ kind: 'song', title: 'X', creator: 'Y', url: 'https://www.youtube.com/watch?v=mk48xRzuNvA' }],
+      { focus: 'work', state: 'anxious', tone: 'courage', audience: 'men', reflect: 'Press on.' },
+    );
+    expect(prompt).toContain('fit: 0-40');
+    expect(prompt).toContain('alignment: 0-35');
+    expect(prompt).toContain('popularity: 0-25');
+    expect(prompt).toContain('Church values');
+    expect(prompt).toContain('"fit"');
   });
 });
 
@@ -472,8 +635,8 @@ const GROUNDED_CHURCH = {
   ],
 };
 
-/** A Gemini-shaped scorer reply carrying the given scores. */
-function scorerReply(scores: number[]) {
+/** A Gemini-shaped scorer reply carrying the given three-axis scores. */
+function scorerReply(scores: { fit: number; alignment: number; popularity: number }[]) {
   return {
     candidates: [
       { content: { parts: [{ text: JSON.stringify({ scores }) }] } },
@@ -525,7 +688,7 @@ describe('v2 — grounded media: the address must come from the search’s own s
     expect(pickGroundedMedia({ candidates: [{ content: { parts: [{ text: '{}' }] } }] }, ['song'])).toBeNull();
   });
 
-  it('a build with a grounded answer uses it; the why-line is categories only', async () => {
+  it('a grounded answer with no scorer cannot compete — the catalog answers; the why-line is categories only', async () => {
     const composed = await composeTailored({
       dateISO: '2026-11-12',
       audience: 'men',
@@ -535,14 +698,16 @@ describe('v2 — grounded media: the address must come from the search’s own s
       findMedia: async () => GROUNDED_OK,
       hour: 7,
     });
-    expect(composed.media.kind).toBe('song');
-    expect(composed.media.url).toBe('https://www.youtube.com/watch?v=mk48xRzuNvA');
+    // No scores → no live total → the unified comparison never runs and
+    // the catalog's best for the morning takes the card.
+    const best = bestCatalogMedia('work', 'anxious', 'courage', '2026-11-12')!;
+    expect(composed.media.url).toBe(best.media.url);
     expect(composed.media.why).toBe(mediaWhyLine('work', 'courage'));
     expect(composed.media.why).not.toContain('review');
     expect(composed.mediaStats.pool).toBe(1);
   });
 
-  it('any search failure falls back to the curated bank and its verified address', async () => {
+  it('any search failure falls back to the catalog and its verified address', async () => {
     for (const findMedia of [undefined, async () => null, async () => { throw new Error('down'); }, async () => ({ junk: true })]) {
       const composed = await composeTailored({
         dateISO: '2026-11-12',
@@ -553,7 +718,7 @@ describe('v2 — grounded media: the address must come from the search’s own s
         findMedia,
         hour: 7,
       });
-      expect(MEDIA_BY_FOCUS.work.some((m) => m.url === composed.media.url)).toBe(true);
+      expect(MEDIA_CATALOG.some((m) => m.url === composed.media.url)).toBe(true);
       expect(composed.media.url).toMatch(/^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/);
       expect(composed.media.title.length).toBeGreaterThan(0);
     }
@@ -611,35 +776,48 @@ describe('v3 — media rework: pop culture only, gathered, verified, scored', ()
   });
 
   it('selection rejects a church candidate even when the scorer ranked it first', () => {
-    expect(selectScoredMedia([CHURCH, POP_A], [100, 10])?.title).toBe('Hall of Fame');
-    expect(selectScoredMedia([CHURCH], [100])).toBeNull();
-    expect(selectScoredMedia([CHURCH, POP_A], null)?.title).toBe('Hall of Fame');
+    const top = { fit: 40, alignment: 35, popularity: 25, total: 100 };
+    const low = { fit: 5, alignment: 15, popularity: 2, total: 22 };
+    expect(selectScoredMedia([CHURCH, POP_A], [top, low])?.candidate.title).toBe('Hall of Fame');
+    expect(selectScoredMedia([CHURCH], [top])).toBeNull();
+    expect(selectScoredMedia([CHURCH, POP_A], null)).toBeNull();
   });
 
-  it('selection picks the rubric winner; ties keep pool order; null scores take the first survivor', () => {
-    expect(selectScoredMedia([POP_A, POP_B], [40, 85])?.title).toBe('Demons');
-    expect(selectScoredMedia([POP_A, POP_B], [85, 85])?.title).toBe('Hall of Fame');
-    expect(selectScoredMedia([POP_A, POP_B], null)?.title).toBe('Hall of Fame');
+  it('selection picks the unified-total winner; ties keep pool order; null scores yield no winner', () => {
+    const a = { fit: 20, alignment: 15, popularity: 5, total: 40 };
+    const b = { fit: 35, alignment: 30, popularity: 20, total: 85 };
+    expect(selectScoredMedia([POP_A, POP_B], [a, b])?.candidate.title).toBe('Demons');
+    expect(selectScoredMedia([POP_A, POP_B], [b, b])?.candidate.title).toBe('Hall of Fame');
+    expect(selectScoredMedia([POP_A, POP_B], null)).toBeNull();
   });
 
-  it('parseMediaScores accepts the exact shape and refuses everything else', () => {
-    expect(parseMediaScores(scorerReply([10, 90]), 2)).toEqual([10, 90]);
-    expect(parseMediaScores('{"scores": [55, 65]}', 2)).toEqual([55, 65]);
-    expect(parseMediaScores(scorerReply([10]), 2)).toBeNull();
-    expect(parseMediaScores(scorerReply([10, 90, 30]), 2)).toBeNull();
+  it('parseMediaScores accepts the exact three-axis shape and refuses everything else', () => {
+    expect(parseMediaScores(scorerReply([
+      { fit: 10, alignment: 0, popularity: 0 },
+      { fit: 40, alignment: 35, popularity: 15 },
+    ]), 2)).toEqual([
+      { fit: 10, alignment: 0, popularity: 0, total: 10 },
+      { fit: 40, alignment: 35, popularity: 15, total: 90 },
+    ]);
+    expect(parseMediaScores('{"scores": [{"fit": 35, "alignment": 10, "popularity": 10}, {"fit": 40, "alignment": 15, "popularity": 10}]}', 2)).toEqual([
+      { fit: 35, alignment: 10, popularity: 10, total: 55 },
+      { fit: 40, alignment: 15, popularity: 10, total: 65 },
+    ]);
+    expect(parseMediaScores(scorerReply([{ fit: 10, alignment: 0, popularity: 0 }]), 2)).toBeNull();
     expect(parseMediaScores('no json here', 2)).toBeNull();
     expect(parseMediaScores(null, 2)).toBeNull();
     expect(parseMediaScores({ scores: ['high', 10] }, 2)).toBeNull();
   });
 
-  it('the score prompt carries the rubric, the day’s categories, and every candidate', () => {
+  it('the score prompt carries the three axes, the day’s categories, and every candidate', () => {
     const prompt = buildMediaScorePrompt([POP_A, POP_B], {
       focus: 'work', state: 'anxious', tone: 'courage', audience: 'men',
       reflect: 'TAILORED REFLECTION about perseverance under pressure.',
     });
-    expect(prompt).toContain('thematic fit');
-    expect(prompt).toContain('mainstream recognizability');
-    expect(prompt).toContain('format suitability');
+    expect(prompt).toContain('fit: 0-40');
+    expect(prompt).toContain('alignment: 0-35');
+    expect(prompt).toContain('popularity: 0-25');
+    expect(prompt).toContain('Church values');
     expect(prompt).toContain('Church content');
     expect(prompt).toContain('work & career');
     expect(prompt).toContain('anxious');
@@ -685,7 +863,12 @@ describe('v3 — media rework: pop culture only, gathered, verified, scored', ()
       scoreMedia: async (prompt: string) => {
         prompts.push(prompt);
         // Pool order is angle order: Hall of Fame (focus), Demons (state).
-        return scorerReply([35, 92]);
+        // Demons takes the maximum on every axis — the only stub total
+        // that certainly beats the catalog's best for this morning.
+        return scorerReply([
+          { fit: 14, alignment: 13, popularity: 8 },
+          { fit: 40, alignment: 35, popularity: 25 },
+        ]);
       },
       hour: 7,
     });
@@ -693,17 +876,44 @@ describe('v3 — media rework: pop culture only, gathered, verified, scored', ()
     expect(composed.media.url).toBe('https://www.youtube.com/watch?v=mWRsgZuwf_8');
     expect(composed.mediaStats.pool).toBe(2);
     expect(composed.mediaStats.verified).toBe(2);
-    expect(composed.mediaStats.spread).toBe(57);
+    expect(composed.mediaStats.spread).toBe(65); // 100 − 35, across the live pool's totals
     expect(prompts).toHaveLength(1);
     expect(prompts[0]).not.toContain('Big review');
   });
 
-  it('a scoring failure degrades to the first verified candidate', async () => {
+  it('the unified comparison: a live find takes the card only by beating the catalog outright', async () => {
+    const best = bestCatalogMedia('work', 'anxious', 'courage', '2026-11-12')!;
+    const axesForTotal = (t: number) => {
+      const fit = Math.min(40, t);
+      const alignment = Math.min(35, t - fit);
+      return { fit, alignment, popularity: t - fit - alignment };
+    };
+    const build = (total: number) => composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'men',
+      intake: INTAKE,
+      bundle: BUNDLE,
+      generateTailored: async () => ({ reflect: 'A tailored reflection here.', challenge: 'One act.' }),
+      findMedia: async () => GROUNDED_OK,
+      scoreMedia: async () => scorerReply([axesForTotal(total)]),
+      hour: 7,
+    });
+    // One point under the catalog's total: the catalog keeps the card.
+    const under = await build(Math.floor(best.axes.total));
+    expect(under.media.url).toBe(best.media.url);
+    // One point over: the found work takes it.
+    const over = await build(Math.floor(best.axes.total) + 1);
+    expect(over.media.url).toBe('https://www.youtube.com/watch?v=mk48xRzuNvA');
+    expect(over.media.title).toBe('Hall of Fame');
+  });
+
+  it('a scoring failure degrades to the catalog, never to an unscored guess', async () => {
+    const best = bestCatalogMedia('work', 'anxious', 'courage', '2026-11-12')!;
     for (const scoreMedia of [
       async () => { throw new Error('down'); },
       async () => null,
       async () => ({ junk: true }),
-      async () => scorerReply([1]),
+      async () => scorerReply([{ fit: 1, alignment: 1, popularity: 1 }]),
     ]) {
       const composed = await composeTailored({
         dateISO: '2026-11-12',
@@ -715,12 +925,12 @@ describe('v3 — media rework: pop culture only, gathered, verified, scored', ()
         scoreMedia,
         hour: 7,
       });
-      expect(composed.media.title).toBe('Hall of Fame');
+      expect(composed.media.url).toBe(best.media.url);
       expect(composed.mediaStats.spread).toBeNull();
     }
   });
 
-  it('a pool of nothing but church content falls back to the bank — church never reaches the card', async () => {
+  it('a pool of nothing but church content falls back to the catalog — church never reaches the card', async () => {
     const composed = await composeTailored({
       dateISO: '2026-11-12',
       audience: 'men',
@@ -728,11 +938,11 @@ describe('v3 — media rework: pop culture only, gathered, verified, scored', ()
       bundle: BUNDLE,
       generateTailored: async () => ({ reflect: 'A tailored reflection here.', challenge: 'One act.' }),
       findMedia: async () => GROUNDED_CHURCH,
-      scoreMedia: async () => scorerReply([100]),
+      scoreMedia: async () => scorerReply([{ fit: 40, alignment: 35, popularity: 25 }]),
       hour: 7,
     });
     expect(composed.media.title).not.toContain("Eagle's Wings");
-    expect(MEDIA_BY_FOCUS.work.some((m) => m.url === composed.media.url)).toBe(true);
+    expect(MEDIA_CATALOG.some((m) => m.url === composed.media.url)).toBe(true);
     expect(composed.mediaStats.verified).toBe(0);
   });
 });

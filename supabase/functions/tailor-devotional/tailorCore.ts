@@ -27,10 +27,13 @@
 
   MEDIA REWORK (Nov 13, 2026): the media card is pop culture now (Erik) —
   several grounded searches gather a candidate pool, church content is
-  hard-excluded, and one rubric-scored call picks the best of the verified
-  pool, Miles-style. The bank behind it was re-curated to match: pop works
-  with live-verified addresses and state/tone tags, scored locally in the
-  same rubric's shape. See the media section below.
+  hard-excluded, and one scored call picks the best of the verified pool,
+  Miles-style. REBUILT later that day (Erik: "16 is nowhere near enough"):
+  the bank became a ~200-work CATALOG, and scoring is one unified
+  three-axis total — fit, alignment with Church values, popularity — with
+  a hard values floor, computed locally for catalog entries and estimated
+  by the scorer for live finds, which then compete head-to-head. See the
+  media section below.
 
   PRIVACY, BY CONSTRUCTION: this module holds no persistence of any kind.
   The intake, the profile, and the composed devotional pass through it and
@@ -38,17 +41,20 @@
 */
 
 import {
+  MEDIA_VALUES_FLOOR,
   TAILOR_SEARCH_KINDS,
   TAILOR_SEARCH_KIND_LABELS,
+  bestCatalogMedia,
   isTailorFocus,
   isTailorSearchKind,
   isTailorState,
   isTailorTone,
-  pickMedia,
+  mediaAxisTotal,
   pickPassage,
   tailorFocusLabel,
   tailorStateLabel,
   tailorToneLabel,
+  type MediaAxisScore,
   type TailorFocus,
   type TailorMediaKind,
   type TailorPassage,
@@ -318,19 +324,27 @@ export function buildCorpusQuoteQuery(intake: TailorIntake): string {
   return parts.join(" ");
 }
 
-// ── The media pick: gather, verify, exclude, score — the bank behind it ──────
+// ── The media pick: gather, verify, exclude, score — the catalog behind it ───
 //
 // REWORKED Nov 13, 2026 (Erik): the card is POP CULTURE — the worldly voice
 // answering the day, in the register of a David Goggins interview or a
 // Linkin Park song. The tradition quote already carries the sacred register,
 // so church content (worship music, hymns, sermons, church or ministry
 // podcasts) is HARD-EXCLUDED before scoring, however well it would fit.
-// Selection is Miles-style: several grounded searches gather a pool of
-// candidates, the existing grounding rule verifies each one, and ONE
-// scoring call ranks the verified pool against a written rubric — the best
-// score wins. Any failure degrades gracefully: no scores → the first
-// verified candidate; no verified candidates → the curated bank, whose
-// picks are scored locally from their tags in the same rubric's shape.
+//
+// REBUILT Nov 13, 2026, later the same day (Erik: "16 is nowhere near
+// enough"): behind the live hunt stands a CATALOG of ~200 curated,
+// live-verified works (tailorBank.ts), and selection is ONE unified
+// scoring on three axes — FIT (0–40), ALIGNMENT WITH CHURCH VALUES
+// (0–35), POPULARITY (0–25) — with a hard values floor: a work whose
+// substance falls below the floor is excluded however popular or fitting
+// it is. Catalog entries carry their popularity and values scores from
+// curation and take their fit from their tags; live finds are estimated
+// on the same axes by the one scoring call. The live winner and the
+// catalog's best then compete on the same totals — the found work must
+// beat the catalog outright; a tie keeps the catalog's verified address.
+// Any failure along the way degrades to the catalog's best, and the
+// catalog always has one: there is never zero media.
 
 export interface ComposedMedia {
   kind: TailorMediaKind;
@@ -585,17 +599,26 @@ export function isChurchMedia(candidate: {
   return CHURCH_ROLE_PATTERN.test(hay);
 }
 
-// ── The scoring: one rubric, one winner ──────────────────────────────────────
+// ── The scoring: three axes, one total, one winner ───────────────────────────
 
 /**
- * THE RUBRIC (the same shape the bank's local tag scoring mirrors):
- *   thematic fit — state, focus, and tone of the morning:        0–40
- *   reflection thrust — answers what today's reflection pressed: 0–25
- *   mainstream recognizability — Goggins / Linkin Park tier:     0–20
- *   format suitability — a song, talk, interview, or clip a
- *     person would actually open from a devotional:              0–15
- * Total 100. Church content scores 0 — it is filtered in code before the
- * prompt is ever built; the instruction rides along as defense in depth.
+ * THE THREE AXES (Erik, Nov 13, 2026 — the same totals the catalog's
+ * local scoring computes in tailorBank, so a found work and a catalog
+ * work compete head-to-head):
+ *   fit — the morning's state, focus, and tone (0–25) plus the fit to
+ *     what today's reflection pressed (0–15):                     0–40
+ *   alignment with Church values — the work's substance: virtue
+ *     themes (perseverance, hope, sacrificial love, courage,
+ *     honesty about suffering, gratitude, redemption) score high;
+ *     mocking faith, glorifying vice, or sinking into nihilism
+ *     scores low:                                                  0–35
+ *   popularity — mainstream recognizability, the Goggins /
+ *     Linkin Park tier:                                            0–25
+ * Total 100. THE FLOOR: a candidate whose alignment falls below the
+ * values floor (MEDIA_VALUES_FLOOR, scaled onto this axis) is excluded
+ * before totals are compared — popularity and fit cannot outvote it.
+ * Church content is filtered in code before the prompt is ever built;
+ * the instruction rides along as defense in depth.
  */
 export interface MediaScoreContext {
   focus: TailorFocus;
@@ -612,18 +635,17 @@ export function buildMediaScorePrompt(
 ): string {
   const lines: string[] = [];
   lines.push(
-    `You are Sanctum's media scorer. Score each candidate work from 0 to 100 for a Catholic ` +
+    `You are Sanctum's media scorer. Score each candidate work on three axes for a Catholic ` +
       `${ctx.audience === "women" ? "woman" : "man"} whose day is about ${tailorFocusLabel(ctx.focus).toLowerCase()}, ` +
       `who is coming in ${tailorStateLabel(ctx.state).toLowerCase()}` +
       `${ctx.tone ? `, seeking ${tailorToneLabel(ctx.tone).toLowerCase()}` : ""}.`,
   );
   lines.push(
-    `\nScore on this rubric, summed to one total per candidate:\n` +
-      `- thematic fit to that state, focus, and tone: 0-40\n` +
-      `- fit to the reflection's thrust below: 0-25\n` +
-      `- mainstream recognizability (David Goggins / Linkin Park / Coldplay tier scores high; an obscure channel scores low): 0-20\n` +
-      `- format suitability — a song, talk, interview, or clip someone would actually open from a morning devotional (a full album, a multi-hour stream, or a listing page scores low): 0-15\n` +
-      `Church content — worship music, hymns, sermons, church or ministry podcasts — scores 0 overall, always.`,
+    `\nScore every candidate on all three axes (integers):\n` +
+      `- fit: 0-40 — how well the work answers that state, focus, and tone (0-25) and the reflection's thrust below (0-15)\n` +
+      `- alignment: 0-35 — alignment with Church values, judged on the work's substance: perseverance, hope, sacrificial love, courage, honesty about suffering, gratitude, and redemption score high; mocking faith, glorifying vice, or nihilistic despair scores near 0. A famous work can still score low here — judge the message, not the fame.\n` +
+      `- popularity: 0-25 — mainstream recognizability (David Goggins / Linkin Park / Coldplay tier scores high; an obscure channel scores low). A song, talk, interview, or clip someone would actually open from a morning devotional earns its tier; a full album, a multi-hour stream, or a listing page scores low.\n` +
+      `Church content — worship music, hymns, sermons, church or ministry podcasts — scores 0 on every axis, always.`,
   );
   lines.push(`\nThe reflection's thrust:\n${ctx.reflect.slice(0, 700)}`);
   lines.push(`\nCandidates, in order:`);
@@ -631,18 +653,19 @@ export function buildMediaScorePrompt(
     lines.push(`${i + 1}. [${c.kind}] "${c.title}" by ${c.creator} — ${c.url}`);
   });
   lines.push(
-    `\nAnswer with ONLY a JSON object: {"scores": [one integer per candidate, in order]}.`,
+    `\nAnswer with ONLY a JSON object: {"scores": [{"fit": n, "alignment": n, "popularity": n}, one per candidate, in order]}.`,
   );
   return lines.join("\n");
 }
 
 /**
- * Parses the scorer's answer into one score per candidate, or null. The
- * reply may arrive as a raw string or inside a Gemini-shaped response; the
- * shape must be exact — the right count of finite numbers — or the caller
- * degrades to the first verified candidate rather than guessing.
+ * Parses the scorer's answer into one axis score per candidate, or null.
+ * The reply may arrive as a raw string or inside a Gemini-shaped response;
+ * the shape must be exact — the right count of objects, each carrying
+ * three finite numbers — or the caller degrades to the catalog rather
+ * than guessing. Axes are clamped to their weights; the total is the sum.
  */
-export function parseMediaScores(raw: unknown, count: number): number[] | null {
+export function parseMediaScores(raw: unknown, count: number): MediaAxisScore[] | null {
   let text = "";
   if (typeof raw === "string") {
     text = raw;
@@ -664,10 +687,19 @@ export function parseMediaScores(raw: unknown, count: number): number[] | null {
     const parsed = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
     const scores = parsed.scores;
     if (!Array.isArray(scores) || scores.length !== count) return null;
-    const out: number[] = [];
+    const clamp = (v: unknown, max: number): number | null =>
+      typeof v === "number" && Number.isFinite(v)
+        ? Math.max(0, Math.min(max, Math.round(v)))
+        : null;
+    const out: MediaAxisScore[] = [];
     for (const s of scores) {
-      if (typeof s !== "number" || !Number.isFinite(s)) return null;
-      out.push(Math.max(0, Math.min(100, Math.round(s))));
+      if (!s || typeof s !== "object") return null;
+      const rec = s as Record<string, unknown>;
+      const fit = clamp(rec.fit, 40);
+      const alignment = clamp(rec.alignment, 35);
+      const popularity = clamp(rec.popularity, 25);
+      if (fit === null || alignment === null || popularity === null) return null;
+      out.push({ fit, alignment, popularity, total: mediaAxisTotal(fit, alignment, popularity) });
     }
     return out;
   } catch {
@@ -675,22 +707,35 @@ export function parseMediaScores(raw: unknown, count: number): number[] | null {
   }
 }
 
+/** The scored live winner: the candidate and its unified axes. */
+export interface ScoredLiveMedia {
+  candidate: MediaCandidate;
+  axes: MediaAxisScore;
+}
+
 /**
- * Picks the winner from a candidate pool: church content is dropped FIRST
- * (even a top-ranked church candidate can never win), then the highest
- * score wins, ties keep pool order, and null scores degrade to the first
- * surviving candidate. Returns null only when nothing survives.
+ * Picks the winner from a scored candidate pool: church content is
+ * dropped FIRST (even a top-ranked church candidate can never win), then
+ * the values floor drops any survivor whose estimated alignment falls
+ * below it, and the highest unified total wins — ties keep pool order.
+ * Null scores mean no winner at all: without scores there is no total to
+ * compete with the catalog's, and the caller degrades to the catalog.
  */
 export function selectScoredMedia(
   candidates: MediaCandidate[],
-  scores: number[] | null,
-): MediaCandidate | null {
+  scores: MediaAxisScore[] | null,
+): ScoredLiveMedia | null {
+  if (scores === null) return null;
   const zipped = candidates
-    .map((c, i) => ({ c, s: scores ? scores[i] : null }))
-    .filter((z) => !isChurchMedia(z.c));
+    .map((c, i) => ({ candidate: c, axes: scores[i] }))
+    .filter((z) => !isChurchMedia(z.candidate))
+    // The floor on the scaled axis: alignment (0–35) is the values score
+    // (0–100) at 0.35 weight — kept in integers so an estimate landing
+    // exactly on the floor (alignment 14 = values 40) survives, exactly
+    // as a catalog entry at values 40 does.
+    .filter((z) => z.axes.alignment * 100 >= MEDIA_VALUES_FLOOR * 35);
   if (zipped.length === 0) return null;
-  if (scores === null) return zipped[0].c;
-  return zipped.reduce((best, z) => ((z.s ?? 0) > (best.s ?? 0) ? z : best)).c;
+  return zipped.reduce((best, z) => (z.axes.total > best.axes.total ? z : best));
 }
 
 const TONE_WHY_PHRASES: Record<TailorTone, string> = {
@@ -742,9 +787,9 @@ export interface ComposeDeps {
    */
   findMedia?: (query: string) => Promise<unknown>;
   /**
-   * The media scorer — injected; receives the rubric prompt over the
+   * The media scorer — injected; receives the three-axis prompt over the
    * verified pool and returns the model's raw reply. Absent, failed, or
-   * unusable: the first verified candidate wins.
+   * unusable: no live total exists, so the catalog's best takes the card.
    */
   scoreMedia?: (prompt: string) => Promise<unknown>;
   /**
@@ -777,18 +822,22 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
   const userPrompt = buildTailorUserPrompt(bundle, intake, passage, profile, audience);
   const tailored = await deps.generateTailored(systemPrompt, userPrompt);
 
-  // The media: gather → verify → exclude → score, the bank behind every
-  // failure. Three grounded searches (focus angle, state angle, reflection-
-  // theme angle) run in parallel through the morning's allowed kinds; each
-  // contributes at most one candidate, and a candidate counts only when the
-  // grounding rule verifies its address. Church content is excluded before
-  // scoring; one scoring call ranks the survivors against the rubric; any
-  // failure along the way degrades — first verified candidate, then the
-  // bank. Either way the why-line is written here, from categories only.
+  // The media: gather → verify → exclude → score, then ONE unified
+  // competition — the catalog's best for this morning is computed first,
+  // and a live find must beat its total outright to take the card (a tie
+  // keeps the catalog's curated, verified address). Three grounded
+  // searches (focus angle, state angle, reflection-theme angle) run in
+  // parallel through the morning's allowed kinds; each contributes at
+  // most one candidate, and a candidate counts only when the grounding
+  // rule verifies its address. Church content is excluded before scoring
+  // and below-floor content inside it; any failure along the way degrades
+  // to the catalog pick. Either way the why-line is written here, from
+  // categories only.
   const kinds: TailorSearchKind[] =
     profile && profile.mediaPrefs.length > 0 ? profile.mediaPrefs : [...TAILOR_SEARCH_KINDS];
   const mediaStats = { pool: 0, verified: 0, spread: null as number | null };
-  let found: MediaCandidate | null = null;
+  const catalogBest = bestCatalogMedia(intake.focus, intake.state, intake.tone, dateISO);
+  let liveBest: ScoredLiveMedia | null = null;
   if (deps.findMedia) {
     const searchArgs: MediaSearchArgs = {
       focus: intake.focus,
@@ -818,41 +867,42 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
     mediaStats.pool = pool.length;
     const survivors = pool.filter((c) => !isChurchMedia(c));
     mediaStats.verified = survivors.length;
-    if (survivors.length > 0) {
-      let scores: number[] | null = null;
-      if (deps.scoreMedia && survivors.length > 1) {
-        const prompt = buildMediaScorePrompt(survivors, {
-          focus: intake.focus,
-          state: intake.state,
-          tone: intake.tone,
-          audience,
-          reflect: tailored.reflect,
-        });
-        const rawScores = await deps.scoreMedia(prompt).catch(() => null);
-        scores = parseMediaScores(rawScores, survivors.length);
-        if (scores) mediaStats.spread = Math.max(...scores) - Math.min(...scores);
+    if (survivors.length > 0 && deps.scoreMedia) {
+      const prompt = buildMediaScorePrompt(survivors, {
+        focus: intake.focus,
+        state: intake.state,
+        tone: intake.tone,
+        audience,
+        reflect: tailored.reflect,
+      });
+      const rawScores = await deps.scoreMedia(prompt).catch(() => null);
+      const scores = parseMediaScores(rawScores, survivors.length);
+      if (scores) {
+        const totals = scores.map((s) => s.total);
+        mediaStats.spread = Math.max(...totals) - Math.min(...totals);
+        liveBest = selectScoredMedia(survivors, scores);
       }
-      found = selectScoredMedia(survivors, scores);
     }
   }
-  const media: ComposedMedia = found
-    ? {
-        kind: found.kind,
-        title: found.title,
-        creator: found.creator,
-        url: found.url,
-        why: mediaWhyLine(intake.focus, intake.tone),
-      }
-    : (() => {
-        const pick = pickMedia(intake.focus, intake.state, intake.tone, dateISO);
-        return {
-          kind: pick.type,
-          title: pick.title,
-          creator: pick.creator,
-          url: pick.url,
+  const media: ComposedMedia =
+    liveBest && (!catalogBest || liveBest.axes.total > catalogBest.axes.total)
+      ? {
+          kind: liveBest.candidate.kind,
+          title: liveBest.candidate.title,
+          creator: liveBest.candidate.creator,
+          url: liveBest.candidate.url,
+          why: mediaWhyLine(intake.focus, intake.tone),
+        }
+      : {
+          // The catalog always answers (bestCatalogMedia is null only in
+          // a world the schema tests forbid); the literal last entry is
+          // an unreachable floor, never a user-visible failure.
+          kind: catalogBest?.media.kind ?? "song",
+          title: catalogBest?.media.title ?? "",
+          creator: catalogBest?.media.creator ?? "",
+          url: catalogBest?.media.url ?? "",
           why: mediaWhyLine(intake.focus, intake.tone),
         };
-      })();
 
   // The tradition quote: the corpus shelf's word when retrieval brought one,
   // the dataset shelf's behind it, and no quote at all rather than a forced one.

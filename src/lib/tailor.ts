@@ -190,7 +190,7 @@ function defaultStore(): TailorStore {
   return sharedStore;
 }
 
-const MEDIA_KINDS: readonly string[] = ['song', 'film', 'podcast', 'talk', 'video', 'article', 'book'];
+const MEDIA_KINDS: readonly string[] = ['song', 'film', 'podcast', 'talk', 'video', 'article', 'book', 'speech', 'interview', 'clip'];
 
 /**
  * Validates a build's audio plan, or null. The plan is additive — a build
@@ -545,6 +545,9 @@ export const MEDIA_KIND_LABELS: Record<TailorMediaKind, string> = {
   video: 'Video',
   article: 'Article',
   book: 'Book',
+  speech: 'Speech',
+  interview: 'Interview',
+  clip: 'Clip',
 };
 
 /** Decodes the response's base64 audio into a playable object URL — null when the build carries no audio. */
