@@ -28,8 +28,8 @@ function greetingForHour(hour: number): string {
  * The masthead for the Today area — the running head of the day's page
  * (Stage 1 of the printed-page re-skin, Erik, Nov 14, 2026). It exists to
  * make the front door feel like a place he has arrived at rather than a
- * list he has scrolled to: the season's colour, the hour of his day, and
- * the one thing worth doing — all above the Gospel, in a single glance.
+ * list he has scrolled to: the season's colour and the hour of his day —
+ * all above the Gospel, in a single glance.
  * The feast emblem is re-set, not removed: on feasts and solemnities the
  * rank, the day's name, and its motif stand in the print language — the
  * glyph as a decorated initial in the day's colour, the name in the serif
@@ -156,24 +156,6 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
           <SeasonBadge />
           <p className="text-[10px] text-forge-text-dim text-center max-w-xs leading-relaxed">
             {visual.feastNote ?? season.description}
-          </p>
-        </div>
-
-        <div
-          className="mt-4 px-1 py-3 text-left"
-          style={{
-            borderTop: `1px solid ${t.accentRgba(0.35)}`,
-            borderBottom: `1px solid ${t.accentRgba(0.35)}`,
-          }}
-        >
-          <p
-            className="text-[9px] font-bold uppercase tracking-[0.2em] mb-1"
-            style={{ color: t.accent }}
-          >
-            One thing today
-          </p>
-          <p className="text-[13px] leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
-            Read the Gospel below, then sit with it alongside a companion. That is the whole ask.
           </p>
         </div>
 

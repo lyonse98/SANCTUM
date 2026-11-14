@@ -1,5 +1,5 @@
-import { Church, HeartHandshake, Users, type LucideIcon } from 'lucide-react';
-import { PRINT_SERIF } from '@/lib/print';
+import { ChevronRight, Church, HeartHandshake, Users, type LucideIcon } from 'lucide-react';
+import { PRINT_PLATE_CLASS, PRINT_SERIF } from '@/lib/print';
 import type { PersonaTheme, TabId } from '@/types';
 
 interface MoreOfSanctumProps {
@@ -28,12 +28,14 @@ const ENTRIES: MoreEntry[] = [
  * unchanged in structure and weight — Real Help rendered exactly like the
  * others, neither hidden nor alarmed; the crisis content itself stays at
  * the top inside Real Help, as it already is. Stage 1 of the printed-page
- * re-skin (Nov 14, 2026) sets them as a book's contents: the name, a
- * dotted leader, and the hint where the page number would sit, each row
- * divided from the next by a hairline.
+ * re-skin (Nov 14, 2026) set them as a book's contents — the name, a
+ * dotted leader, and the hint where the page number would sit — but as
+ * bare lines they did not read as tappable (Erik's revision, Nov 14,
+ * 2026), so each row now sits on the printed page's shared ruled plate,
+ * the same treatment as the Gospel section's two doors: frame, paper-
+ * shade fill, and a weighted accent chevron at the right edge.
  */
-const ROW_CLASS =
-  'w-full flex items-baseline gap-2 px-1 py-2.5 text-left transition-opacity hover:opacity-75 active:opacity-60';
+const ROW_CLASS = PRINT_PLATE_CLASS;
 
 export function MoreOfSanctum({ t, onNavigate }: MoreOfSanctumProps) {
   return (
@@ -44,14 +46,14 @@ export function MoreOfSanctum({ t, onNavigate }: MoreOfSanctumProps) {
       >
         More of Sanctum
       </p>
-      <div>
+      <div className="space-y-2">
         {ENTRIES.map((entry) => (
           <button
             key={entry.key}
             data-more-entry={entry.key}
             onClick={() => onNavigate(entry.key)}
             className={ROW_CLASS}
-            style={{ borderBottom: `1px solid ${t.border}99` }}
+            style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F` }}
           >
             <span
               className="text-[15px] font-semibold flex-shrink-0"
@@ -62,7 +64,7 @@ export function MoreOfSanctum({ t, onNavigate }: MoreOfSanctumProps) {
             <span
               aria-hidden="true"
               className="flex-1"
-              style={{ borderBottom: `1px dotted ${t.textDim}`, transform: 'translateY(-3px)' }}
+              style={{ borderBottom: `1px dotted ${t.textDim}` }}
             />
             <span
               className="text-[11px] italic flex-shrink-0"
@@ -70,6 +72,7 @@ export function MoreOfSanctum({ t, onNavigate }: MoreOfSanctumProps) {
             >
               {entry.hint}
             </span>
+            <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} aria-hidden="true" />
           </button>
         ))}
       </div>

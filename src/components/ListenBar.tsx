@@ -457,9 +457,13 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
     <>
     {/* The program strip (Stage 1 of the printed-page re-skin, Erik,
         Nov 14, 2026): the day's listening set at the head of the Gospel
-        section, between hairline rules — the reader's name, the length,
-        the play control, and the same seek slider, in the page's serif
-        voice. Every behaviour beneath the setting is the bar it replaces. */}
+        section, between hairline rules — the length, the play control,
+        and the same seek slider, in the page's serif voice. Every
+        behaviour beneath the setting is the bar it replaces. Erik's
+        revision the same day: the strip carries no narrator credit (the
+        reader is named in the disclosure card and the lock-screen
+        metadata, where the naming belongs), and the play control is a solid
+        accent disc — Stage 1's outlined ring did not read as a button. */}
     <div
       className="flex items-center gap-3 px-1 py-3 mb-3"
       style={{
@@ -470,10 +474,10 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
       <button
         onClick={handlePlayTap}
         aria-label={playing ? 'Pause the reading' : 'Listen to today’s Gospel'}
-        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border transition-all active:scale-95"
-        style={{ backgroundColor: t.accentRgba(0.1), borderColor: t.accent, color: t.accent }}
+        className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95"
+        style={{ backgroundColor: t.accent, color: t.card }}
       >
-        {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+        {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
       </button>
       <div className="flex-1 min-w-0">
         <p
@@ -482,11 +486,11 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
         >
           Listen to the Gospel
         </p>
-        <p className="text-[10px] truncate" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
-          Read by {display.displayName}
-          {total > 0 &&
-            (preparedRef.current ? ` · ${fmt(displayElapsed)} / ${fmt(total)}` : ` · ${fmt(total)}`)}
-        </p>
+        {total > 0 && (
+          <p className="text-[10px] truncate" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+            {preparedRef.current ? `${fmt(displayElapsed)} / ${fmt(total)}` : fmt(total)}
+          </p>
+        )}
         {preparedRef.current && total > 0 && (
           <input
             type="range"

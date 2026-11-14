@@ -5,6 +5,7 @@ import {
   Loader2,
   Share2,
   ChevronDown,
+  ChevronRight,
   X,
 } from 'lucide-react';
 import { quoteForDay } from '@/data/quotes';
@@ -25,7 +26,7 @@ import {
   reflectionDisplay,
   type Reflection,
 } from '@/lib/reflection';
-import { PRINT_SERIF } from '@/lib/print';
+import { PRINT_PLATE_CLASS, PRINT_SERIF } from '@/lib/print';
 import { ListenBar } from '@/components/ListenBar';
 import { TailorToday } from '@/components/TailorToday';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
@@ -48,9 +49,8 @@ interface DailyQuoteProps {
   onOpenReminder?: () => void;
 }
 
-/** The two printed-line doors share one class string — equals, by construction. */
-const DOOR_CLASS =
-  'w-full flex items-baseline gap-2 py-2.5 text-left transition-opacity hover:opacity-80 active:opacity-60';
+/** The two doors share the printed page's one plate class — equals, by construction. */
+const DOOR_CLASS = PRINT_PLATE_CLASS;
 
 type CardPanel = 'none' | 'tailor';
 
@@ -322,9 +322,9 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
 
       {/* The program (Stage 1 of the printed-page re-skin, Erik, Nov 14,
           2026): Listen stands at the head of the Gospel section as the
-          day's program strip — the same Listen bar, its reader, its length,
-          its seek slider — instead of behind a tile. It mounts when the
-          day's readings land, exactly as the tile's panel did. */}
+          day's program strip — the same Listen bar, its length, its seek
+          slider — instead of behind a tile. It mounts when the day's
+          readings land, exactly as the tile's panel did. */}
       {!loading && readings?.date && (
         <ListenBar t={t} dateKey={readings.date} citation={readings.gospel ?? null} audience={audience} onOpenReminder={onOpenReminder} />
       )}
@@ -458,31 +458,35 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
 
       {/* The other two Ways (Way 1, Erik, Nov 13, 2026) — Listen now stands
           at the head of the section as the program; Tailor Today and Reflect
-          remain as doors with their exact behaviour, set as printed lines
-          with dotted leaders where the tiles used to be. Tailor opens its
-          panel in the space directly beneath the lines; Reflect walks to the
-          companions with the day's readings in hand. */}
+          remain as doors with their exact behaviour. Stage 1 set them as
+          bare printed lines and they did not read as tappable (Erik's
+          revision, Nov 14, 2026), so each now sits on the shared ruled
+          plate — frame, paper-shade fill, accent chevron — with the dotted
+          leader kept as the contents page's signature between the name and
+          its hint. Tailor opens its panel in the space directly beneath
+          the plates; Reflect walks to the companions with the day's
+          readings in hand. */}
       {!loading && readings?.date && (
         <>
-          <div role="group" aria-label="Ways into today's Gospel">
+          <div role="group" aria-label="Ways into today's Gospel" className="space-y-2">
             <button
               data-tile="tailor"
               onClick={() => setPanel((p) => (p === 'tailor' ? 'none' : 'tailor'))}
               aria-expanded={panel === 'tailor'}
               aria-label="Tailor today — a devotional for your day"
               className={DOOR_CLASS}
-              style={{ borderBottom: `1px solid ${t.border}66` }}
+              style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F` }}
             >
               <span
-                className="text-[11px] font-bold uppercase tracking-wide flex-shrink-0"
-                style={{ fontFamily: PRINT_SERIF, color: t.text }}
+                className="text-[12px] font-bold uppercase tracking-wide flex-shrink-0"
+                style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
               >
                 Tailor Today
               </span>
               <span
                 aria-hidden="true"
                 className="flex-1"
-                style={{ borderBottom: `1px dotted ${t.textDim}`, transform: 'translateY(-3px)' }}
+                style={{ borderBottom: `1px dotted ${t.textDim}` }}
               />
               <span
                 className="text-[10px] italic flex-shrink-0"
@@ -490,6 +494,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
               >
                 For your day
               </span>
+              <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} aria-hidden="true" />
             </button>
             <button
               data-tile="reflect"
@@ -497,21 +502,21 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
               disabled={preparing}
               aria-label="Reflect with a Companion"
               className={DOOR_CLASS}
-              style={{ borderBottom: `1px solid ${t.border}66`, opacity: preparing ? 0.6 : 1 }}
+              style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F`, opacity: preparing ? 0.6 : 1 }}
             >
               {preparing && (
                 <Loader2 className="w-3.5 h-3.5 animate-spin self-center flex-shrink-0" style={{ color: t.accent }} />
               )}
               <span
-                className="text-[11px] font-bold uppercase tracking-wide flex-shrink-0"
-                style={{ fontFamily: PRINT_SERIF, color: t.text }}
+                className="text-[12px] font-bold uppercase tracking-wide flex-shrink-0"
+                style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
               >
                 Reflect
               </span>
               <span
                 aria-hidden="true"
                 className="flex-1"
-                style={{ borderBottom: `1px dotted ${t.textDim}`, transform: 'translateY(-3px)' }}
+                style={{ borderBottom: `1px dotted ${t.textDim}` }}
               />
               <span
                 className="text-[10px] italic flex-shrink-0"
@@ -519,11 +524,12 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
               >
                 {preparing ? 'Gathering the readings…' : 'With a companion'}
               </span>
+              <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} aria-hidden="true" />
             </button>
           </div>
 
           {/* The panel — the existing Tailor intake, reused whole, in the
-              space under the lines. */}
+              space under the plates. */}
           {panel === 'tailor' && (
             <TailorToday t={t} audience={audience} dateKey={readings.date} startOpen />
           )}
