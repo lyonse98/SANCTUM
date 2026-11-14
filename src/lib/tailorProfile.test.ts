@@ -152,12 +152,12 @@ describe('the surfaces — editor in the panel, erase in Settings, honest progre
     expect(panel).toContain('Kept on this device only');
   });
 
-  it('the progress lines are the build’s real stages, focus named, narrator last', () => {
+  it('the progress lines are the build’s real stages, focus named, assembly last', () => {
     const lines = tailorProgressLines('grief');
     expect(lines[0]).toBe('Reading today’s readings…');
     expect(lines[1]).toContain('grief');
     expect(lines[2]).toBe('Choosing something to lift you…');
-    expect(lines[3]).toContain('recording your morning');
+    expect(lines[3]).toContain('Putting your morning together');
   });
 
   it('Settings offers the erase only behind the has-profile guard', () => {

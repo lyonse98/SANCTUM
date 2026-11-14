@@ -318,7 +318,7 @@ export function tailorProgressLines(focus: TailorFocus): string[] {
     'Reading today’s readings…',
     `Finding a passage for ${tailorFocusLabel(focus).toLowerCase()}…`,
     'Choosing something to lift you…',
-    'Your narrator is recording your morning…',
+    'Putting your morning together…',
   ];
 }
 
