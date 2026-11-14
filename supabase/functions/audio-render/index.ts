@@ -232,6 +232,9 @@ interface ReflectionRow {
   challenge: string;
   facet: string;
   scene: string | null;
+  /** The spoken bridge + carry (Nov 14, 2026) — null on every pre-bridge row. */
+  spokenBridge: string | null;
+  spokenCarry: string | null;
 }
 
 interface Bundle {
@@ -258,14 +261,23 @@ async function callFunction(path: string, init: RequestInit): Promise<boolean> {
 }
 
 async function readReflection(dateISO: string, audience: NarratorAudience): Promise<ReflectionRow | null> {
-  const rows = await restSelect(
+  // The audience filter pins the track's own row: the table holds one row per
+  // (date, audience), and each company reads only its own track's reflection.
+  // An absent row returns null and the caller skips the render gracefully —
+  // no row, no play bar, and never the other track's words.
+  const filter = `date=eq.${dateISO}&audience=eq.${audience}`;
+  let rows = await restSelect(
     "daily_reflections",
-    // The audience filter pins the track's own row: the table holds one row per
-    // (date, audience), and each company reads only its own track's reflection.
-    // An absent row returns null and the caller skips the render gracefully —
-    // no row, no play bar, and never the other track's words.
-    `date=eq.${dateISO}&audience=eq.${audience}&select=reflect,challenge,facet,scene`,
+    `${filter}&select=reflect,challenge,facet,scene,spoken_bridge,spoken_carry`,
   );
+  if (rows.length === 0) {
+    // Deploy-order guard (Nov 14, 2026): if the spoken-bridge migration has
+    // not landed yet, the select above errors on the unknown columns and
+    // reads as an absent row — which would silence the day entirely. Fall
+    // back to the pre-bridge select; the day renders without a bridge,
+    // exactly as it did before the bridge existed.
+    rows = await restSelect("daily_reflections", `${filter}&select=reflect,challenge,facet,scene`);
+  }
   const row = rows[0];
   if (!row || typeof row.reflect !== "string" || typeof row.challenge !== "string") return null;
   return {
@@ -273,6 +285,8 @@ async function readReflection(dateISO: string, audience: NarratorAudience): Prom
     challenge: row.challenge,
     facet: typeof row.facet === "string" ? row.facet : audience === "women" ? "As a woman" : "As a man",
     scene: typeof row.scene === "string" && row.scene.trim() ? row.scene : null,
+    spokenBridge: typeof row.spoken_bridge === "string" && row.spoken_bridge.trim() ? row.spoken_bridge : null,
+    spokenCarry: typeof row.spoken_carry === "string" && row.spoken_carry.trim() ? row.spoken_carry : null,
   };
 }
 
@@ -678,6 +692,8 @@ async function runRender(
         challenge: bundle.reflection.challenge,
         facet: bundle.reflection.facet,
         scene: sceneOff ? null : bundle.reflection.scene,
+        spokenBridge: bundle.reflection.spokenBridge,
+        spokenCarry: bundle.reflection.spokenCarry,
         tomorrowCelebration: bundle.tomorrowCelebration,
         tomorrowGospelCitation: bundle.tomorrowGospelCitation,
       });
@@ -709,6 +725,8 @@ async function runRender(
         sober: assembled.sober,
         teaserIncluded: assembled.teaserIncluded,
         sceneIncluded: assembled.sceneIncluded,
+        bridgeIncluded: assembled.bridgeIncluded,
+        carryIncluded: assembled.carryIncluded,
         selections: assembled.selections,
         headAM: assembled.headAM,
         headPM: assembled.headPM,

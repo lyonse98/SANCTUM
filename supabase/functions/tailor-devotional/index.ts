@@ -465,6 +465,43 @@ async function scoreMediaLive(prompt: string): Promise<unknown> {
   }
 }
 
+// ── The spoken bridge generation (Nov 14, 2026) ──────────────────────────────
+
+// The rubric lives in the core (buildSpokenBridgePrompt there); this is only
+// the transport — a plain generation, no search tool, returning the reply
+// text itself (the bridge is prose, not JSON). Any failure returns null and
+// the composition builds without a bridge, fail-open like every other hunt.
+const BRIDGE_INSTRUCTION = `You are Sanctum's devotional writer. Follow the writing task in the request exactly and answer with ONLY the bridge prose it asks for — no preamble, no commentary, nothing else.`;
+
+async function generateBridgeText(prompt: string): Promise<string | null> {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: BRIDGE_INSTRUCTION }] },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: 512,
+            thinkingConfig: { thinkingLevel: "low" },
+          },
+        }),
+        signal: AbortSignal.timeout(45000),
+      },
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+    return typeof text === "string" ? text : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Speech (audio-render's exact path and production) ────────────────────────
 
 async function renderSpeech(text: string, voice: string): Promise<Uint8Array> {
@@ -741,6 +778,7 @@ Deno.serve(async (req: Request) => {
       generateTailored,
       findMedia: searchMediaLive,
       scoreMedia: scoreMediaLive,
+      generateBridge: generateBridgeText,
       corpusQuote,
       // The grown media library rides into the pool (outputs.ts reads it;
       // the core merges it beside the seed). Read failure is a seed-only

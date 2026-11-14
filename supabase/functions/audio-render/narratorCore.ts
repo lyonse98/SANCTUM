@@ -27,6 +27,12 @@
  *   behavior below are unchanged from the Nov 2 approval.
  * - Time-of-day lives only in the two heads (AM/PM). The main segment is time-neutral
  *   (§5.4), enforced by `TIME_NEUTRAL_LINT` in the tests.
+ * - The spoken bridge and carry (Nov 14, 2026) are generated material the narrator
+ *   speaks AROUND the verbatim zones — the bridge opens the second movement, tying
+ *   the Gospel just heard to the reflection and challenge; the carry answers the
+ *   challenge as one thing to take into the day. They are fenced at generation (no
+ *   opinions, no new facts, no words beyond the day's own texts) and length-gated
+ *   before storage; absent, the assembly is byte-identical to the pre-bridge script.
  */
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -1474,6 +1480,35 @@ export function validateScene(scene: unknown): SceneValidation {
   return { ok: true };
 }
 
+// ── The spoken bridge + carry gates (Nov 14, 2026) ───────────────────────────
+
+/** Char ceilings for the generated spoken bridge and carry — the storage gate. */
+export const SPOKEN_BRIDGE_MAX_CHARS = 1200;
+export const SPOKEN_CARRY_MAX_CHARS = 300;
+
+/**
+ * Validates a generated spoken bridge body (the conversational tie-in the
+ * narrator speaks between the Gospel and the reflection — see assembleScript).
+ * The fence itself lives in the generation prompts; this is the length/shape
+ * gate the generators apply before the words are stored or spoken: a missing,
+ * empty, or over-long bridge reads as absent, and the day renders exactly as
+ * it did before the bridge existed. Returns the trimmed text, or null.
+ */
+export function validateSpokenBridge(bridge: unknown): string | null {
+  if (typeof bridge !== 'string' || !bridge.trim()) return null;
+  const text = bridge.trim();
+  if (text.length > SPOKEN_BRIDGE_MAX_CHARS) return null;
+  return text;
+}
+
+/** The same gate for the closing carry line — one or two sentences, strictly short. */
+export function validateSpokenCarry(carry: unknown): string | null {
+  if (typeof carry !== 'string' || !carry.trim()) return null;
+  const text = carry.trim();
+  if (text.length > SPOKEN_CARRY_MAX_CHARS) return null;
+  return text;
+}
+
 /** The Charter's banned shapes, checked over bank text (spec §10.1). */
 export const BANNED_BANK_PATTERNS: RegExp[] = [
   /what Jesus is really saying/i,
@@ -1516,6 +1551,22 @@ export interface AssembleInputs {
   facet: string;
   /** The generated scene body, already lint-validated — or null to omit the scene. */
   scene: string | null;
+  /**
+   * The spoken bridge (Nov 14, 2026): the generated conversational tie-in the
+   * narrator speaks at the head of the second movement, binding the Gospel
+   * just heard to the day's reflection and challenge — already length-gated,
+   * or null/absent to omit it. Added spoken material AROUND the verbatim
+   * zones, never inside them; when absent (every row stored before the
+   * bridge existed) the assembly is identical to the pre-bridge script,
+   * byte for byte.
+   */
+  spokenBridge?: string | null;
+  /**
+   * The spoken carry (Nov 14, 2026): one short closing line drawn from the
+   * challenge, spoken immediately after it — already length-gated, or
+   * null/absent to omit it, with the same byte-identical fallback.
+   */
+  spokenCarry?: string | null;
   tomorrowCelebration: string | null;
   tomorrowGospelCitation: string | null;
   /** Test/dry-run seam: force variant indices instead of the date-keyed picks. */
@@ -1534,11 +1585,13 @@ export interface AssembledScript {
   sober: boolean;
   teaserIncluded: boolean;
   sceneIncluded: boolean;
+  bridgeIncluded: boolean;
+  carryIncluded: boolean;
   headAM: string;
   headPM: string;
   /** Speech request A: scene → Gospel → acclamation (the produced silence follows). */
   mainA: string;
-  /** Speech request B: reflection → challenge → sign-off → teaser. */
+  /** Speech request B: bridge → reflection → challenge → carry → sign-off → teaser. */
   mainB: string;
   /** The full audit text (both heads + main with the silence marked). */
   script: string;
@@ -1623,6 +1676,15 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
   let sceneIncluded = false;
   let teaserIncluded = false;
 
+  // The spoken bridge and carry (Nov 14, 2026): generated material the
+  // narrator speaks around the verbatim zones. Absent — every row stored
+  // before the bridge existed — the second movement below is exactly the
+  // pre-bridge one, paragraph for paragraph and beat for beat.
+  const bridgeText = typeof inputs.spokenBridge === 'string' ? inputs.spokenBridge.trim() : '';
+  const carryText = typeof inputs.spokenCarry === 'string' ? inputs.spokenCarry.trim() : '';
+  let bridgeIncluded = false;
+  let carryIncluded = false;
+
   if (lector) {
     const lectorBank = audience === 'women' ? LECTOR_BANK_WOMEN : LECTOR_BANK;
     const frame = fillTemplate(lectorBank.frameSolemnity, frameSlots);
@@ -1633,15 +1695,22 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
       [fillTemplate(GOSPEL_INTRO, { evangelist }), inputs.gospelText, GOSPEL_CLOSE, ACCLAMATION],
       [0, lectorBank.pauseBeats.afterGospel, 0],
     );
-    mainB = joinParagraphs(
-      [
-        lectorBank.reflectionHandoff,
-        inputs.reflect,
-        lectorBank.challengeHandoff,
-        inputs.challenge,
-      ],
-      [0, 0, 0],
+    const bParagraphs: string[] = [];
+    if (bridgeText) {
+      bParagraphs.push(bridgeText);
+      bridgeIncluded = true;
+    }
+    bParagraphs.push(
+      lectorBank.reflectionHandoff,
+      inputs.reflect,
+      lectorBank.challengeHandoff,
+      inputs.challenge,
     );
+    if (carryText) {
+      bParagraphs.push(carryText);
+      carryIncluded = true;
+    }
+    mainB = joinParagraphs(bParagraphs, bParagraphs.slice(1).map(() => 0));
   } else {
     const bank =
       audience === 'women' ? BANK_WOMEN[persona as WomenPersonaId] : BANK[persona as PersonaId];
@@ -1697,14 +1766,31 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
     const signOff = sober
       ? bank.signOffs[0]
       : bank.signOffs[pick('signOff', bank.signOffs.length)];
-    const bParagraphs: string[] = [
-      bank.reflectionHandoff,
-      inputs.reflect,
-      bank.challengeHandoff,
-      inputs.challenge,
-      signOff,
-    ];
-    const bBeats: number[] = [0, beats.beforeChallenge, beats.afterChallenge, 0];
+    // The second movement, in order. The bridge (when the day carries one)
+    // opens it: the Gospel has landed, the produced silence has passed, and
+    // the narrator ties what was heard to what follows before handing over
+    // to the reflection. The carry (when present) answers the challenge
+    // directly, before the sign-off sends the listener out. Absent both,
+    // the paragraphs and beats are exactly the pre-bridge ones.
+    const bParagraphs: string[] = [];
+    const bBeats: number[] = [];
+    const pushB = (paragraph: string, beatBefore: number) => {
+      if (bParagraphs.length > 0) bBeats.push(beatBefore);
+      bParagraphs.push(paragraph);
+    };
+    if (bridgeText) {
+      pushB(bridgeText, 0);
+      bridgeIncluded = true;
+    }
+    pushB(bank.reflectionHandoff, 0);
+    pushB(inputs.reflect, 0);
+    pushB(bank.challengeHandoff, beats.beforeChallenge);
+    pushB(inputs.challenge, beats.afterChallenge);
+    if (carryText) {
+      pushB(carryText, 0);
+      carryIncluded = true;
+    }
+    pushB(signOff, 0);
 
     if (!teaserSuppressed && inputs.tomorrowGospelCitation) {
       const bookChapter = bookChapterSpoken(inputs.tomorrowGospelCitation);
@@ -1761,6 +1847,8 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
     sober,
     teaserIncluded,
     sceneIncluded,
+    bridgeIncluded,
+    carryIncluded,
     headAM,
     headPM,
     mainA,
@@ -1843,9 +1931,11 @@ export function assembleTailoredScript(inputs: TailoredAssembleInputs): Tailored
   if (!gospel) throw new Error('tailored assembly requires the day\'s Gospel');
   // The day's own assembly decides who reads (weekday narrator, Lector on a
   // solemnity), whether the day is sober, both heads, and the whole second
-  // movement (reflection hand-off → tailored reflection → challenge hand-off
-  // → tailored challenge → sign-off) — the tailored build reuses all of it
-  // and replaces only the first movement with the readings entire.
+  // movement (bridge → reflection hand-off → tailored reflection → challenge
+  // hand-off → tailored challenge → sign-off, the bridge present only when
+  // the build generated one and passed it through as spokenBridge) — the
+  // tailored build reuses all of it and replaces only the first movement
+  // with the readings entire.
   const base = assembleScript({
     ...inputs,
     gospelCitation: gospel.citation,

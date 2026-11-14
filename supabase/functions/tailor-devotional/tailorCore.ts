@@ -69,6 +69,7 @@ import {
   PERSONA_DISPLAY,
   TIME_NEUTRAL_LINT,
   assembleTailoredScript,
+  validateSpokenBridge,
   type NarratorAudience,
   type TailoredReadingPart,
   type TailoredScript,
@@ -839,12 +840,70 @@ export interface MediaWin {
   tags: MediaTagSet | null;
 }
 
+// ── The spoken bridge (Nov 14, 2026) ─────────────────────────────────────────
+
+/**
+ * The prompt for the build's spoken bridge — the conversational tie-in the
+ * day's narrator speaks between the supplement passage and the tailored
+ * reflection, the tailored twin of the daily program's bridge. It is a
+ * SECOND, separate generation (an injected dep, like the media scorer):
+ * it runs only after the media card is settled, because its last movement
+ * introduces that media, and any failure along the way simply means the
+ * program has no bridge — the audio plan is then exactly today's.
+ *
+ * The fence is the daily bridge's fence, word for word in substance: the
+ * bridge draws ONLY on the package's own texts (the day's Gospel, the
+ * supplement passage, the tailored reflection and challenge), carries no
+ * opinions and no new facts, quotes nothing beyond those texts, and the
+ * voice is a fellow listener's — never a priest's or a teacher's. The
+ * media close names the work by title and creator only: no review, no
+ * opinion of it, just an invitation to sit with it afterward.
+ */
+export function buildSpokenBridgePrompt(args: {
+  audience: NarratorAudience;
+  gospelCitation: string;
+  gospelText: string;
+  passageCitation: string;
+  passageText: string;
+  reflect: string;
+  challenge: string;
+  media: { kind: string; title: string; creator: string };
+}): string {
+  const them = args.audience === 'women' ? 'woman' : 'man';
+  return `You are Sanctum's devotional writer. In today's tailored audio program for one ${them}, the day's readings have just been read aloud, together with a supplement passage chosen for this morning. Before the reflection is read, the day's narrator speaks a short conversational bridge tying what was heard to the reflection and the challenge. Write that bridge — plain spoken prose only, no JSON, no preamble, nothing but the bridge itself.
+
+- 110-170 words, warm and unhurried, addressed to "you". Restate, in plain words, how the Gospel and the reflection meet. Ask two or three genuine questions the listener can sit with. Point one concrete focus toward the challenge.
+- Close with one or two sentences introducing today's media as something to sit with afterward, naming it by title and creator only: "${args.media.title}" by ${args.media.creator} (a ${args.media.kind}). No review of it, no opinion of it, no summary of its contents.
+- THE FENCE, absolute: no opinions — not yours, not anyone's. No theological claims beyond what the Gospel, the passage, the reflection, and the challenge themselves say. No new facts. No quotations except words taken verbatim from the Gospel, the passage, the reflection, or the challenge. No moralizing beyond the challenge's own words. You are a fellow listener tying the pieces together — never a priest, never a teacher, never a preacher. No greeting, no name, no introduction of yourself. No em dashes.
+
+Today's Gospel (${args.gospelCitation}):
+${args.gospelText}
+
+The supplement passage (${args.passageCitation}):
+${args.passageText}
+
+The tailored reflection:
+${args.reflect}
+
+The tailored challenge:
+${args.challenge}`;
+}
+
 export interface ComposedTailored {
   passage: TailorPassage;
   media: ComposedMedia;
   mediaWin: MediaWin;
   tailored: TailoredParts;
   traditionQuote: TraditionQuote | null;
+  /**
+   * The spoken bridge (Nov 14, 2026), validated — or null when the build
+   * had no bridge generation, it failed, or its words failed the gate.
+   * When present it also rides inside script.mainB (assembleScript places
+   * it at the head of the second movement), so the audio plan speaks it
+   * between the passage and the reflection; this field is the response's
+   * own copy of the same words.
+   */
+  bridge: string | null;
   script: TailoredScript;
   /** The day narrator's name — the only credit the tailored devotional carries. */
   narratorName: string;
@@ -893,6 +952,14 @@ export interface ComposeDeps {
   loadWinners?: () => Promise<TailorMedia[]>;
   /** Test seam for the dataset quote: undefined = pick from the dataset. */
   datasetQuote?: TraditionQuote | null;
+  /**
+   * The spoken-bridge generation — injected; receives the bridge prompt
+   * (buildSpokenBridgePrompt, over the settled package and media card) and
+   * returns the model's raw reply. Absent, failed, or unusable: the build
+   * simply has no bridge and the audio plan is exactly as before
+   * (fail-open, like every other hunt in this composition).
+   */
+  generateBridge?: (prompt: string) => Promise<string | null>;
   /** Device hour at build time — picks the AM or PM head, as the player does. */
   hour: number;
 }
@@ -1030,6 +1097,30 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
       ? deps.datasetQuote
       : pickTraditionQuote(audience, intake.focus, intake.tone, dateISO));
 
+  // The spoken bridge (Nov 14, 2026): a second, small generation over the
+  // settled package — it can only run now, because its closing movement
+  // introduces the media card the hunt just chose. Fail-open throughout:
+  // no dep, a failed call, or words that fail the length gate all leave
+  // the program exactly as it was before the bridge existed.
+  let bridge: string | null = null;
+  if (deps.generateBridge) {
+    const rawBridge = await deps
+      .generateBridge(
+        buildSpokenBridgePrompt({
+          audience,
+          gospelCitation: bundle.gospelCitation,
+          gospelText: bundle.gospelText,
+          passageCitation: passage.citation,
+          passageText: passage.text,
+          reflect: tailored.reflect,
+          challenge: tailored.challenge,
+          media: { kind: media.kind, title: media.title, creator: media.creator },
+        }),
+      )
+      .catch(() => null);
+    bridge = validateSpokenBridge(rawBridge);
+  }
+
   const script = assembleTailoredScript({
     dateISO,
     audience,
@@ -1041,6 +1132,7 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
     challenge: tailored.challenge,
     facet: bundle.facet,
     scene: null,
+    spokenBridge: bridge,
     tomorrowCelebration: null,
     tomorrowGospelCitation: null,
     passageCitation: passage.citation,
@@ -1055,6 +1147,7 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
     mediaWin,
     tailored,
     traditionQuote,
+    bridge,
     script,
     narratorName: PERSONA_DISPLAY[script.persona]?.name ?? "The Lector",
     mediaStats,
@@ -1090,6 +1183,7 @@ export function buildResponseBody(
     },
     reflect: composed.tailored.reflect,
     challenge: composed.tailored.challenge,
+    bridge: composed.bridge,
     traditionQuote: composed.traditionQuote,
     media: {
       kind: composed.media.kind,

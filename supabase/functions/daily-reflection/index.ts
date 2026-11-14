@@ -16,6 +16,16 @@
 // A missing or invalid scene stores NULL and NEVER blocks the reflection; the public
 // response shape is unchanged (reflect, challenge, facet — no scene field).
 //
+// SPOKEN BRIDGE (Nov 14, 2026): the same call also returns a "bridge" and a "carry" —
+// the conversational tie-in the narrator speaks between the Gospel and the reflection,
+// and the one line he leaves the listener with after the challenge. Both are fenced
+// in the prompts (no opinions, no new facts, no quotations beyond the day's own
+// texts, the narrator a fellow listener and never a priest or teacher), accepted
+// only when the Gospel text was in the input and they pass the length gate below,
+// and stored in `daily_reflections.spoken_bridge` / `spoken_carry`. A missing or
+// invalid bridge stores NULL and the audio assembles exactly as it did before the
+// bridge existed; like the scene, neither field ever appears in the public response.
+//
 // The prompt that shapes the voice lives here, server-side. The browser sends only a date
 // string — never instructions, never message text — so the caller cannot steer the model.
 //
@@ -68,8 +78,14 @@ RULES:
 
 THE SCENE (for the day's audio): one or two sentences, 280 characters at most, of pure passage fact drawn ONLY from the Gospel text provided below — where it happens, who is there, what is done or asked. Nothing else. No interpretation, no application, no lesson, no second person, no conclusion. Never write "what Jesus is really saying is", "here's what this means", "a real man would", or "in my experience". End it pointing at the passage itself, the moment just before the reading begins. If no Gospel text is provided below, return the scene as an empty string.
 
+THE SPOKEN BRIDGE AND CARRY (for the day's audio): after the Gospel is read aloud, the day's narrator speaks a short conversational bridge tying what was heard to the reflection and the challenge you have just written; after the challenge, he speaks one short carry line. Write both from the SAME materials only: the Gospel text provided below, and your reflect and challenge above.
+- Bridge: 110-170 words of plain spoken prose, warm and unhurried, addressed to "you". Restate, in plain words, how the Gospel and the reflection meet. Ask two or three genuine questions he can sit with. End by pointing one concrete focus toward the challenge.
+- THE FENCE, absolute: no opinions — not yours, not anyone's. No theological claims beyond what the Gospel, the reflection, and the challenge themselves say. No new facts. No quotations except words taken verbatim from the Gospel, the reflection, or the challenge. No moralizing beyond the challenge's own words. You are a fellow listener tying the pieces together — never a priest, never a teacher, never a preacher. No greeting, no name, no introduction of yourself. No em dashes.
+- Carry: one or two sentences, 15-30 words — the single thing from the challenge to carry into the day, as a quiet resolve or a question to keep. The same fence.
+- If no Gospel text is provided below, return the bridge and the carry as empty strings.
+
 Reply with ONLY a JSON object, no markdown fence, no other text:
-{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a man","scene":"<the scene, or empty string>"}`;
+{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a man","scene":"<the scene, or empty string>","bridge":"<the spoken bridge, or empty string>","carry":"<the spoken carry, or empty string>"}`;
 
 type Audience = "men" | "women";
 
@@ -95,8 +111,14 @@ RULES:
 
 THE SCENE (for the day's audio): one or two sentences, 280 characters at most, of pure passage fact drawn ONLY from the Gospel text provided below — where it happens, who is there, what is done or asked. Nothing else. No interpretation, no application, no lesson, no second person, no conclusion. Never write "what Jesus is really saying is", "here's what this means", "a real man would", or "in my experience". End it pointing at the passage itself, the moment just before the reading begins. If no Gospel text is provided below, return the scene as an empty string.
 
+THE SPOKEN BRIDGE AND CARRY (for the day's audio): after the Gospel is read aloud, the day's narrator speaks a short conversational bridge tying what was heard to the reflection and the challenge you have just written; after the challenge, she speaks one short carry line. Write both from the SAME materials only: the Gospel text provided below, and your reflect and challenge above.
+- Bridge: 110-170 words of plain spoken prose, warm and unhurried, addressed to "you". Restate, in plain words, how the Gospel and the reflection meet. Ask two or three genuine questions she can sit with. End by pointing one concrete focus toward the challenge.
+- THE FENCE, absolute: no opinions — not yours, not anyone's. No theological claims beyond what the Gospel, the reflection, and the challenge themselves say. No new facts. No quotations except words taken verbatim from the Gospel, the reflection, or the challenge. No moralizing beyond the challenge's own words. You are a fellow listener tying the pieces together — never a priest, never a teacher, never a preacher. No greeting, no name, no introduction of yourself. No em dashes.
+- Carry: one or two sentences, 15-30 words — the single thing from the challenge to carry into the day, as a quiet resolve or a question to keep. The same fence.
+- If no Gospel text is provided below, return the bridge and the carry as empty strings.
+
 Reply with ONLY a JSON object, no markdown fence, no other text:
-{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a woman","scene":"<the scene, or empty string>"}`;
+{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a woman","scene":"<the scene, or empty string>","bridge":"<the spoken bridge, or empty string>","carry":"<the spoken carry, or empty string>"}`;
 
 interface ReadingSet {
   firstReading?: string;
@@ -215,13 +237,15 @@ async function storeReflection(
   reflection: Reflection,
   celebration: string | null,
   scene: string | null,
+  bridge: string | null,
+  carry: string | null,
 ): Promise<void> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceKey) return;
 
-  try {
-    await fetch(`${supabaseUrl}/rest/v1/daily_reflections?on_conflict=date,audience`, {
+  const post = (body: Record<string, unknown>) =>
+    fetch(`${supabaseUrl}/rest/v1/daily_reflections?on_conflict=date,audience`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -229,16 +253,31 @@ async function storeReflection(
         Authorization: `Bearer ${serviceKey}`,
         Prefer: "return=minimal,resolution=merge-duplicates",
       },
-      body: JSON.stringify({
-        date: dateKey,
-        audience,
-        reflect: reflection.reflect,
-        challenge: reflection.challenge,
-        facet: reflection.facet,
-        celebration,
-        scene,
-      }),
+      body: JSON.stringify(body),
     });
+
+  const body: Record<string, unknown> = {
+    date: dateKey,
+    audience,
+    reflect: reflection.reflect,
+    challenge: reflection.challenge,
+    facet: reflection.facet,
+    celebration,
+    scene,
+    spoken_bridge: bridge,
+    spoken_carry: carry,
+  };
+
+  try {
+    const res = await post(body);
+    if (!res.ok) {
+      // Deploy-order guard: if the spoken-bridge migration has not landed
+      // yet, PostgREST rejects the unknown columns — and with them the
+      // whole row. Retry in the pre-bridge shape so the day's reflection is
+      // never lost to a column that is still on its way.
+      const { spoken_bridge: _bridge, spoken_carry: _carry, ...legacy } = body;
+      await post(legacy);
+    }
   } catch {
     // Best-effort — the reflection is still returned to the user even if storage fails.
   }
@@ -268,6 +307,30 @@ function validateScene(scene: unknown): string | null {
   for (const pattern of SCENE_BANNED) {
     if (pattern.test(text)) return null;
   }
+  return text;
+}
+
+// ── Spoken bridge + carry gates ───────────────────────────────────────────────
+// Ported from src/lib/narratorCore.ts (validateSpokenBridge / validateSpokenCarry
+// and their ceilings) — the copies must agree, the same way validateScene is
+// ported. The fence lives in the prompts; this is the length/shape gate: a
+// missing, empty, or over-long bridge or carry stores NULL, and the day's
+// audio assembles exactly as it did before the bridge existed.
+
+const SPOKEN_BRIDGE_MAX_CHARS = 1200;
+const SPOKEN_CARRY_MAX_CHARS = 300;
+
+function validateSpokenBridge(bridge: unknown): string | null {
+  if (typeof bridge !== "string" || !bridge.trim()) return null;
+  const text = bridge.trim();
+  if (text.length > SPOKEN_BRIDGE_MAX_CHARS) return null;
+  return text;
+}
+
+function validateSpokenCarry(carry: unknown): string | null {
+  if (typeof carry !== "string" || !carry.trim()) return null;
+  const text = carry.trim();
+  if (text.length > SPOKEN_CARRY_MAX_CHARS) return null;
   return text;
 }
 
@@ -377,9 +440,9 @@ function buildInput(readings: ReadingSet, celebration: string | null, gospelText
 
 function parseReflection(
   raw: string,
-  sceneAllowed: boolean,
+  gospelGrounded: boolean,
   audience: Audience,
-): { reflection: Reflection; scene: string | null } | null {
+): { reflection: Reflection; scene: string | null; bridge: string | null; carry: string | null } | null {
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) return null;
   try {
@@ -388,6 +451,8 @@ function parseReflection(
       challenge?: unknown;
       facet?: unknown;
       scene?: unknown;
+      bridge?: unknown;
+      carry?: unknown;
     };
     const reflect = typeof parsed.reflect === "string" ? parsed.reflect.trim() : "";
     const challenge = typeof parsed.challenge === "string" ? parsed.challenge.trim() : "";
@@ -398,10 +463,16 @@ function parseReflection(
       challenge: challenge.slice(0, 400),
       facet: facet.slice(0, 60),
     };
-    // A scene is accepted only when the Gospel text was in the input (sceneAllowed) and
+    // A scene is accepted only when the Gospel text was in the input (gospelGrounded) and
     // it passes the lint; anything else stores NULL and the audio omits the scene.
-    const scene = sceneAllowed ? validateScene(parsed.scene) : null;
-    return { reflection, scene };
+    const scene = gospelGrounded ? validateScene(parsed.scene) : null;
+    // The bridge and carry stand under the same discipline: they may draw on
+    // nothing but the day's own texts, so they are accepted only when the
+    // Gospel text was in the input, and only through their length gates.
+    // Anything else stores NULL and the audio behaves exactly as before.
+    const bridge = gospelGrounded ? validateSpokenBridge(parsed.bridge) : null;
+    const carry = gospelGrounded ? validateSpokenCarry(parsed.carry) : null;
+    return { reflection, scene, bridge, carry };
   } catch {
     return null;
   }
@@ -469,7 +540,12 @@ Deno.serve(async (req: Request) => {
 
     const generate = async (
       audience: Audience,
-    ): Promise<{ reflection: Reflection; scene: string | null } | null> => {
+    ): Promise<{
+      reflection: Reflection;
+      scene: string | null;
+      bridge: string | null;
+      carry: string | null;
+    } | null> => {
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -482,7 +558,9 @@ Deno.serve(async (req: Request) => {
           // it (non-streaming). Measured Oct 26, 2026: 13.4s cold vs ~1s cached.
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 1024,
+            // 1024 priced the pre-bridge answer (reflect + challenge + scene);
+            // the bridge (~170 words) and carry ride in the same JSON now.
+            maxOutputTokens: 1536,
             thinkingConfig: { thinkingLevel: "low" },
           },
         }),
@@ -524,7 +602,18 @@ Deno.serve(async (req: Request) => {
       // lends it to the other row, so the day never carries a scene on one only.
       const scene = generated.scene ?? sharedScene;
       if (generated.scene) sharedScene = generated.scene;
-      await storeReflection(dateKey, a, generated.reflection, readingsData.celebration, scene);
+      // The bridge and carry are NOT shared: each binds its own track's
+      // reflection and challenge, so each row stores the ones its own
+      // generation wrote.
+      await storeReflection(
+        dateKey,
+        a,
+        generated.reflection,
+        readingsData.celebration,
+        scene,
+        generated.bridge,
+        generated.carry,
+      );
       if (a === answerAudience) answer = generated.reflection;
     }
 
