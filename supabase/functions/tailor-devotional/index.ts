@@ -28,12 +28,22 @@
 
   PRIVACY — THE HARD RULE OF THIS FUNCTION:
   The intake (a state, a focus, a tone, at most one line in the user's own
-  words) and everything built from it are NEVER stored server-side. There are
-  no database writes and no storage uploads anywhere in this file: the day's
-  bundle is READ, the devotional is composed in memory, and the response
-  carries the text and the audio bytes back to the device, which caches them
-  on-device only. Logs are stage codes and counts — never intake text, never
-  output text. A vitest source pin asserts the absence of write paths.
+  words) is NEVER stored server-side — not in a table, not in a log, not
+  anywhere. Nothing the user says, chooses, or writes is ever written.
+  What a build RETURNS is a different matter (Erik, Nov 13, 2026): the
+  composed devotional itself — Sanctum's own words, unattributed, with no
+  identifier of any kind — is recorded for quality review (outputs.ts,
+  deleted by the database at 90 days), and a winning live media find,
+  being a public link, is captured with its scores so the media library
+  grows. Those are the function's only writes, they live entirely in
+  outputs.ts (the write path here accepts the composed package and
+  nothing upstream of it), and they are fail-open: the response is
+  byte-identical whether they land or not. In THIS file nothing is
+  written: the day's bundle is READ, the devotional is composed in
+  memory, and the response carries the text and the audio bytes back to
+  the device, which caches them on-device only. Logs are stage codes
+  and counts — never intake text, never output text. Vitest source pins
+  hold both halves of the rule.
 
   Quota: the companions' shared limiter discipline (hashed IP, durable RPC),
   namespaced to this function, with its own tighter ceilings — 5 builds a
@@ -63,8 +73,8 @@
   the client, and nothing else in this file needs to.
 
   verify_jwt is false, like its siblings: the client calls with the public
-  anon key, and the only privileged access here is READING the day's bundle
-  through the service role.
+  anon key, and privileged access through the service role is the day's
+  bundle reads plus the output record in outputs.ts — nothing else.
 */
 
 import { Mp3Encoder } from "npm:@breezystack/lamejs@1.2.7";
@@ -85,6 +95,7 @@ import {
 import {
   SAMPLE_RATE,
   decodeSpeechAudio,
+  finishPiecePcm,
   secondsOf,
   silenceSamples,
   stretchPcm,
@@ -107,6 +118,12 @@ import {
   verifyPieceToken,
   type TailorAudioPlanEntry,
 } from "./audioPlan.ts";
+import { loadMediaWinners, recordComposedOutput } from "./outputs.ts";
+
+// The edge runtime's background-task hook: the output record is dispatched
+// with the response already shaped and registered here, so the isolate
+// stays alive until the record has landed (or failed open).
+declare const EdgeRuntime: { waitUntil: (promise: Promise<unknown>) => void } | undefined;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -578,7 +595,9 @@ function validatePieceRequest(raw: unknown): PieceRequest | null {
  * authorization — no build quota is consumed, no bundle is read), then the
  * piece goes through the identical production the in-function render used:
  * lexicon, the day narrator's voice, decode, tempo stretch, the same MP3
- * encoding. The silence piece (empty text) is the produced silence itself,
+ * encoding — with the engine's seam guards around the speech (see the
+ * finishPiecePcm call below), because the client byte-concatenates these
+ * pieces into one stream. The silence piece (empty text) is the produced silence itself,
  * encoded the same way. Logs are stage codes and timings only, as everywhere
  * in this function — the piece's words never reach a log.
  */
@@ -610,7 +629,15 @@ async function handlePieceRequest(raw: unknown): Promise<Response> {
       const bytes = await renderSpeech(applyLexicon(piece.text), narratorProfile.voice);
       ttsMs = Date.now() - speechStart;
       const stretchStart = Date.now();
-      const pcm = stretchPcm(decodeSpeechAudio(bytes), narratorProfile.tempo);
+      // Decode → tempo stretch → the seam guards, as one seam: the
+      // client's byte concatenation joins these pieces exactly as the
+      // daily finalize joins its own, so a spoken piece here wears the
+      // same silence pads (finishPiecePcm, audioEngine.ts) — the
+      // encoder's padding and a cold call's clipped edges land in
+      // silence, never in a syllable. The reported seconds are the
+      // padded piece's, which is the file the client seeks through.
+      // The produced-silence piece above needs no guard: it is silence.
+      const pcm = finishPiecePcm(decodeSpeechAudio(bytes), narratorProfile.tempo);
       stretchMs = Date.now() - stretchStart;
       seconds = secondsOf(pcm);
       mp3 = encodeMp3(pcm);
@@ -715,6 +742,10 @@ Deno.serve(async (req: Request) => {
       findMedia: searchMediaLive,
       scoreMedia: scoreMediaLive,
       corpusQuote,
+      // The grown media library rides into the pool (outputs.ts reads it;
+      // the core merges it beside the seed). Read failure is a seed-only
+      // morning — the loader and the core both degrade silently.
+      loadWinners: () => loadMediaWinners(),
       hour: losAngelesHour(),
     });
 
@@ -814,7 +845,20 @@ Deno.serve(async (req: Request) => {
         composed.mediaStats.spread ?? "none"
       }`,
     );
-    return jsonResponse(buildResponseBody(dateISO, composed, audioBase64, audioSeconds, audioPlan));
+    const responseBody = buildResponseBody(dateISO, composed, audioBase64, audioSeconds, audioPlan);
+    // THE OUTPUT RECORD (Nov 13, 2026): with the response shaped, the
+    // finished package is recorded by outputs.ts — the devotional for
+    // quality review, and the winner too when the live hunt took the
+    // card. Fired under the runtime's background hook and fully
+    // fail-open: recordComposedOutput never rejects, and the response
+    // above is byte-identical whether the record lands, fails, or hangs.
+    const recording = recordComposedOutput(dateISO, audience, composed);
+    if (typeof EdgeRuntime !== "undefined") {
+      EdgeRuntime.waitUntil(recording);
+    } else {
+      void recording;
+    }
+    return jsonResponse(responseBody);
   } catch (err) {
     // The error MESSAGE is logged — and it is safe to log: every error this
     // function raises is a stage code by construction (a fixed phrase or an

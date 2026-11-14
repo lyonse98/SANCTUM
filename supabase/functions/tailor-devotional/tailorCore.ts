@@ -56,6 +56,7 @@ import {
   tailorToneLabel,
   type MediaAxisScore,
   type TailorFocus,
+  type TailorMedia,
   type TailorMediaKind,
   type TailorPassage,
   type TailorSearchKind,
@@ -650,25 +651,32 @@ export function buildMediaScorePrompt(
       `- popularity: 0-25 — mainstream recognizability (David Goggins / Linkin Park / Coldplay tier scores high; an obscure channel scores low). A song, talk, interview, or clip someone would actually open from a morning devotional earns its tier; a full album, a multi-hour stream, or a listing page scores low.\n` +
       `Church content — worship music, hymns, sermons, church or ministry podcasts — scores 0 on every axis, always.`,
   );
+  lines.push(
+    `\nAlso judge, for each candidate, which mornings the WORK ITSELF answers — from its substance alone, ` +
+      `never from this reader's morning: "focuses" chosen from work, marriage, family, conversation, grief, ` +
+      `temptation, decision, today; "states" from steady, anxious, down, angry, grateful, numb, scattered; ` +
+      `"tones" from comfort, courage, challenge, clarity, consolation. Name only the ones the work ` +
+      `genuinely fits, at most three of each. These tags are how a winning work joins the library and ` +
+      `answers future mornings, so judge the work, not the day.`,
+  );
   lines.push(`\nThe reflection's thrust:\n${ctx.reflect.slice(0, 700)}`);
   lines.push(`\nCandidates, in order:`);
   candidates.forEach((c, i) => {
     lines.push(`${i + 1}. [${c.kind}] "${c.title}" by ${c.creator} — ${c.url}`);
   });
   lines.push(
-    `\nAnswer with ONLY a JSON object: {"scores": [{"fit": n, "alignment": n, "popularity": n}, one per candidate, in order]}.`,
+    `\nAnswer with ONLY a JSON object: {"scores": [{"fit": n, "alignment": n, "popularity": n, "focuses": [...], "states": [...], "tones": [...]}, one per candidate, in order]}.`,
   );
   return lines.join("\n");
 }
 
 /**
- * Parses the scorer's answer into one axis score per candidate, or null.
- * The reply may arrive as a raw string or inside a Gemini-shaped response;
- * the shape must be exact — the right count of objects, each carrying
- * three finite numbers — or the caller degrades to the catalog rather
- * than guessing. Axes are clamped to their weights; the total is the sum.
+ * The scorer reply's score objects, or null when the envelope is unusable.
+ * The reply may arrive as a raw string or inside a Gemini-shaped response.
+ * Both readers below (the axes, the winner tags) share this extraction so
+ * they can never disagree about which reply they read.
  */
-export function parseMediaScores(raw: unknown, count: number): MediaAxisScore[] | null {
+function mediaScoreObjects(raw: unknown): Record<string, unknown>[] | null {
   let text = "";
   if (typeof raw === "string") {
     text = raw;
@@ -689,20 +697,11 @@ export function parseMediaScores(raw: unknown, count: number): MediaAxisScore[] 
   try {
     const parsed = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
     const scores = parsed.scores;
-    if (!Array.isArray(scores) || scores.length !== count) return null;
-    const clamp = (v: unknown, max: number): number | null =>
-      typeof v === "number" && Number.isFinite(v)
-        ? Math.max(0, Math.min(max, Math.round(v)))
-        : null;
-    const out: MediaAxisScore[] = [];
+    if (!Array.isArray(scores)) return null;
+    const out: Record<string, unknown>[] = [];
     for (const s of scores) {
       if (!s || typeof s !== "object") return null;
-      const rec = s as Record<string, unknown>;
-      const fit = clamp(rec.fit, 40);
-      const alignment = clamp(rec.alignment, 35);
-      const popularity = clamp(rec.popularity, 25);
-      if (fit === null || alignment === null || popularity === null) return null;
-      out.push({ fit, alignment, popularity, total: mediaAxisTotal(fit, alignment, popularity) });
+      out.push(s as Record<string, unknown>);
     }
     return out;
   } catch {
@@ -710,10 +709,75 @@ export function parseMediaScores(raw: unknown, count: number): MediaAxisScore[] 
   }
 }
 
-/** The scored live winner: the candidate and its unified axes. */
+/**
+ * Parses the scorer's answer into one axis score per candidate, or null.
+ * The shape must be exact — the right count of objects, each carrying
+ * three finite numbers — or the caller degrades to the catalog rather
+ * than guessing. Axes are clamped to their weights; the total is the sum.
+ */
+export function parseMediaScores(raw: unknown, count: number): MediaAxisScore[] | null {
+  const objects = mediaScoreObjects(raw);
+  if (!objects || objects.length !== count) return null;
+  const clamp = (v: unknown, max: number): number | null =>
+    typeof v === "number" && Number.isFinite(v)
+      ? Math.max(0, Math.min(max, Math.round(v)))
+      : null;
+  const out: MediaAxisScore[] = [];
+  for (const rec of objects) {
+    const fit = clamp(rec.fit, 40);
+    const alignment = clamp(rec.alignment, 35);
+    const popularity = clamp(rec.popularity, 25);
+    if (fit === null || alignment === null || popularity === null) return null;
+    out.push({ fit, alignment, popularity, total: mediaAxisTotal(fit, alignment, popularity) });
+  }
+  return out;
+}
+
+/**
+ * The scorer's judgments of which mornings a work answers — the tags a
+ * winning live find carries into the library (media_winners). Judged
+ * about THE WORK from its substance, in the same reply as the axes.
+ */
+export interface MediaTagSet {
+  focuses: TailorFocus[];
+  states: TailorState[];
+  tones: TailorTone[];
+}
+
+/**
+ * Reads the winner tags out of the scorer's reply, aligned by candidate.
+ * Lenient where the axes are strict — a missing or malformed tag list
+ * reads as an empty list for that candidate, never as a failed parse:
+ * the tags advise the library; the axes decide the morning. Only real
+ * bank keys survive, deduplicated, capped at three per list (the prompt's
+ * own limit). Null only when the reply's envelope itself is unusable or
+ * misaligned with the candidate count.
+ */
+export function parseMediaTags(raw: unknown, count: number): MediaTagSet[] | null {
+  const objects = mediaScoreObjects(raw);
+  if (!objects || objects.length !== count) return null;
+  const clean = <T extends string>(value: unknown, guard: (v: unknown) => v is T): T[] => {
+    if (!Array.isArray(value)) return [];
+    const out: T[] = [];
+    for (const v of value) {
+      if (guard(v) && !out.includes(v)) out.push(v);
+      if (out.length >= 3) break;
+    }
+    return out;
+  };
+  return objects.map((rec) => ({
+    focuses: clean(rec.focuses, isTailorFocus),
+    states: clean(rec.states, isTailorState),
+    tones: clean(rec.tones, isTailorTone),
+  }));
+}
+
+/** The scored live winner: the candidate, its unified axes, and the scorer's tags for it. */
 export interface ScoredLiveMedia {
   candidate: MediaCandidate;
   axes: MediaAxisScore;
+  /** The scorer's judgments of which mornings the work answers — its library tags, when read. */
+  tags: MediaTagSet | null;
 }
 
 /**
@@ -723,14 +787,17 @@ export interface ScoredLiveMedia {
  * below it, and the highest unified total wins — ties keep pool order.
  * Null scores mean no winner at all: without scores there is no total to
  * compete with the catalog's, and the caller degrades to the catalog.
+ * The tags, when the caller read them from the same reply, ride along
+ * aligned by candidate — they never influence who wins.
  */
 export function selectScoredMedia(
   candidates: MediaCandidate[],
   scores: MediaAxisScore[] | null,
+  tags: (MediaTagSet | null)[] | null = null,
 ): ScoredLiveMedia | null {
   if (scores === null) return null;
   const zipped = candidates
-    .map((c, i) => ({ candidate: c, axes: scores[i] }))
+    .map((c, i) => ({ candidate: c, axes: scores[i], tags: tags?.[i] ?? null }))
     .filter((z) => !isChurchMedia(z.candidate))
     // The floor on the scaled axis: alignment (0–35) is the values score
     // (0–100) at 0.35 weight — kept in integers so an estimate landing
@@ -757,9 +824,25 @@ export function mediaWhyLine(focus: TailorFocus, tone: TailorTone | null): strin
     : `Chosen for ${forWhat} — for today.`;
 }
 
+/**
+ * How the media card was won — the record the outputs module needs.
+ * 'live': this build's hunt found the winner; its popularity and values
+ * ride on the catalog's 0–100 scales (unscaled from the axes), and its
+ * tags are the scorer's judgments about the work. 'catalog': the scored
+ * pool (the seed, or the grown library merged into it) answered, and
+ * there is nothing new to capture.
+ */
+export interface MediaWin {
+  source: 'live' | 'catalog';
+  popularity: number | null;
+  values: number | null;
+  tags: MediaTagSet | null;
+}
+
 export interface ComposedTailored {
   passage: TailorPassage;
   media: ComposedMedia;
+  mediaWin: MediaWin;
   tailored: TailoredParts;
   traditionQuote: TraditionQuote | null;
   script: TailoredScript;
@@ -800,6 +883,14 @@ export interface ComposeDeps {
    * resolves it before composing). Null/absent: the dataset shelf answers.
    */
   corpusQuote?: TraditionQuote | null;
+  /**
+   * The grown media library: past live winners, already in the catalog's
+   * shape, read by the caller (the outputs module) before composing.
+   * They merge into the scored pool beside the seed — the documented
+   * growth plug-in in tailorBank. Absent, empty, or failed: the seed's
+   * pool alone answers, silently.
+   */
+  loadWinners?: () => Promise<TailorMedia[]>;
   /** Test seam for the dataset quote: undefined = pick from the dataset. */
   datasetQuote?: TraditionQuote | null;
   /** Device hour at build time — picks the AM or PM head, as the player does. */
@@ -839,7 +930,14 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
   const kinds: TailorSearchKind[] =
     profile && profile.mediaPrefs.length > 0 ? profile.mediaPrefs : [...TAILOR_SEARCH_KINDS];
   const mediaStats = { pool: 0, verified: 0, spread: null as number | null };
-  const catalogBest = bestCatalogMedia(intake.focus, intake.state, intake.tone, dateISO);
+  // The grown library joins the pool before the catalog answers (the
+  // plug-in documented in tailorBank): past live winners, read by the
+  // caller, merged as extra rows in the catalog's own shape. A failed
+  // read is a seed-only morning, never a failed build.
+  const libraryRows = deps.loadWinners
+    ? await deps.loadWinners().catch(() => [] as TailorMedia[])
+    : [];
+  const catalogBest = bestCatalogMedia(intake.focus, intake.state, intake.tone, dateISO, libraryRows);
   let liveBest: ScoredLiveMedia | null = null;
   if (deps.findMedia) {
     const searchArgs: MediaSearchArgs = {
@@ -883,29 +981,46 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
       if (scores) {
         const totals = scores.map((s) => s.total);
         mediaStats.spread = Math.max(...totals) - Math.min(...totals);
-        liveBest = selectScoredMedia(survivors, scores);
+        // The winner tags ride in the same reply: read them alongside,
+        // aligned by candidate, for the library if this find wins.
+        const tags = parseMediaTags(rawScores, survivors.length);
+        liveBest = selectScoredMedia(survivors, scores, tags);
       }
     }
   }
-  const media: ComposedMedia =
-    liveBest && (!catalogBest || liveBest.axes.total > catalogBest.axes.total)
+  const liveTookCard =
+    liveBest !== null && (!catalogBest || liveBest.axes.total > catalogBest.axes.total);
+  const media: ComposedMedia = liveTookCard && liveBest
+    ? {
+        kind: liveBest.candidate.kind,
+        title: liveBest.candidate.title,
+        creator: liveBest.candidate.creator,
+        url: liveBest.candidate.url,
+        why: mediaWhyLine(intake.focus, intake.tone),
+      }
+    : {
+        // The catalog always answers (bestCatalogMedia is null only in
+        // a world the schema tests forbid); the literal last entry is
+        // an unreachable floor, never a user-visible failure.
+        kind: catalogBest?.media.kind ?? "song",
+        title: catalogBest?.media.title ?? "",
+        creator: catalogBest?.media.creator ?? "",
+        url: catalogBest?.media.url ?? "",
+        why: mediaWhyLine(intake.focus, intake.tone),
+      };
+  // How the card was won, for the output record: a live win carries its
+  // scores back onto the catalog's 0–100 scales (the axes are those same
+  // scores at 0.25 / 0.35 weight) and the scorer's tags for the work.
+  const clamp100 = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+  const mediaWin: MediaWin =
+    liveTookCard && liveBest
       ? {
-          kind: liveBest.candidate.kind,
-          title: liveBest.candidate.title,
-          creator: liveBest.candidate.creator,
-          url: liveBest.candidate.url,
-          why: mediaWhyLine(intake.focus, intake.tone),
+          source: 'live',
+          popularity: clamp100(liveBest.axes.popularity * 4),
+          values: clamp100((liveBest.axes.alignment * 100) / 35),
+          tags: liveBest.tags,
         }
-      : {
-          // The catalog always answers (bestCatalogMedia is null only in
-          // a world the schema tests forbid); the literal last entry is
-          // an unreachable floor, never a user-visible failure.
-          kind: catalogBest?.media.kind ?? "song",
-          title: catalogBest?.media.title ?? "",
-          creator: catalogBest?.media.creator ?? "",
-          url: catalogBest?.media.url ?? "",
-          why: mediaWhyLine(intake.focus, intake.tone),
-        };
+      : { source: 'catalog', popularity: null, values: null, tags: null };
 
   // The tradition quote: the corpus shelf's word when retrieval brought one,
   // the dataset shelf's behind it, and no quote at all rather than a forced one.
@@ -937,6 +1052,7 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
   return {
     passage,
     media,
+    mediaWin,
     tailored,
     traditionQuote,
     script,

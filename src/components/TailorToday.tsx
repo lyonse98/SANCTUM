@@ -267,8 +267,10 @@ function TailorProfileEditor({
  * need, the reflection and challenge re-aimed at the morning you described,
  * and the day's narrator reading it. There is no companion lens — companions
  * are text-only and live in their chats (Erik, Nov 12, 2026). The build
- * happens on the server in memory and is never stored there — the result
- * lives on this device only (see lib/tailor).
+ * happens on the server: what a user writes for a morning is never stored
+ * there; the devotional Sanctum writes may be kept — unattributed, outputs
+ * only — for quality review, and is deleted within 90 days (Nov 13, 2026).
+ * The copy the user reads lives on this device (see lib/tailor).
  */
 export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorTodayProps) {
   const offered = tailorOffered();
@@ -512,8 +514,9 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
           <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
             Say how this morning is, and today&rsquo;s devotional is re-aimed at it — the same
             readings, a passage for your need, a word from the tradition, and the day&rsquo;s
-            narrator reading it for you. What you write for a morning is never stored on a
-            server; the devotional lives on this device only.
+            narrator reading it for you. What you tell Sanctum is never stored. The devotional
+            written for you may be kept — unattributed, with none of your answers — so its
+            quality can be reviewed; it&rsquo;s deleted within 90 days.
           </p>
 
           <label className="block mb-2.5">

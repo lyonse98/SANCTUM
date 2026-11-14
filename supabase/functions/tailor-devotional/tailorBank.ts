@@ -401,12 +401,15 @@ export interface TailorMedia {
  * scoreCatalogMedia is absolute, and the tests pin that no morning ever
  * returns them.
  *
- * GROWTH PATH (designed for, not built): entries are plain data and all
- * selection flows through scoreCatalogMedia / bestCatalogMedia, so a
- * future DB-backed source — winning live picks captured server-side
- * with their axis scores, the self-growing library — joins the same
- * scored pool by merging rows into this shape; nothing downstream
- * changes. Until then the seed stays evergreen on purpose.
+ * GROWTH PATH (built Nov 13, 2026): entries are plain data and all
+ * selection flows through scoreCatalogMedia / bestCatalogMedia, so the
+ * DB-backed source — winning live picks captured server-side with their
+ * axis scores, the self-growing library (media_winners, recorded by the
+ * tailor function's outputs module) — joins the same scored pool by
+ * merging rows into this shape through bestCatalogMedia's extra-pool
+ * parameter; nothing downstream changes. The seed stays evergreen on
+ * purpose: it is the anchor the grown library must beat, not a shelf
+ * the library replaces.
  */
 export const MEDIA_CATALOG: TailorMedia[] = [
   {
@@ -1104,16 +1107,32 @@ export interface ScoredCatalogMedia {
  * Null only if nothing in the catalog clears the floor for the morning —
  * the catalog is curated so that cannot happen (the tests pin per-focus
  * depth above the floor), and callers still degrade rather than fail.
+ *
+ * THE GROWTH PLUG-IN: `extra` merges further rows in this same shape —
+ * the self-growing library's captured winners — into the scored pool
+ * BEFORE selection runs, so a grown row competes on the identical axes
+ * and can win a morning outright. A row whose address the seed already
+ * carries is skipped: the seed's curated entry is the same work, kept.
  */
 export function bestCatalogMedia(
   focus: TailorFocus,
   state: TailorState,
   tone: TailorTone | null,
   dateISO: string,
+  extra: TailorMedia[] = [],
 ): ScoredCatalogMedia | null {
+  const pool: TailorMedia[] = [...MEDIA_CATALOG];
+  if (extra.length > 0) {
+    const seen = new Set(MEDIA_CATALOG.map((m) => m.url));
+    for (const row of extra) {
+      if (seen.has(row.url)) continue;
+      seen.add(row.url);
+      pool.push(row);
+    }
+  }
   let best: ScoredCatalogMedia | null = null;
   let tied: ScoredCatalogMedia[] = [];
-  for (const media of MEDIA_CATALOG) {
+  for (const media of pool) {
     const axes = scoreCatalogMedia(media, focus, state, tone);
     if (!axes) continue;
     if (!best || axes.total > best.axes.total) {
