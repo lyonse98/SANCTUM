@@ -7,22 +7,31 @@ import {
   MEDIA_BY_FOCUS,
   TAILOR_FOCUSES,
   TAILOR_STATES,
-  mediaSearchUrl,
+  TAILOR_TONES,
   pickMedia,
   pickPassage,
+  scoreBankMedia,
 } from '@/data/tailorBank';
 import {
   buildCorpusQuoteQuery,
+  buildMediaScorePrompt,
   buildMediaSearchQuery,
+  buildMediaStateQuery,
+  buildMediaThemeQuery,
   buildTailorSystemPrompt,
   buildTailorUserPrompt,
   composeTailored,
+  isChurchMedia,
   mediaWhyLine,
+  parseMediaScores,
   parseTailorResult,
   pickGroundedMedia,
   pickTraditionQuote,
+  reflectionThemeKeywords,
+  selectScoredMedia,
   validateIntake,
   validateProfile,
+  type MediaCandidate,
   type TailorBundle,
 } from '../../supabase/functions/tailor-devotional/tailorCore';
 import { DAILY_QUOTES, DAILY_QUOTES_WOMEN } from '@/data/quotes';
@@ -85,33 +94,63 @@ describe('the passage bank is total and cited', () => {
   });
 });
 
-describe('the media bank is real works behind search URLs only', () => {
-  it('every focus carries at least one pick, and the bank spans all four types', () => {
+describe('the media bank is pop culture behind live-verified addresses', () => {
+  it('every focus carries two picks, spanning songs, talks, and a podcast', () => {
     const types = new Set<string>();
     for (const focus of TAILOR_FOCUSES) {
       const bank = MEDIA_BY_FOCUS[focus.id];
-      expect(bank.length).toBeGreaterThanOrEqual(1);
+      expect(bank.length).toBe(2);
       for (const m of bank) {
         types.add(m.type);
         expect(m.title.length).toBeGreaterThan(0);
         expect(m.creator.length).toBeGreaterThan(0);
+        expect(m.blurb.length).toBeGreaterThan(10);
+        expect(m.states.length).toBeGreaterThan(0);
+        expect(m.tones.length).toBeGreaterThan(0);
+        for (const s of m.states) expect(TAILOR_STATES.map((x) => x.id)).toContain(s);
+        for (const t of m.tones) expect(TAILOR_TONES.map((x) => x.id)).toContain(t);
       }
     }
-    expect(types).toEqual(new Set(['song', 'film', 'podcast', 'talk']));
+    expect(types).toEqual(new Set(['song', 'podcast', 'talk']));
   });
 
-  it('every pick URL is a search URL — no watch page, no video id, no embed', () => {
+  it('every bank address is the work’s own YouTube page — verified live at curation', () => {
+    for (const focus of TAILOR_FOCUSES) {
+      for (const m of MEDIA_BY_FOCUS[focus.id]) {
+        expect(m.url).toMatch(/^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/);
+        expect(m.url).not.toContain('results?search_query=');
+        expect(m.url).not.toContain('/embed/');
+      }
+    }
+  });
+
+  it('no bank entry is church content — the exclusion filter passes the whole bank', () => {
+    for (const focus of TAILOR_FOCUSES) {
+      for (const m of MEDIA_BY_FOCUS[focus.id]) {
+        expect(isChurchMedia({ title: m.title, creator: m.creator, url: m.url }), m.title).toBe(false);
+      }
+    }
+  });
+
+  it('tag-fit scoring: a state+tone match beats a state-only match beats no tag match', () => {
+    const [brene, headlee] = MEDIA_BY_FOCUS.conversation;
+    // Headlee is tagged scattered + clarity; Brené is not tagged scattered.
+    expect(scoreBankMedia(headlee, 'scattered', 'clarity')).toBeGreaterThan(
+      scoreBankMedia(brene, 'scattered', 'clarity'),
+    );
+    // And the unique tag winner is the pick, on any date.
+    for (const date of DATES) {
+      expect(pickMedia('conversation', 'scattered', 'clarity', date).title).toContain('Better Conversation');
+    }
+  });
+
+  it('picks are deterministic and always members of the focus bank', () => {
     for (const focus of TAILOR_FOCUSES) {
       for (const date of DATES) {
-        const url = mediaSearchUrl(pickMedia(focus.id, date));
-        expect(url).not.toContain('watch?v=');
-        expect(url).not.toContain('/embed/');
-        expect(url).not.toMatch(/[?&]v=[A-Za-z0-9_-]{11}/);
-        expect(
-          url.startsWith('https://www.youtube.com/results?search_query=') ||
-            url.startsWith('https://open.spotify.com/search/') ||
-            url.startsWith('https://www.google.com/search?q='),
-        ).toBe(true);
+        const a = pickMedia(focus.id, 'anxious', 'courage', date);
+        const b = pickMedia(focus.id, 'anxious', 'courage', date);
+        expect(a).toBe(b);
+        expect(MEDIA_BY_FOCUS[focus.id]).toContain(a);
       }
     }
   });
@@ -189,9 +228,9 @@ describe('composition with the model layer mocked', () => {
     expect(composed.script.spokenText).not.toContain('The canonical reflection');
     // No scene, no tomorrow teaser in a tailored script.
     expect(composed.script.spokenText).not.toContain('Tomorrow');
-    // The media pick rides along with a search URL.
+    // The media pick rides along with its own page address.
     expect(composed.media.url.length).toBeGreaterThan(0);
-    expect(composed.media.url).not.toContain('watch?v=');
+    expect(composed.media.url).toMatch(/^https:\/\/www\.youtube\.com\/watch\?v=/);
   });
 
   it('the narrator is the weekday narrator for the track — Thursday: Martin / Marta', async () => {
@@ -360,10 +399,15 @@ describe('v2 — the search query is built from enum categories only', () => {
       findMedia,
       hour: 7,
     });
-    expect(queries).toHaveLength(1);
-    expect(queries[0]).not.toContain('SENTINEL');
-    expect(queries[0]).not.toContain('review');
-    expect(queries[0]).not.toContain('patient');
+    // Three angle searches now (focus, state, reflection themes) — and the
+    // rule is unchanged for every one of them: categories and composed
+    // themes only, never a word the user wrote.
+    expect(queries).toHaveLength(3);
+    for (const q of queries) {
+      expect(q).not.toContain('SENTINEL');
+      expect(q).not.toContain('review');
+      expect(q).not.toContain('patient');
+    }
     // And the corpus query is categories only too.
     const corpusQuery = buildCorpusQuoteQuery({ state: 'anxious', focus: 'work', tone: 'courage', freeText: 'SENTINEL-FREETEXT' });
     expect(corpusQuery).not.toContain('SENTINEL');
@@ -376,54 +420,102 @@ const GROUNDED_OK = {
       content: {
         parts: [
           {
-            text: '{"title": "Be Not Afraid", "creator": "Bob Dufford", "kind": "song", "url": "https://www.youtube.com/watch?v=abc123XYZ"}',
+            text: '{"title": "Hall of Fame", "creator": "The Script feat. will.i.am", "kind": "song", "url": "https://www.youtube.com/watch?v=mk48xRzuNvA"}',
           },
         ],
       },
       groundingMetadata: {
         groundingChunks: [
-          { web: { uri: 'https://www.youtube.com/watch?v=abc123XYZ', title: 'Be Not Afraid — YouTube' } },
-          { web: { uri: 'https://en.wikipedia.org/wiki/Be_Not_Afraid', title: 'Be Not Afraid — Wikipedia' } },
+          { web: { uri: 'https://www.youtube.com/watch?v=mk48xRzuNvA', title: 'The Script - Hall of Fame (Official Video) ft. will.i.am' } },
+          { web: { uri: 'https://en.wikipedia.org/wiki/Hall_of_Fame_(song)', title: 'Hall of Fame — Wikipedia' } },
         ],
       },
     },
   ],
 };
 
+const GROUNDED_DEMONS = {
+  candidates: [
+    {
+      content: {
+        parts: [
+          {
+            text: '{"title": "Demons", "creator": "Imagine Dragons", "kind": "song", "url": "https://www.youtube.com/watch?v=mWRsgZuwf_8"}',
+          },
+        ],
+      },
+      groundingMetadata: {
+        groundingChunks: [
+          { web: { uri: 'https://www.youtube.com/watch?v=mWRsgZuwf_8', title: 'Imagine Dragons - Demons (Official Music Video)' } },
+        ],
+      },
+    },
+  ],
+};
+
+const GROUNDED_CHURCH = {
+  candidates: [
+    {
+      content: {
+        parts: [
+          {
+            text: '{"title": "On Eagle\'s Wings", "creator": "Michael Joncas", "kind": "song", "url": "https://www.youtube.com/watch?v=church12345"}',
+          },
+        ],
+      },
+      groundingMetadata: {
+        groundingChunks: [
+          { web: { uri: 'https://www.youtube.com/watch?v=church12345', title: "On Eagle's Wings — Catholic hymn" } },
+        ],
+      },
+    },
+  ],
+};
+
+/** A Gemini-shaped scorer reply carrying the given scores. */
+function scorerReply(scores: number[]) {
+  return {
+    candidates: [
+      { content: { parts: [{ text: JSON.stringify({ scores }) }] } },
+    ],
+  };
+}
+
 describe('v2 — grounded media: the address must come from the search’s own sources', () => {
   it('accepts a pick whose URL is verbatim among the grounding sources', () => {
     const pick = pickGroundedMedia(GROUNDED_OK, ['song', 'video', 'talk', 'podcast', 'article', 'book']);
     expect(pick).toEqual({
       kind: 'song',
-      title: 'Be Not Afraid',
-      creator: 'Bob Dufford',
-      url: 'https://www.youtube.com/watch?v=abc123XYZ',
+      title: 'Hall of Fame',
+      creator: 'The Script feat. will.i.am',
+      url: 'https://www.youtube.com/watch?v=mk48xRzuNvA',
+      source: 'The Script - Hall of Fame (Official Video) ft. will.i.am',
     });
   });
 
   it('rejects a URL the model composed — not among the grounding sources', () => {
     const forged = structuredClone(GROUNDED_OK);
     forged.candidates[0].content.parts[0].text =
-      '{"title": "Be Not Afraid", "creator": "Bob Dufford", "kind": "song", "url": "https://www.youtube.com/watch?v=INVENTED1"}';
+      '{"title": "Hall of Fame", "creator": "The Script", "kind": "song", "url": "https://www.youtube.com/watch?v=INVENTED1"}';
     expect(pickGroundedMedia(forged, ['song'])).toBeNull();
   });
 
   it('rejects a search page even when it is among the sources', () => {
     const searchy = structuredClone(GROUNDED_OK);
     searchy.candidates[0].groundingMetadata.groundingChunks.push({
-      web: { uri: 'https://www.youtube.com/results?search_query=be+not+afraid', title: 'Search' },
+      web: { uri: 'https://www.youtube.com/results?search_query=hall+of+fame', title: 'Search' },
     });
     searchy.candidates[0].content.parts[0].text =
-      '{"title": "Results", "creator": "YouTube", "kind": "video", "url": "https://www.youtube.com/results?search_query=be+not+afraid"}';
+      '{"title": "Results", "creator": "YouTube", "kind": "video", "url": "https://www.youtube.com/results?search_query=hall+of+fame"}';
     expect(pickGroundedMedia(searchy, ['video'])).toBeNull();
   });
 
   it('rejects a kind the morning did not allow, and non-https addresses', () => {
     expect(pickGroundedMedia(GROUNDED_OK, ['article', 'book'])).toBeNull();
     const http = structuredClone(GROUNDED_OK);
-    http.candidates[0].groundingMetadata.groundingChunks[0].web.uri = 'http://www.youtube.com/watch?v=abc123XYZ';
+    http.candidates[0].groundingMetadata.groundingChunks[0].web.uri = 'http://www.youtube.com/watch?v=mk48xRzuNvA';
     http.candidates[0].content.parts[0].text =
-      '{"title": "Be Not Afraid", "creator": "Bob Dufford", "kind": "song", "url": "http://www.youtube.com/watch?v=abc123XYZ"}';
+      '{"title": "Hall of Fame", "creator": "The Script", "kind": "song", "url": "http://www.youtube.com/watch?v=mk48xRzuNvA"}';
     expect(pickGroundedMedia(http, ['song'])).toBeNull();
   });
 
@@ -444,12 +536,13 @@ describe('v2 — grounded media: the address must come from the search’s own s
       hour: 7,
     });
     expect(composed.media.kind).toBe('song');
-    expect(composed.media.url).toBe('https://www.youtube.com/watch?v=abc123XYZ');
+    expect(composed.media.url).toBe('https://www.youtube.com/watch?v=mk48xRzuNvA');
     expect(composed.media.why).toBe(mediaWhyLine('work', 'courage'));
     expect(composed.media.why).not.toContain('review');
+    expect(composed.mediaStats.pool).toBe(1);
   });
 
-  it('any search failure falls back to the curated bank, search URL and all', async () => {
+  it('any search failure falls back to the curated bank and its verified address', async () => {
     for (const findMedia of [undefined, async () => null, async () => { throw new Error('down'); }, async () => ({ junk: true })]) {
       const composed = await composeTailored({
         dateISO: '2026-11-12',
@@ -460,9 +553,8 @@ describe('v2 — grounded media: the address must come from the search’s own s
         findMedia,
         hour: 7,
       });
-      expect(composed.media.url).toMatch(
-        /^https:\/\/(www\.youtube\.com\/results\?search_query=|open\.spotify\.com\/search\/|www\.google\.com\/search\?q=)/,
-      );
+      expect(MEDIA_BY_FOCUS.work.some((m) => m.url === composed.media.url)).toBe(true);
+      expect(composed.media.url).toMatch(/^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/);
       expect(composed.media.title.length).toBeGreaterThan(0);
     }
   });
@@ -485,7 +577,163 @@ describe('v2 — grounded media: the address must come from the search’s own s
     expect(queries[0]).toContain('articles');
     expect(queries[0]).toContain('for a Catholic woman');
     // The song was refused (kind not allowed) and the bank answered instead.
-    expect(composed.media.url).not.toBe('https://www.youtube.com/watch?v=abc123XYZ');
+    expect(composed.media.url).not.toBe('https://www.youtube.com/watch?v=mk48xRzuNvA');
+  });
+});
+
+describe('v3 — media rework: pop culture only, gathered, verified, scored', () => {
+  const POP_A: MediaCandidate = {
+    kind: 'song', title: 'Hall of Fame', creator: 'The Script feat. will.i.am',
+    url: 'https://www.youtube.com/watch?v=mk48xRzuNvA', source: 'The Script - Hall of Fame (Official Video)',
+  };
+  const POP_B: MediaCandidate = {
+    kind: 'song', title: 'Demons', creator: 'Imagine Dragons',
+    url: 'https://www.youtube.com/watch?v=mWRsgZuwf_8', source: 'Imagine Dragons - Demons (Official Music Video)',
+  };
+  const CHURCH: MediaCandidate = {
+    kind: 'song', title: "On Eagle's Wings", creator: 'Michael Joncas',
+    url: 'https://www.youtube.com/watch?v=church12345', source: "On Eagle's Wings — Catholic hymn",
+  };
+
+  it('the exclusion filter catches church content in any field', () => {
+    expect(isChurchMedia(CHURCH)).toBe(true);
+    expect(isChurchMedia({ title: 'Sunday Worship Set', creator: 'City Band', url: 'https://www.youtube.com/watch?v=x' })).toBe(true);
+    expect(isChurchMedia({ title: 'The Bible in a Year', creator: 'Fr. Mike Schmitz', url: 'https://www.youtube.com/watch?v=x' })).toBe(true);
+    expect(isChurchMedia({ title: 'Live at Red Rocks', creator: 'Elevation Worship', url: 'https://www.youtube.com/watch?v=x' })).toBe(true);
+    expect(isChurchMedia({ title: 'Morning Sermon', creator: 'Grace Community', url: 'https://www.youtube.com/watch?v=x' })).toBe(true);
+  });
+
+  it('the exclusion filter leaves pop culture alone — even a song with “church” in its name', () => {
+    expect(isChurchMedia({ title: 'Take Me to Church', creator: 'Hozier', url: 'https://www.youtube.com/watch?v=PVjiKRfKpPI' })).toBe(false);
+    expect(isChurchMedia(POP_A)).toBe(false);
+    expect(isChurchMedia(POP_B)).toBe(false);
+    expect(isChurchMedia({ title: 'Numb', creator: 'Linkin Park', url: 'https://www.youtube.com/watch?v=kXYiU_JCYtU' })).toBe(false);
+  });
+
+  it('selection rejects a church candidate even when the scorer ranked it first', () => {
+    expect(selectScoredMedia([CHURCH, POP_A], [100, 10])?.title).toBe('Hall of Fame');
+    expect(selectScoredMedia([CHURCH], [100])).toBeNull();
+    expect(selectScoredMedia([CHURCH, POP_A], null)?.title).toBe('Hall of Fame');
+  });
+
+  it('selection picks the rubric winner; ties keep pool order; null scores take the first survivor', () => {
+    expect(selectScoredMedia([POP_A, POP_B], [40, 85])?.title).toBe('Demons');
+    expect(selectScoredMedia([POP_A, POP_B], [85, 85])?.title).toBe('Hall of Fame');
+    expect(selectScoredMedia([POP_A, POP_B], null)?.title).toBe('Hall of Fame');
+  });
+
+  it('parseMediaScores accepts the exact shape and refuses everything else', () => {
+    expect(parseMediaScores(scorerReply([10, 90]), 2)).toEqual([10, 90]);
+    expect(parseMediaScores('{"scores": [55, 65]}', 2)).toEqual([55, 65]);
+    expect(parseMediaScores(scorerReply([10]), 2)).toBeNull();
+    expect(parseMediaScores(scorerReply([10, 90, 30]), 2)).toBeNull();
+    expect(parseMediaScores('no json here', 2)).toBeNull();
+    expect(parseMediaScores(null, 2)).toBeNull();
+    expect(parseMediaScores({ scores: ['high', 10] }, 2)).toBeNull();
+  });
+
+  it('the score prompt carries the rubric, the day’s categories, and every candidate', () => {
+    const prompt = buildMediaScorePrompt([POP_A, POP_B], {
+      focus: 'work', state: 'anxious', tone: 'courage', audience: 'men',
+      reflect: 'TAILORED REFLECTION about perseverance under pressure.',
+    });
+    expect(prompt).toContain('thematic fit');
+    expect(prompt).toContain('mainstream recognizability');
+    expect(prompt).toContain('format suitability');
+    expect(prompt).toContain('Church content');
+    expect(prompt).toContain('work & career');
+    expect(prompt).toContain('anxious');
+    expect(prompt).toContain('TAILORED REFLECTION about perseverance');
+    expect(prompt).toContain('Hall of Fame');
+    expect(prompt).toContain('Demons');
+    expect(prompt).not.toContain('SENTINEL');
+  });
+
+  it('theme keywords come from the composed reflection — and user words are struck even at one remove', () => {
+    const keywords = reflectionThemeKeywords(
+      'Perseverance perseverance: the widow keeps knocking, and her persistence is answered.',
+      ['Tell me about persistence at my review'],
+    );
+    expect(keywords).toContain('perseverance');
+    expect(keywords).not.toContain('persistence');
+    expect(keywords).not.toContain('review');
+    const query = buildMediaThemeQuery(keywords, ['song']);
+    expect(query).toContain('perseverance');
+    expect(query).not.toContain('review');
+  });
+
+  it('the state angle query leads with the feeling and keeps the same pop rules', () => {
+    const query = buildMediaStateQuery({ focus: 'grief', state: 'down', tone: 'consolation', audience: 'women', kinds: ['song'] });
+    expect(query).toContain('feeling down');
+    expect(query).toContain('grief');
+    expect(query).toContain('NOT be church content');
+    expect(query).toContain('Linkin Park');
+  });
+
+  it('a build gathers a pool across angles and the scorer’s winner is the card', async () => {
+    const prompts: string[] = [];
+    const composed = await composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'men',
+      intake: INTAKE,
+      bundle: BUNDLE,
+      generateTailored: async () => ({ reflect: 'A tailored reflection about perseverance and pressure.', challenge: 'One act.' }),
+      findMedia: async (query: string) => {
+        if (query.includes('feeling anxious')) return GROUNDED_DEMONS;
+        return GROUNDED_OK;
+      },
+      scoreMedia: async (prompt: string) => {
+        prompts.push(prompt);
+        // Pool order is angle order: Hall of Fame (focus), Demons (state).
+        return scorerReply([35, 92]);
+      },
+      hour: 7,
+    });
+    expect(composed.media.title).toBe('Demons');
+    expect(composed.media.url).toBe('https://www.youtube.com/watch?v=mWRsgZuwf_8');
+    expect(composed.mediaStats.pool).toBe(2);
+    expect(composed.mediaStats.verified).toBe(2);
+    expect(composed.mediaStats.spread).toBe(57);
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).not.toContain('Big review');
+  });
+
+  it('a scoring failure degrades to the first verified candidate', async () => {
+    for (const scoreMedia of [
+      async () => { throw new Error('down'); },
+      async () => null,
+      async () => ({ junk: true }),
+      async () => scorerReply([1]),
+    ]) {
+      const composed = await composeTailored({
+        dateISO: '2026-11-12',
+        audience: 'men',
+        intake: INTAKE,
+        bundle: BUNDLE,
+        generateTailored: async () => ({ reflect: 'A tailored reflection here.', challenge: 'One act.' }),
+        findMedia: async (query: string) => (query.includes('feeling anxious') ? GROUNDED_DEMONS : GROUNDED_OK),
+        scoreMedia,
+        hour: 7,
+      });
+      expect(composed.media.title).toBe('Hall of Fame');
+      expect(composed.mediaStats.spread).toBeNull();
+    }
+  });
+
+  it('a pool of nothing but church content falls back to the bank — church never reaches the card', async () => {
+    const composed = await composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'men',
+      intake: INTAKE,
+      bundle: BUNDLE,
+      generateTailored: async () => ({ reflect: 'A tailored reflection here.', challenge: 'One act.' }),
+      findMedia: async () => GROUNDED_CHURCH,
+      scoreMedia: async () => scorerReply([100]),
+      hour: 7,
+    });
+    expect(composed.media.title).not.toContain("Eagle's Wings");
+    expect(MEDIA_BY_FOCUS.work.some((m) => m.url === composed.media.url)).toBe(true);
+    expect(composed.mediaStats.verified).toBe(0);
   });
 });
 

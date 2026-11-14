@@ -20,7 +20,11 @@
   it) woven after the tailored reflection, and one media item found by live,
   search-grounded lookup whose query is built from enum categories only and
   whose address must come from the search's own grounding sources (the
-  curated bank still stands behind every failure).
+  curated bank still stands behind every failure). MEDIA REWORK (Nov 13,
+  2026): the card is pop culture (Erik) — several angle searches gather a
+  candidate pool, church content is hard-excluded in the core, and one
+  rubric scoring call (scoreMediaLive) picks the best verified candidate;
+  the bank was re-curated to pop works with live-verified addresses.
 
   PRIVACY — THE HARD RULE OF THIS FUNCTION:
   The intake (a state, a focus, a tone, at most one line in the user's own
@@ -376,9 +380,11 @@ async function generateTailored(systemPrompt: string, userPrompt: string): Promi
 
 // The screening lives in the instruction; the query itself is built in the
 // core from enum categories only (see buildMediaSearchQuery there). The raw
-// grounded response goes back to the core, which accepts a pick only when
-// its address appears verbatim among the response's own grounding sources.
-const MEDIA_SEARCH_INSTRUCTION = `You are Sanctum's media finder. Search the web for the one work the request describes and answer with ONLY a JSON object: {"title": "...", "creator": "...", "kind": "...", "url": "..."}. The url must be copied exactly from a page your search actually found — the work's own page, never a search-results page, never an address you composed or shortened. The title and creator must be the work's real ones. If nothing genuinely fits, answer {"title": "", "creator": "", "kind": "", "url": ""}.`;
+// grounded response goes back to the core, which accepts a candidate only
+// when its address appears verbatim among the response's own grounding
+// sources. Several angle searches gather the pool; the core excludes church
+// content and scores the survivors (see scoreMediaLive below).
+const MEDIA_SEARCH_INSTRUCTION = `You are Sanctum's media finder. Search the web for the one work the request describes and answer with ONLY a JSON object: {"title": "...", "creator": "...", "kind": "...", "url": "..."}. The work must be mainstream pop culture — a famous song, talk, interview, speech, or clip in the register of a David Goggins interview or a Linkin Park song. NEVER return church content: no worship music or hymns, no sermons or homilies, no church or ministry podcasts or channels, nothing devotional. The url must be copied exactly from a page your search actually found — the work's own page, never a search-results page, never an address you composed or shortened. The title and creator must be the work's real ones. If nothing genuinely fits, answer {"title": "", "creator": "", "kind": "", "url": ""}.`;
 
 async function searchMediaLive(query: string): Promise<unknown> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
@@ -393,6 +399,40 @@ async function searchMediaLive(query: string): Promise<unknown> {
           systemInstruction: { parts: [{ text: MEDIA_SEARCH_INSTRUCTION }] },
           contents: [{ role: "user", parts: [{ text: query }] }],
           tools: [{ google_search: {} }],
+          generationConfig: {
+            maxOutputTokens: 512,
+            thinkingConfig: { thinkingLevel: "low" },
+          },
+        }),
+        signal: AbortSignal.timeout(45000),
+      },
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// ── The media scorer (one rubric call over the verified pool) ────────────────
+
+// The rubric itself is built in the core (buildMediaScorePrompt there); this
+// is only the transport — a plain generation, no search tool. The raw reply
+// goes back to the core, which accepts it only in the exact scores shape.
+const MEDIA_SCORE_INSTRUCTION = `You are Sanctum's media scorer. Follow the rubric in the request exactly and answer with ONLY the JSON object it asks for — no prose, no explanation.`;
+
+async function scoreMediaLive(prompt: string): Promise<unknown> {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: MEDIA_SCORE_INSTRUCTION }] },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
             maxOutputTokens: 512,
             thinkingConfig: { thinkingLevel: "low" },
@@ -673,6 +713,7 @@ Deno.serve(async (req: Request) => {
       profile,
       generateTailored,
       findMedia: searchMediaLive,
+      scoreMedia: scoreMediaLive,
       corpusQuote,
       hour: losAngelesHour(),
     });
@@ -769,6 +810,8 @@ Deno.serve(async (req: Request) => {
     console.log(
       `tailor-devotional: date=${dateISO} audience=${audience} persona=${composed.script.persona} seconds=${audioSeconds} audio=${
         audioBase64 ? "present" : audioPlan ? `plan-${audioPlan.length}` : "absent"
+      } media-pool=${composed.mediaStats.pool} media-verified=${composed.mediaStats.verified} media-spread=${
+        composed.mediaStats.spread ?? "none"
       }`,
     );
     return jsonResponse(buildResponseBody(dateISO, composed, audioBase64, audioSeconds, audioPlan));

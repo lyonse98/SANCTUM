@@ -25,6 +25,13 @@
   Any failure on either hunt falls back quietly: the bank still picks, the
   devotional still builds.
 
+  MEDIA REWORK (Nov 13, 2026): the media card is pop culture now (Erik) —
+  several grounded searches gather a candidate pool, church content is
+  hard-excluded, and one rubric-scored call picks the best of the verified
+  pool, Miles-style. The bank behind it was re-curated to match: pop works
+  with live-verified addresses and state/tone tags, scored locally in the
+  same rubric's shape. See the media section below.
+
   PRIVACY, BY CONSTRUCTION: this module holds no persistence of any kind.
   The intake, the profile, and the composed devotional pass through it and
   out with the HTTP response; nothing here can write them anywhere.
@@ -37,7 +44,6 @@ import {
   isTailorSearchKind,
   isTailorState,
   isTailorTone,
-  mediaSearchUrl,
   pickMedia,
   pickPassage,
   tailorFocusLabel,
@@ -312,23 +318,64 @@ export function buildCorpusQuoteQuery(intake: TailorIntake): string {
   return parts.join(" ");
 }
 
-// ── The media pick: live search first, the bank behind it ────────────────────
+// ── The media pick: gather, verify, exclude, score — the bank behind it ──────
+//
+// REWORKED Nov 13, 2026 (Erik): the card is POP CULTURE — the worldly voice
+// answering the day, in the register of a David Goggins interview or a
+// Linkin Park song. The tradition quote already carries the sacred register,
+// so church content (worship music, hymns, sermons, church or ministry
+// podcasts) is HARD-EXCLUDED before scoring, however well it would fit.
+// Selection is Miles-style: several grounded searches gather a pool of
+// candidates, the existing grounding rule verifies each one, and ONE
+// scoring call ranks the verified pool against a written rubric — the best
+// score wins. Any failure degrades gracefully: no scores → the first
+// verified candidate; no verified candidates → the curated bank, whose
+// picks are scored locally from their tags in the same rubric's shape.
 
 export interface ComposedMedia {
   kind: TailorMediaKind;
   title: string;
   creator: string;
-  /** A found item's own page (live search), or a search URL (the curated bank). */
+  /** A found item's own page (live search), or the bank pick's own page. */
   url: string;
   /** One line, written from the morning's categories only: why this, today. */
   why: string;
 }
 
+/** A verified candidate: a found work whose address came from the search itself. */
+export interface MediaCandidate {
+  kind: TailorMediaKind;
+  title: string;
+  creator: string;
+  url: string;
+  /** The grounding source's own title for the page — exclusion/scoring context. */
+  source: string;
+}
+
 export interface MediaSearchArgs {
   focus: TailorFocus;
+  state?: TailorState;
   tone: TailorTone | null;
   audience: NarratorAudience;
   kinds: TailorSearchKind[];
+}
+
+/** The register every media query states, word for word. */
+const MEDIA_POP_RULES =
+  `The register is mainstream pop culture — a David Goggins interview, a Linkin Park song, a famous talk: ` +
+  `secular, well-known, and genuinely lifting. It must NOT be church content: no worship music or hymns, ` +
+  `no sermons or homilies, no church or ministry podcasts or channels, nothing devotional. ` +
+  `Nothing that feeds despair, nothing scrupulous, no prosperity-gospel framing. `;
+
+function mediaAnswerTail(kinds: TailorSearchKind[]): string {
+  return (
+    `Answer with only a JSON object: {"title": "...", "creator": "...", "kind": one of ${kinds.join("/")}, "url": "..."} ` +
+    `where url is the exact address of the work itself from your search results — never a search page, never an address you composed.`
+  );
+}
+
+function mediaKindWords(kinds: TailorSearchKind[]): string {
+  return kinds.map((k) => `${TAILOR_SEARCH_KIND_LABELS[k].toLowerCase()}s`).join(", ");
 }
 
 /**
@@ -339,16 +386,71 @@ export interface MediaSearchArgs {
  * every user-written field and asserts none of them reaches the query.
  */
 export function buildMediaSearchQuery(args: MediaSearchArgs): string {
-  const kindWords = args.kinds.map((k) => `${TAILOR_SEARCH_KIND_LABELS[k].toLowerCase()}s`).join(", ");
   const who = args.audience === "women" ? "woman" : "man";
   const seeking = args.tone ? tailorToneLabel(args.tone).toLowerCase() : "encouragement";
   return (
-    `Find one real, well-known work — one of these kinds only: ${kindWords} — ` +
+    `Find one real, well-known work — one of these kinds only: ${mediaKindWords(args.kinds)} — ` +
     `for a Catholic ${who} whose day is about ${tailorFocusLabel(args.focus).toLowerCase()}, seeking ${seeking}. ` +
-    `It must be uplifting and truthful, compatible with the Catholic faith: nothing that feeds despair, ` +
-    `nothing scrupulous, no prosperity-gospel framing; a secular work that genuinely lifts is welcome when it fits. ` +
-    `Answer with only a JSON object: {"title": "...", "creator": "...", "kind": one of ${args.kinds.join("/")}, "url": "..."} ` +
-    `where url is the exact address of the work itself from your search results — never a search page, never an address you composed.`
+    MEDIA_POP_RULES +
+    mediaAnswerTail(args.kinds)
+  );
+}
+
+/** The second angle: the morning's STATE leads, the focus rides along. */
+export function buildMediaStateQuery(args: MediaSearchArgs): string {
+  const who = args.audience === "women" ? "woman" : "man";
+  const feeling = args.state ? tailorStateLabel(args.state).toLowerCase() : "steady";
+  const seeking = args.tone ? tailorToneLabel(args.tone).toLowerCase() : "encouragement";
+  return (
+    `Find one real, well-known work — one of these kinds only: ${mediaKindWords(args.kinds)} — ` +
+    `for a Catholic ${who} who is coming in feeling ${feeling} today, on a day about ` +
+    `${tailorFocusLabel(args.focus).toLowerCase()}, seeking ${seeking}. ` +
+    MEDIA_POP_RULES +
+    mediaAnswerTail(args.kinds)
+  );
+}
+
+/** Words too common — or too generic to aim a search — to be theme keywords. */
+const THEME_STOPWORDS = new Set([
+  "about", "above", "after", "again", "against", "because", "before", "behind",
+  "below", "between", "could", "every", "first", "found", "given", "great",
+  "heart", "hearts", "house", "jesus", "christ", "their", "there", "these",
+  "thing", "things", "those", "through", "today", "under", "until", "where",
+  "which", "while", "whole", "world", "would", "years", "yourself", "comes",
+  "coming", "going", "known", "makes", "never", "often", "other", "right",
+  "small", "still", "takes", "wants", "words", "being", "begins", "among",
+]);
+
+/**
+ * Theme keywords for the third search angle, drawn from the TAILORED
+ * REFLECTION — text the compose stage itself produced server-side from the
+ * day's readings, never the user's own words. As a belt over that brace,
+ * any word appearing in the morning's free text or the standing goal is
+ * struck from the list, so a user-written word cannot ride into a query
+ * even at one remove. Most frequent content words win; at most three.
+ */
+export function reflectionThemeKeywords(reflect: string, forbidden: string[] = []): string[] {
+  const banned = new Set(
+    forbidden.flatMap((f) => f.toLowerCase().match(/[a-z]{4,}/g) ?? []),
+  );
+  const counts = new Map<string, number>();
+  for (const word of reflect.toLowerCase().match(/[a-z]{5,}/g) ?? []) {
+    if (THEME_STOPWORDS.has(word) || banned.has(word)) continue;
+    counts.set(word, (counts.get(word) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 3)
+    .map(([word]) => word);
+}
+
+/** The third angle: the day's reflection themes, as keywords only. */
+export function buildMediaThemeQuery(keywords: string[], kinds: TailorSearchKind[]): string {
+  return (
+    `Find one real, well-known work — one of these kinds only: ${mediaKindWords(kinds)} — ` +
+    `that answers these themes from a morning reflection: ${keywords.join(", ")}. ` +
+    MEDIA_POP_RULES +
+    mediaAnswerTail(kinds)
   );
 }
 
@@ -383,7 +485,7 @@ function isSearchPageUrl(url: string): boolean {
  * mints a URL — and it must be the work's own page, not a search page. The
  * kind must be one of the kinds the morning allowed.
  */
-export function pickGroundedMedia(raw: unknown, kinds: TailorSearchKind[]): Omit<ComposedMedia, "why"> | null {
+export function pickGroundedMedia(raw: unknown, kinds: TailorSearchKind[]): MediaCandidate | null {
   if (!raw || typeof raw !== "object") return null;
   const candidate = (raw as Record<string, unknown>).candidates as Record<string, unknown>[] | undefined;
   const first = Array.isArray(candidate) ? candidate[0] : undefined;
@@ -432,7 +534,163 @@ export function pickGroundedMedia(raw: unknown, kinds: TailorSearchKind[]): Omit
     }
   }
   if (!creator) return null;
-  return { kind: answer.kind, title: title.slice(0, 160), creator: creator.slice(0, 120), url };
+  return {
+    kind: answer.kind,
+    title: title.slice(0, 160),
+    creator: creator.slice(0, 120),
+    url,
+    source: (sources.get(url) ?? "").slice(0, 160),
+  };
+}
+
+// ── The hard exclusion: no church content, however well it fits ──────────────
+
+/**
+ * Terms that mark a candidate as church content — worship and liturgical
+ * music, sermons and ministry media, the big church-media brands and the
+ * best-known liturgical composers. Matched against title + creator + url +
+ * the grounding source's title. Deliberately phrase-level where a bare word
+ * would misfire: "church" alone never excludes (Hozier's "Take Me to
+ * Church" is a pop song and stays eligible); "church music" and "church
+ * podcast" do. A bare "catholic" excludes — on this card the sacred has its
+ * own voice (the tradition quote), and a false drop costs one candidate
+ * from a pool, never the card.
+ */
+const CHURCH_MEDIA_TERMS = [
+  "worship", "hymn", "sermon", "homily", "homilies", "ministry", "ministries",
+  "ccm", "christian music", "christian podcast", "christian radio",
+  "church music", "church podcast", "gospel music", "gospel choir",
+  "praise team", "devotional", "bible study", "bible in a year",
+  "rosary", "novena", "eucharistic", "liturgy", "liturgical",
+  "sunday mass", "daily mass", "parish",
+  "catholic answers", "word on fire", "ascension presents", "ewtn",
+  "pints with aquinas", "fr. mike", "father mike", "bishop barron",
+  "bethel music", "hillsong", "elevation worship", "maverick city",
+  "michael joncas", "dan schutte", "marty haugen", "bob dufford",
+  "catholic",
+];
+
+const CHURCH_ROLE_PATTERN = /\b(fr|pastor|priest|bishop|monsignor|rev)\.\s+[a-z]/;
+
+/** True when a candidate is church content — out before scoring, regardless of fit. */
+export function isChurchMedia(candidate: {
+  title: string;
+  creator: string;
+  url: string;
+  source?: string;
+}): boolean {
+  const hay = `${candidate.title} ${candidate.creator} ${candidate.url} ${candidate.source ?? ""}`
+    .toLowerCase();
+  if (CHURCH_MEDIA_TERMS.some((term) => hay.includes(term))) return true;
+  return CHURCH_ROLE_PATTERN.test(hay);
+}
+
+// ── The scoring: one rubric, one winner ──────────────────────────────────────
+
+/**
+ * THE RUBRIC (the same shape the bank's local tag scoring mirrors):
+ *   thematic fit — state, focus, and tone of the morning:        0–40
+ *   reflection thrust — answers what today's reflection pressed: 0–25
+ *   mainstream recognizability — Goggins / Linkin Park tier:     0–20
+ *   format suitability — a song, talk, interview, or clip a
+ *     person would actually open from a devotional:              0–15
+ * Total 100. Church content scores 0 — it is filtered in code before the
+ * prompt is ever built; the instruction rides along as defense in depth.
+ */
+export interface MediaScoreContext {
+  focus: TailorFocus;
+  state: TailorState;
+  tone: TailorTone | null;
+  audience: NarratorAudience;
+  /** The tailored reflection, composed this build — its thrust is scored against. */
+  reflect: string;
+}
+
+export function buildMediaScorePrompt(
+  candidates: MediaCandidate[],
+  ctx: MediaScoreContext,
+): string {
+  const lines: string[] = [];
+  lines.push(
+    `You are Sanctum's media scorer. Score each candidate work from 0 to 100 for a Catholic ` +
+      `${ctx.audience === "women" ? "woman" : "man"} whose day is about ${tailorFocusLabel(ctx.focus).toLowerCase()}, ` +
+      `who is coming in ${tailorStateLabel(ctx.state).toLowerCase()}` +
+      `${ctx.tone ? `, seeking ${tailorToneLabel(ctx.tone).toLowerCase()}` : ""}.`,
+  );
+  lines.push(
+    `\nScore on this rubric, summed to one total per candidate:\n` +
+      `- thematic fit to that state, focus, and tone: 0-40\n` +
+      `- fit to the reflection's thrust below: 0-25\n` +
+      `- mainstream recognizability (David Goggins / Linkin Park / Coldplay tier scores high; an obscure channel scores low): 0-20\n` +
+      `- format suitability — a song, talk, interview, or clip someone would actually open from a morning devotional (a full album, a multi-hour stream, or a listing page scores low): 0-15\n` +
+      `Church content — worship music, hymns, sermons, church or ministry podcasts — scores 0 overall, always.`,
+  );
+  lines.push(`\nThe reflection's thrust:\n${ctx.reflect.slice(0, 700)}`);
+  lines.push(`\nCandidates, in order:`);
+  candidates.forEach((c, i) => {
+    lines.push(`${i + 1}. [${c.kind}] "${c.title}" by ${c.creator} — ${c.url}`);
+  });
+  lines.push(
+    `\nAnswer with ONLY a JSON object: {"scores": [one integer per candidate, in order]}.`,
+  );
+  return lines.join("\n");
+}
+
+/**
+ * Parses the scorer's answer into one score per candidate, or null. The
+ * reply may arrive as a raw string or inside a Gemini-shaped response; the
+ * shape must be exact — the right count of finite numbers — or the caller
+ * degrades to the first verified candidate rather than guessing.
+ */
+export function parseMediaScores(raw: unknown, count: number): number[] | null {
+  let text = "";
+  if (typeof raw === "string") {
+    text = raw;
+  } else if (raw && typeof raw === "object") {
+    const candidate = (raw as Record<string, unknown>).candidates as
+      | Record<string, unknown>[]
+      | undefined;
+    const first = Array.isArray(candidate) ? candidate[0] : undefined;
+    const content = first?.content as Record<string, unknown> | undefined;
+    const parts = content?.parts as Record<string, unknown>[] | undefined;
+    if (Array.isArray(parts)) {
+      text = parts.map((p) => (typeof p.text === "string" ? p.text : "")).join("");
+    }
+  }
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    const parsed = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
+    const scores = parsed.scores;
+    if (!Array.isArray(scores) || scores.length !== count) return null;
+    const out: number[] = [];
+    for (const s of scores) {
+      if (typeof s !== "number" || !Number.isFinite(s)) return null;
+      out.push(Math.max(0, Math.min(100, Math.round(s))));
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Picks the winner from a candidate pool: church content is dropped FIRST
+ * (even a top-ranked church candidate can never win), then the highest
+ * score wins, ties keep pool order, and null scores degrade to the first
+ * surviving candidate. Returns null only when nothing survives.
+ */
+export function selectScoredMedia(
+  candidates: MediaCandidate[],
+  scores: number[] | null,
+): MediaCandidate | null {
+  const zipped = candidates
+    .map((c, i) => ({ c, s: scores ? scores[i] : null }))
+    .filter((z) => !isChurchMedia(z.c));
+  if (zipped.length === 0) return null;
+  if (scores === null) return zipped[0].c;
+  return zipped.reduce((best, z) => ((z.s ?? 0) > (best.s ?? 0) ? z : best)).c;
 }
 
 const TONE_WHY_PHRASES: Record<TailorTone, string> = {
@@ -459,6 +717,12 @@ export interface ComposedTailored {
   script: TailoredScript;
   /** The day narrator's name — the only credit the tailored devotional carries. */
   narratorName: string;
+  /**
+   * Counts only, for the caller's stage log: how many verified candidates
+   * the pool held, how many survived the exclusion, and the winning score
+   * spread when scoring ran. Never titles, never queries.
+   */
+  mediaStats: { pool: number; verified: number; spread: number | null };
 }
 
 export interface ComposeDeps {
@@ -471,10 +735,18 @@ export interface ComposeDeps {
   /** The one model call — injected so tests mock the model layer. */
   generateTailored: (systemPrompt: string, userPrompt: string) => Promise<TailoredParts>;
   /**
-   * The live media search — injected; receives the enum-only query and
-   * returns the grounded response raw. Absent or failed: the bank picks.
+   * The live media search — injected; receives an enum-only query (or the
+   * theme-keyword query) and returns the grounded response raw. Called once
+   * per search angle; each answer contributes at most one candidate.
+   * Absent or failed: the bank picks.
    */
   findMedia?: (query: string) => Promise<unknown>;
+  /**
+   * The media scorer — injected; receives the rubric prompt over the
+   * verified pool and returns the model's raw reply. Absent, failed, or
+   * unusable: the first verified candidate wins.
+   */
+  scoreMedia?: (prompt: string) => Promise<unknown>;
   /**
    * A tradition quote already retrieved from the corpus shelf (index.ts
    * resolves it before composing). Null/absent: the dataset shelf answers.
@@ -498,27 +770,86 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
   const profile = deps.profile ?? null;
   const passage = pickPassage(intake.focus, intake.state, dateISO);
 
-  // The media: a live search through the morning's allowed kinds first; any
-  // failure — no search wired, no answer, an unusable answer — and the
-  // curated bank picks, exactly as v1 did. Either way the why-line is
-  // written here, from categories only.
+  // The one generation runs first now: the media hunt scores candidates
+  // against the tailored reflection's thrust, and its third search angle is
+  // aimed by the reflection's own theme keywords.
+  const systemPrompt = buildTailorSystemPrompt(audience);
+  const userPrompt = buildTailorUserPrompt(bundle, intake, passage, profile, audience);
+  const tailored = await deps.generateTailored(systemPrompt, userPrompt);
+
+  // The media: gather → verify → exclude → score, the bank behind every
+  // failure. Three grounded searches (focus angle, state angle, reflection-
+  // theme angle) run in parallel through the morning's allowed kinds; each
+  // contributes at most one candidate, and a candidate counts only when the
+  // grounding rule verifies its address. Church content is excluded before
+  // scoring; one scoring call ranks the survivors against the rubric; any
+  // failure along the way degrades — first verified candidate, then the
+  // bank. Either way the why-line is written here, from categories only.
   const kinds: TailorSearchKind[] =
     profile && profile.mediaPrefs.length > 0 ? profile.mediaPrefs : [...TAILOR_SEARCH_KINDS];
-  let found: Omit<ComposedMedia, "why"> | null = null;
+  const mediaStats = { pool: 0, verified: 0, spread: null as number | null };
+  let found: MediaCandidate | null = null;
   if (deps.findMedia) {
-    const query = buildMediaSearchQuery({ focus: intake.focus, tone: intake.tone, audience, kinds });
-    const raw = await deps.findMedia(query).catch(() => null);
-    found = pickGroundedMedia(raw, kinds);
+    const searchArgs: MediaSearchArgs = {
+      focus: intake.focus,
+      state: intake.state,
+      tone: intake.tone,
+      audience,
+      kinds,
+    };
+    const queries = [buildMediaSearchQuery(searchArgs), buildMediaStateQuery(searchArgs)];
+    const themeKeywords = reflectionThemeKeywords(tailored.reflect, [
+      intake.freeText,
+      profile?.standingGoal ?? "",
+    ]);
+    if (themeKeywords.length > 0) queries.push(buildMediaThemeQuery(themeKeywords, kinds));
+    const raws = await Promise.all(
+      queries.map((q) => deps.findMedia!(q).catch(() => null)),
+    );
+    const pool: MediaCandidate[] = [];
+    const seen = new Set<string>();
+    for (const raw of raws) {
+      const candidate = pickGroundedMedia(raw, kinds);
+      if (candidate && !seen.has(candidate.url)) {
+        seen.add(candidate.url);
+        pool.push(candidate);
+      }
+    }
+    mediaStats.pool = pool.length;
+    const survivors = pool.filter((c) => !isChurchMedia(c));
+    mediaStats.verified = survivors.length;
+    if (survivors.length > 0) {
+      let scores: number[] | null = null;
+      if (deps.scoreMedia && survivors.length > 1) {
+        const prompt = buildMediaScorePrompt(survivors, {
+          focus: intake.focus,
+          state: intake.state,
+          tone: intake.tone,
+          audience,
+          reflect: tailored.reflect,
+        });
+        const rawScores = await deps.scoreMedia(prompt).catch(() => null);
+        scores = parseMediaScores(rawScores, survivors.length);
+        if (scores) mediaStats.spread = Math.max(...scores) - Math.min(...scores);
+      }
+      found = selectScoredMedia(survivors, scores);
+    }
   }
   const media: ComposedMedia = found
-    ? { ...found, why: mediaWhyLine(intake.focus, intake.tone) }
+    ? {
+        kind: found.kind,
+        title: found.title,
+        creator: found.creator,
+        url: found.url,
+        why: mediaWhyLine(intake.focus, intake.tone),
+      }
     : (() => {
-        const pick = pickMedia(intake.focus, dateISO);
+        const pick = pickMedia(intake.focus, intake.state, intake.tone, dateISO);
         return {
           kind: pick.type,
           title: pick.title,
           creator: pick.creator,
-          url: mediaSearchUrl(pick),
+          url: pick.url,
           why: mediaWhyLine(intake.focus, intake.tone),
         };
       })();
@@ -530,10 +861,6 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
     (deps.datasetQuote !== undefined
       ? deps.datasetQuote
       : pickTraditionQuote(audience, intake.focus, intake.tone, dateISO));
-
-  const systemPrompt = buildTailorSystemPrompt(audience);
-  const userPrompt = buildTailorUserPrompt(bundle, intake, passage, profile, audience);
-  const tailored = await deps.generateTailored(systemPrompt, userPrompt);
 
   const script = assembleTailoredScript({
     dateISO,
@@ -561,6 +888,7 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
     traditionQuote,
     script,
     narratorName: PERSONA_DISPLAY[script.persona]?.name ?? "The Lector",
+    mediaStats,
   };
 }
 

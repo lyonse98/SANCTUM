@@ -2,10 +2,10 @@
  * The Tailor Today banks (Erik's approval, Nov 12, 2026): the need-matched passage
  * and the media card for a personalized devotional. CURATED, never generated — a
  * passage is *selected* from this file by the user's stated state and focus, and
- * the media pick is a real, well-known work (a song, a film, a podcast, a talk)
- * presented as title + creator with a *search* URL built from the two (never an
- * invented media id, never embedded media). If a need is not in the bank, the
- * bank is extended by a human, not by the model.
+ * the media pick is a real, well-known work of pop culture (a song, a talk,
+ * an interview) presented as title + creator with its own page's address —
+ * every bank address verified live when curated, never embedded media. If a
+ * need is not in the bank, the bank is extended by a human, not by the model.
  *
  * Passage texts are Douay-Rheims (public domain), the translation the app falls
  * back to for the books the World English Bible lacks; each entry carries its
@@ -347,71 +347,238 @@ export interface TailorMedia {
   type: TailorMediaType;
   title: string;
   creator: string;
+  /** The work's own page — a direct address, verified live when curated. */
+  url: string;
+  /** One line on what the work is and why it can answer a morning. */
+  blurb: string;
+  /** States the work answers — the fallback pick's tag-fit scoring reads these. */
+  states: TailorState[];
+  /** Tones the work answers. */
+  tones: TailorTone[];
 }
 
 /**
- * The media bank (Nov 12, 2026 — broadened from songs at Erik's steer): ONE
- * pick per devotional, spanning songs, films, podcasts, and video talks,
- * chosen to tie the day's readings to the stated need. Every entry is a real,
- * well-known work. The card carries title + creator + a SEARCH URL only —
- * YouTube for songs and talks, Spotify for podcasts, a web search for films —
- * never an invented direct media id, never embedded media.
+ * The media bank — RE-CURATED Nov 13, 2026 at Erik's direction: POP CULTURE,
+ * not church content. The tradition quote carries the sacred register; this
+ * card is the worldly voice answering the day — a David Goggins interview,
+ * a Linkin Park song, a TED talk, a commencement address. No worship music,
+ * no hymns, no sermons, no church or ministry podcasts: none are in the
+ * bank, and the live-search path hard-excludes them before scoring.
+ *
+ * Every entry is a real, well-known work, and every URL is the work's own
+ * YouTube page, VERIFIED LIVE at curation time through YouTube's oEmbed
+ * endpoint (the endpoint answered success for the exact address, with the
+ * work's own title and channel). A shorter bank of real links beats a long
+ * one with dead ones — anything that stops verifying gets dropped, never
+ * replaced by a search URL or an address from memory.
  */
 export const MEDIA_BY_FOCUS: Record<TailorFocus, TailorMedia[]> = {
   work: [
-    { type: 'song', title: "They'll Know We Are Christians", creator: 'Peter Scholtes' },
-    { type: 'film', title: 'A Man for All Seasons', creator: 'Fred Zinnemann' },
+    {
+      type: 'podcast',
+      title: 'Joe Rogan Experience, Episode 1080 — David Goggins',
+      creator: 'David Goggins with Joe Rogan',
+      url: 'https://www.youtube.com/watch?v=5tSTk1083VY',
+      blurb: 'Goggins tells how a man rebuilds himself from nothing — the accountability mirror, and showing up on the days it is hardest.',
+      states: ['down', 'scattered', 'angry'],
+      tones: ['challenge', 'courage'],
+    },
+    {
+      type: 'song',
+      title: 'Hall of Fame',
+      creator: 'The Script feat. will.i.am',
+      url: 'https://www.youtube.com/watch?v=mk48xRzuNvA',
+      blurb: 'A mainstream anthem about doing the unglamorous work, day after day, until the world knows your name.',
+      states: ['down', 'scattered', 'steady'],
+      tones: ['courage', 'challenge'],
+    },
   ],
   marriage: [
-    { type: 'song', title: 'When Love Is Found', creator: 'Brian Wren' },
-    { type: 'podcast', title: 'The Messy Family Project', creator: 'Mike and Alicia Hernon' },
+    {
+      type: 'song',
+      title: 'All of Me',
+      creator: 'John Legend',
+      url: 'https://www.youtube.com/watch?v=450p7goxZqg',
+      blurb: 'Legend gives all of himself, imperfections included — the shape of a vow, sung plain.',
+      states: ['grateful', 'steady', 'down'],
+      tones: ['comfort', 'consolation'],
+    },
+    {
+      type: 'song',
+      title: 'Thinking Out Loud',
+      creator: 'Ed Sheeran',
+      url: 'https://www.youtube.com/watch?v=lp-EO5I60KA',
+      blurb: 'Loving someone at seventy the way you love them now — a marriage measured in decades, not moments.',
+      states: ['grateful', 'steady'],
+      tones: ['comfort', 'consolation'],
+    },
   ],
   family: [
-    { type: 'song', title: 'All Are Welcome', creator: 'Marty Haugen' },
-    { type: 'film', title: 'The Lion, the Witch and the Wardrobe', creator: 'Andrew Adamson' },
+    {
+      type: 'song',
+      title: 'Count on Me',
+      creator: 'Bruno Mars',
+      url: 'https://www.youtube.com/watch?v=6k8cpUkKK4c',
+      blurb: '“You can count on me” — the simple promise every home quietly runs on.',
+      states: ['grateful', 'steady', 'anxious'],
+      tones: ['comfort', 'courage'],
+    },
+    {
+      type: 'song',
+      title: 'Counting Stars',
+      creator: 'OneRepublic',
+      url: 'https://www.youtube.com/watch?v=hT_nvWreIhg',
+      blurb: 'A man awake at night, dreaming bigger than his paycheck for the people he loves.',
+      states: ['anxious', 'down', 'scattered'],
+      tones: ['courage', 'clarity'],
+    },
   ],
   conversation: [
-    { type: 'song', title: 'Prayer of St. Francis', creator: 'Sebastian Temple' },
-    { type: 'film', title: 'The Mission', creator: 'Roland Joffé' },
+    {
+      type: 'talk',
+      title: 'The Power of Vulnerability',
+      creator: 'Brené Brown (TED)',
+      url: 'https://www.youtube.com/watch?v=iCvmsMzlF7o',
+      blurb: 'Brown’s famous TED talk: real connection begins exactly where pretending ends.',
+      states: ['anxious', 'angry', 'numb'],
+      tones: ['clarity', 'courage', 'comfort'],
+    },
+    {
+      type: 'talk',
+      title: '10 Ways to Have a Better Conversation',
+      creator: 'Celeste Headlee (TED)',
+      url: 'https://www.youtube.com/watch?v=R1vskiVDwl4',
+      blurb: 'A radio host’s ten rules for the talk you are dreading — listen first, be brief, be interested.',
+      states: ['scattered', 'angry', 'anxious'],
+      tones: ['clarity', 'challenge'],
+    },
   ],
   grief: [
-    { type: 'song', title: "On Eagle's Wings", creator: 'Michael Joncas' },
-    { type: 'talk', title: 'The Seven Last Words', creator: 'Fulton J. Sheen' },
+    {
+      type: 'song',
+      title: 'Fix You',
+      creator: 'Coldplay',
+      url: 'https://www.youtube.com/watch?v=k4V3Mo61fJM',
+      blurb: 'For the one who tried their best and it was not enough — lights will guide you home.',
+      states: ['down', 'numb'],
+      tones: ['consolation', 'comfort'],
+    },
+    {
+      type: 'song',
+      title: 'See You Again',
+      creator: 'Wiz Khalifa feat. Charlie Puth',
+      url: 'https://www.youtube.com/watch?v=RgKAFK5djSk',
+      blurb: 'Written for Paul Walker: grief that ends in reunion, not in despair.',
+      states: ['down', 'grateful'],
+      tones: ['consolation', 'comfort'],
+    },
   ],
   temptation: [
-    { type: 'song', title: 'Amazing Grace', creator: 'John Newton' },
-    { type: 'podcast', title: 'The Bible in a Year', creator: 'Fr. Mike Schmitz' },
+    {
+      type: 'song',
+      title: 'Demons',
+      creator: 'Imagine Dragons',
+      url: 'https://www.youtube.com/watch?v=mWRsgZuwf_8',
+      blurb: 'Naming the demons out loud instead of feeding them in the dark.',
+      states: ['angry', 'down', 'numb'],
+      tones: ['challenge', 'clarity'],
+    },
+    {
+      type: 'song',
+      title: 'Numb',
+      creator: 'Linkin Park',
+      url: 'https://www.youtube.com/watch?v=kXYiU_JCYtU',
+      blurb: 'The sound of feeling nothing under everyone else’s expectations — and refusing to stay there.',
+      states: ['numb', 'down', 'angry'],
+      tones: ['challenge', 'courage'],
+    },
   ],
   decision: [
-    { type: 'song', title: 'Here I Am, Lord', creator: 'Dan Schutte' },
-    { type: 'talk', title: 'Do Not Be Afraid — Inaugural Homily', creator: 'St. John Paul II' },
+    {
+      type: 'talk',
+      title: 'Make Your Bed — UT Austin Commencement Address',
+      creator: 'Admiral William H. McRaven',
+      url: 'https://www.youtube.com/watch?v=pxBQLFLei70',
+      blurb: 'A Navy SEAL admiral’s ten lessons: start with one small thing done right, and never ring the bell.',
+      states: ['scattered', 'anxious', 'down'],
+      tones: ['clarity', 'courage', 'challenge'],
+    },
+    {
+      type: 'song',
+      title: 'Unwritten',
+      creator: 'Natasha Bedingfield',
+      url: 'https://www.youtube.com/watch?v=b7k0a5hYnSI',
+      blurb: '“The rest is still unwritten” — a blank page taken as an invitation, not a threat.',
+      states: ['scattered', 'anxious', 'steady'],
+      tones: ['courage', 'clarity'],
+    },
   ],
   today: [
-    { type: 'song', title: 'Morning Has Broken', creator: 'Eleanor Farjeon' },
-    { type: 'talk', title: 'The Weight of Glory', creator: 'C. S. Lewis' },
+    {
+      type: 'song',
+      title: 'Here Comes the Sun',
+      creator: 'The Beatles',
+      url: 'https://www.youtube.com/watch?v=KQetemT1sWc',
+      blurb: 'Harrison’s sunrise after a long, cold winter — this day, received as a gift.',
+      states: ['grateful', 'steady', 'down'],
+      tones: ['comfort', 'consolation'],
+    },
+    {
+      type: 'song',
+      title: 'Three Little Birds',
+      creator: 'Bob Marley & The Wailers',
+      url: 'https://www.youtube.com/watch?v=HNBCVM4KbUM',
+      blurb: '“Don’t worry about a thing” — the day’s worry answered in three minutes flat.',
+      states: ['anxious', 'steady', 'scattered'],
+      tones: ['comfort', 'courage'],
+    },
   ],
 };
 
-/** The card's link for a pick — a search for the work, never a media id. */
-export function mediaSearchUrl(media: TailorMedia): string {
-  const query = encodeURIComponent(`${media.title} ${media.creator}`);
-  switch (media.type) {
-    case 'podcast':
-      return `https://open.spotify.com/search/${query}`;
-    case 'film':
-      return `https://www.google.com/search?q=${query}`;
-    default:
-      return `https://www.youtube.com/results?search_query=${query}`;
-  }
+/**
+ * The fallback pick's local scoring — the live rubric's shape, computed from
+ * tags instead of a model call (weights mirror the rubric in tailorCore):
+ *   thematic fit /40 — the entry sits in the day's focus bank (16), and its
+ *     tags name the morning's state (14) and tone (10);
+ *   reflection thrust /25 — the bank's blurbs were written to the states
+ *     they serve, so a state tag earns the full thrust weight, else 10;
+ *   recognizability /20 — every bank entry is mainstream by curation: 20;
+ *   format /15 — a song or a talk opens cleanly from a devotional (15);
+ *     a full podcast episode asks more of the morning (10).
+ */
+export function scoreBankMedia(
+  media: TailorMedia,
+  state: TailorState,
+  tone: TailorTone | null,
+): number {
+  const stateHit = media.states.includes(state);
+  const toneHit = tone !== null && media.tones.includes(tone);
+  let score = 16 + 20 + (media.type === 'podcast' ? 10 : 15);
+  score += stateHit ? 14 + 25 : 10;
+  score += toneHit ? 10 : 0;
+  return score;
 }
 
-/** The day's media pick for a focus — same rotation discipline as the passage. */
-export function pickMedia(focus: TailorFocus, dateISO: string): TailorMedia {
+/**
+ * The day's media pick from the bank: the tag-fit winner for the morning's
+ * state and tone, ties broken by the date rotation so the same need on a
+ * different day does not always land on the same work. Deterministic — the
+ * same (focus, state, tone, date) always selects the same entry.
+ */
+export function pickMedia(
+  focus: TailorFocus,
+  state: TailorState,
+  tone: TailorTone | null,
+  dateISO: string,
+): TailorMedia {
   const bank = MEDIA_BY_FOCUS[focus];
+  const scored = bank.map((m) => ({ m, score: scoreBankMedia(m, state, tone) }));
+  const best = Math.max(...scored.map((s) => s.score));
+  const pool = scored.filter((s) => s.score === best).map((s) => s.m);
   let hash = 0;
-  const seed = `${dateISO}|media|${focus}`;
+  const seed = `${dateISO}|media|${focus}|${state}|${tone ?? ''}`;
   for (let i = 0; i < seed.length; i++) {
     hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   }
-  return bank[hash % bank.length];
+  return pool[hash % pool.length];
 }
