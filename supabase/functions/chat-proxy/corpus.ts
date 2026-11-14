@@ -3,7 +3,8 @@
 // Everything here is behind the CORPUS_ENABLED gate in index.ts: when the flag is
 // off, none of this runs and chat-proxy behaves exactly as it did before the
 // corpus existed. When the flag is on, retrieval is ONE extra server-side call
-// with a hard timeout (§8.4: 400 ms); any failure — timeout, error status,
+// with a hard timeout (§8.4: 2,500 ms — see CORPUS_TIMEOUT_MS below for why the
+// original 400 ms figure was wrong); any failure — timeout, error status,
 // malformed body, empty shelf — returns null and the caller proceeds exactly as
 // it does today. The corpus can improve an answer; it can never break one.
 
@@ -32,8 +33,15 @@ export interface UsedCitation {
  *  list (§9.1). Mirrored in src/lib/chatSources.ts — keep the two in sync. */
 export const SOURCES_TRAILER_SENTINEL = "\n\n[[SANCTUM_SOURCES]]";
 
-/** §8.4: callers enforce a 400 ms hard cap on retrieval. */
-export const CORPUS_TIMEOUT_MS = 400;
+/** §8.4: callers enforce a hard cap on retrieval. The spec's original 400 ms
+ *  figure was written against an assumed-fast shelf; the real corpus-retrieve
+ *  service embeds the query via Gemini plus a vector search and measurably
+ *  takes ~1.4 s, so a 400 ms cap timed out on essentially every request and
+ *  silently starved every answer of its sources (fidelity eval, Nov 13 2026).
+ *  2,500 ms sits comfortably above the measured service time while keeping
+ *  the fail-open guarantee: past the cap, the caller proceeds without the
+ *  shelf exactly as before. */
+export const CORPUS_TIMEOUT_MS = 2500;
 
 export function corpusEnabled(): boolean {
   return Deno.env.get("CORPUS_ENABLED") === "true";
