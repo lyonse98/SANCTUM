@@ -125,7 +125,7 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
           </p>
           <div className="flex items-center justify-center gap-2 flex-wrap mt-3">
             <span className="text-[10px] stamped flex items-center gap-1" style={{ color: t.textDim }}>
-              <Lock className="w-3 h-3" /> Nothing Stored on a Server
+              <Lock className="w-3 h-3" /> Nothing You Write Is Stored
             </span>
             <span className="text-[10px]" style={{ color: t.textDim }}>•</span>
             <span className="text-[10px] stamped flex items-center gap-1" style={{ color: t.textDim }}>

@@ -57,7 +57,7 @@ describe('mission placements', () => {
     expect(homeScreen).not.toContain('{MISSION_LINE}');
     expect(homeScreen).not.toContain('{MISSION_ATTRIBUTION}');
     expect(homeScreen).not.toContain('private sanctuary');
-    expect(homeScreen).not.toContain('Nothing Stored on a Server');
+    expect(homeScreen).not.toContain('Nothing You Write Is Stored');
     expect(homeScreen).not.toContain('No Account Needed');
   });
 
@@ -65,7 +65,7 @@ describe('mission placements', () => {
     for (const source of [termsModal, aboutPage]) {
       expect(source).toContain('A private sanctuary for men seeking counsel, stillness, and strength');
       expect(source).toContain('A private sanctuary for women seeking counsel, stillness, and strength');
-      expect(source).toContain('Nothing Stored on a Server');
+      expect(source).toContain('Nothing You Write Is Stored');
       expect(source).toContain('No Account Needed');
     }
   });

@@ -78,7 +78,7 @@ export function TermsModal({ onAccept }: TermsModalProps) {
           )}
           <div className="flex items-center justify-center gap-2 flex-wrap mt-3">
             <span className="text-[10px] stamped flex items-center gap-1" style={{ color: '#A39A8A' }}>
-              <Lock className="w-3 h-3" /> Nothing Stored on a Server
+              <Lock className="w-3 h-3" /> Nothing You Write Is Stored
             </span>
             <span className="text-[10px]" style={{ color: '#A39A8A' }}>•</span>
             <span className="text-[10px] stamped flex items-center gap-1" style={{ color: '#A39A8A' }}>
