@@ -9,6 +9,16 @@
   encodes MP3, uploads the three segment files, and writes the `daily_audio` row the
   Gospel card reads.
 
+  Piece-work (Nov 13, 2026): the render used to do all of that in ONE invocation,
+  and the free-tier worker killed it mid-flight (WORKER_RESOURCE_LIMIT) before it
+  could record anything. Now each invocation renders at most one segment — one
+  TTS call, one decode/stretch, one encode — persists it, and chains to itself
+  (an authenticated `step` call, see ./renderPlan.ts) for the next piece. Storage
+  is the progress ledger: a crashed or killed invocation leaves its finished
+  pieces behind, and any later call resumes from exactly there. The schedule's
+  plain { date, audience } call still drives the whole chain; the row, the file
+  paths, and the client-visible lifecycle are unchanged.
+
   There is NO fallback voice (Erik, Nov 2, 2026): if rendering fails, the row ends
   `failed` and the card shows one plain line that audio is unavailable today. A day
   with no row shows nothing.
@@ -20,6 +30,10 @@
   - { "date": …, "force": true } + x-render-key    re-render a day; the header must match
                                                    the AUDIO_RENDER_KEY secret, else
                                                    `force` is ignored
+  - { "date": …, "step": true } + x-render-key     the render's own chained continuation
+                                                   (piece-work, Nov 13, 2026): renders the
+                                                   next unfinished piece and chains onward.
+                                                   Without the key it is just a normal call.
   - { "retention": true }                          delete segment files older than 90
                                                    days; rows are kept, marked expired
 
@@ -54,12 +68,24 @@ import {
 } from "./narratorCore.ts";
 import {
   SAMPLE_RATE,
-  concatPcm,
   decodeSpeechAudio,
   secondsOf,
   silenceSamples,
   stretchPcm,
 } from "./audioEngine.ts";
+import {
+  allPiecePaths,
+  isMainPiece,
+  mp3SecondsFromBytes,
+  pieceStoragePath,
+  planNext,
+  type RenderPiece,
+} from "./renderPlan.ts";
+
+// The edge runtime's background-task hook: a chained step call is dispatched
+// with fetch and registered here so the isolate stays alive until the request
+// has actually been handed to the next invocation.
+declare const EdgeRuntime: { waitUntil: (promise: Promise<unknown>) => void } | undefined;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -361,6 +387,15 @@ async function uploadMp3(path: string, bytes: Uint8Array<ArrayBuffer>): Promise<
   if (!res.ok) throw new StageError("upload", `upload ${path} HTTP ${res.status}`);
 }
 
+async function downloadMp3(path: string): Promise<Uint8Array> {
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const res = await fetch(`${supabaseUrl()}/storage/v1/object/${BUCKET}/${path}`, {
+    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+  });
+  if (!res.ok) throw new StageError("upload", `download ${path} HTTP ${res.status}`);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
 // ── Retention (spec §4.3) ─────────────────────────────────────────────────────
 
 async function storageList(prefix: string): Promise<{ name: string; id: string | null }[]> {
@@ -392,6 +427,26 @@ async function storageDelete(paths: string[]): Promise<void> {
   });
 }
 
+/**
+ * Every file under a storage prefix, recursively. Folder entries carry no id;
+ * file entries do. Files live at <date>/<audience>/<segment>.mp3, with the
+ * piece-work staging halves one level deeper again under parts/ — the walk
+ * follows folders as far as they go so no layout strands files past the sweep.
+ */
+async function collectFiles(prefix: string, depth = 4): Promise<string[]> {
+  const entries = await storageList(prefix);
+  const paths: string[] = [];
+  for (const entry of entries) {
+    const path = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.id) {
+      paths.push(path);
+    } else if (depth > 0) {
+      paths.push(...(await collectFiles(path, depth - 1)));
+    }
+  }
+  return paths;
+}
+
 async function runRetention(): Promise<{ deleted: number; expired: number }> {
   const cutoff = addDaysISO(losAngelesToday(), -RETENTION_DAYS);
   const root = await storageList("");
@@ -401,21 +456,7 @@ async function runRetention(): Promise<{ deleted: number; expired: number }> {
 
   let deleted = 0;
   for (const folder of oldFolders) {
-    // Files live one level down, under <date>/<audience>/ (the pre-parity layout
-    // kept them directly under <date>/). Folder entries carry no id; file entries
-    // do. Walk both shapes so neither track's files outlive the sweep.
-    const entries = await storageList(folder);
-    const paths: string[] = [];
-    for (const entry of entries) {
-      if (entry.id) {
-        paths.push(`${folder}/${entry.name}`);
-      } else {
-        const sub = await storageList(`${folder}/${entry.name}`);
-        for (const obj of sub) {
-          if (obj.id) paths.push(`${folder}/${entry.name}/${obj.name}`);
-        }
-      }
-    }
+    const paths = await collectFiles(folder);
     if (paths.length > 0) {
       await storageDelete(paths);
       deleted += paths.length;
@@ -455,6 +496,88 @@ interface AudioRow {
   attempts?: number;
   persona?: string;
   updated_at?: string;
+  head_am_seconds?: number | string | null;
+  head_pm_seconds?: number | string | null;
+}
+
+/** Which pieces already exist in storage — the render's progress ledger. */
+async function listPieceInventory(
+  dateISO: string,
+  audience: NarratorAudience,
+): Promise<Set<RenderPiece>> {
+  const done = new Set<RenderPiece>();
+  const finals = await storageList(`${dateISO}/${audience}`);
+  for (const entry of finals) {
+    if (!entry.id) continue;
+    if (entry.name === "head-am.mp3") done.add("head-am");
+    if (entry.name === "head-pm.mp3") done.add("head-pm");
+  }
+  const parts = await storageList(`${dateISO}/${audience}/parts`);
+  for (const entry of parts) {
+    if (!entry.id) continue;
+    if (entry.name === "main-a.mp3") done.add("main-a");
+    if (entry.name === "main-b.mp3") done.add("main-b");
+  }
+  return done;
+}
+
+/** Byte size of a stored object, via its parent listing's metadata (0 if absent). */
+async function storageObjectBytes(path: string): Promise<number> {
+  const slash = path.lastIndexOf("/");
+  const entries = (await storageList(path.slice(0, slash))) as {
+    name: string;
+    id: string | null;
+    metadata?: { size?: number } | null;
+  }[];
+  const entry = entries.find((e) => e.name === path.slice(slash + 1));
+  return typeof entry?.metadata?.size === "number" ? entry.metadata.size : 0;
+}
+
+/**
+ * Hand the day to the next invocation: a step call back into this function,
+ * carrying the render key so the planner knows it is the render's own
+ * continuation (external callers still meet the in-flight gate). Dispatched
+ * with fetch and held open by the runtime's waitUntil — this isolate has
+ * already sent its response; the promise only proves the handoff landed.
+ */
+function chainNextStep(dateISO: string, audience: NarratorAudience): void {
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const renderKey = Deno.env.get("AUDIO_RENDER_KEY") ?? "";
+  const handedOff = fetch(`${supabaseUrl()}/functions/v1/audio-render`, {
+    method: "POST",
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      "Content-Type": "application/json",
+      ...(renderKey ? { "x-render-key": renderKey } : {}),
+    },
+    body: JSON.stringify({ date: dateISO, audience, step: true }),
+  })
+    .then((res) => res.text())
+    .catch(() => {
+      // A lost handoff is not a lost day: the finished pieces are in storage
+      // and the next schedule call (or the retry) resumes from them.
+      console.error(`audio-render chain: handoff unconfirmed date=${dateISO} audience=${audience}`);
+    });
+  if (typeof EdgeRuntime !== "undefined") {
+    EdgeRuntime.waitUntil(handedOff);
+  }
+}
+
+function concatBytes(...parts: Uint8Array[]): Uint8Array<ArrayBuffer> {
+  const total = parts.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const part of parts) {
+    out.set(part, at);
+    at += part.length;
+  }
+  return out;
+}
+
+function numericOrNull(value: number | string | null | undefined): number | null {
+  const n = typeof value === "string" ? Number(value) : value;
+  return typeof n === "number" && Number.isFinite(n) && n > 0 ? n : null;
 }
 
 async function runRender(
@@ -462,38 +585,44 @@ async function runRender(
   audience: NarratorAudience,
   force: boolean,
   dryRun: boolean,
+  viaStep: boolean,
 ): Promise<Response> {
   const rows = await restSelect(
     "daily_audio",
-    `date=eq.${dateISO}&audience=eq.${audience}&select=status,attempts,persona,updated_at`,
+    `date=eq.${dateISO}&audience=eq.${audience}&select=status,attempts,persona,updated_at,head_am_seconds,head_pm_seconds`,
   );
   const row = (rows[0] ?? null) as AudioRow | null;
   const attempts = typeof row?.attempts === "number" ? row.attempts : 0;
+  const updatedAtMs =
+    typeof row?.updated_at === "string" ? Date.parse(row.updated_at) : null;
 
+  // The two gates that need nothing but the row run before any bundle work,
+  // exactly as the monolith had them: a ready day must never be failed over
+  // by an upstream hiccup, and a live render is left alone. The planner
+  // re-checks both below — these early returns only keep the failure writer
+  // honest.
   if (!dryRun) {
     if (row?.status === "ready" && !force) {
       return jsonResponse({ ok: true, skipped: "ready" });
     }
     if (
+      !viaStep &&
       row?.status === "rendering" &&
-      typeof row.updated_at === "string" &&
-      Date.now() - Date.parse(row.updated_at) < RENDERING_STALE_MS
+      updatedAtMs !== null &&
+      Date.now() - updatedAtMs < RENDERING_STALE_MS
     ) {
       return jsonResponse({ ok: true, skipped: "in-flight" });
-    }
-    if (!force && row?.status === "failed" && attempts >= RETRY_ATTEMPTS) {
-      return jsonResponse({ ok: true, skipped: "attempts" });
-    }
-    if (!force && attempts >= MAX_ATTEMPTS) {
-      return jsonResponse({ ok: true, skipped: "attempts" });
     }
   }
 
   let persona: NarratorId = row?.persona && typeof row.persona === "string"
     ? (row.persona as NarratorId)
     : fallbackPersona(dateISO, audience);
-  let attempt = attempts;
-  let claimed = false;
+  // What the failure record should carry if this invocation dies. A failure
+  // before the plan (bundle/assembly) consumes an attempt, as the monolith's
+  // did (§8.2.9 counts runs); once the plan is known, only a fresh-start
+  // claim consumes one — resumes are free (see renderPlan.ts).
+  let failureAttempts = attempts + 1;
 
   try {
     const bundle = await ensureBundle(dateISO, audience);
@@ -539,9 +668,38 @@ async function runRender(
       });
     }
 
-    // Claim the run before any speech spend (§8.2 step 3). Assembly above is pure and
-    // cheap, so the claim already carries the true persona.
-    attempt = attempts + 1;
+    // A force re-render starts from a clean slate: wipe every piece file so
+    // no fragment of the previous render can be mistaken for fresh progress.
+    if (force) {
+      await storageDelete(allPiecePaths(dateISO, audience));
+    }
+
+    const piecesDone = await listPieceInventory(dateISO, audience);
+    const action = planNext({
+      status: row?.status ?? null,
+      attempts,
+      updatedAtMs: Number.isFinite(updatedAtMs) ? updatedAtMs : null,
+      nowMs: Date.now(),
+      staleMs: RENDERING_STALE_MS,
+      force,
+      viaStep,
+      lector: assembled.lector,
+      piecesDone,
+      maxAttempts: MAX_ATTEMPTS,
+      retryAttempts: RETRY_ATTEMPTS,
+    });
+
+    if (action.kind === "skip") {
+      return jsonResponse({ ok: true, skipped: action.reason });
+    }
+
+    failureAttempts = attempts + (action.kind === "render" && action.claimAttempt ? 1 : 0);
+    const attempt = failureAttempts;
+
+    // Claim / heartbeat before any speech spend (§8.2 step 3): the row shows
+    // `rendering` with the true persona and a fresh timestamp from the first
+    // piece onward, so a concurrent external call stands down and a killed
+    // invocation leaves a stale — resumable — claim rather than a mystery.
     await upsertRow("daily_audio", {
       date: dateISO,
       audience,
@@ -550,81 +708,127 @@ async function runRender(
       attempts: attempt,
       updated_at: new Date().toISOString(),
     });
-    claimed = true;
-
-    const profile =
-      persona === "lector"
-        ? audience === "women"
-          ? LECTOR_BANK_WOMEN
-          : LECTOR_BANK
-        : audience === "women"
-          ? BANK_WOMEN[persona as keyof typeof BANK_WOMEN]
-          : BANK[persona as keyof typeof BANK];
-
-    // The lexicon transforms the speech payloads only — the stored script stays
-    // canonical, and the hash below is of the canonical text (§8.2 step 6).
-    const payloadHeadAM = applyLexicon(assembled.headAM);
-    const payloadHeadPM = applyLexicon(assembled.headPM);
-    const payloadMainA = applyLexicon(assembled.mainA);
-    const payloadMainB = applyLexicon(assembled.mainB);
-
-    // Speech → samples → tempo (§8.4). renderSpeech's StageError (tts) propagates;
-    // decode/stretch failures are assembly-stage.
-    const toPcm = async (text: string): Promise<Int16Array> => {
-      const bytes = await renderSpeech(text, profile.voice);
-      try {
-        return stretchPcm(decodeSpeechAudio(bytes), profile.tempo);
-      } catch (err) {
-        if (err instanceof StageError) throw err;
-        throw new StageError("assemble", err instanceof Error ? err.message : "assembly failed");
-      }
-    };
-
-    // Sequential on purpose: a failed call is never retried inside a run —
-    // the retry schedule is the retry (§8.3). Lector days render one head for both.
-    const headAmPcm = await toPcm(payloadHeadAM);
-    const headPmPcm = assembled.lector ? headAmPcm : await toPcm(payloadHeadPM);
-    const mainAPcm = await toPcm(payloadMainA);
-    const mainBPcm = await toPcm(payloadMainB);
-    const mainPcm = concatPcm(mainAPcm, silenceSamples(AUDIO_SILENCE_SECONDS), mainBPcm);
-
-    const headAmMp3 = encodeMp3(headAmPcm);
-    const headPmMp3 = assembled.lector ? headAmMp3 : encodeMp3(headPmPcm);
-    const mainMp3 = encodeMp3(mainPcm);
 
     const headAmPath = audioSegmentPath(dateISO, audience, "head-am");
     const headPmPath = audioSegmentPath(dateISO, audience, "head-pm");
     const mainPath = audioSegmentPath(dateISO, audience, "main");
-    await uploadMp3(headAmPath, headAmMp3);
-    await uploadMp3(headPmPath, headPmMp3);
-    await uploadMp3(mainPath, mainMp3);
 
-    const scriptHash = await sha256Hex(assembled.script);
-    await upsertRow("daily_audio", {
-      date: dateISO,
-      audience,
-      persona,
-      status: "ready",
-      head_am_path: headAmPath,
-      head_pm_path: headPmPath,
-      main_path: mainPath,
-      head_am_seconds: Math.round(secondsOf(headAmPcm) * 10) / 10,
-      head_pm_seconds: Math.round(secondsOf(headPmPcm) * 10) / 10,
-      main_seconds: Math.round(secondsOf(mainPcm) * 10) / 10,
-      script: assembled.script,
-      script_hash: scriptHash,
-      scene: assembled.sceneIncluded ? bundle.reflection.scene : null,
-      sober: assembled.sober,
-      teaser_included: assembled.teaserIncluded,
-      attempts: attempt,
-      last_error: null,
-      rendered_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
+    if (action.kind === "finalize") {
+      // Join main from its encoded halves. Every segment comes out of the
+      // same encoder at the same settings (24 kHz mono CBR 64 kbps, spec
+      // §3.3), and lamejs writes bare frames — no Xing/ID3 header to strand
+      // mid-file — so the joined bytes are one ordinary MP3 stream to any
+      // player: A, then the produced silence encoded on its own, then B.
+      // The sample-domain result is identical to the monolith's concatPcm:
+      // the same stretch, the same 2.0 s gap (AUDIO_SILENCE_SECONDS), the
+      // same order. Only the peak memory moved — from a whole track of PCM
+      // to one file of MP3 bytes.
+      const aBytes = await downloadMp3(pieceStoragePath(dateISO, audience, "main-a"));
+      const bBytes = await downloadMp3(pieceStoragePath(dateISO, audience, "main-b"));
+      const silenceMp3 = encodeMp3(silenceSamples(AUDIO_SILENCE_SECONDS));
+      const mainMp3 = concatBytes(aBytes, silenceMp3, bBytes);
+      await uploadMp3(mainPath, mainMp3);
+      await storageDelete([
+        pieceStoragePath(dateISO, audience, "main-a"),
+        pieceStoragePath(dateISO, audience, "main-b"),
+      ]);
 
-    const seconds = Math.round((secondsOf(headAmPcm) + secondsOf(headPmPcm) + secondsOf(mainPcm)) * 10) / 10;
-    console.log(`audio-render: date=${dateISO} audience=${audience} persona=${persona} seconds=${seconds} attempts=${attempt}`);
-    return jsonResponse({ ok: true, audience, persona, seconds });
+      // Durations: the heads' were recorded from their PCM as each rendered;
+      // fall back to the CBR byte count if a value never landed. The main
+      // track's PCM exists nowhere anymore, so its duration is the joined
+      // file's byte-derived length — within a frame of the true value.
+      const headAmSeconds =
+        numericOrNull(row?.head_am_seconds) ??
+        mp3SecondsFromBytes(await storageObjectBytes(headAmPath));
+      const headPmSeconds =
+        numericOrNull(row?.head_pm_seconds) ??
+        mp3SecondsFromBytes(await storageObjectBytes(headPmPath));
+      const mainSeconds = mp3SecondsFromBytes(mainMp3.length);
+
+      const scriptHash = await sha256Hex(assembled.script);
+      await upsertRow("daily_audio", {
+        date: dateISO,
+        audience,
+        persona,
+        status: "ready",
+        head_am_path: headAmPath,
+        head_pm_path: headPmPath,
+        main_path: mainPath,
+        head_am_seconds: headAmSeconds,
+        head_pm_seconds: headPmSeconds,
+        main_seconds: mainSeconds,
+        script: assembled.script,
+        script_hash: scriptHash,
+        scene: assembled.sceneIncluded ? bundle.reflection.scene : null,
+        sober: assembled.sober,
+        teaser_included: assembled.teaserIncluded,
+        attempts: attempt,
+        last_error: null,
+        rendered_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      const seconds = Math.round((headAmSeconds + headPmSeconds + mainSeconds) * 10) / 10;
+      console.log(`audio-render: date=${dateISO} audience=${audience} persona=${persona} seconds=${seconds} attempts=${attempt}`);
+      return jsonResponse({ ok: true, audience, persona, seconds });
+    }
+
+    // ── One piece per invocation ──────────────────────────────────────────
+    if (action.mode === "copy") {
+      // Lector days speak one head for both dayparts: head-pm is head-am's
+      // bytes at the PM address, and carries its duration.
+      const bytes = await downloadMp3(headAmPath);
+      await uploadMp3(headPmPath, bytes);
+      await patchRows("daily_audio", `date=eq.${dateISO}&audience=eq.${audience}`, {
+        head_pm_seconds: numericOrNull(row?.head_am_seconds) ?? mp3SecondsFromBytes(bytes.length),
+        updated_at: new Date().toISOString(),
+      });
+    } else {
+      const profile =
+        persona === "lector"
+          ? audience === "women"
+            ? LECTOR_BANK_WOMEN
+            : LECTOR_BANK
+          : audience === "women"
+            ? BANK_WOMEN[persona as keyof typeof BANK_WOMEN]
+            : BANK[persona as keyof typeof BANK];
+
+      // The lexicon transforms the speech payloads only — the stored script
+      // stays canonical, and the hash at finalize is of the canonical text
+      // (§8.2 step 6).
+      const payloads: Record<RenderPiece, string> = {
+        "head-am": applyLexicon(assembled.headAM),
+        "head-pm": applyLexicon(assembled.headPM),
+        "main-a": applyLexicon(assembled.mainA),
+        "main-b": applyLexicon(assembled.mainB),
+      };
+
+      // Speech → samples → tempo (§8.4). renderSpeech's StageError (tts)
+      // propagates; decode/stretch failures are assembly-stage.
+      let pcm: Int16Array;
+      try {
+        const bytes = await renderSpeech(payloads[action.piece], profile.voice);
+        pcm = stretchPcm(decodeSpeechAudio(bytes), profile.tempo);
+      } catch (err) {
+        if (err instanceof StageError) throw err;
+        throw new StageError("assemble", err instanceof Error ? err.message : "assembly failed");
+      }
+
+      await uploadMp3(pieceStoragePath(dateISO, audience, action.piece), encodeMp3(pcm));
+
+      // A head's duration is recorded from its PCM, exactly as the monolith
+      // reported it; main's halves are priced at finalize from their bytes.
+      if (!isMainPiece(action.piece)) {
+        await patchRows("daily_audio", `date=eq.${dateISO}&audience=eq.${audience}`, {
+          [`${action.piece.replace("-", "_")}_seconds`]: Math.round(secondsOf(pcm) * 10) / 10,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    console.log(`audio-render piece: date=${dateISO} audience=${audience} persona=${persona} piece=${action.piece} attempts=${attempt}`);
+    chainNextStep(dateISO, audience);
+    return jsonResponse({ ok: true, piece: action.piece, chained: true });
   } catch (err) {
     const stage: Stage | "error" = err instanceof StageError ? err.stage : "error";
     console.error(`audio-render failed: date=${dateISO} audience=${audience} stage=${stage}`);
@@ -635,9 +839,7 @@ async function runRender(
           audience,
           persona,
           status: "failed",
-          // A run that failed before the claim still consumed its attempt — the
-          // retry window's discipline (§8.2.9) counts runs, not claims.
-          attempts: claimed ? attempt : attempts + 1,
+          attempts: failureAttempts,
           last_error: stage,
           updated_at: new Date().toISOString(),
         });
@@ -678,13 +880,18 @@ Deno.serve(async (req: Request) => {
     const audience: NarratorAudience = payload.audience === "women" ? "women" : "men";
 
     const renderKey = Deno.env.get("AUDIO_RENDER_KEY");
-    const force =
-      payload.force === true &&
+    const keyMatches =
       typeof renderKey === "string" &&
       renderKey.length > 0 &&
       req.headers.get("x-render-key") === renderKey;
+    const force = payload.force === true && keyMatches;
 
-    return await runRender(dateISO, audience, force, payload.dryRun === true);
+    // A step call is the render chaining to itself for the next piece; it is
+    // honored as a continuation only with the render key. Without the key the
+    // flag is inert — the call is simply a normal (gate-respecting) call.
+    const viaStep = payload.step === true && keyMatches;
+
+    return await runRender(dateISO, audience, force, payload.dryRun === true, viaStep);
   } catch (err) {
     console.error("audio-render failed:", err instanceof Error ? err.message : String(err));
     return jsonResponse({ ok: false, stage: "error" });
