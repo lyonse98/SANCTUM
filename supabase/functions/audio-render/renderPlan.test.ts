@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BEAT_SILENCE_SECONDS,
   HEAD_AM,
   HEAD_PM,
   MAIN_PIECE_MAX_CHARS,
@@ -11,6 +12,7 @@ import {
   planNext,
   splitMainScript,
   splitSpeechText,
+  splitSpeechTextDetailed,
   type PieceSpec,
   type PlanInput,
 } from './renderPlan.ts';
@@ -349,6 +351,118 @@ describe('piece storage paths', () => {
 
   it('the default cap is the proven head envelope — ~15 s of speech', () => {
     expect(MAIN_PIECE_MAX_CHARS).toBe(200);
+  });
+});
+
+describe('pause-map beats — the fourth-round accounting', () => {
+  // The assembler encodes a persona's pause map as blank lines: '\n\n' is a
+  // plain paragraph break, each extra '\n' is one beat. A beat packed inside
+  // a chunk rides in the chunk's text (the TTS realizes it, as it did for
+  // the monolith); a beat on a chunk boundary is recorded here and restored
+  // by mainJoinPlan as produced silence. Never neither.
+  const para = (ch: string, n: number) => ch.repeat(n);
+
+  it('the beat unit is one spoken breath: 0.6 s', () => {
+    expect(BEAT_SILENCE_SECONDS).toBe(0.6);
+  });
+
+  it('a beat joint packed inside a chunk keeps its separator and records nothing', () => {
+    const { chunks, boundaryBeats } = splitSpeechTextDetailed('First para.\n\n\nSecond para.', 800);
+    expect(chunks).toEqual(['First para.\n\n\nSecond para.']);
+    expect(boundaryBeats).toEqual([0]);
+  });
+
+  it('a beat joint on a chunk boundary is recorded against the chunk it opens', () => {
+    // 120 + 3 + 120 > 200: the joint must become a boundary.
+    const text = para('a', 120) + '\n\n\n' + para('b', 120);
+    const { chunks, boundaryBeats } = splitSpeechTextDetailed(text, 200);
+    expect(chunks).toEqual([para('a', 120), para('b', 120)]);
+    expect(boundaryBeats).toEqual([0, 1]);
+  });
+
+  it('a plain paragraph break on a boundary records no beat', () => {
+    const text = para('a', 120) + '\n\n' + para('b', 120);
+    const { boundaryBeats } = splitSpeechTextDetailed(text, 200);
+    expect(boundaryBeats).toEqual([0, 0]);
+  });
+
+  it('a two-beat joint records two beats', () => {
+    const text = para('a', 120) + '\n\n\n\n' + para('b', 120);
+    const { boundaryBeats } = splitSpeechTextDetailed(text, 200);
+    expect(boundaryBeats).toEqual([0, 2]);
+  });
+
+  it('an over-cap paragraph after a beat joint: its first sentence joins by the true separator when it fits', () => {
+    // The Gospel shape: short intro, then a long reading whose sentences
+    // are cut. Intro + '\n\n\n' + first sentence fits the cap, so the beat
+    // rides inside the chunk, exactly as the monolith sent it.
+    const intro = 'A reading from the holy Gospel according to Luke.';
+    const sentence = 'As it was in the days of Noah, so will it be in the days of the Son of Man. ';
+    const gospel = (sentence.repeat(4)).trim(); // ~308 chars, over the cap
+    const { chunks, boundaryBeats } = splitSpeechTextDetailed(intro + '\n\n\n' + gospel, 200);
+    expect(chunks[0]).toBe(intro + '\n\n\n' + sentence.trim());
+    expect(boundaryBeats[0]).toBe(0);
+    expect(chunks.length).toBeGreaterThan(1);
+  });
+
+  it('an over-cap paragraph after a beat joint: when its first sentence cannot join, the boundary keeps the beat', () => {
+    const intro = 'A reading from the holy Gospel according to Luke.'; // 50
+    const longSentence = 'x'.repeat(160) + '.'; // 161: 50 + 3 + 161 > 200
+    const gospel = longSentence + ' ' + 'Short one.';
+    const { chunks, boundaryBeats } = splitSpeechTextDetailed(intro + '\n\n\n' + gospel, 200);
+    expect(chunks).toEqual([intro, longSentence + ' Short one.']);
+    expect(boundaryBeats).toEqual([0, 1]);
+  });
+
+  it('splitMainScript aligns boundaryBeats with the flattened chunk list, group heads at 0', () => {
+    const mainA = para('a', 120) + '\n\n\n' + para('b', 120);
+    const mainB = para('c', 120) + '\n\n\n' + para('d', 120);
+    const { aChunks, bChunks, boundaryBeats } = splitMainScript(mainA, mainB);
+    expect(aChunks).toHaveLength(2);
+    expect(bChunks).toHaveLength(2);
+    expect(boundaryBeats).toEqual([0, 1, 0, 1]);
+  });
+
+  it('mainJoinPlan restores boundary beats as 0.6 s silences at their seams, around the 2.0 s group silence', () => {
+    const mainA = para('a', 120) + '\n\n\n' + para('b', 120);
+    const mainB = para('c', 120) + '\n\n\n' + para('d', 120);
+    const { specs, boundaryBeats } = splitMainScript(mainA, mainB);
+    expect(mainJoinPlan(specs, boundaryBeats)).toEqual([
+      { kind: 'piece', id: 'main-000' },
+      { kind: 'silence', seconds: 0.6 },
+      { kind: 'piece', id: 'main-001' },
+      { kind: 'silence', seconds: 2.0 },
+      { kind: 'piece', id: 'main-002' },
+      { kind: 'silence', seconds: 0.6 },
+      { kind: 'piece', id: 'main-003' },
+    ]);
+  });
+
+  it('mainJoinPlan scales a two-beat joint to 1.2 s', () => {
+    const mainA = para('a', 120) + '\n\n\n\n' + para('b', 120);
+    const { specs, boundaryBeats } = splitMainScript(mainA, 'Tail.');
+    const join = mainJoinPlan(specs, boundaryBeats);
+    expect(join).toContainEqual({ kind: 'silence', seconds: 1.2 });
+  });
+
+  it('mainJoinPlan without beat accounting is the old join: the group silence only, now carrying its seconds', () => {
+    const { specs } = splitMainScript('Alpha text.', 'Beta text.');
+    expect(mainJoinPlan(specs)).toEqual([
+      { kind: 'piece', id: 'main-000' },
+      { kind: 'silence', seconds: 2.0 },
+      { kind: 'piece', id: 'main-001' },
+    ]);
+  });
+
+  it('a beat on the first chunk of a group is impossible by construction — and ignored if handed one', () => {
+    // The joint between the groups is the 2.0 s silence, never a beat; a
+    // stray count against a group's first chunk must not double it.
+    const { specs } = splitMainScript('Alpha text.', 'Beta text.');
+    expect(mainJoinPlan(specs, [1, 1])).toEqual([
+      { kind: 'piece', id: 'main-000' },
+      { kind: 'silence', seconds: 2.0 },
+      { kind: 'piece', id: 'main-001' },
+    ]);
   });
 });
 

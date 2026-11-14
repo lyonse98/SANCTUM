@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  PIECE_PAD_LEAD_SECONDS,
+  PIECE_PAD_TAIL_SECONDS,
   SAMPLE_RATE,
   concatPcm,
   decodeSpeechAudio,
+  finishPiecePcm,
+  padSpokenPiece,
   secondsOf,
   silenceSamples,
   stretchPcm,
@@ -121,5 +125,50 @@ describe('silence and concat (§8.4)', () => {
     expect(joined.length).toBe(2 + 12000 + 1);
     expect(joined[0]).toBe(1);
     expect(joined[joined.length - 1]).toBe(3);
+  });
+});
+
+describe('piece seam guards (fourth round — pads before the encode)', () => {
+  const LEAD = Math.round(PIECE_PAD_LEAD_SECONDS * SAMPLE_RATE);
+  const TAIL = Math.round(PIECE_PAD_TAIL_SECONDS * SAMPLE_RATE);
+
+  it('the pads price out to exact sample counts at 24 kHz', () => {
+    expect(PIECE_PAD_LEAD_SECONDS).toBe(0.12);
+    expect(PIECE_PAD_TAIL_SECONDS).toBe(0.22);
+    expect(LEAD).toBe(2880);
+    expect(TAIL).toBe(5280);
+    // A padded seam (one piece's tail + the next piece's lead) is 340 ms —
+    // a micro-pause, strictly under the 0.6 s restored beat.
+    expect(LEAD + TAIL).toBe(8160);
+  });
+
+  it('padSpokenPiece wraps the speech in exact silence, speech untouched', () => {
+    const speech = new Int16Array([100, -200, 300, -400]);
+    const padded = padSpokenPiece(speech);
+    expect(padded.length).toBe(LEAD + speech.length + TAIL);
+    expect(padded.subarray(0, LEAD).every((v) => v === 0)).toBe(true);
+    expect(Array.from(padded.subarray(LEAD, LEAD + speech.length))).toEqual([100, -200, 300, -400]);
+    expect(padded.subarray(LEAD + speech.length).every((v) => v === 0)).toBe(true);
+  });
+
+  it('finishPiecePcm is stretch-then-pad: the encoder never sees unpadded samples', () => {
+    // Tempo 1.0 with a short input passes the stretch through, isolating the pad.
+    const speech = new Int16Array(500).fill(700);
+    const finished = finishPiecePcm(speech, 1.0);
+    expect(finished.length).toBe(500 + LEAD + TAIL);
+    expect(finished.subarray(0, LEAD).every((v) => v === 0)).toBe(true);
+    expect(finished.subarray(LEAD, LEAD + 500).every((v) => v === 700)).toBe(true);
+    expect(finished.subarray(LEAD + 500).every((v) => v === 0)).toBe(true);
+  });
+
+  it('finishPiecePcm pads at production tempos too, and durations price the pads in', () => {
+    const speech = new Int16Array(SAMPLE_RATE * 2).fill(500); // 2 s of stand-in voice
+    const finished = finishPiecePcm(speech, 0.9);
+    const stretched = Math.round(speech.length / 0.9);
+    expect(Math.abs(finished.length - (stretched + LEAD + TAIL))).toBeLessThanOrEqual(1);
+    expect(finished.subarray(0, LEAD).every((v) => v === 0)).toBe(true);
+    expect(finished.subarray(finished.length - TAIL).every((v) => v === 0)).toBe(true);
+    // Head durations are recorded from exactly these samples: speech + 0.34 s.
+    expect(secondsOf(finished)).toBeCloseTo(2 / 0.9 + 0.34, 2);
   });
 });

@@ -26,6 +26,15 @@
   plain { date, audience } call still drives the whole chain; the row, the file
   paths, and the client-visible lifecycle are unchanged.
 
+  Seam round (Nov 13, 2026, fourth): the byte joins between independently
+  encoded pieces were corrupting speech — each encode's delay/padding lands
+  mid-stream at a join, and a cold TTS call can clip its edge phonemes, so
+  pieces now carry produced-silence pads into their encodes (see
+  audioEngine.ts, finishPiecePcm), and finalize restores the pause-map
+  beats a chunk boundary consumed as produced silence at that seam (see
+  renderPlan.ts, mainJoinPlan) — the monolith's beats rode inside its
+  single TTS calls and the cut had been dropping them at boundaries.
+
   There is NO fallback voice (Erik, Nov 2, 2026): if rendering fails, the row ends
   `failed` and the card shows one plain line that audio is unavailable today. A day
   with no row shows nothing.
@@ -63,7 +72,6 @@
 
 import { Mp3Encoder } from "npm:@breezystack/lamejs@1.2.7";
 import {
-  AUDIO_SILENCE_SECONDS,
   BANK,
   BANK_WOMEN,
   LECTOR_BANK,
@@ -81,9 +89,9 @@ import {
 import {
   SAMPLE_RATE,
   decodeSpeechAudio,
+  finishPiecePcm,
   secondsOf,
   silenceSamples,
-  stretchPcm,
 } from "./audioEngine.ts";
 import {
   bytesToBase64,
@@ -792,14 +800,17 @@ async function runRender(
       // §3.3), and lamejs writes bare frames — no Xing/ID3 header to strand
       // mid-file — so the joined bytes are one ordinary MP3 stream to any
       // player: the A group's chunks, then the produced silence encoded on
-      // its own, then the B group's. The sample-domain result is identical
-      // to the monolith's concatPcm: the same stretch, the same 2.0 s gap
-      // (AUDIO_SILENCE_SECONDS), the same order. Only the peak memory moved
+      // its own, then the B group's. The order and the 2.0 s A/B gap are
+      // the monolith's; two deliberate additions ride along (fourth round):
+      // every chunk's samples already wear their seam-guard pads (applied
+      // at render, see finishPiecePcm), and the join restores each
+      // pause-map beat the cut consumed as produced silence at its seam
+      // (mainJoinPlan over split.boundaryBeats). Only the peak memory moved
       // — from a whole track of PCM to one file of MP3 bytes.
       const byteParts: Uint8Array[] = [];
-      for (const part of mainJoinPlan(split.specs)) {
+      for (const part of mainJoinPlan(split.specs, split.boundaryBeats)) {
         if (part.kind === "silence") {
-          byteParts.push(encodeMp3(silenceSamples(AUDIO_SILENCE_SECONDS)));
+          byteParts.push(encodeMp3(silenceSamples(part.seconds)));
         } else {
           const spec = specById.get(part.id);
           if (!spec) throw new StageError("assemble", `join references unknown piece ${part.id}`);
@@ -882,11 +893,15 @@ async function runRender(
         throw new StageError("assemble", `no speech payload for piece ${action.piece.id}`);
       }
 
-      // Speech → samples → tempo (§8.4). renderSpeech's StageError (tts)
-      // propagates; decode/stretch failures are assembly-stage. Each stage
-      // is timed (round 3): the platform's binding limit is 2 s of CPU per
-      // request, so a future failure should arrive with its measurements
-      // attached instead of another round of guessing.
+      // Speech → samples → tempo → seam guards (§8.4; pads, fourth round).
+      // renderSpeech's StageError (tts) propagates; decode/stretch failures
+      // are assembly-stage. Each stage is timed (round 3): the platform's
+      // binding limit is 2 s of CPU per request, so a future failure should
+      // arrive with its measurements attached instead of another round of
+      // guessing. The `pcm` that flows on from here — to the encoder and,
+      // for a head, to the row's duration — is the PADDED samples: the pads
+      // are real samples in the file, and the client's seek offsets are
+      // computed from these durations.
       let pcm: Int16Array;
       let ttsMs = 0;
       let stretchMs = 0;
@@ -895,7 +910,7 @@ async function runRender(
         const bytes = await renderSpeech(payload, profile.voice);
         ttsMs = Math.round(performance.now() - ttsStart);
         const stretchStart = performance.now();
-        pcm = stretchPcm(decodeSpeechAudio(bytes), profile.tempo);
+        pcm = finishPiecePcm(decodeSpeechAudio(bytes), profile.tempo);
         stretchMs = Math.round(performance.now() - stretchStart);
       } catch (err) {
         if (err instanceof StageError) throw err;
@@ -912,8 +927,9 @@ async function runRender(
         `audio-render timing: date=${dateISO} audience=${audience} piece=${action.piece.id} chars=${payload.length} tts=${ttsMs}ms stretch=${stretchMs}ms encode=${encodeMs}ms upload=${uploadMs}ms`,
       );
 
-      // A head's duration is recorded from its PCM, exactly as the monolith
-      // reported it; main's chunks are priced at finalize from their bytes.
+      // A head's duration is recorded from its PCM — the padded samples, so
+      // the row prices exactly the file the client will seek through;
+      // main's chunks are priced at finalize from their bytes.
       if (!isMainPiece(action.piece)) {
         await patchRows("daily_audio", `date=eq.${dateISO}&audience=eq.${audience}`, {
           [`${action.piece.id.replace("-", "_")}_seconds`]: Math.round(secondsOf(pcm) * 10) / 10,

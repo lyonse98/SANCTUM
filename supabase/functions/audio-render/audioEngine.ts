@@ -8,6 +8,8 @@
     the same algorithm family as ffmpeg's `atempo`, which the samples used.
   - silence: the produced 2.0 s pause between main-A and main-B is exact by construction
     (a run of zero samples), better than the samples' file concat.
+  - padSpokenPiece / finishPiecePcm: the seam guards every spoken piece wears into
+    its MP3 encode (see the constants below).
   - concatPcm: plain sample-domain joins.
 
   This file imports NOTHING on purpose: vitest exercises it directly
@@ -210,4 +212,58 @@ export function concatPcm(...parts: Int16Array[]): Int16Array {
 /** Duration in seconds of a sample run, for the daily_audio row (§8.2 step 8). */
 export function secondsOf(samples: Int16Array): number {
   return samples.length / SAMPLE_RATE;
+}
+
+// ── Piece seam guards (Nov 13, 2026, fourth round) ────────────────────────────
+//
+// Every spoken piece is an independent TTS call and an independent MP3 encode,
+// and the pieces are joined as encoded bytes — at the daily finalize, and again
+// on the client when it stitches head + main into one stream. Two artifacts
+// live at every such join:
+//
+// - An MP3 encode carries encoder delay/padding — lamejs works in 1152-sample
+//   frames, 48 ms at 24 kHz — which lands mid-stream at a byte join instead of
+//   at the file edges a decoder trims, punching a small hole in the speech.
+// - A cold TTS call can clip its first or last phoneme; with nothing around
+//   the speech, the clip takes a syllable with it.
+//
+// Erik heard both on 2026-11-13 ("weird dropped words and pacing"): ~12 joins
+// per track, each one a chance at a clipped word and a pacing hole. The guard
+// is produced silence wrapped around the speech BEFORE the encode, so the
+// encoder's padding and the TTS's edge clips land in silence, and what speech
+// remains at a join is whole:
+//
+// - lead-in 120 ms — comfortably more than the ~48 ms of encoder delay, so
+//   the first phoneme never sits in the padding zone;
+// - lead-out 220 ms — absorbs the encode's tail padding and gives the join a
+//   breath. A padded seam totals 340 ms — a phrase micro-pause to the ear,
+//   well under the deliberate pauses (the 0.6 s restored beats, the 2.0 s
+//   A/B silence), so the guards never impersonate a rhetorical pause.
+//
+// The pads are real samples in the file: durations recorded from a piece's
+// PCM (the heads) include them, exactly as the client's seek math requires.
+// The audition path does NOT pad — it compares raw recipes, and a guard band
+// would blur the comparison.
+
+/** Produced silence before a spoken piece's speech, in seconds (2,880 samples). */
+export const PIECE_PAD_LEAD_SECONDS = 0.12;
+/** Produced silence after a spoken piece's speech, in seconds (5,280 samples). */
+export const PIECE_PAD_TAIL_SECONDS = 0.22;
+
+/** Wrap a spoken piece's samples in its seam guards (lead-in + speech + lead-out). */
+export function padSpokenPiece(samples: Int16Array): Int16Array {
+  return concatPcm(
+    silenceSamples(PIECE_PAD_LEAD_SECONDS),
+    samples,
+    silenceSamples(PIECE_PAD_TAIL_SECONDS),
+  );
+}
+
+/**
+ * The piece pipeline's sample path, as one seam: decode is the caller's, then
+ * the persona's tempo stretch, then the seam guards. index.ts encodes exactly
+ * what this returns — nothing reaches the encoder unpadded.
+ */
+export function finishPiecePcm(decoded: Int16Array, tempo: number): Int16Array {
+  return padSpokenPiece(stretchPcm(decoded, tempo));
 }

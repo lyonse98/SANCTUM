@@ -24,6 +24,15 @@
   main track becomes more, smaller pieces — the chain and the storage ledger
   absorb the count; what they cannot absorb is a single over-budget call.
 
+  Fourth round (Nov 13, 2026): the joins themselves. Each piece is padded
+  with produced silence before its encode (audioEngine.ts — encoder delay
+  and TTS edge clips were eating syllables at every byte join), and the
+  pause-map beats a chunk boundary consumes are accounted here
+  (splitSpeechTextDetailed) and restored at the join as produced silence
+  (mainJoinPlan) — in the monolith they rode inside the single TTS call
+  and always reached the engine; the cut had been dropping them silently
+  whenever a beat joint landed on a boundary.
+
   This module is the pure decision core: given the day's piece list (built
   deterministically from the assembled script), the daily_audio row state,
   and which piece files already exist in storage, what should this
@@ -58,7 +67,11 @@
     recorded-failure stop at 2 keeping genuinely broken days cheap.
 */
 
-import { audioSegmentPath, type NarratorAudience } from "./narratorCore.ts";
+import {
+  AUDIO_SILENCE_SECONDS,
+  audioSegmentPath,
+  type NarratorAudience,
+} from "./narratorCore.ts";
 
 /**
  * Target ceiling for one main-track piece, in characters of speech text.
@@ -97,18 +110,77 @@ export function isMainPiece(piece: PieceSpec): boolean {
 }
 
 /**
- * Split speech text into chunks of at most maxChars, preferring paragraph
- * boundaries. Paragraphs are packed greedily in order (with their original
- * separators, so in-chunk pauses survive verbatim); a paragraph that alone
- * exceeds the cap is split at sentence boundaries; a single sentence that
- * still exceeds it is hard-wrapped at word boundaries (a lone over-long
- * word is sliced — pathological, but the cap is the cap). Deterministic:
- * the same text always yields the same chunks, which is what lets every
- * chained invocation rebuild the identical piece list. A chunk boundary
- * replaces the paragraph break it consumed — the seam becomes an MP3 join,
- * the same trade the coarser main-a/main-b split already made.
+ * One beat of the persona pause map (narratorCore's `pauseBeats`, spec §5.2)
+ * as produced silence, in seconds.
+ *
+ * The monolith never gave a beat a sample-domain size: a beat was one extra
+ * blank line inside the day's single TTS call, and the engine's prosody made
+ * of it whatever it made (see the fourth-round note at splitSpeechText).
+ * Restoring a boundary-eaten beat as produced silence therefore needs a
+ * chosen unit, and 0.6 s is the spoken breath: clearly longer than the
+ * 340 ms a padded seam already carries (so a beat still reads as the
+ * persona's deliberate pause, never as join noise), and well short of the
+ * 2.0 s A/B group silence (so that pause keeps its unique rank). Every
+ * bank's beats are 0 or 1 today, so in practice a restored joint is 0.6 s.
  */
-export function splitSpeechText(text: string, maxChars: number = MAIN_PIECE_MAX_CHARS): string[] {
+export const BEAT_SILENCE_SECONDS = 0.6;
+
+/**
+ * Beats carried by a paragraph separator. joinParagraphs builds a joint as
+ * '\n\n' plus one extra '\n' per beat, so the beat count is the newline run
+ * past the plain paragraph break. (Any separator the assembler produced is
+ * a pure newline run; the count is taken over newlines only.)
+ */
+function beatsOfSeparator(sep: string): number {
+  let newlines = 0;
+  for (const c of sep) if (c === "\n") newlines++;
+  return Math.max(0, newlines - 2);
+}
+
+export interface SplitResult {
+  chunks: string[];
+  /**
+   * Aligned with `chunks`: the pause-map beats consumed by the boundary
+   * that STARTS each chunk — the separator that was dropped to open it.
+   * A joint packed inside a chunk keeps its separator verbatim in the
+   * chunk's text (the TTS realizes the beat, as it did for the monolith),
+   * so only boundary joints appear here. chunks[0] always starts a text,
+   * never a consumed joint: its entry is 0.
+   */
+  boundaryBeats: number[];
+}
+
+/**
+ * Split speech text into chunks of at most maxChars, preferring paragraph
+ * boundaries — and account for the pause-map beats the cut consumes.
+ *
+ * Beats, fourth round (Nov 13, 2026): the assembler encodes each persona's
+ * pause map as extra blank lines at named joints of main-A/main-B (after
+ * the scene, after the Gospel, before/after the challenge). The monolith
+ * passed each half to the TTS whole, so every beat always reached the
+ * engine. The piece cut changed that: a joint packed inside a chunk keeps
+ * its separator verbatim (still realized), but a joint the cut turns into
+ * a chunk boundary loses its separator entirely — the beat silently
+ * became a bare MP3 join. The packing itself is unchanged (the same
+ * chunks as always); what is new is the bookkeeping: the beats a boundary
+ * consumed are recorded in `boundaryBeats`, and mainJoinPlan restores
+ * them at finalize as produced silence, so a beat survives the cut in
+ * one form or the other — never neither.
+ *
+ * Packing: paragraphs are packed greedily in order (with their original
+ * separators, so in-chunk pauses survive verbatim); a paragraph that alone
+ * exceeds the cap is split at sentence boundaries — its first sentence
+ * joins by the paragraph's own separator, exactly like a whole paragraph,
+ * and the rest by a space; a single sentence that still exceeds the cap
+ * is hard-wrapped at word boundaries into standalone chunks (a lone
+ * over-long word is sliced — pathological, but the cap is the cap).
+ * Deterministic: the same text always yields the same chunks, which is
+ * what lets every chained invocation rebuild the identical piece list.
+ */
+export function splitSpeechTextDetailed(
+  text: string,
+  maxChars: number = MAIN_PIECE_MAX_CHARS,
+): SplitResult {
   // Tokenize into paragraphs, remembering the separator before each one.
   const tokens = text.split(/(\n{2,})/);
   const paragraphs: { sep: string; body: string }[] = [];
@@ -118,45 +190,74 @@ export function splitSpeechText(text: string, maxChars: number = MAIN_PIECE_MAX_
     paragraphs.push({ sep: i === 0 ? "" : (tokens[i - 1] ?? "\n\n"), body });
   }
 
+  // The packable items, in order: a paragraph that fits is one item; an
+  // over-cap paragraph becomes its sentences (the first keeps the
+  // paragraph's separator, the rest a space); an over-cap sentence becomes
+  // standalone hard-wrapped chunks, which never pack with anything.
+  const items: { text: string; sep: string; standalone: boolean }[] = [];
+  for (const { sep, body } of paragraphs) {
+    if (body.length <= maxChars) {
+      items.push({ text: body, sep, standalone: false });
+      continue;
+    }
+    splitSentences(body).forEach((sentence, j) => {
+      const itemSep = j === 0 ? sep : " ";
+      if (sentence.length <= maxChars) {
+        items.push({ text: sentence, sep: itemSep, standalone: false });
+        return;
+      }
+      hardWrap(sentence, maxChars).forEach((piece, k) => {
+        items.push({ text: piece, sep: k === 0 ? itemSep : "", standalone: true });
+      });
+    });
+  }
+
   const chunks: string[] = [];
+  const boundaryBeats: number[] = [];
   let cur = "";
+  let curBeats = 0; // beats of the boundary that started `cur`
   const flush = () => {
     if (cur) {
       chunks.push(cur);
+      boundaryBeats.push(curBeats);
       cur = "";
+      curBeats = 0;
     }
   };
-  const add = (body: string, sep: string) => {
-    if (!cur) {
-      cur = body;
-      return;
-    }
-    if ((cur + sep + body).length <= maxChars) {
-      cur += sep + body;
-      return;
-    }
-    flush();
-    cur = body;
-  };
-
-  for (const { sep, body } of paragraphs) {
-    if (body.length <= maxChars) {
-      add(body, sep);
+  for (const item of items) {
+    if (item.standalone) {
+      // A hard-wrapped chunk stands alone: whatever the current chunk
+      // holds is finished, and the piece takes the boundary that preceded
+      // its sentence.
+      flush();
+      chunks.push(item.text);
+      boundaryBeats.push(beatsOfSeparator(item.sep));
       continue;
     }
-    // One paragraph over the cap: fall to sentence boundaries.
-    for (const sentence of splitSentences(body)) {
-      if (sentence.length <= maxChars) {
-        add(sentence, " ");
-        continue;
-      }
-      // One sentence over the cap: hard-wrap it into standalone chunks.
-      flush();
-      for (const piece of hardWrap(sentence, maxChars)) chunks.push(piece);
+    if (!cur) {
+      cur = item.text;
+      curBeats = beatsOfSeparator(item.sep);
+      continue;
     }
+    if ((cur + item.sep + item.text).length <= maxChars) {
+      cur += item.sep + item.text;
+      continue;
+    }
+    flush();
+    cur = item.text;
+    curBeats = beatsOfSeparator(item.sep);
   }
   flush();
-  return chunks;
+  return { chunks, boundaryBeats };
+}
+
+/**
+ * Split speech text into chunks of at most maxChars. The chunk list alone;
+ * splitSpeechTextDetailed additionally reports the pause-map beats each
+ * chunk boundary consumed.
+ */
+export function splitSpeechText(text: string, maxChars: number = MAIN_PIECE_MAX_CHARS): string[] {
+  return splitSpeechTextDetailed(text, maxChars).chunks;
 }
 
 /** Sentence spans of a paragraph, terminators and closing quotes attached. */
@@ -199,6 +300,14 @@ export interface MainSplit {
   bChunks: string[];
   /** The day's full ordered piece list: heads first, then main chunks. */
   specs: PieceSpec[];
+  /**
+   * Pause-map beats consumed by chunk boundaries, aligned with the
+   * flattened main chunk list (A's chunks, then B's — the same indexing
+   * as the chunk numbers in the piece ids). The first chunk of each group
+   * is always 0: a group opens a text, and the joint between the groups
+   * is the produced A/B silence, not a text joint.
+   */
+  boundaryBeats: number[];
 }
 
 /**
@@ -211,8 +320,10 @@ export function splitMainScript(
   mainB: string,
   maxChars: number = MAIN_PIECE_MAX_CHARS,
 ): MainSplit {
-  const aChunks = splitSpeechText(mainA, maxChars);
-  const bChunks = splitSpeechText(mainB, maxChars);
+  const a = splitSpeechTextDetailed(mainA, maxChars);
+  const b = splitSpeechTextDetailed(mainB, maxChars);
+  const aChunks = a.chunks;
+  const bChunks = b.chunks;
   const specs: PieceSpec[] = [HEAD_AM, HEAD_PM];
   aChunks.forEach((_, i) => {
     specs.push({ id: mainPieceId(i), kind: "main", group: "a", index: i });
@@ -221,24 +332,43 @@ export function splitMainScript(
     const index = aChunks.length + j;
     specs.push({ id: mainPieceId(index), kind: "main", group: "b", index });
   });
-  return { aChunks, bChunks, specs };
+  return { aChunks, bChunks, specs, boundaryBeats: [...a.boundaryBeats, ...b.boundaryBeats] };
 }
 
-export type MainJoinPart = { kind: "piece"; id: string } | { kind: "silence" };
+export type MainJoinPart =
+  | { kind: "piece"; id: string }
+  | { kind: "silence"; seconds: number };
 
 /**
- * The finalize join, as data: every main piece in order, with the produced
- * silence exactly where it has always sat — between the A group and the B
- * group — and only there. A group with no pieces contributes nothing (and
- * earns no silence).
+ * The finalize join, as data: every main piece in order, the beats the cut
+ * consumed restored as produced silence at their seams, and the produced
+ * A/B silence exactly where it has always sat — between the A group and
+ * the B group. A group with no pieces contributes nothing (and earns no
+ * group silence). `boundaryBeats` is splitMainScript's accounting, aligned
+ * with the flattened chunk list; omitting it yields the pre-restoration
+ * join (the group silence only).
  */
-export function mainJoinPlan(specs: readonly PieceSpec[]): MainJoinPart[] {
+export function mainJoinPlan(
+  specs: readonly PieceSpec[],
+  boundaryBeats: readonly number[] = [],
+): MainJoinPart[] {
   const parts: MainJoinPart[] = [];
   const a = specs.filter((s) => s.kind === "main" && s.group === "a");
   const b = specs.filter((s) => s.kind === "main" && s.group === "b");
-  for (const s of a) parts.push({ kind: "piece", id: s.id });
-  if (a.length > 0 && b.length > 0) parts.push({ kind: "silence" });
-  for (const s of b) parts.push({ kind: "piece", id: s.id });
+  const beatsBefore = (piece: PieceSpec, firstInGroup: boolean) => {
+    if (firstInGroup) return;
+    const beats = boundaryBeats[piece.index] ?? 0;
+    if (beats > 0) parts.push({ kind: "silence", seconds: beats * BEAT_SILENCE_SECONDS });
+  };
+  a.forEach((s, i) => {
+    beatsBefore(s, i === 0);
+    parts.push({ kind: "piece", id: s.id });
+  });
+  if (a.length > 0 && b.length > 0) parts.push({ kind: "silence", seconds: AUDIO_SILENCE_SECONDS });
+  b.forEach((s, i) => {
+    beatsBefore(s, i === 0);
+    parts.push({ kind: "piece", id: s.id });
+  });
   return parts;
 }
 
