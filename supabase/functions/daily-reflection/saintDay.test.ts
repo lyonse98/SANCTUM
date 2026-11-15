@@ -57,12 +57,12 @@ function extractLiteral(src: string, name: string): unknown {
 describe("the extracted tables match the narrator bank exactly", () => {
   it("SAINT_LINES is narratorCore's SAINT_LINES_N, verbatim", () => {
     expect(SAINT_LINES).toEqual(extractLiteral(narratorCoreSrc, "SAINT_LINES_N"));
-    expect(Object.keys(SAINT_LINES).length).toBe(100);
+    expect(Object.keys(SAINT_LINES).length).toBe(161);
   });
 
   it("FIXED_FEASTS is narratorCore's FIXED_FEASTS_N, verbatim", () => {
     expect(FIXED_FEASTS).toEqual(extractLiteral(narratorCoreSrc, "FIXED_FEASTS_N"));
-    expect(Object.keys(FIXED_FEASTS).length).toBe(80);
+    expect(Object.keys(FIXED_FEASTS).length).toBe(156);
   });
 });
 
@@ -149,6 +149,41 @@ describe("activation — only a described saint day weaves", () => {
     expect(buildInputSaintBlock("2026-11-23")).toContain(
       "Today the Church remembers St. Miguel Pro: A Jesuit priest in Mexico who was executed by the government for his faith.",
     );
+  });
+});
+
+describe("the full-year optional memorials weave too (Nov 15, 2026 completion)", () => {
+  it("Januarius (Sep 19) weaves under his own rank", () => {
+    expect(saintForReflectionDate("2026-09-19")).toEqual({
+      name: "St. Januarius",
+      descriptor: "A bishop of Benevento martyred under Diocletian around 305.",
+      rank: "optional-memorial",
+    });
+    expect(buildInputSaintBlock("2026-09-19")).toContain(
+      "Today the Church keeps the optional memorial of St. Januarius:",
+    );
+  });
+
+  it("Drexel (Mar 3 — a US-proper addition) weaves", () => {
+    expect(saintForReflectionDate("2026-03-03")?.name).toBe("St. Katharine Drexel");
+    expect(buildInputSaintBlock("2026-03-03")).toContain(
+      "optional memorial of St. Katharine Drexel",
+    );
+  });
+
+  it("Vincent the deacon (Jan 22) weaves", () => {
+    expect(saintForReflectionDate("2027-01-22")?.name).toBe("St. Vincent");
+    expect(buildInputSaintBlock("2027-01-22")).toContain("St. Vincent");
+  });
+
+  it("the non-person and Joseph days get NO weave — named in the table, never spoken as a saint", () => {
+    expect(FIXED_FEASTS["08-05"]).toEqual(["Dedication of the Basilica of St. Mary Major", "optional-memorial"]);
+    expect(saintForReflectionDate("2026-08-05")).toBeNull();
+    expect(buildInputSaintBlock("2026-08-05")).toBe("");
+    expect(FIXED_FEASTS["09-12"]).toEqual(["The Most Holy Name of Mary", "optional-memorial"]);
+    expect(saintForReflectionDate("2026-09-12")).toBeNull();
+    expect(FIXED_FEASTS["05-01"]).toEqual(["St. Joseph the Worker", "optional-memorial"]);
+    expect(saintForReflectionDate("2026-05-01")).toBeNull();
   });
 });
 
