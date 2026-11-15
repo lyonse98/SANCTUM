@@ -25,7 +25,7 @@
   codes only, as everywhere in this function.
 */
 
-import type { ComposedTailored } from "./tailorCore.ts";
+import type { ComposedTailored, TailorPmPackage } from "./tailorCore.ts";
 import {
   isTailorFocus,
   isTailorState,
@@ -35,6 +35,13 @@ import {
 
 /** Stamped on every recorded row, so a quality review reads against the composer that wrote it. */
 export const TAILOR_BUILD_STAMP = "2026-11-13.outputs-1";
+
+/**
+ * The PM twin's own stamp (Close the day, Nov 14, 2026): an evening row is
+ * distinguishable from a morning row at a glance, so the two corpuses are
+ * never read as one. Same table, same rule — outputs only, inputs never.
+ */
+export const TAILOR_PM_BUILD_STAMP = "2026-11-14.pm-1";
 
 /** How much of the grown library rides into one morning's pool. */
 const WINNERS_POOL_LIMIT = 200;
@@ -137,6 +144,67 @@ export function buildOutputRow(
     narrator: composed.script.persona,
     build_stamp: TAILOR_BUILD_STAMP,
   };
+}
+
+/**
+ * The tailor_outputs row for one PM build — the SAME key set as a morning
+ * row (the key set is the contract), carrying the evening package in the
+ * slots that read true for it: the night reflection as the reflection, the
+ * carry line as the challenge (the one line the user takes away — the
+ * evening twin of the morning's act), and the closing prayer in the quote
+ * slots under the source label "Closing prayer". Passage, media, and
+ * narrator are null: the twin serves none of them. The PM stamp marks the
+ * row as an evening build. Nothing the user said — not the morning's
+ * words, not the dusk word — exists in this row; its inputs are the
+ * finished package and nothing upstream of it, exactly as the morning's.
+ */
+export function buildPmOutputRow(
+  dateISO: string,
+  audience: "men" | "women",
+  evening: TailorPmPackage,
+): Record<string, unknown> {
+  return {
+    devotional_date: dateISO,
+    audience,
+    reflection: evening.reflect,
+    challenge: evening.carry,
+    passage_citation: null,
+    passage_text: null,
+    quote_text: evening.prayer,
+    quote_source: "Closing prayer",
+    media_title: null,
+    media_creator: null,
+    media_url: null,
+    media_kind: null,
+    narrator: null,
+    build_stamp: TAILOR_PM_BUILD_STAMP,
+  };
+}
+
+/**
+ * Records one finished PM build — the evening row only (the twin has no
+ * media winner). Same discipline as recordComposedOutput: never throws,
+ * never blocks; the caller fires it under the background hook after the
+ * response is shaped.
+ */
+export async function recordPmOutput(
+  dateISO: string,
+  audience: "men" | "women",
+  evening: TailorPmPackage,
+  deps: OutputsDeps = {},
+): Promise<void> {
+  try {
+    const transport = deps.transport === undefined ? envTransport() : deps.transport;
+    if (!transport) return;
+    await restWrite(
+      transport,
+      "tailor_outputs",
+      buildPmOutputRow(dateISO, audience, evening),
+      "return=minimal",
+    );
+  } catch {
+    console.error("tailor-outputs: stage=record-pm");
+  }
 }
 
 /**

@@ -50,6 +50,20 @@
   minute, 3 builds a day per caller. One tailored build a day is the product
   shape; three leaves room for a rebuild and a mistake.
 
+  PM MODE — CLOSE THE DAY (Nov 14, 2026): the evening twin. A request with
+  mode "pm" carries the morning's intake (kept ONLY on the user's device —
+  TailorMeta's morning record — and re-sent transiently for this one call,
+  exactly like the morning's own call) plus one dusk word for how the day
+  went. The function composes the close from the day's bundle — a short
+  night reflection reckoning the morning's intention against the day, one
+  closing prayer, one line to carry into sleep — and returns it. TEXT
+  ONLY: no audio plan, no piece mode, by deliberate scope. Its quota is
+  its own allowance on the same RPC — a pm-namespaced, date-stamped key
+  with a day limit of 1: one close per day per caller. Its output record
+  follows the same outputs-only rule through outputs.ts, under the PM
+  stamp. The morning's privacy rule is untouched: nothing the user says,
+  in either call, is ever written anywhere.
+
   AUDIO — CLIENT-ORCHESTRATED (Nov 13, 2026): the in-function audio render
   stays disabled (TAILOR_AUDIO_ENABLED below). Supabase's binding limit is
   2 s of CPU per edge request on every plan, and a full tailored program
@@ -104,11 +118,15 @@ import { tailorAccess } from "./tailorAccess.ts";
 import {
   buildCorpusQuoteQuery,
   buildResponseBody,
+  composePmEvening,
   composeTailored,
+  parsePmResult,
   parseTailorResult,
   validateIntake,
+  validatePmRequest,
   validateProfile,
   type TailorBundle,
+  type TailorPmPackage,
   type TailoredParts,
 } from "./tailorCore.ts";
 import { corpusEnabled, retrieveTraditionQuote } from "./corpus.ts";
@@ -118,7 +136,7 @@ import {
   verifyPieceToken,
   type TailorAudioPlanEntry,
 } from "./audioPlan.ts";
-import { loadMediaWinners, recordComposedOutput } from "./outputs.ts";
+import { loadMediaWinners, recordComposedOutput, recordPmOutput } from "./outputs.ts";
 
 // The edge runtime's background-task hook: the output record is dispatched
 // with the response already shaped and registered here, so the isolate
@@ -249,6 +267,76 @@ async function withinQuota(req: Request): Promise<boolean> {
     return allowed !== false;
   } catch {
     return withinFallbackQuota(clientKey);
+  }
+}
+
+// ── The PM quota (Close the day's own allowance) ─────────────────────────────
+//
+// One close per day per caller is the product shape, so the PM allowance is
+// a separate bucket on the same durable RPC: the client key is hashed from
+// a pm namespace AND the app date, so each (day, caller) pair gets its own
+// counter and the day limit of 1 means exactly one PM build. The morning's
+// buckets are untouched — a close never draws on a build, nor a build on a
+// close. The fallback keeps the same shape in memory when the RPC cannot
+// be reached: one close per key per day, best-effort like its sibling.
+const PM_RATE_WINDOW_LIMIT = 2;
+const PM_RATE_DAY_LIMIT = 1;
+
+async function hashPmClientKey(identifier: string, dateISO: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`tailor-pm:${dateISO}:${identifier}`),
+  );
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+const pmFallbackBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function withinPmFallbackQuota(clientKey: string): boolean {
+  const now = Date.now();
+  if (pmFallbackBuckets.size > 5000) pmFallbackBuckets.clear();
+  const bucket = pmFallbackBuckets.get(clientKey);
+  if (!bucket || bucket.resetAt <= now) {
+    pmFallbackBuckets.set(clientKey, { count: 1, resetAt: now + 24 * 60 * 60 * 1000 });
+    return true;
+  }
+  bucket.count += 1;
+  return bucket.count <= PM_RATE_DAY_LIMIT;
+}
+
+async function withinPmQuota(req: Request, dateISO: string): Promise<boolean> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const clientKey = await hashPmClientKey(clientIdentifier(req), dateISO);
+  if (!supabaseUrl || !serviceKey) {
+    console.error("tailor-devotional: rate limiter misconfigured");
+    return withinPmFallbackQuota(clientKey);
+  }
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_chat_quota`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({
+        p_client_key: clientKey,
+        p_window_limit: PM_RATE_WINDOW_LIMIT,
+        p_day_limit: PM_RATE_DAY_LIMIT,
+        p_window_seconds: RATE_WINDOW_SECONDS,
+      }),
+    });
+    if (!res.ok) {
+      console.error("tailor-devotional: rate limiter RPC failed with status", res.status);
+      return withinPmFallbackQuota(clientKey);
+    }
+    const allowed = await res.json();
+    return allowed !== false;
+  } catch {
+    return withinPmFallbackQuota(clientKey);
   }
 }
 
@@ -389,6 +477,38 @@ async function generateTailored(systemPrompt: string, userPrompt: string): Promi
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
   if (typeof text !== "string") throw new Error("tailor model returned no text");
   const parsed = parseTailorResult(text);
+  if (!parsed) throw new Error("tailor model returned an unusable shape");
+  return parsed;
+}
+
+// ── The PM generation (Close the day's one call) ─────────────────────────────
+
+// generateTailored's twin for the evening close: same model, same envelope,
+// the PM core's parser. Errors are stage phrases, exactly as its sibling's.
+async function generatePm(systemPrompt: string, userPrompt: string): Promise<TailorPmPackage> {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          maxOutputTokens: 1024,
+          thinkingConfig: { thinkingLevel: "low" },
+        },
+      }),
+      signal: AbortSignal.timeout(60000),
+    },
+  );
+  if (!res.ok) throw new Error(`tailor model HTTP ${res.status}`);
+  const json = await res.json();
+  const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (typeof text !== "string") throw new Error("tailor model returned no text");
+  const parsed = parsePmResult(text);
   if (!parsed) throw new Error("tailor model returned an unusable shape");
   return parsed;
 }
@@ -699,6 +819,75 @@ async function handlePieceRequest(raw: unknown): Promise<Response> {
   }
 }
 
+// ── The PM request (Close the day) ───────────────────────────────────────────
+
+/**
+ * The evening close, end to end: validate the re-sent morning and the dusk
+ * word, take the PM allowance, read the day's bundle, compose the close,
+ * record the OUTPUT (outputs.ts, PM stamp), and answer with the package.
+ * The response carries no audio and no plan — the twin is text only in v1.
+ */
+async function handlePmRequest(req: Request, payload: Record<string, unknown>): Promise<Response> {
+  const audience: NarratorAudience = payload.audience === "women" ? "women" : "men";
+  const pm = validatePmRequest(payload);
+  if (!pm) {
+    return jsonResponse({ ok: false, error: "That closing could not be read. Try again." }, 400);
+  }
+  const dateISO =
+    typeof payload.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(payload.date)
+      ? payload.date
+      : losAngelesToday();
+
+  if (!(await withinPmQuota(req, dateISO))) {
+    return jsonResponse(
+      { ok: false, error: "Tonight's closing is already written — it is kept on this device." },
+      429,
+    );
+  }
+
+  try {
+    const bundle = await readBundle(dateISO, audience);
+    if (!bundle) {
+      console.error(`tailor-devotional pm failed: date=${dateISO} stage=bundle`);
+      return jsonResponse(
+        { ok: false, error: "Today's readings are not ready yet. The free devotional above is unaffected." },
+        200,
+      );
+    }
+    const evening = await composePmEvening({
+      audience,
+      intake: pm.intake,
+      eveningState: pm.eveningState,
+      bundle,
+      generatePm,
+    });
+    console.log(
+      `tailor-devotional pm: date=${dateISO} audience=${audience} evening=${pm.eveningState} built`,
+    );
+    // The output record, under the PM stamp — fired after the response is
+    // shaped, fail-open, byte-identical either way, as the morning's is.
+    const recording = recordPmOutput(dateISO, audience, evening);
+    if (typeof EdgeRuntime !== "undefined") {
+      EdgeRuntime.waitUntil(recording);
+    } else {
+      void recording;
+    }
+    return jsonResponse({ ok: true, mode: "pm", date: dateISO, evening });
+  } catch (err) {
+    // Stage phrases only, as everywhere in this function — the error is a
+    // fixed phrase or an HTTP status by construction, never payload text.
+    console.error(
+      `tailor-devotional pm failed: date=${dateISO} audience=${audience} error=${
+        err instanceof Error ? err.message : "error"
+      }`,
+    );
+    return jsonResponse(
+      { ok: false, error: "Tonight's closing could not be written just now." },
+      200,
+    );
+  }
+}
+
 // ── The request ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -726,6 +915,15 @@ Deno.serve(async (req: Request) => {
   // fetch is not one — so this branch stands ahead of the intake and quota.
   if (payload.piece !== undefined) {
     return handlePieceRequest(payload.piece);
+  }
+
+  // The PM mode (Close the day): the evening twin. Its payload is a
+  // different shape from a morning build's — the morning re-sent from the
+  // device plus one dusk word — with its own validation and its own quota,
+  // so it branches here, ahead of the morning intake, exactly as the piece
+  // mode branches ahead of both.
+  if (payload.mode === "pm") {
+    return handlePmRequest(req, payload);
   }
 
   const audience: NarratorAudience = payload.audience === "women" ? "women" : "men";

@@ -77,6 +77,7 @@ import {
 import {
   SCRIPTURE_GROUNDING,
   SCRIPTURE_GROUNDING_WOMEN,
+  buildPmTask,
   buildTailorTask,
 } from "./prompts.ts";
 import type { TailorAudioPlanEntry } from "./audioPlan.ts";
@@ -1199,4 +1200,141 @@ export function buildResponseBody(
     audioSeconds,
     audioPlan,
   };
+}
+
+// ── Close the day: the PM twin (Nov 14, 2026) ────────────────────────────────
+//
+// The evening counterpart of the morning build. The device re-sends the
+// morning's intake — which lives ONLY on the device (TailorMeta's morning
+// record, src/lib/tailor.ts) — together with one word for how the day
+// actually went, and the function composes the close in memory and returns
+// it, under exactly the morning's privacy rule: the intake is validated to
+// the same allowlist, used for phrasing, and stored nowhere; what the
+// close RETURNS is recorded by outputs.ts under its own stamp, like the
+// morning's. No audio in v1 — the twin is text only, by deliberate scope.
+
+/** The dusk verdicts — how the day went against the morning, in the bank's voice. */
+export const EVENING_STATES = ["held", "broke", "mixed", "heavy"] as const;
+export type EveningState = (typeof EVENING_STATES)[number];
+
+export function isEveningState(value: unknown): value is EveningState {
+  return typeof value === "string" && (EVENING_STATES as readonly string[]).includes(value);
+}
+
+/** The evening word as the PM prompt phrases it — the reckoning's second term. */
+export const EVENING_STATE_LINES: Record<EveningState, string> = {
+  held: "held to the morning's intention",
+  broke: "broke from the morning's intention",
+  mixed: "a mixed day — partly held, partly not",
+  heavy: "the day was heavy",
+};
+
+/** The evening package the close returns — three short pieces, nothing else. */
+export interface TailorPmPackage {
+  /** The night reflection: the morning's intention reckoned against the day. */
+  reflect: string;
+  /** One closing prayer — traditional, or composed in the app's voice. */
+  prayer: string;
+  /** One line to carry into sleep. */
+  carry: string;
+}
+
+export interface PmRequest {
+  intake: TailorIntake;
+  eveningState: EveningState;
+}
+
+/**
+ * Validates a PM payload into its request, or returns null. The morning is
+ * validated by the SAME validateIntake as a morning build — identical
+ * allowlist, identical caps — because it is the same intake, re-sent from
+ * the device that kept it. A PM payload with no morning is not a close.
+ */
+export function validatePmRequest(payload: Record<string, unknown>): PmRequest | null {
+  const morning = payload.morning;
+  if (!morning || typeof morning !== "object") return null;
+  const intake = validateIntake(morning as Record<string, unknown>);
+  if (!intake) return null;
+  if (!isEveningState(payload.eveningState)) return null;
+  return { intake, eveningState: payload.eveningState };
+}
+
+/** The PM system prompt: the track's grounding block, then the PM task. */
+export function buildPmSystemPrompt(audience: NarratorAudience): string {
+  const grounding = audience === "women" ? SCRIPTURE_GROUNDING_WOMEN : SCRIPTURE_GROUNDING;
+  return `${grounding}\n\n${buildPmTask(audience)}`;
+}
+
+/** The PM user prompt: the canonical day + the morning as stated + the dusk word. */
+export function buildPmUserPrompt(
+  bundle: TailorBundle,
+  intake: TailorIntake,
+  eveningState: EveningState,
+  audience: NarratorAudience = "men",
+): string {
+  const she = audience === "women";
+  const lines: string[] = [];
+  lines.push(`Today's Gospel: ${bundle.gospelCitation}`);
+  if (bundle.celebration) lines.push(`The Church celebrates: ${bundle.celebration}`);
+  lines.push(`\nThe day's canonical reflection (${bundle.facet}):\n${bundle.reflect}`);
+  lines.push(`\nThe day's canonical challenge:\n${bundle.challenge}`);
+  lines.push(`\nHow this person came in this morning: ${tailorStateLabel(intake.state)}.`);
+  lines.push(`What today was about: ${tailorFocusLabel(intake.focus)}.`);
+  if (intake.tone) {
+    lines.push(`What ${she ? "she" : "he"} asked of God today: ${tailorToneLabel(intake.tone)}.`);
+  }
+  if (intake.freeText) lines.push(`In their own words this morning: "${intake.freeText}"`);
+  lines.push(`\nAnd tonight, how the day went: ${EVENING_STATE_LINES[eveningState]}.`);
+  lines.push(`\nClose the day under the rules above. Output only the JSON object.`);
+  return lines.join("\n");
+}
+
+/**
+ * Parses the model's JSON into the evening package, or null — the same
+ * discipline as parseTailorResult: fence-tolerant, strict about shape,
+ * every piece clamped to the lengths the task promises.
+ */
+export function parsePmResult(text: string): TailorPmPackage | null {
+  const cleaned = text.replace(/```(?:json)?/gi, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    const parsed = JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
+    if (
+      typeof parsed.reflect !== "string" ||
+      typeof parsed.prayer !== "string" ||
+      typeof parsed.carry !== "string"
+    ) {
+      return null;
+    }
+    const reflect = parsed.reflect.trim().slice(0, 900);
+    const prayer = parsed.prayer.trim().slice(0, 400);
+    const carry = parsed.carry.trim().slice(0, 200);
+    if (reflect.length < 10 || prayer.length < 5 || carry.length < 3) return null;
+    return { reflect, prayer, carry };
+  } catch {
+    return null;
+  }
+}
+
+export interface ComposePmDeps {
+  audience: NarratorAudience;
+  intake: TailorIntake;
+  eveningState: EveningState;
+  bundle: TailorBundle;
+  /** The one generation — transport lives in index.ts, parsing included. */
+  generatePm: (systemPrompt: string, userPrompt: string) => Promise<TailorPmPackage>;
+}
+
+/**
+ * Composes the evening close: the PM prompts over the day's bundle, one
+ * generation, the package back. Deliberately thin beside composeTailored —
+ * the twin has no passage hunt, no media, no script, no audio plan; its
+ * whole substance is the reckoning.
+ */
+export async function composePmEvening(deps: ComposePmDeps): Promise<TailorPmPackage> {
+  const systemPrompt = buildPmSystemPrompt(deps.audience);
+  const userPrompt = buildPmUserPrompt(deps.bundle, deps.intake, deps.eveningState, deps.audience);
+  return deps.generatePm(systemPrompt, userPrompt);
 }

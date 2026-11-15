@@ -1,5 +1,14 @@
 import type { Audience } from '@/types';
-import { tailorFocusLabel, type TailorFocus, type TailorMediaKind, type TailorState, type TailorTone } from '@/data/tailorBank';
+import {
+  isTailorFocus,
+  isTailorState,
+  isTailorTone,
+  tailorFocusLabel,
+  type TailorFocus,
+  type TailorMediaKind,
+  type TailorState,
+  type TailorTone,
+} from '@/data/tailorBank';
 import { profileSignature, type TailorRequestProfile } from '@/lib/tailorProfile';
 
 /**
@@ -110,12 +119,43 @@ export function tailorMetaKey(dateKey: string, audience: Audience): string {
   return audience === 'women' ? `${META_PREFIX}women_${dateKey}` : `${META_PREFIX}${dateKey}`;
 }
 
+/**
+ * The morning's own intake, kept ON THIS DEVICE ONLY so tonight can close
+ * the day against it (the PM twin, Nov 14, 2026). The server never stored
+ * it and still does not: it was sent once, transiently, for the morning
+ * build, and the evening build re-sends it from here, transiently, the
+ * same way. It lives in the meta line under the sanctum_tailor_ prefix,
+ * so the panic wipe takes it with everything else.
+ */
+export interface TailorMorningRecord {
+  state: TailorState;
+  focus: TailorFocus;
+  tone: TailorTone;
+  /** The morning's own words — trimmed and capped exactly as the build call caps them. */
+  freeText: string;
+}
+
 export interface TailorMeta {
   hash: string;
   narratorName: string;
   at: number;
   /** The morning's stated focus — tonight's closing echoes it back. */
   focus?: TailorFocus;
+  /** The morning's intake, for tonight's close — on this device only. */
+  morning?: TailorMorningRecord;
+}
+
+/** Validates a stored morning record, or null when it cannot be trusted. */
+function readMorningRecord(raw: unknown): TailorMorningRecord | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const m = raw as Record<string, unknown>;
+  if (!isTailorState(m.state) || !isTailorFocus(m.focus) || !isTailorTone(m.tone)) return null;
+  return {
+    state: m.state,
+    focus: m.focus,
+    tone: m.tone,
+    freeText: typeof m.freeText === 'string' ? m.freeText.slice(0, 200) : '',
+  };
 }
 
 export function readTailorMeta(dateKey: string, audience: Audience): TailorMeta | null {
@@ -124,7 +164,10 @@ export function readTailorMeta(dateKey: string, audience: Audience): TailorMeta 
     if (!raw) return null;
     const parsed = JSON.parse(raw) as TailorMeta;
     if (typeof parsed.hash !== 'string') return null;
-    return parsed;
+    // A malformed morning record drops the record, never the meta — the
+    // focus echo and the cached build must survive a bad twin field.
+    const morning = readMorningRecord((parsed as { morning?: unknown }).morning);
+    return morning ? { ...parsed, morning } : { ...parsed, morning: undefined };
   } catch {
     return null;
   }
@@ -271,7 +314,7 @@ export interface TailorDeps {
 }
 
 /** The function's address and public key — the one door both calls use. */
-function tailorEndpoint(): { url: string; anonKey: string } | null {
+export function tailorEndpoint(): { url: string; anonKey: string } | null {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
   if (!supabaseUrl || !anonKey) return null;
@@ -342,6 +385,14 @@ export async function getOrBuildTailored(
     narratorName: built.narratorName,
     at: Date.now(),
     focus: intake.focus,
+    // The morning record for tonight's close — this device only, capped
+    // exactly as the build call caps the words it sends.
+    morning: {
+      state: intake.state,
+      focus: intake.focus,
+      tone: intake.tone,
+      freeText: intake.freeText.replace(/\s+/g, ' ').trim().slice(0, 200),
+    },
   });
   return { devotional: built, fromCache: false };
 }

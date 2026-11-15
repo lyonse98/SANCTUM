@@ -310,7 +310,9 @@ function TailorProfileEditor({
  * happens on the server: what a user writes for a morning is never stored
  * there; the devotional Sanctum writes may be kept — unattributed, outputs
  * only — for quality review, and is deleted within 90 days (Nov 13, 2026).
- * The copy the user reads lives on this device (see lib/tailor).
+ * The copy the user reads lives on this device (see lib/tailor) — and so
+ * does the morning's own intake, kept there for tonight's Close the day
+ * (the PM twin, Nov 14, 2026), which re-sends it transiently the same way.
  */
 export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorTodayProps) {
   const offered = tailorOffered();
@@ -551,9 +553,11 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
           <p className="text-[12px] leading-relaxed mb-4" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             Say how this morning is, and today&rsquo;s devotional is re-aimed at it — the same
             readings, a passage for your need, a word from the tradition, and the day&rsquo;s
-            narrator reading it for you. What you tell Sanctum is never stored. The devotional
-            written for you may be kept — unattributed, with none of your answers — so its
-            quality can be reviewed; it&rsquo;s deleted within 90 days.
+            narrator reading it for you. What you tell Sanctum is never stored on a server.
+            Your morning&rsquo;s words stay on this device, kept for tonight so the day can
+            be closed against them, and they are sent nowhere except the calls that write
+            for you. The devotional written for you may be kept — unattributed, with none of
+            your answers — so its quality can be reviewed; it&rsquo;s deleted within 90 days.
           </p>
 
           <div className="mb-3.5">

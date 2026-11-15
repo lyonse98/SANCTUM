@@ -4,6 +4,7 @@ import { PRINT_SERIF } from '@/lib/print';
 import { fetchReflection } from '@/lib/reflection';
 import { isoDate } from '@/lib/readingsBundle';
 import { readTailorMeta } from '@/lib/tailor';
+import { TailorPm } from '@/components/TailorPm';
 import {
   gratitudeForDate,
   honestLookLine,
@@ -40,7 +41,8 @@ export function TonightClosing({ t, audience }: TonightClosingProps) {
   });
 
   // The tailored morning, remembered: read once from the on-device tailor meta.
-  const [tailorFocus] = useState(() => readTailorMeta(dateKey, audience)?.focus ?? null);
+  const [tailorMeta] = useState(() => readTailorMeta(dateKey, audience));
+  const tailorFocus = tailorMeta?.focus ?? null;
 
   useEffect(() => {
     let live = true;
@@ -110,6 +112,13 @@ export function TonightClosing({ t, audience }: TonightClosingProps) {
         className="w-full bg-transparent border-b pb-1.5 text-[13px] leading-relaxed outline-none"
         style={{ fontFamily: PRINT_SERIF, borderColor: `${t.border}99`, color: t.text }}
       />
+
+      {/* Close the day (the Tailor PM twin, Nov 14, 2026): only when this
+          morning's Tailor build exists on the device — the meta's morning
+          record is the twin's whole material. No morning build, no plate. */}
+      {tailorMeta?.morning && (
+        <TailorPm t={t} audience={audience} dateKey={dateKey} morning={tailorMeta.morning} />
+      )}
     </div>
   );
 }
