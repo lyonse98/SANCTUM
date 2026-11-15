@@ -8,6 +8,7 @@ const RANK_LABEL: Record<FeastRank, string> = {
   solemnity: 'Solemnity',
   feast: 'Feast',
   memorial: 'Memorial',
+  'optional-memorial': 'Optional Memorial',
 };
 
 export function SeasonBadge() {

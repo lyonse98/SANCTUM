@@ -3,7 +3,7 @@ import { getAdventStart, getEasterDate } from '@/data/liturgicalCalendar';
 /** The eight liturgical colours of the Roman rite. */
 export type LiturgicalColor = 'white' | 'gold' | 'red' | 'green' | 'violet' | 'rose' | 'black' | 'blue';
 
-export type FeastRank = 'solemnity' | 'feast' | 'memorial';
+export type FeastRank = 'solemnity' | 'feast' | 'memorial' | 'optional-memorial';
 
 export interface FeastDay {
   name: string;
@@ -97,13 +97,16 @@ export const FIXED_FEASTS: Record<string, FeastDay> = {
   '11-12': { name: 'St. Josaphat', rank: 'memorial', color: 'red', note: 'The archbishop martyred for healing the breach between East and West.', glyph: '✝', motif: 'bridge of unity' },
   '11-13': { name: 'St. Frances Xavier Cabrini', rank: 'memorial', color: 'white', note: 'The nun who crossed an ocean to build schools and hospitals for immigrants.', glyph: '✦', motif: 'ship and schoolhouse' },
   '11-17': { name: 'St. Elizabeth of Hungary', rank: 'memorial', color: 'white', note: 'The princess who gave away her fortune and served the sick herself.', glyph: '❦', motif: 'roses and bread' },
+  '11-18': { name: 'Dedication of the Basilicas of Sts. Peter and Paul', rank: 'optional-memorial', color: 'white', note: 'The dedication of the two great Roman basilicas raised over the apostles\' tombs.', glyph: '✦', motif: 'basilica and keys' },
   '11-21': { name: 'Presentation of the Blessed Virgin Mary', rank: 'memorial', color: 'white', note: 'The child Mary is offered to God in the Temple.', glyph: '✦', motif: 'temple steps' },
   '11-22': { name: 'St. Cecilia', rank: 'memorial', color: 'red', note: 'The martyr who sang to God in her heart.', glyph: '❦', motif: 'lyre and crown' },
+  '11-23': { name: 'Sts. Clement I and Columban', rank: 'optional-memorial', color: 'red', note: 'A pope martyred in exile, and the Irish abbot who carried the faith across Europe.', glyph: '✝', motif: 'keys and cloister' },
   '11-24': { name: 'Sts. Andrew Dung-Lac and Companions', rank: 'memorial', color: 'red', note: 'A Vietnamese priest and 116 companions who would not renounce Christ.', glyph: '✝', motif: 'palm and cross' },
   '11-30': { name: 'St. Andrew', rank: 'feast', color: 'red', note: 'The first called, who preached from his own cross.', glyph: '✝', motif: 'saltire cross' },
   '12-03': { name: 'St. Francis Xavier', rank: 'memorial', color: 'white', note: 'The missionary who baptized nations.', glyph: '✦', motif: 'crab and crucifix' },
   '12-06': { name: 'St. Nicholas', rank: 'memorial', color: 'white', note: 'The bishop who gave in secret and struck at heresy.', glyph: '❦', motif: 'three golden balls' },
   '12-07': { name: 'St. Ambrose', rank: 'memorial', color: 'white', note: 'The governor made bishop by acclamation — who then baptized Augustine.', glyph: '❦', motif: 'beehive and crozier' },
+  '12-09': { name: 'St. Juan Diego', rank: 'optional-memorial', color: 'white', note: 'The humble Aztec convert to whom Our Lady of Guadalupe appeared.', glyph: '✦', motif: 'winter roses' },
   '12-08': { name: 'The Immaculate Conception', rank: 'solemnity', color: 'blue', note: 'Mary, preserved from sin from the first moment.', glyph: '✦', motif: 'woman clothed with the sun' },
   '12-12': { name: 'Our Lady of Guadalupe', rank: 'feast', color: 'blue', note: 'The Mother who left her image on a poor man\'s cloak.', glyph: '✦', motif: 'tilma of roses' },
   '12-13': { name: 'St. Lucy', rank: 'memorial', color: 'red', note: 'Her name means light — and she died for it.', glyph: '☀', motif: 'candles and eyes' },
@@ -112,6 +115,8 @@ export const FIXED_FEASTS: Record<string, FeastDay> = {
   '12-26': { name: 'St. Stephen', rank: 'feast', color: 'red', note: 'The first martyr, who forgave his killers as he died.', glyph: '✝', motif: 'stones and palms' },
   '12-27': { name: 'St. John the Evangelist', rank: 'feast', color: 'white', note: 'The beloved disciple, the apostle of love.', glyph: '❦', motif: 'eagle and chalice' },
   '12-28': { name: 'The Holy Innocents', rank: 'feast', color: 'red', note: 'The children who died in Christ\'s place.', glyph: '✝', motif: 'palms of the innocent' },
+  '12-29': { name: 'St. Thomas Becket', rank: 'optional-memorial', color: 'red', note: 'The archbishop murdered in his own cathedral for defending the Church\'s liberty.', glyph: '✝', motif: 'cathedral and sword' },
+  '12-31': { name: 'St. Sylvester I', rank: 'optional-memorial', color: 'white', note: 'The pope who shepherded the Church into the peace of Constantine.', glyph: '✦', motif: 'keys and tiara' },
 };
 
 /** Moveable feasts, resolved from Easter and Advent each year. */

@@ -18,7 +18,8 @@ export interface DailyVisual {
   glyph: string;
   motif: string;
   /**
-   * How loudly the day should announce itself: 0 = ordinary day, 1 = memorial,
+   * How loudly the day should announce itself: 0 = ordinary day (and optional
+   * memorials, which are named but speak at ferial strength), 1 = memorial,
    * 2 = feast, 3 = solemnity. Drives backdrop strength and ornamentation.
    */
   intensity: 0 | 1 | 2 | 3;
@@ -58,7 +59,8 @@ const SEASON_MOTIFS: Record<LiturgicalColor, string[]> = {
   blue: ['starry vault', 'tilma of roses'],
 };
 
-const RANK_INTENSITY: Record<FeastRank, 1 | 2 | 3> = {
+const RANK_INTENSITY: Record<FeastRank, 0 | 1 | 2 | 3> = {
+  'optional-memorial': 0,
   memorial: 1,
   feast: 2,
   solemnity: 3,
@@ -77,6 +79,10 @@ function dayOfYear(date: Date): number {
  * The day's full visual identity. Special days — solemnities, feasts, and memorials —
  * override the season with their own liturgical colour; ordinary days wear the season's colour,
  * with the shade and ornament rotating daily so the app still feels new each morning.
+ * One exception, ruled by Erik on Nov 15, 2026: an OPTIONAL memorial is named like
+ * any saint's day (name, note, glyph, motif all surface) but its colour never takes
+ * the accent set — the season's colour stays lead in every season, and the day
+ * speaks at ferial intensity.
  */
 export function getDailyVisual(date: Date = new Date()): DailyVisual {
   const season = getCurrentSeason(date);
@@ -84,14 +90,15 @@ export function getDailyVisual(date: Date = new Date()): DailyVisual {
   const doy = dayOfYear(date);
 
   if (feast) {
-    const palette = COLOR_PALETTES[feast.color];
+    const colorName = feast.rank === 'optional-memorial' ? SEASON_COLOR[season.season] : feast.color;
+    const palette = COLOR_PALETTES[colorName];
     return {
       season: season.season,
       seasonName: season.name,
       feastName: feast.name,
       feastRank: feast.rank,
       feastNote: feast.note,
-      colorName: feast.color,
+      colorName,
       ...palette,
       glyph: feast.glyph,
       motif: feast.motif,

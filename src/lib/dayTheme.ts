@@ -15,6 +15,11 @@ import type { LiturgicalSeason } from '@/data/liturgicalCalendar';
  *   Church's unprivileged season — as at Mass, where a memorial's vestments
  *   are the saint's colour, not green. In the privileged seasons (Advent,
  *   Lent, Christmas, Easter) a memorial keeps the season's lead, as before.
+ * - optional memorial (Erik, Nov 15, 2026): the saint is named like on any
+ *   saint's day, but the season overrides the theme — the saint's colour
+ *   NEVER takes the accent set in any season, and the tint strength is the
+ *   ferial strength. The day is honoured in name only; the season keeps
+ *   the whole visual voice.
  * - feast: the day's own liturgical colour takes the lead accent, and the
  *   tint wash in the ground deepens modestly.
  * - solemnity (and the great days — Easter, Christmas, Pentecost): the
@@ -26,7 +31,7 @@ import type { LiturgicalSeason } from '@/data/liturgicalCalendar';
  * colours, so there is no accent budget and nothing retires; the colour
  * this module chooses is simply the colour everything wears.
  */
-export type DayRank = 'ferial' | 'memorial' | 'feast' | 'solemnity';
+export type DayRank = 'ferial' | 'memorial' | 'optional-memorial' | 'feast' | 'solemnity';
 
 export interface DayRankInfo {
   rank: DayRank;
@@ -44,6 +49,7 @@ export function getDayRank(date: Date): DayRankInfo {
 export const TINT_STRENGTH_BY_RANK: Record<DayRank, number> = {
   ferial: 1,
   memorial: 1,
+  'optional-memorial': 1,
   feast: 1.75,
   solemnity: 3,
 };
@@ -84,8 +90,9 @@ export const MEMORIAL_MARKERS: Record<LiturgicalColor, MemorialMarker> = {
 };
 
 /**
- * The marker for a day, or null when the day earns none: only memorials are
- * marked. Feasts and solemnities speak through the whole theme instead.
+ * The marker for a day, or null when the day earns none: only obligatory
+ * memorials are marked. Feasts and solemnities speak through the whole theme
+ * instead, and optional memorials are honoured in name only.
  */
 export function getMemorialMarker(date: Date): MemorialMarker | null {
   const { rank, feast } = getDayRank(date);

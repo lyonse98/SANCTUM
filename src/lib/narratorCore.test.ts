@@ -187,6 +187,15 @@ describe('calendar resolution — drift checks against the app data', () => {
         const iso = `2026-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const ported = resolveFeastDay(iso);
         const app = getFeastForDate(dt);
+        if (app?.rank === 'optional-memorial') {
+          // Erik, Nov 15, 2026: optional memorials live in the client
+          // calendar only — the narrator neither names them nor weaves
+          // them, so on these days the ported table must stay silent
+          // while the app names the day. (Before this rank existed the
+          // two tables mirrored each other on every day of the year.)
+          expect(ported, iso).toBeNull();
+          continue;
+        }
         const a = ported ? `${ported.name}|${ported.rank}` : 'null';
         const b = app ? `${app.name}|${app.rank}` : 'null';
         if (a !== b) mismatches += 1;
@@ -200,6 +209,18 @@ describe('calendar resolution — drift checks against the app data', () => {
     for (const saint of SAINTS) {
       if (seen.has(saint.feastDate)) continue;
       seen.add(saint.feastDate);
+      // Optional memorials (Erik, Nov 15, 2026) carry no narrator line —
+      // their bios have no ported first sentence to agree with. The skip
+      // needs BOTH the optional rank and the missing line, so a saint who
+      // shares an optional-memorial date but does have a line (Miguel Pro,
+      // Nov 23) is still checked in full.
+      const [mm, dd] = saint.feastDate.split('-').map(Number);
+      if (
+        getFeastForDate(new Date(2026, mm - 1, dd, 12))?.rank === 'optional-memorial' &&
+        !saintLineFor(`2026-${saint.feastDate}`)
+      ) {
+        continue;
+      }
       const expected = saint.shortBio.split(/(?<=[.!?])\s/)[0].trim();
       expect(saintLineFor(`2026-${saint.feastDate}`), saint.name).toBe(expected);
     }
