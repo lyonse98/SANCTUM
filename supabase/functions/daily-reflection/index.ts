@@ -42,6 +42,8 @@
 // verify_jwt is false: no-auth app. Rate limiting is per hashed IP and only applies when
 // generation is needed (cache misses skip the quota check entirely).
 
+import { buildInputSaintBlock } from "./saintDay.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -410,7 +412,12 @@ async function fetchReadings(
   }
 }
 
-function buildInput(readings: ReadingSet, celebration: string | null, gospelText: string | null): string {
+function buildInput(
+  readings: ReadingSet,
+  celebration: string | null,
+  gospelText: string | null,
+  saintBlock: string,
+): string {
   const lines: string[] = [];
   if (celebration) lines.push(`Today the Church celebrates: ${celebration}`);
   lines.push("Readings:");
@@ -431,6 +438,15 @@ function buildInput(readings: ReadingSet, celebration: string | null, gospelText
   // and it is only requested (and only accepted) when the text is actually here.
   if (gospelText) {
     lines.push("", "Gospel text:", gospelText);
+  }
+
+  // The saint weave (Nov 14, 2026): on a day the calendar keeps a saint the
+  // bank can describe, the input gains the weave instruction; on every
+  // other day saintBlock is empty and the input is byte-identical to what
+  // it was before the weave existed. The system prompts are untouched —
+  // the weave lives entirely in this per-day input.
+  if (saintBlock) {
+    lines.push("", saintBlock);
   }
 
   return lines.join("\n");
@@ -530,7 +546,12 @@ Deno.serve(async (req: Request) => {
     // reflection generates exactly as before, just without a scene.
     const gospelText = await fetchGospelText(dateKey);
 
-    const input = buildInput(readingsData.readings, readingsData.celebration, gospelText);
+    const input = buildInput(
+      readingsData.readings,
+      readingsData.celebration,
+      gospelText,
+      buildInputSaintBlock(dateKey),
+    );
     if (input.length < 20) return errorResponse(GENERIC_ERROR, 502);
 
     const apiKey = Deno.env.get("GEMINI_API_KEY");
