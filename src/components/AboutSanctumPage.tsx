@@ -80,7 +80,7 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
           borderRight: `1px solid ${t.border}`,
         }}
       >
-        <PrintPageHead t={t} title="About Sanctum" onBack={onClose} withClose />
+        <PrintPageHead t={t} title="About Sanctum" onBack={onClose} onClose={onClose} />
 
         {/* Why Sanctum exists — the thesis at the head of the colophon. */}
         <div className="w-full text-center px-4 mb-6 animate-fade-in">

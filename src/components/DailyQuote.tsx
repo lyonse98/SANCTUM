@@ -26,7 +26,7 @@ import {
   reflectionDisplay,
   type Reflection,
 } from '@/lib/reflection';
-import { PRINT_PLATE_CLASS, PRINT_SERIF } from '@/lib/print';
+import { PRINT_PLATE_CLASS, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import { ListenBar } from '@/components/ListenBar';
 import { TailorToday } from '@/components/TailorToday';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
@@ -495,8 +495,9 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
       {/* Reflect and challenge — pre-generated server-side from the day's readings.
           Renders on the reflection's own state, fetched in parallel with the readings:
           a slow readings path no longer holds a ready reflection hostage. In the
-          printed page they sit beside their labels, set like marginalia in the
-          margin rail — Reflect (with its facet) and Challenge. */}
+          printed page each wears its label as a stamped heading above its
+          paragraph — Reflect (with its facet) and Challenge — so the block's
+          height follows the text at every width and every day's length. */}
       {(shown.value || shown.pending) && (
         <div className="space-y-3 mb-3">
           {shown.pending && !shown.value ? (
@@ -506,34 +507,24 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
             </div>
           ) : shown.value ? (
             <>
-              <div className="flex gap-3">
-                <span
-                  className="text-[8px] font-bold uppercase flex-shrink-0 pt-1"
-                  style={{
-                    writingMode: 'vertical-rl',
-                    transform: 'rotate(180deg)',
-                    letterSpacing: '0.18em',
-                    color: t.accent,
-                  }}
+              <div>
+                <p
+                  className={`${PRINT_STAMP_CLASS} mb-1`}
+                  style={{ fontFamily: PRINT_SERIF, color: t.accent }}
                 >
                   Reflect{shown.value.facet ? ` \u00b7 ${shown.value.facet}` : ''}
-                </span>
+                </p>
                 <p className="text-[13px] leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
                   {shown.value.reflect}
                 </p>
               </div>
-              <div className="flex gap-3">
-                <span
-                  className="text-[8px] font-bold uppercase flex-shrink-0 pt-1"
-                  style={{
-                    writingMode: 'vertical-rl',
-                    transform: 'rotate(180deg)',
-                    letterSpacing: '0.18em',
-                    color: t.accent,
-                  }}
+              <div>
+                <p
+                  className={`${PRINT_STAMP_CLASS} mb-1`}
+                  style={{ fontFamily: PRINT_SERIF, color: t.accent }}
                 >
                   Challenge
-                </span>
+                </p>
                 <p className="text-[13px] leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
                   {shown.value.challenge}
                 </p>

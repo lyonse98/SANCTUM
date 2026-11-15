@@ -507,9 +507,9 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     // 2026) there is no bottom tab bar and no top header either: Today is
     // the only home, and it ends with the More of Sanctum block (the three
     // destinations) over the utilities line — Option B, "Foot of Today".
-    // The same utilities line closes the three destination pages. Sub-views
-    // carry a plain "‹ Today" return at the top of the content area (their
-    // own Back buttons remain too).
+    // The same utilities line closes the three destination pages. Each
+    // sub-view carries its own "‹ Today" return in its page head
+    // (PrintPageHead) — the shell adds no return of its own.
     const areaTheme = seasonTheme;
     let content: JSX.Element;
     if (view === 'companions') {
@@ -571,22 +571,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
     return (
       <div className="fixed inset-0 flex flex-col" style={{ backgroundColor: areaTheme.bg }}>
-        {view !== 'today' && (
-          <div
-            className="relative z-20 flex-shrink-0 border-b"
-            style={{ borderColor: `${areaTheme.border}66`, backgroundColor: areaTheme.bg }}
-          >
-            <div className="max-w-2xl mx-auto px-4 py-1.5">
-              <button
-                onClick={() => handleChangeView('today')}
-                className="text-[11px] font-bold uppercase tracking-wider transition-opacity hover:opacity-70"
-                style={{ color: areaTheme.accent }}
-              >
-                &lsaquo; Today
-              </button>
-            </div>
-          </div>
-        )}
         <div className="relative flex-1 overflow-hidden"><Suspense fallback={<TabFallback />}>{content}</Suspense></div>
 
         {showAbout && (

@@ -66,7 +66,7 @@ export function FindHelpPage({ t, audience, accent, onBack, onPrayNow, utilities
           borderRight: `1px solid ${t.border}`,
         }}
       >
-        <PrintPageHead t={t} title="Find Real Help" onBack={onBack} withClose />
+        <PrintPageHead t={t} title="Find Real Help" onBack={onBack} onClose={onBack} />
 
         {/* The first door — crisis, rubricated, the app's own card verbatim. */}
         <div className="w-full mb-5">
