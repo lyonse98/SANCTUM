@@ -8,6 +8,7 @@ import {
   Home,
 } from 'lucide-react';
 import { COMPANION_PORTRAYAL_SHORT } from '@/lib/privacyCopy';
+import { PRINT_SERIF } from '@/lib/print';
 import { CompanionAvatar } from '@/components/CompanionAvatar';
 import { PERSONAS } from '@/personas';
 import type { Persona } from '@/types';
@@ -71,20 +72,20 @@ export function Header({
           >
             <div className="relative">
               <div
-                className="rounded-lg shadow-md border overflow-hidden"
-                style={{ backgroundColor: t.card, borderColor: t.borderLight }}
+                className="rounded-full shadow-md overflow-hidden"
+                style={{ backgroundColor: t.card }}
               >
                 <CompanionAvatar personaId={persona.id} theme={t} size={40} />
               </div>
               <div
-                className="absolute -inset-0.5 rounded-lg blur-md -z-10"
+                className="absolute -inset-0.5 rounded-full blur-md -z-10"
                 style={{ backgroundColor: t.glow }}
               />
             </div>
             <div className="flex flex-col leading-tight text-left">
               <h1
-                className="text-base font-bold tracking-tight font-display uppercase"
-                style={{ color: t.textBright }}
+                className="text-base font-bold tracking-tight"
+                style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
               >
                 {persona.name}
               </h1>
@@ -131,10 +132,10 @@ export function Header({
                   >
                     <CompanionAvatar personaId={p.id} theme={p.theme} size={32} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold font-display uppercase tracking-wide" style={{ color: p.theme.textBright }}>
+                      <p className="text-xs font-bold tracking-wide" style={{ fontFamily: PRINT_SERIF, color: p.theme.textBright }}>
                         {p.name}
                       </p>
-                      <p className="text-[10px] truncate" style={{ color: p.theme.textDim }}>
+                      <p className="text-[10px] truncate" style={{ fontFamily: PRINT_SERIF, color: p.theme.textDim }}>
                         {p.tagline}
                       </p>
                     </div>

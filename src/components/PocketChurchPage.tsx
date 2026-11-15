@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Church } from 'lucide-react';
 import type { Audience, PersonaTheme, UtilityActions } from '@/types';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { UtilitiesLine } from '@/components/UtilitiesLine';
+import { PrintPageHead } from '@/components/PrintPageHead';
+import { PRINT_CHOSEN_FILL_ALPHA, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import { PrayerLibrary } from '@/components/PrayerLibrary';
 import { ConfessionGuide } from '@/components/ConfessionGuide';
 import { PocketCatechism } from '@/components/PocketCatechism';
@@ -28,6 +29,12 @@ interface PocketChurchPageProps {
  * Divina and the Rule of Life both left the app as identifiable surfaces the
  * same day; their components stay in the repo, unwired, and the landings
  * that once named them now resolve to the Gospel on Today and to this page.
+ *
+ * Stage 2 of the printed-page re-skin (Nov 14, 2026) sets the page as a
+ * leaf of the day's paper under the shared chapter head, and the three
+ * doors as ruled plates in the day's accent — the open door wears the
+ * accent frame, wash, and voice. The doors, their order, and everything
+ * behind them are unchanged.
  */
 export type ChurchTab = 'pray' | 'confession' | 'ask';
 
@@ -69,54 +76,48 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
   return (
     <div className="absolute inset-0 overflow-y-auto chat-scroll" style={{ backgroundColor: t.bg }}>
       <SeasonBackdrop />
-      <div className="relative z-10 min-h-full flex flex-col items-center px-5 py-6 max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="w-full flex items-center justify-between mb-6">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all active:scale-95"
-            style={{ backgroundColor: t.card, borderColor: `${t.border}99`, color: t.textMuted }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-xs font-bold font-display uppercase tracking-wide">Back</span>
-          </button>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center border"
-              style={{ backgroundColor: t.accentRgba(0.12), borderColor: t.accentRgba(0.3) }}
-            >
-              <Church className="w-4 h-4" style={{ color: t.accent }} />
-            </div>
-            <h1 className="text-lg font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>
-              Pocket Church
-            </h1>
-          </div>
-          <div className="w-20" />
-        </div>
+      <div
+        className="relative z-10 min-h-full flex flex-col items-center px-5 py-6 max-w-2xl mx-auto"
+        style={{
+          backgroundColor: t.card,
+          borderLeft: `1px solid ${t.border}`,
+          borderRight: `1px solid ${t.border}`,
+        }}
+      >
+        <PrintPageHead t={t} title="Pocket Church" onBack={onBack} />
 
         {/* Intro */}
         <div className="w-full text-center mb-6">
-          <p className="text-sm leading-relaxed max-w-sm mx-auto" style={{ color: t.textMuted }}>
+          <p className="text-sm leading-relaxed max-w-sm mx-auto" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             Three doors: pray, prepare for Confession, or ask the Catechism a question. The faith in your pocket.
           </p>
         </div>
 
-        {/* The three doors */}
-        <div className="w-full flex gap-1.5 mb-5">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="flex-1 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all border"
-              style={
-                activeTab === tab.id
-                  ? { backgroundColor: t.accentRgba(0.15), color: t.accent, borderColor: t.accentRgba(0.4) }
-                  : { backgroundColor: `${t.border}40`, color: t.textDim, borderColor: `${t.border}80` }
-              }
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* The three doors — ruled plates; the open door wears the accent. */}
+        <div className="w-full flex gap-2 mb-5" role="tablist" aria-label="Pocket Church doors">
+          {TABS.map((tab) => {
+            const open = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={open}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex-1 min-h-[48px] px-3 py-2.5 transition-opacity hover:opacity-80 active:opacity-60"
+                style={{
+                  border: `1px solid ${open ? t.accent : t.border}`,
+                  backgroundColor: open ? `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}` : `${t.border}1F`,
+                }}
+              >
+                <span
+                  className={PRINT_STAMP_CLASS}
+                  style={{ fontFamily: PRINT_SERIF, color: open ? t.accent : t.textDim }}
+                >
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Content */}
@@ -124,26 +125,34 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
           {activeTab === 'pray' && (
             <div>
               {/* Inside Pray: the Rosary first, the library beside it. */}
-              <div className="flex gap-1.5 mb-4">
+              <div className="flex gap-2 mb-4">
                 {(
                   [
                     { id: 'rosary', label: 'The Rosary' },
                     { id: 'prayers', label: 'Prayer Library' },
                   ] as { id: PraySection; label: string }[]
-                ).map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => setPraySection(section.id)}
-                    className="flex-1 px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all border"
-                    style={
-                      praySection === section.id
-                        ? { backgroundColor: t.accentRgba(0.12), color: t.accent, borderColor: t.accentRgba(0.35) }
-                        : { backgroundColor: `${t.border}33`, color: t.textDim, borderColor: `${t.border}66` }
-                    }
-                  >
-                    {section.label}
-                  </button>
-                ))}
+                ).map((section) => {
+                  const open = praySection === section.id;
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => setPraySection(section.id)}
+                      aria-pressed={open}
+                      className="flex-1 min-h-[44px] px-3 py-2 transition-opacity hover:opacity-80 active:opacity-60"
+                      style={{
+                        border: `1px solid ${open ? t.accent : t.border}`,
+                        backgroundColor: open ? `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}` : `${t.border}14`,
+                      }}
+                    >
+                      <span
+                        className="text-[11px] font-bold uppercase tracking-widest"
+                        style={{ fontFamily: PRINT_SERIF, color: open ? t.accent : t.textDim }}
+                      >
+                        {section.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
               {praySection === 'rosary' ? <RosaryPrayer t={t} /> : <PrayerLibrary t={t} />}
             </div>
@@ -152,7 +161,7 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
           {activeTab === 'ask' && <PocketCatechism t={t} audience={audience} defaultMode="ask" />}
         </div>
 
-        <p className="text-[10px] text-center mt-6 leading-relaxed max-w-xs" style={{ color: t.textDim }}>
+        <p className="text-[10px] text-center mt-6 leading-relaxed max-w-xs" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
           Pocket Church is for faith formation, not sacramental absolution. For the sacraments, see a priest.
         </p>
 

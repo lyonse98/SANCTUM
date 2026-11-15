@@ -7,6 +7,7 @@ import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { TodayHero } from '@/components/TodayHero';
 import { TonightClosing } from '@/components/TonightClosing';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
+import { PRINT_SERIF } from '@/lib/print';
 import { AUDIO_PM_START_HOUR } from '@/lib/narratorCore';
 import { morningResolve } from '@/lib/tonight';
 import type { Audience, TabId, UtilityActions } from '@/types';
@@ -77,12 +78,30 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
   }, [forceTonight, onConsumeForceTonight]);
 
   return (
-    <div className="absolute inset-0 overflow-y-auto chat-scroll bg-forge-bg">
+    <div
+      className="absolute inset-0 overflow-y-auto chat-scroll"
+      style={{ backgroundColor: seasonTheme.bg }}
+    >
       <SeasonBackdrop />
-      <div className="relative z-10 min-h-full flex flex-col items-center px-5 py-8 pb-16 max-w-2xl mx-auto">
+      {/* The day's page (Stage 1 of the printed-page re-skin, Erik, Nov 14,
+          2026): the column is a leaf of the track's paper — the theme's
+          card tone, men's cool stone-beige, women's warm ivory-sand —
+          standing on the track's ground, its edges ruled with hairlines.
+          The stack inside is unchanged, in Erik's order, utilities last. */}
+      <div
+        className="relative z-10 min-h-full flex flex-col items-center px-5 py-8 pb-16 max-w-2xl mx-auto"
+        style={{
+          backgroundColor: seasonTheme.card,
+          borderLeft: `1px solid ${seasonTheme.border}`,
+          borderRight: `1px solid ${seasonTheme.border}`,
+        }}
+      >
         {/* Last night's resolve — one small line over the morning, gone by midday. */}
         {lastNightsResolve && (
-          <p className="w-full text-center text-[11px] italic text-forge-text-dim mb-5 animate-fade-in">
+          <p
+            className="w-full text-center text-[11px] italic text-forge-text-dim mb-5 animate-fade-in"
+            style={{ fontFamily: PRINT_SERIF }}
+          >
             Last night&rsquo;s resolve: {lastNightsResolve}
           </p>
         )}
@@ -124,7 +143,10 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           <MoreOfSanctum t={seasonTheme} onNavigate={onNavigate} />
         </div>
 
-        <p className="text-[11px] text-forge-text-dim text-center leading-relaxed max-w-xs mb-5">
+        <p
+          className="text-[11px] text-forge-text-dim text-center leading-relaxed max-w-xs mb-5"
+          style={{ fontFamily: PRINT_SERIF }}
+        >
           Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US). {PRIVACY_SHORT}
         </p>
 

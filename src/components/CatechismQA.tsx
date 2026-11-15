@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Send, Loader2, BookOpen, Sparkles, ChevronRight } from 'lucide-react';
+import { PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import type { Audience, PersonaTheme } from '@/types';
 import { streamChat } from '@/lib/llm';
 import type { ChatSource } from '@/lib/chatSources';
@@ -24,7 +25,7 @@ function AnswerSources({ sources, t }: { sources: ChatSource[]; t: PersonaTheme 
   const [openLabel, setOpenLabel] = useState<string | null>(null);
   return (
     <div className="mt-2 pt-2 border-t" style={{ borderColor: `${t.border}55` }}>
-      <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
+      <p className={PRINT_STAMP_CLASS} style={{ color: t.textDim }}>
         Sources
       </p>
       <div className="space-y-1">
@@ -127,12 +128,12 @@ export function CatechismQA({ t, audience }: CatechismQAProps) {
   };
 
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: t.card, borderColor: `${t.border}66` }}>
+    <div className="border overflow-hidden" style={{ backgroundColor: `${t.border}0A`, borderColor: t.border, fontFamily: PRINT_SERIF }}>
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: `${t.border}66` }}>
         <BookOpen className="w-4 h-4" style={{ color: t.accent }} />
         <div>
-          <h3 className="text-sm font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>
+          <h3 className={PRINT_STAMP_CLASS} style={{ color: t.accent }}>
             Ask Aquinas
           </h3>
           <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
@@ -146,7 +147,7 @@ export function CatechismQA({ t, audience }: CatechismQAProps) {
         {messages.length === 0 ? (
           <div className="text-center py-4">
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 border"
+              className="w-12 h-12 flex items-center justify-center mx-auto mb-3 border"
               style={{ backgroundColor: t.accentRgba(0.08), borderColor: t.accentRgba(0.2) }}
             >
               <Sparkles className="w-6 h-6" style={{ color: t.accent }} />
@@ -160,8 +161,8 @@ export function CatechismQA({ t, audience }: CatechismQAProps) {
                 <button
                   key={q}
                   onClick={() => handleSuggested(q)}
-                  className="w-full text-left px-3 py-2 rounded-lg border transition-all active:scale-[0.98]"
-                  style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}66` }}
+                  className="w-full min-h-[44px] text-left px-3 py-2 border transition-opacity hover:opacity-80 active:opacity-60"
+                  style={{ backgroundColor: `${t.border}1F`, borderColor: t.border }}
                 >
                   <p className="text-xs font-medium" style={{ color: t.text }}>{q}</p>
                 </button>
@@ -173,17 +174,13 @@ export function CatechismQA({ t, audience }: CatechismQAProps) {
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className="rounded-lg px-3 py-2.5 border"
-                style={
-                  msg.role === 'user'
-                    ? { backgroundColor: t.accentRgba(0.08), borderColor: t.accentRgba(0.2) }
-                    : { backgroundColor: `${t.border}40`, borderColor: `${t.border}55` }
-                }
+                className={msg.role === 'user' ? 'ml-4 pl-3' : undefined}
+                style={msg.role === 'user' ? { borderLeft: `1px solid ${t.border}` } : undefined}
               >
-                <p className="text-[10px] uppercase tracking-widest font-bold mb-1" style={{ color: msg.role === 'user' ? t.accent : t.textDim }}>
+                <p className={PRINT_STAMP_CLASS} style={{ color: msg.role === 'user' ? t.textDim : t.accent }}>
                   {msg.role === 'user' ? 'You' : 'St. Thomas'}
                 </p>
-                <p className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: msg.role === 'user' ? t.text : t.textMuted }}>
+                <p className="text-xs leading-relaxed whitespace-pre-wrap mt-1" style={{ color: msg.role === 'user' ? t.text : t.textMuted }}>
                   {msg.content}
                 </p>
                 {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
@@ -215,8 +212,8 @@ export function CatechismQA({ t, audience }: CatechismQAProps) {
             }}
             placeholder="Ask your question..."
             rows={1}
-            className="flex-1 text-sm rounded-lg px-3 py-2.5 resize-none border focus:outline-none transition-colors"
-            style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
+            className="flex-1 text-sm px-1 py-2.5 resize-none focus:outline-none transition-colors"
+            style={{ backgroundColor: 'transparent', borderBottom: `1px solid ${t.border}`, color: t.text }}
             disabled={isLoading}
             autoComplete="off"
             spellCheck={false}
@@ -224,8 +221,9 @@ export function CatechismQA({ t, audience }: CatechismQAProps) {
           <button
             onClick={() => handleSend(input)}
             disabled={!input.trim() || isLoading}
-            className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-all active:scale-90 disabled:opacity-40"
+            className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-90 disabled:opacity-40"
             style={{ backgroundColor: t.accent, color: '#ffffff' }}
+            aria-label="Send question"
           >
             <Send className="w-4 h-4" />
           </button>

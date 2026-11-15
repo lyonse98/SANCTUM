@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Compass, X, ChevronRight, PenLine } from 'lucide-react';
 import { PERSONAS, personasForAudience } from '@/personas';
 import { matchCompanionsByNeed, type CompanionMatch } from '@/lib/companionMatch';
+import { PRINT_SERIF } from '@/lib/print';
 import type { Audience, Persona, PersonaTheme } from '@/types';
 
 interface CompanionRouterProps {
@@ -186,19 +187,19 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto chat-scroll"
-        style={{ backgroundColor: t.bg, borderColor: t.border }}
+        className="w-full max-w-md border shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto chat-scroll"
+        style={{ backgroundColor: t.card, borderColor: t.border }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b sticky top-0 z-10" style={{ backgroundColor: t.bg, borderColor: t.border }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b sticky top-0 z-10" style={{ backgroundColor: t.card, borderColor: t.border }}>
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4" style={{ color: t.accent }} />
-            <h3 className="text-sm font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>
+            <h3 className="text-sm font-bold uppercase tracking-wide" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
               Help Me Choose
             </h3>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg transition-opacity hover:opacity-70" style={{ color: t.textMuted }}>
+          <button onClick={onClose} className="p-1 transition-opacity hover:opacity-70" style={{ color: t.textMuted }}>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -222,24 +223,24 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                           onSelect(p);
                           handleRestart();
                         }}
-                        className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-all active:scale-[0.98]"
-                        style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}66` }}
+                        className="w-full min-h-[48px] flex items-center gap-3 px-3.5 py-3 border text-left transition-opacity hover:opacity-80 active:opacity-60"
+                        style={{ backgroundColor: `${t.border}1F`, borderColor: t.border }}
                       >
                         <img
                           src={p.portrait}
                           alt={p.name}
-                          className="portrait-arch portrait-grade w-12 h-12 rounded-lg object-cover border flex-shrink-0"
-                          style={{ borderColor: p.theme.accent }}
+                          className="portrait-grade w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          style={{ boxShadow: `inset 0 0 0 1.5px ${p.theme.accent}55` }}
                         />
                         <span className="flex-1 min-w-0">
-                          <span className="block text-sm font-bold font-display" style={{ color: t.textBright }}>
+                          <span className="block text-sm font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
                             {p.name}
                           </span>
-                          <span className="block text-[11px] leading-snug mt-0.5" style={{ color: t.textMuted }}>
+                          <span className="block text-[11px] leading-snug mt-0.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
                             {why}
                           </span>
                         </span>
-                        <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.textDim }} />
+                        <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} />
                       </button>
                     ))}
                   </div>
@@ -255,7 +256,7 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
               )}
               <button
                 onClick={handleRestart}
-                className="w-full py-2.5 rounded-lg text-xs font-bold border transition-all active:scale-95 mb-2"
+                className="w-full py-2.5 text-xs font-bold border transition-all active:scale-95 mb-2"
                 style={{ backgroundColor: t.accentRgba(0.1), borderColor: t.accentRgba(0.35), color: t.accent }}
               >
                 Answer the questions instead
@@ -265,7 +266,7 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                   handleRestart();
                   onClose();
                 }}
-                className="w-full py-2 rounded-lg text-xs font-medium border transition-all active:scale-95"
+                className="w-full py-2 text-xs font-medium border transition-all active:scale-95"
                 style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}66`, color: t.textDim }}
               >
                 See the whole cast
@@ -290,13 +291,13 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                     maxLength={300}
                     placeholder="What do you need to talk about?"
                     aria-label="What do you need to talk about?"
-                    className="w-full rounded-lg border px-3.5 py-2.5 text-sm leading-relaxed resize-none outline-none"
-                    style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}66`, color: t.text }}
+                    className="w-full border px-3.5 py-2.5 text-sm leading-relaxed resize-none outline-none"
+                    style={{ backgroundColor: 'transparent', borderColor: t.border, fontFamily: PRINT_SERIF, color: t.text }}
                   />
                   <button
                     onClick={handleSubmitNeed}
                     disabled={needText.trim().length < 3}
-                    className="w-full mt-2 py-2.5 rounded-lg text-xs font-bold border transition-all active:scale-95 disabled:opacity-40"
+                    className="w-full mt-2 py-2.5 text-xs font-bold border transition-all active:scale-95 disabled:opacity-40"
                     style={{ backgroundColor: t.accentRgba(0.1), borderColor: t.accentRgba(0.35), color: t.accent }}
                   >
                     Find who fits
@@ -321,7 +322,7 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
               <p className="text-[10px] uppercase tracking-widest font-bold mb-2" style={{ color: t.accent }}>
                 Question {step + 1} of {QUESTIONS.length}
               </p>
-              <h4 className="text-base font-bold font-display mb-4" style={{ color: t.textBright }}>
+              <h4 className="text-base font-bold mb-4" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
                 {QUESTIONS[step].prompt}
               </h4>
 
@@ -330,23 +331,15 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                   <button
                     key={opt.value}
                     onClick={() => handleAnswer(opt.value)}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all active:scale-[0.98] text-left"
+                    className="w-full min-h-[48px] flex items-center justify-between px-4 py-3 border transition-opacity hover:opacity-80 active:opacity-60 text-left"
                     style={{
-                      backgroundColor: `${t.border}40`,
-                      borderColor: `${t.border}66`,
+                      backgroundColor: `${t.border}1F`,
+                      borderColor: t.border,
                       color: t.text,
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = t.accentRgba(0.08);
-                      e.currentTarget.style.borderColor = t.accentRgba(0.3);
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = `${t.border}40`;
-                      e.currentTarget.style.borderColor = `${t.border}66`;
-                    }}
                   >
-                    <span className="text-sm font-medium">{opt.label}</span>
-                    <ChevronRight className="w-4 h-4" style={{ color: t.textDim }} />
+                    <span className="text-sm font-medium" style={{ fontFamily: PRINT_SERIF }}>{opt.label}</span>
+                    <ChevronRight className="w-4 h-4" style={{ color: t.accent }} strokeWidth={2.5} />
                   </button>
                 ))}
               </div>
@@ -360,18 +353,18 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                 <img
                   src={recommended.portrait}
                   alt={recommended.name}
-                  className="portrait-arch portrait-grade w-24 h-24 rounded-xl object-cover border-2"
-                  style={{ borderColor: recommended.theme.accent }}
+                  className="portrait-grade w-24 h-24 rounded-full object-cover"
+                  style={{ boxShadow: `inset 0 0 0 2px ${recommended.theme.accent}55` }}
                 />
               </div>
-              <h3 className="text-lg font-bold font-display" style={{ color: recommended.theme.textBright }}>
+              <h3 className="text-lg font-bold" style={{ fontFamily: PRINT_SERIF, color: recommended.theme.textBright }}>
                 {recommended.name}
               </h3>
               <p className="text-xs mb-4" style={{ color: t.textDim }}>
                 {recommended.title}
               </p>
               <div
-                className="rounded-lg px-4 py-3 border mb-5 text-left"
+                className="px-4 py-3 border mb-5 text-left"
                 style={{ backgroundColor: t.accentRgba(0.05), borderColor: t.accentRgba(0.15) }}
               >
                 <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
@@ -383,14 +376,14 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                   onSelect(recommended);
                   handleRestart();
                 }}
-                className="w-full py-3 rounded-lg text-sm font-bold transition-all active:scale-95 mb-2"
+                className="w-full py-3 text-sm font-bold transition-all active:scale-95 mb-2"
                 style={{ backgroundColor: recommended.theme.accent, color: '#ffffff' }}
               >
                 Talk with {recommended.name}
               </button>
               <button
                 onClick={handleRestart}
-                className="w-full py-2 rounded-lg text-xs font-medium border transition-all active:scale-95"
+                className="w-full py-2 text-xs font-medium border transition-all active:scale-95"
                 style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}66`, color: t.textDim }}
               >
                 Answer Again

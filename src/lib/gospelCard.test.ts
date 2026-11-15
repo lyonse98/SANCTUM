@@ -93,7 +93,12 @@ describe('the card, revised the same evening — what came back, what stayed gon
 
   it('the key verse is the card’s collapsed face again — and still feeds the share card', () => {
     expect(card).toContain('The Gospel &middot; {keyVerse.citation}');
-    expect(card).toContain('{keyVerse.text}');
+    // The printed page opens the verse with a drop cap (Nov 14, 2026): the
+    // same text renders in full — first letter in the drop-cap span, the
+    // remainder after it — where the single {keyVerse.text} stood before.
+    expect(card).toContain("const kvText = keyVerse?.text ?? '';");
+    expect(card).toContain('{kvText.charAt(0)}');
+    expect(card).toContain('{kvText.slice(1)}');
     expect(card).toContain('keyVerse={keyVerse}');
   });
 
@@ -104,6 +109,19 @@ describe('the card, revised the same evening — what came back, what stayed gon
     );
     // The full readings render only inside the expanded section.
     expect(card).toContain('{expanded && readings && (');
+  });
+
+  // Erik's order (Nov 14, 2026): snippet, then the full readings, then the
+  // reflection and the challenge — the expander and its section moved up
+  // from the card's foot to directly beneath the key verse. This pin
+  // replaces the foot arrangement the section order previously implied.
+  it('the expander and its readings stand between the key verse and the reflection', () => {
+    const toggle = card.indexOf('Read the full readings');
+    const expanded = card.indexOf('{expanded && readings && (');
+    const reflection = card.indexOf('(shown.value || shown.pending)');
+    expect(toggle).toBeGreaterThan(-1);
+    expect(expanded).toBeGreaterThan(toggle);
+    expect(reflection).toBeGreaterThan(expanded);
   });
 
   it('the full readings live in the expander, in lectionary order, with the official-text link at their foot', () => {
@@ -133,23 +151,27 @@ describe('the card, revised the same evening — what came back, what stayed gon
   });
 });
 
-describe('Way 1 — three equal tiles', () => {
+describe('Way 1 — the program and the two doors', () => {
   const card = read('components/DailyQuote.tsx');
 
-  it('the tiles are Listen, Tailor Today, Reflect, in one grid-cols-3 row', () => {
-    expect(card).toContain('grid grid-cols-3');
-    const tiles = [...card.matchAll(/data-tile="([a-z]+)"/g)].map((m) => m[1]);
-    expect(tiles).toEqual(['listen', 'tailor', 'reflect']);
-    expect(card).toMatch(/>\s*Listen\s*<\/span>/);
+  // The printed-page re-skin (Erik, Nov 14, 2026) promoted Listen to the
+  // head of the Gospel section as the program strip and set the other two
+  // Ways as printed-line doors; the three Ways and their behaviour are
+  // unchanged. The pins below were updated for the new markup only.
+  it('Listen stands at the head; Tailor Today and Reflect are the two doors', () => {
+    expect(card).not.toContain('grid grid-cols-3');
+    const doors = [...card.matchAll(/data-tile="([a-z]+)"/g)].map((m) => m[1]);
+    expect(doors).toEqual(['tailor', 'reflect']);
+    // The program strip mounts before the key-verse face of the section.
+    expect(card.indexOf('<ListenBar')).toBeLessThan(card.indexOf('The Gospel &middot;'));
     expect(card).toMatch(/>\s*Tailor Today\s*<\/span>/);
     expect(card).toMatch(/>\s*Reflect\s*<\/span>/);
-    expect(card).toContain('Read aloud');
     expect(card).toContain('For your day');
     expect(card).toContain('With a companion');
   });
 
-  it('all three tiles share one class string — equals by construction', () => {
-    expect(card.match(/className=\{TILE_CLASS\}/g)).toHaveLength(3);
+  it('the two doors share one class string — equals by construction', () => {
+    expect(card.match(/className=\{DOOR_CLASS\}/g)).toHaveLength(2);
   });
 
   it('Reflect carries no glow and no dominance classes', () => {
@@ -159,14 +181,14 @@ describe('Way 1 — three equal tiles', () => {
     expect(card).toContain('aria-label="Reflect with a Companion"');
   });
 
-  it('Listen and Tailor open as panels under the tiles; Reflect keeps its flow', () => {
-    expect(card).toContain("panel === 'listen'");
+  it('Tailor opens as a panel under the doors; Reflect keeps its flow', () => {
+    expect(card).not.toContain("panel === 'listen'");
     expect(card).toContain("panel === 'tailor'");
     expect(card).toContain('<ListenBar');
     expect(card).toContain('<TailorToday');
     expect(card).toContain('startOpen');
     expect(card).toContain('onClick={handleReflectWithCompanion}');
-    // Reflect's loading state lives on the tile now.
+    // Reflect's loading state lives on the door now.
     expect(card).toContain('disabled={preparing}');
   });
 });

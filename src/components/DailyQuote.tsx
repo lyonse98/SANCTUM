@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Sparkles,
-  Target,
-  Users,
   BookOpen,
   ExternalLink,
   Loader2,
   Share2,
-  Headphones,
   ChevronDown,
+  ChevronRight,
   X,
 } from 'lucide-react';
 import { quoteForDay } from '@/data/quotes';
@@ -29,6 +26,7 @@ import {
   reflectionDisplay,
   type Reflection,
 } from '@/lib/reflection';
+import { PRINT_PLATE_CLASS, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import { ListenBar } from '@/components/ListenBar';
 import { TailorToday } from '@/components/TailorToday';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
@@ -51,11 +49,10 @@ interface DailyQuoteProps {
   onOpenReminder?: () => void;
 }
 
-/** The three Way-1 tiles share one class string — equals, by construction. */
-const TILE_CLASS =
-  'flex flex-col items-center justify-center gap-1 px-2 py-3 rounded-xl border transition-all active:scale-[0.98]';
+/** The two doors share the printed page's one plate class — equals, by construction. */
+const DOOR_CLASS = PRINT_PLATE_CLASS;
 
-type CardPanel = 'none' | 'listen' | 'tailor';
+type CardPanel = 'none' | 'tailor';
 
 export interface ReadingRow {
   label: string;
@@ -83,6 +80,11 @@ export function orderedReadingRows(readings: DailyReadings, texts: ReadingTexts 
 export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder }: DailyQuoteProps) {
   const quote = useMemo(() => quoteForDay(new Date(), audience), [audience]);
   const feast = useMemo(() => getFeastForDate(), []);
+  // Rubrication (the printed-page re-skin, Erik, Nov 14, 2026): on feasts and
+  // solemnities the day's name and the Gospel's drop cap take the calendar's
+  // accent; memorials and ordinary days stay quiet. The calendar still owns
+  // the accent itself — this only decides where it is spent.
+  const rubricated = feast?.rank === 'feast' || feast?.rank === 'solemnity';
   const [readings, setReadings] = useState<DailyReadings | null>(null);
   const [gospelVerses, setGospelVerses] = useState<PassageVerses | null>(null);
   const [allTexts, setAllTexts] = useState<ReadingTexts | null>(null);
@@ -265,31 +267,26 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     onReflectWithCompanion(buildReflectionPrompt(texts));
   };
 
-  const tileStyle = (active: boolean): React.CSSProperties => ({
-    backgroundColor: `${t.border}33`,
-    borderColor: active ? t.accent : `${t.border}99`,
-    color: t.textMuted,
-  });
-
   // Citations come from the lectionary, texts from the Bible fetch; a row
   // whose text could not be supplied still shows its citation, so the day is
   // never silently short a reading.
   const orderedReadings = readings ? orderedReadingRows(readings, allTexts) : [];
 
+  // The key verse opens with a drop cap, the way a printed Gospel does — the
+  // first letter set large in the serif voice, rubricated on the days the
+  // calendar marks. A verse that opens with punctuation keeps its plain face.
+  const kvText = keyVerse?.text ?? '';
+  const kvDropCap = /^[A-Za-z]/.test(kvText);
+
   return (
-    <div
-      className="w-full rounded-2xl border-2 p-5 transition-all duration-300"
-      style={{
-        backgroundColor: t.card,
-        backgroundImage: `radial-gradient(ellipse at 50% 0%, ${t.accent}1F 0%, transparent 62%)`,
-        borderColor: t.accentRgba(0.45),
-        boxShadow: `0 10px 30px -12px ${t.accent}4D`,
-      }}
-    >
-      <div className="flex items-center justify-between mb-3 gap-2">
+    <div className="w-full px-1 py-1">
+      <div
+        className="flex items-center justify-between gap-2 pb-2 mb-3"
+        style={{ borderBottom: `1px solid ${t.border}` }}
+      >
         <span
-          className="text-[10px] font-bold uppercase tracking-[0.2em] px-2.5 py-1 rounded-full border flex-shrink-0"
-          style={{ color: t.accent, borderColor: t.accentRgba(0.4), backgroundColor: t.accentRgba(0.1) }}
+          className="text-[10px] font-bold uppercase tracking-[0.2em]"
+          style={{ fontFamily: PRINT_SERIF, color: t.accent }}
         >
           Today&rsquo;s Gospel
         </span>
@@ -303,17 +300,33 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
       </div>
 
       {readings?.celebration && (
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-baseline gap-2 mb-3">
           <span
-            className="text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border"
-            style={{ color: t.accent, borderColor: t.accentRgba(0.3), backgroundColor: t.accentRgba(0.08) }}
+            className="text-[9px] uppercase tracking-widest font-bold flex-shrink-0"
+            style={{ color: t.accent }}
           >
             {feast ? feastRankLabel(feast.rank) : 'Today'}
           </span>
-          <p className="text-[11px] font-bold" style={{ color: t.textMuted }}>
+          <p
+            className="text-[13px]"
+            style={{
+              fontFamily: PRINT_SERIF,
+              fontWeight: rubricated ? 700 : 600,
+              color: rubricated ? t.accent : t.textMuted,
+            }}
+          >
             {readings.celebration}
           </p>
         </div>
+      )}
+
+      {/* The program (Stage 1 of the printed-page re-skin, Erik, Nov 14,
+          2026): Listen stands at the head of the Gospel section as the
+          day's program strip — the same Listen bar, its length, its seek
+          slider — instead of behind a tile. It mounts when the day's
+          readings land, exactly as the tile's panel did. */}
+      {!loading && readings?.date && (
+        <ListenBar t={t} dateKey={readings.date} citation={readings.gospel ?? null} audience={audience} onOpenReminder={onOpenReminder} />
       )}
 
       {!loading && staleDate && (
@@ -333,14 +346,41 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           evening, restoring the arrangement he preferred): before anything is
           expanded, the card defaults to the most quotable part of the Gospel.
           The full readings — all of them, in lectionary order — live behind
-          the expander at the card's foot. */}
+          the expander directly beneath it (Erik's order, Nov 14, 2026). */}
       {!loading && readings && keyVerse && (
         <>
           <p className="text-[9px] uppercase tracking-widest font-bold mb-1.5" style={{ color: t.textDim }}>
             The Gospel &middot; {keyVerse.citation}
           </p>
-          <p className="text-[15px] leading-relaxed mb-3 font-display" style={{ color: t.textBright }}>
-            {keyVerse.text}
+          <p
+            className="text-[17px] leading-relaxed mb-3"
+            style={{
+              fontFamily: PRINT_SERIF,
+              color: t.textBright,
+              // A short verse still gives the floated cap its full height.
+              minHeight: kvDropCap ? '2.55em' : undefined,
+            }}
+          >
+            {kvDropCap ? (
+              <>
+                <span
+                  style={{
+                    float: 'left',
+                    fontSize: '3.05em',
+                    lineHeight: 0.82,
+                    paddingRight: '0.1em',
+                    paddingTop: '0.04em',
+                    fontWeight: 600,
+                    color: rubricated ? t.accent : t.textBright,
+                  }}
+                >
+                  {kvText.charAt(0)}
+                </span>
+                {kvText.slice(1)}
+              </>
+            ) : (
+              kvText
+            )}
           </p>
         </>
       )}
@@ -352,7 +392,10 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
             A word for today
           </p>
-          <p className="text-sm italic leading-relaxed mb-2" style={{ color: t.textBright }}>
+          <p
+            className="text-sm italic leading-relaxed mb-2"
+            style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
+          >
             &ldquo;{quote.text}&rdquo;
           </p>
           <p className="text-[11px] mb-3 font-medium" style={{ color: t.textDim }}>
@@ -362,133 +405,13 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
         </>
       )}
 
-      {/* Reflect and challenge — pre-generated server-side from the day's readings.
-          Renders on the reflection's own state, fetched in parallel with the readings:
-          a slow readings path no longer holds a ready reflection hostage. */}
-      {(shown.value || shown.pending) && (
-        <div className="space-y-2 mb-3">
-          {shown.pending && !shown.value ? (
-            <div className="flex items-center gap-2" style={{ color: t.textDim }}>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span className="text-[10px]">Preparing today&rsquo;s reflection&hellip;</span>
-            </div>
-          ) : shown.value ? (
-            <>
-              <div className="flex items-start gap-2.5">
-                <Sparkles className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.accent, opacity: 0.7 }} />
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest font-bold mb-0.5" style={{ color: t.textDim }}>
-                    Reflect{shown.value.facet ? ` \u00b7 ${shown.value.facet}` : ''}
-                  </p>
-                  <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>{shown.value.reflect}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <Target className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.accent, opacity: 0.7 }} />
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest font-bold mb-0.5" style={{ color: t.textDim }}>
-                    Challenge
-                  </p>
-                  <p className="text-xs leading-relaxed" style={{ color: t.text }}>{shown.value.challenge}</p>
-                </div>
-              </div>
-            </>
-          ) : null}
-        </div>
-      )}
-
-      {/* Way 1 (Erik, Nov 13, 2026): three equal tiles — Listen, Tailor Today,
-          Reflect — one row, one visual language, no glow and no dominance.
-          Listen and Tailor open their panels in the space directly beneath the
-          row; Reflect walks to the companions with the day's readings in hand. */}
-      {!loading && readings?.date && (
-        <>
-          <div className="grid grid-cols-3 gap-2" role="group" aria-label="Ways into today's Gospel">
-            <button
-              data-tile="listen"
-              onClick={() => setPanel((p) => (p === 'listen' ? 'none' : 'listen'))}
-              aria-expanded={panel === 'listen'}
-              aria-label="Listen to today's Gospel, read aloud"
-              className={TILE_CLASS}
-              style={tileStyle(panel === 'listen')}
-            >
-              <Headphones className="w-5 h-5" style={{ color: t.accent }} />
-              <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: t.text }}>
-                Listen
-              </span>
-              <span className="text-[9px]" style={{ color: t.textDim }}>
-                Read aloud
-              </span>
-            </button>
-            <button
-              data-tile="tailor"
-              onClick={() => setPanel((p) => (p === 'tailor' ? 'none' : 'tailor'))}
-              aria-expanded={panel === 'tailor'}
-              aria-label="Tailor today — a devotional for your day"
-              className={TILE_CLASS}
-              style={tileStyle(panel === 'tailor')}
-            >
-              <Sparkles className="w-5 h-5" style={{ color: t.accent }} />
-              <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: t.text }}>
-                Tailor Today
-              </span>
-              <span className="text-[9px]" style={{ color: t.textDim }}>
-                For your day
-              </span>
-            </button>
-            <button
-              data-tile="reflect"
-              onClick={handleReflectWithCompanion}
-              disabled={preparing}
-              aria-label="Reflect with a Companion"
-              className={TILE_CLASS}
-              style={{ ...tileStyle(false), opacity: preparing ? 0.6 : 1 }}
-            >
-              {preparing ? (
-                <Loader2 className="w-5 h-5 animate-spin" style={{ color: t.accent }} />
-              ) : (
-                <Users className="w-5 h-5" style={{ color: t.accent }} />
-              )}
-              <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: t.text }}>
-                Reflect
-              </span>
-              <span className="text-[9px]" style={{ color: t.textDim }}>
-                {preparing ? 'Gathering the readings…' : 'With a companion'}
-              </span>
-            </button>
-          </div>
-
-          {/* The panels — the existing Listen bar and Tailor intake, reused
-              whole; only one is open at a time, in the space under the tiles. */}
-          {panel === 'listen' && (
-            <div className="mt-3 animate-fade-in">
-              <ListenBar t={t} dateKey={readings.date} citation={readings.gospel ?? null} audience={audience} onOpenReminder={onOpenReminder} />
-            </div>
-          )}
-          {panel === 'tailor' && (
-            <TailorToday t={t} audience={audience} dateKey={readings.date} startOpen />
-          )}
-
-          {/* Share is a flywheel piece (Nov 13, 2026): a full-width secondary
-              button in the card's own flow, under the tiles — present to
-              every eye, styled like a card action and never like the call to
-              action: no glow, no heavy border. */}
-          <button
-            data-share-gospel
-            onClick={() => setShareOpen(true)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98] mt-3"
-            style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.textMuted }}
-          >
-            <Share2 className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="text-[11px] font-bold uppercase tracking-wide">Share today&rsquo;s Gospel</span>
-          </button>
-        </>
-      )}
-
-      {/* Expand for the full readings — all of them, collapsible with the
-          Gospel as they were before the diet: full text in lectionary order,
-          First, Psalm, Second where the day has one, and the Gospel last,
-          the way they are heard at Mass. */}
+      {/* The full readings, directly under the verse (Erik's order,
+          Nov 14, 2026): snippet, then the readings entire, then the
+          reflection and the challenge. The toggle and its expanded
+          section — all of them, in lectionary order, First, Psalm,
+          Second where the day has one, and the Gospel last, the way
+          they are heard at Mass — moved up here from the card's foot;
+          the state and the labels are unchanged. */}
       {!loading && readings && (
         <button
           onClick={toggleExpanded}
@@ -522,7 +445,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                 </p>
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: row.label === 'Gospel' ? t.textBright : t.text }}
+                  style={{ fontFamily: PRINT_SERIF, color: row.label === 'Gospel' ? t.textBright : t.text }}
                 >
                   {row.passage!.text}
                 </p>
@@ -567,6 +490,142 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
             <span>Close</span>
           </button>
         </div>
+      )}
+
+      {/* Reflect and challenge — pre-generated server-side from the day's readings.
+          Renders on the reflection's own state, fetched in parallel with the readings:
+          a slow readings path no longer holds a ready reflection hostage. In the
+          printed page each wears its label as a stamped heading above its
+          paragraph — Reflect (with its facet) and Challenge — so the block's
+          height follows the text at every width and every day's length. */}
+      {(shown.value || shown.pending) && (
+        <div className="space-y-3 mb-3">
+          {shown.pending && !shown.value ? (
+            <div className="flex items-center gap-2" style={{ color: t.textDim }}>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span className="text-[10px]">Preparing today&rsquo;s reflection&hellip;</span>
+            </div>
+          ) : shown.value ? (
+            <>
+              <div>
+                <p
+                  className={`${PRINT_STAMP_CLASS} mb-1`}
+                  style={{ fontFamily: PRINT_SERIF, color: t.accent }}
+                >
+                  Reflect{shown.value.facet ? ` \u00b7 ${shown.value.facet}` : ''}
+                </p>
+                <p className="text-[13px] leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+                  {shown.value.reflect}
+                </p>
+              </div>
+              <div>
+                <p
+                  className={`${PRINT_STAMP_CLASS} mb-1`}
+                  style={{ fontFamily: PRINT_SERIF, color: t.accent }}
+                >
+                  Challenge
+                </p>
+                <p className="text-[13px] leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
+                  {shown.value.challenge}
+                </p>
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {/* The other two Ways (Way 1, Erik, Nov 13, 2026) — Listen now stands
+          at the head of the section as the program; Tailor Today and Reflect
+          remain as doors with their exact behaviour. Stage 1 set them as
+          bare printed lines and they did not read as tappable (Erik's
+          revision, Nov 14, 2026), so each now sits on the shared ruled
+          plate — frame, paper-shade fill, accent chevron — with the dotted
+          leader kept as the contents page's signature between the name and
+          its hint. Tailor opens its panel in the space directly beneath
+          the plates; Reflect walks to the companions with the day's
+          readings in hand. */}
+      {!loading && readings?.date && (
+        <>
+          <div role="group" aria-label="Ways into today's Gospel" className="space-y-2">
+            <button
+              data-tile="tailor"
+              onClick={() => setPanel((p) => (p === 'tailor' ? 'none' : 'tailor'))}
+              aria-expanded={panel === 'tailor'}
+              aria-label="Tailor today — a devotional for your day"
+              className={DOOR_CLASS}
+              style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F` }}
+            >
+              <span
+                className="text-[12px] font-bold uppercase tracking-wide flex-shrink-0"
+                style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
+              >
+                Tailor Today
+              </span>
+              <span
+                aria-hidden="true"
+                className="flex-1"
+                style={{ borderBottom: `1px dotted ${t.textDim}` }}
+              />
+              <span
+                className="text-[10px] italic flex-shrink-0"
+                style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+              >
+                For your day
+              </span>
+              <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+            <button
+              data-tile="reflect"
+              onClick={handleReflectWithCompanion}
+              disabled={preparing}
+              aria-label="Reflect with a Companion"
+              className={DOOR_CLASS}
+              style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F`, opacity: preparing ? 0.6 : 1 }}
+            >
+              {preparing && (
+                <Loader2 className="w-3.5 h-3.5 animate-spin self-center flex-shrink-0" style={{ color: t.accent }} />
+              )}
+              <span
+                className="text-[12px] font-bold uppercase tracking-wide flex-shrink-0"
+                style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
+              >
+                Reflect
+              </span>
+              <span
+                aria-hidden="true"
+                className="flex-1"
+                style={{ borderBottom: `1px dotted ${t.textDim}` }}
+              />
+              <span
+                className="text-[10px] italic flex-shrink-0"
+                style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+              >
+                {preparing ? 'Gathering the readings…' : 'With a companion'}
+              </span>
+              <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+          </div>
+
+          {/* The panel — the existing Tailor intake, reused whole, in the
+              space under the plates. */}
+          {panel === 'tailor' && (
+            <TailorToday t={t} audience={audience} dateKey={readings.date} startOpen />
+          )}
+
+          {/* Share is a flywheel piece (Nov 13, 2026): a full-width secondary
+              button in the card's own flow, under the tiles — present to
+              every eye, styled like a card action and never like the call to
+              action: no glow, no heavy border. */}
+          <button
+            data-share-gospel
+            onClick={() => setShareOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98] mt-3"
+            style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.textMuted }}
+          >
+            <Share2 className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="text-[11px] font-bold uppercase tracking-wide">Share today&rsquo;s Gospel</span>
+          </button>
+        </>
       )}
 
       <DailyGospelShareModal

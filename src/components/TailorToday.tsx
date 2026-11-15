@@ -10,16 +10,15 @@ import {
   Newspaper,
   Pause,
   Play,
-  Quote,
   RefreshCw,
   RotateCcw,
   SlidersHorizontal,
   Sparkles,
-  Target,
   Video,
   X,
 } from 'lucide-react';
 import type { Audience, PersonaTheme } from '@/types';
+import { PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import {
   TAILOR_FOCUSES,
   TAILOR_SEARCH_KINDS,
@@ -75,7 +74,13 @@ function fmt(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-/** A chip row for the profile editor — one visual language, single or multi. */
+/**
+ * A choice row for the printed form (Stage 2 of the re-skin, Erik, Nov 14,
+ * 2026): each option a small ruled plate in the serif voice, the taken one
+ * unmistakable — accent frame, an accent wash, the label itself in the
+ * accent. One visual language for the intake and the profile editor,
+ * single or multi.
+ */
 function ChipRow({
   t,
   options,
@@ -96,17 +101,45 @@ function ChipRow({
             key={opt.id}
             onClick={() => onToggle(opt.id)}
             aria-pressed={on}
-            className="px-2.5 py-1.5 rounded-full border text-[10px] font-bold transition-all active:scale-95"
+            className="px-3 py-2 text-[11px] transition-all active:scale-95"
             style={{
-              backgroundColor: on ? t.accentRgba(0.16) : `${t.border}33`,
-              borderColor: on ? t.accent : `${t.border}99`,
+              fontFamily: PRINT_SERIF,
+              backgroundColor: on ? t.accentRgba(0.14) : `${t.border}1F`,
+              border: `1px solid ${on ? t.accent : `${t.border}99`}`,
               color: on ? t.accent : t.textMuted,
+              fontWeight: on ? 700 : 500,
             }}
           >
             {opt.label}
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/** A single-choice row for the intake — the same plates, one taken. */
+function ChoiceRow<T extends string>({
+  t,
+  options,
+  value,
+  onChoose,
+  label,
+}: {
+  t: PersonaTheme;
+  options: { id: T; label: string }[];
+  value: T;
+  onChoose: (id: T) => void;
+  label: string;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label}>
+      <ChipRow
+        t={t}
+        options={options}
+        isOn={(id) => id === value}
+        onToggle={(id) => onChoose(id as T)}
+      />
     </div>
   );
 }
@@ -142,8 +175,8 @@ function TailorProfileEditor({
     draft.mediaPrefs.length > 0 ||
     draft.defaultTone !== null;
 
-  const labelStyle: React.CSSProperties = { color: t.textDim };
-  const fieldLabel = 'block text-[9px] uppercase tracking-widest font-bold mb-1.5';
+  const labelStyle: React.CSSProperties = { fontFamily: PRINT_SERIF, color: t.accent };
+  const fieldLabel = `block ${PRINT_STAMP_CLASS} mb-2`;
 
   return (
     <div className="space-y-3">
@@ -180,8 +213,15 @@ function TailorProfileEditor({
           value={draft.standingGoal}
           onChange={(e) => setDraft((d) => ({ ...d, standingGoal: e.target.value.slice(0, 120) }))}
           placeholder={audience === 'women' ? 'Become a patient mother.' : 'Become a patient father.'}
-          className="w-full text-xs rounded-lg px-3 py-2.5 border focus:outline-none"
-          style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.text }}
+          className="w-full text-xs px-1 py-2 focus:outline-none"
+          style={{
+            backgroundColor: 'transparent',
+            border: 'none',
+            borderBottom: `1px solid ${t.border}`,
+            borderRadius: 0,
+            fontFamily: PRINT_SERIF,
+            color: t.text,
+          }}
         />
       </label>
 
@@ -477,29 +517,26 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
 
   if (!offered) return null;
 
-  const selectStyle: React.CSSProperties = {
-    backgroundColor: `${t.border}33`,
-    borderColor: `${t.border}99`,
-    color: t.text,
-  };
+  const formLabel = `block ${PRINT_STAMP_CLASS} mb-2`;
+  const formLabelStyle: React.CSSProperties = { fontFamily: PRINT_SERIF, color: t.accent };
 
   return (
-    <div className="mt-3 pt-3 border-t" style={{ borderColor: `${t.border}66` }}>
+    <div className="mt-3 pt-3" style={{ borderTop: `3px double ${t.border}` }}>
       {view === 'idle' && (
         <button
           onClick={() => setView('form')}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98]"
-          style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.textMuted }}
+          className="w-full min-h-[48px] flex items-center justify-center gap-2 px-3.5 py-3 transition-opacity hover:opacity-80 active:opacity-60"
+          style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F`, color: t.textMuted }}
         >
           <SlidersHorizontal className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="text-[11px] font-bold uppercase tracking-wide">Tailor today</span>
+          <span className="text-[11px] font-bold uppercase tracking-wide" style={{ fontFamily: PRINT_SERIF }}>Tailor today</span>
         </button>
       )}
 
       {(view === 'form' || view === 'error') && (
         <div className="animate-fade-in">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[9px] uppercase tracking-widest font-bold" style={{ color: t.textDim }}>
+            <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
               Tailor today
             </p>
             <button
@@ -511,7 +548,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
-          <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
+          <p className="text-[12px] leading-relaxed mb-4" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             Say how this morning is, and today&rsquo;s devotional is re-aimed at it — the same
             readings, a passage for your need, a word from the tradition, and the day&rsquo;s
             narrator reading it for you. What you tell Sanctum is never stored. The devotional
@@ -519,80 +556,61 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
             quality can be reviewed; it&rsquo;s deleted within 90 days.
           </p>
 
-          <label className="block mb-2.5">
-            <span className="block text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
+          <div className="mb-3.5">
+            <span className={formLabel} style={formLabelStyle}>
               How are you coming in?
             </span>
-            <select
-              value={state}
-              onChange={(e) => setState(e.target.value as TailorState)}
-              className="w-full text-xs rounded-lg px-3 py-2.5 border focus:outline-none"
-              style={selectStyle}
-            >
-              {TAILOR_STATES.map((s) => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
-            </select>
-          </label>
+            <ChoiceRow t={t} options={TAILOR_STATES} value={state} onChoose={setState} label="How are you coming in?" />
+          </div>
 
-          <label className="block mb-2.5">
-            <span className="block text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
+          <div className="mb-3.5">
+            <span className={formLabel} style={formLabelStyle}>
               What&rsquo;s today about?
             </span>
-            <select
-              value={focus}
-              onChange={(e) => setFocus(e.target.value as TailorFocus)}
-              className="w-full text-xs rounded-lg px-3 py-2.5 border focus:outline-none"
-              style={selectStyle}
-            >
-              {TAILOR_FOCUSES.map((f) => (
-                <option key={f.id} value={f.id}>{f.label}</option>
-              ))}
-            </select>
-          </label>
+            <ChoiceRow t={t} options={TAILOR_FOCUSES} value={focus} onChoose={setFocus} label="What's today about?" />
+          </div>
 
-          <label className="block mb-2.5">
-            <span className="block text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
+          <div className="mb-3.5">
+            <span className={formLabel} style={formLabelStyle}>
               What do you want from God today?
             </span>
-            <select
-              value={tone}
-              onChange={(e) => setTone(e.target.value as TailorTone)}
-              className="w-full text-xs rounded-lg px-3 py-2.5 border focus:outline-none"
-              style={selectStyle}
-            >
-              {TAILOR_TONES.map((tn) => (
-                <option key={tn.id} value={tn.id}>{tn.label}</option>
-              ))}
-            </select>
-          </label>
+            <ChoiceRow t={t} options={TAILOR_TONES} value={tone} onChoose={setTone} label="What do you want from God today?" />
+          </div>
 
-          <label className="block mb-2.5">
-            <span className="block text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
+          <label className="block mb-3.5">
+            <span className={formLabel} style={formLabelStyle}>
               In your own words <span className="normal-case tracking-normal font-medium">(optional)</span>
             </span>
             <input
               value={freeText}
               onChange={(e) => setFreeText(e.target.value.slice(0, 200))}
               placeholder="Big review at 2. Feeling behind."
-              className="w-full text-xs rounded-lg px-3 py-2.5 border focus:outline-none"
-              style={selectStyle}
+              className="w-full text-xs px-1 py-2 focus:outline-none"
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderBottom: `1px solid ${t.border}`,
+                borderRadius: 0,
+                fontFamily: PRINT_SERIF,
+                color: t.text,
+              }}
             />
           </label>
 
           {/* The standing profile — collapsed until wanted; it leans every
               morning without being asked again, and it lives here, on the
-              device, under the user's own hand. */}
-          <div className="mb-3 rounded-lg border px-3 py-2.5" style={{ borderColor: `${t.border}66` }}>
+              device, under the user's own hand. On the printed form it is a
+              ruled box of its own. */}
+          <div className="mb-3.5 px-3.5 py-3" style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}14` }}>
             <button
               onClick={() => setProfileOpen((o) => !o)}
               aria-expanded={profileOpen}
               className="w-full flex items-center justify-between transition-opacity hover:opacity-70"
             >
-              <span className="text-[9px] uppercase tracking-widest font-bold" style={{ color: t.textDim }}>
+              <span className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
                 Your standing profile
               </span>
-              <span className="text-[10px]" style={{ color: t.textDim }}>
+              <span className="text-[10px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                 {profileOpen ? 'Close' : profileForRequest(audience, profile) ? 'Set — edit' : 'Not set'}
               </span>
             </button>
@@ -609,11 +627,11 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
 
           <button
             onClick={build}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 transition-all active:scale-[0.98]"
-            style={{ backgroundColor: t.accentRgba(0.14), borderColor: t.accent, color: t.accent }}
+            className="w-full min-h-[48px] flex items-center justify-center gap-2 px-4 py-3 transition-opacity hover:opacity-80 active:opacity-60"
+            style={{ backgroundColor: t.accentRgba(0.14), border: `1px solid ${t.accent}`, color: t.accent }}
           >
             <Sparkles className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-wide">Build my devotional</span>
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ fontFamily: PRINT_SERIF }}>Build my devotional</span>
           </button>
         </div>
       )}
@@ -627,46 +645,47 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
 
       {view === 'done' && devotional && (
         <div className="animate-fade-in">
-          <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
+          <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
             Your tailored devotional
           </p>
-          <p className="text-[11px] font-medium mb-3" style={{ color: t.accent }}>
+          <p className="text-[11px] font-medium mb-3 mt-1" style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
             {tailorCreditLine(devotional)}
           </p>
 
-          {/* The play bar — distinct from the free Listen above it. While the
+          {/* The play bar — set as the day's program strip (Stage 2): the
+              same solid accent disc and seek slider as Listen. While the
               build's audio plan is being fetched and stitched on-device, the
               bar waits in a preparing state (disabled, honest); absent
               entirely on a build with neither audio nor a plan. */}
           {!devotional.audioBase64 && devotional.audioPlan && audioPreparing && (
             <div
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border mb-3"
-              style={{ backgroundColor: t.accentRgba(0.08), borderColor: t.accentRgba(0.3) }}
+              className="flex items-center gap-3 py-3 mb-3"
+              style={{ borderTop: `1px solid ${t.border}`, borderBottom: `1px solid ${t.border}` }}
               aria-live="polite"
             >
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: t.accentRgba(0.35), color: '#ffffff' }}
               >
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               </div>
-              <p className="text-[10px]" style={{ color: t.textDim }}>
+              <p className="text-[11px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                 Preparing the narration…
               </p>
             </div>
           )}
           {devotional.audioBase64 && (
           <div
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl border mb-3"
-            style={{ backgroundColor: t.accentRgba(0.08), borderColor: t.accentRgba(0.3) }}
+            className="flex items-center gap-3 py-3 mb-3"
+            style={{ borderTop: `1px solid ${t.border}`, borderBottom: `1px solid ${t.border}` }}
           >
             <button
               onClick={togglePlay}
               aria-label={playing ? 'Pause your tailored devotional' : 'Play your tailored devotional'}
-              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95"
+              className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95"
               style={{ backgroundColor: t.accent, color: '#ffffff' }}
             >
-              {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+              {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
             </button>
             <div className="flex-1 min-w-0">
               {(duration > 0 || devotional.audioSeconds > 0) ? (
@@ -692,7 +711,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
                   />
                 </div>
               )}
-              <p className="text-[10px] mt-1" style={{ color: t.textDim }}>
+              <p className="text-[10px] mt-1" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                 {fmt(displayElapsed)} / {fmt(duration || devotional.audioSeconds)}
               </p>
             </div>
@@ -707,47 +726,38 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
           </div>
           )}
 
-          <div className="space-y-2 mb-3">
-            <div className="flex items-start gap-2.5">
-              <BookOpen className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.accent, opacity: 0.7 }} />
-              <div>
-                <p className="text-[9px] uppercase tracking-widest font-bold mb-0.5" style={{ color: t.textDim }}>
-                  A word for today · {devotional.passage.citation}
-                </p>
-                <p className="text-xs leading-relaxed italic" style={{ color: t.textMuted }}>
-                  {devotional.passage.text}
-                </p>
-              </div>
+          {/* The package, set as a page in Today's language (Stage 2):
+              stamped labels in the accent, the passage and the words in
+              the serif voice, a hairline between the parts. */}
+          <div className="mb-3">
+            <div className="pb-3">
+              <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+                A word for today · {devotional.passage.citation}
+              </p>
+              <p className="text-[13px] leading-relaxed mt-1.5" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
+                {devotional.passage.text}
+              </p>
             </div>
-            <div className="flex items-start gap-2.5">
-              <Sparkles className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.accent, opacity: 0.7 }} />
-              <div>
-                <p className="text-[9px] uppercase tracking-widest font-bold mb-0.5" style={{ color: t.textDim }}>
-                  Reflect · tailored for you
-                </p>
-                <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>{devotional.reflect}</p>
-              </div>
+            <div className="py-3" style={{ borderTop: `1px solid ${t.border}` }}>
+              <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+                Reflect · tailored for you
+              </p>
+              <p className="text-[13px] leading-relaxed mt-1.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>{devotional.reflect}</p>
             </div>
-            <div className="flex items-start gap-2.5">
-              <Target className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.accent, opacity: 0.7 }} />
-              <div>
-                <p className="text-[9px] uppercase tracking-widest font-bold mb-0.5" style={{ color: t.textDim }}>
-                  Challenge · tailored for you
-                </p>
-                <p className="text-xs leading-relaxed" style={{ color: t.text }}>{devotional.challenge}</p>
-              </div>
+            <div className="py-3" style={{ borderTop: `1px solid ${t.border}` }}>
+              <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+                Challenge · tailored for you
+              </p>
+              <p className="text-[13px] leading-relaxed mt-1.5" style={{ fontFamily: PRINT_SERIF, color: t.text }}>{devotional.challenge}</p>
             </div>
             {devotional.traditionQuote && (
-              <div className="flex items-start gap-2.5">
-                <Quote className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.accent, opacity: 0.7 }} />
-                <div>
-                  <p className="text-[9px] uppercase tracking-widest font-bold mb-0.5" style={{ color: t.textDim }}>
-                    A word from the tradition · {devotional.traditionQuote.author}
-                  </p>
-                  <p className="text-xs leading-relaxed italic" style={{ color: t.textMuted }}>
-                    &ldquo;{devotional.traditionQuote.text}&rdquo;
-                  </p>
-                </div>
+              <div className="py-3" style={{ borderTop: `1px solid ${t.border}` }}>
+                <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+                  A word from the tradition · {devotional.traditionQuote.author}
+                </p>
+                <p className="text-[13px] leading-relaxed italic mt-1.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+                  &ldquo;{devotional.traditionQuote.text}&rdquo;
+                </p>
               </div>
             )}
           </div>
@@ -756,8 +766,8 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
             href={devotional.media.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-all active:scale-[0.98] mb-2"
-            style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99` }}
+            className="flex items-center gap-2.5 px-3.5 py-3 min-h-[48px] transition-opacity hover:opacity-80 active:opacity-60 mb-2"
+            style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F` }}
           >
             {devotional.media.kind === 'film' ? (
               <Clapperboard className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
@@ -775,14 +785,14 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               <Music className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
             )}
             <span className="flex-1 min-w-0">
-              <span className="block text-xs font-medium truncate" style={{ color: t.text }}>
+              <span className="block text-xs font-medium truncate" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
                 {devotional.media.title}
               </span>
-              <span className="block text-[10px]" style={{ color: t.textDim }}>
+              <span className="block text-[10px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                 {MEDIA_KIND_LABELS[devotional.media.kind]} · {devotional.media.creator} · {mediaActionLabel(devotional.media)}
               </span>
               {devotional.media.why && (
-                <span className="block text-[10px] italic" style={{ color: t.textDim }}>
+                <span className="block text-[10px] italic" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                   {devotional.media.why}
                 </span>
               )}
@@ -792,7 +802,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
           <button
             onClick={() => setView('form')}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-opacity hover:opacity-70"
-            style={{ color: t.textDim }}
+            style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
           >
             <RefreshCw className="w-3 h-3" />
             Rebuild for a different morning

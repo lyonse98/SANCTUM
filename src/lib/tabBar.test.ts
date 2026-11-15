@@ -66,11 +66,16 @@ describe('the retired chrome stays in the repo, unwired', () => {
     expect(app).not.toContain('setMenuOpen');
   });
 
-  it('sub-views carry the plain "‹ Today" return at the top of the content area', () => {
+  it('sub-views carry the "‹ Today" return in their own page head — the shell adds no strip', () => {
     const app = read('App.tsx');
-    expect(app).toContain('&lsaquo; Today');
-    expect(app).toContain("view !== 'today'");
-    expect(app).toContain("onClick={() => handleChangeView('today')}");
+    // The shell-level strip is gone (Nov 14, 2026): once every section page
+    // grew its own PrintPageHead, the strip rendered a second return above it.
+    expect(app).not.toContain('&lsaquo; Today');
+    // The single return lives in each section page's PrintPageHead.
+    expect(read('components/PrintPageHead.tsx')).toContain('&lsaquo; Today');
+    expect(read('components/CompanionSelect.tsx')).toContain('<PrintPageHead');
+    expect(read('components/PocketChurchPage.tsx')).toContain('<PrintPageHead');
+    expect(read('components/FindHelpPage.tsx')).toContain('<PrintPageHead');
   });
 
   it('the chat shell has no Menu button — its header keeps its own controls', () => {

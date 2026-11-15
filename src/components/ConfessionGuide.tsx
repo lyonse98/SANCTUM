@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Scroll, Check, Trash2, ChevronDown } from 'lucide-react';
+import { PRINT_CHOSEN_FILL_ALPHA, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import type { PersonaTheme } from '@/types';
 import {
   getBeatitudes,
@@ -64,14 +65,14 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
   const checkedCount = Object.values(notes).filter(Boolean).length;
 
   return (
-    <div className="rounded-xl p-4 border" style={{ backgroundColor: t.card, borderColor: `${t.border}66` }}>
+    <div className="px-1 pt-4" style={{ borderTop: `3px double ${t.border}`, fontFamily: PRINT_SERIF }}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Scroll className="w-4 h-4" style={{ color: t.accent }} />
-          <h3 className="text-sm font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>Confession Prep</h3>
+          <h3 className={PRINT_STAMP_CLASS} style={{ color: t.accent }}>Confession Prep</h3>
         </div>
         {checkedCount > 0 && (
-          <button onClick={wipeNotes} className="flex items-center gap-1 text-[11px] font-medium transition-all active:scale-95 px-2 py-1 rounded-lg border"
+          <button onClick={wipeNotes} className="flex items-center gap-1 text-[11px] font-medium transition-all active:scale-95 px-2 py-1 border"
             style={{ backgroundColor: 'rgba(153,27,27,0.08)', borderColor: 'rgba(185,28,28,0.3)', color: '#B91C1C' }}>
             <Trash2 className="w-3 h-3" /> Wipe Notes
           </button>
@@ -79,7 +80,7 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
       </div>
 
       <div
-        className="flex items-start gap-2.5 mb-4 rounded-lg px-3 py-2.5 border"
+        className="flex items-start gap-2.5 mb-4 px-3 py-2.5 border"
         style={{ backgroundColor: 'rgba(153,27,27,0.06)', borderColor: 'rgba(185,28,28,0.25)' }}
       >
         <span className="text-sm flex-shrink-0 mt-px" style={{ color: '#B91C1C' }}>✝️</span>
@@ -92,7 +93,7 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
 
       {/* The lens choice — the law, or the blessings. Two options only; the rest
           of the tool (duties of state, your notes, the way out) is the same either way. */}
-      <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: t.accent }}>
+      <p className={`${PRINT_STAMP_CLASS} mb-2`} style={{ color: t.accent }}>
         Examine by:
       </p>
       <div className="flex gap-1.5 mb-4" role="group" aria-label="Examination lens">
@@ -106,11 +107,11 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
             key={option.id}
             onClick={() => chooseLens(option.id)}
             aria-pressed={lens === option.id}
-            className="flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all border"
+            className="flex-1 min-h-[44px] px-3 py-2 text-xs font-bold transition-opacity hover:opacity-80 active:opacity-60"
             style={
               lens === option.id
-                ? { backgroundColor: t.accentRgba(0.15), color: t.accent, borderColor: t.accentRgba(0.4) }
-                : { backgroundColor: `${t.border}40`, color: t.textDim, borderColor: `${t.border}80` }
+                ? { backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, color: t.accent, border: `1px solid ${t.accent}` }
+                : { backgroundColor: `${t.border}1F`, color: t.textDim, border: `1px solid ${t.border}` }
             }
           >
             {option.label}
@@ -133,9 +134,9 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
           return (
             <div key={cmd.num}>
               <button onClick={() => setExpanded(isOpen ? null : id)}
-                className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg border transition-all text-left"
-                style={isOpen ? { backgroundColor: t.accentRgba(0.08), borderColor: t.accentRgba(0.3) } : { backgroundColor: `${t.border}40`, borderColor: `${t.border}4D` }}>
-                <span className="text-[10px] font-bold flex-shrink-0 mt-0.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: t.accentRgba(0.15), color: t.accent }}>{cmd.num}</span>
+                className="w-full min-h-[44px] flex items-start gap-2.5 px-3 py-2.5 border transition-opacity hover:opacity-80 active:opacity-60 text-left"
+                style={isOpen ? { backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, borderColor: t.accent } : { backgroundColor: `${t.border}1F`, borderColor: t.border }}>
+                <span className="text-[10px] font-bold flex-shrink-0 mt-0.5 px-1.5 py-0.5" style={{ backgroundColor: t.accentRgba(0.15), color: t.accent }}>{cmd.num}</span>
                 <span className="text-[11px] font-medium leading-snug flex-1" style={{ color: isOpen ? t.text : t.textMuted }}>{cmd.title}</span>
                 {cmdChecked > 0 && <span className="text-[10px] tabular-nums flex-shrink-0" style={{ color: t.accent }}>{cmdChecked}</span>}
                 <ChevronDown className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: t.textDim }} />
@@ -147,9 +148,9 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
                     const isChecked = notes[qid] || false;
                     return (
                       <button key={qi} onClick={() => toggle(qid)}
-                        className="w-full flex items-start gap-2 px-2.5 py-2 rounded-lg transition-all text-left"
+                        className="w-full flex items-start gap-2 px-2.5 py-2 transition-opacity hover:opacity-80 text-left"
                         style={isChecked ? { backgroundColor: t.accentRgba(0.06) } : {}}>
-                        <div className="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+                        <div className="w-4 h-4 border flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
                           style={isChecked ? { backgroundColor: t.accent, borderColor: t.accent, color: '#fff' } : { borderColor: t.borderLight, color: 'transparent' }}>
                           {isChecked && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
                         </div>
@@ -174,9 +175,9 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
           return (
             <div key={b.ref}>
               <button onClick={() => setExpanded(isOpen ? null : id)}
-                className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg border transition-all text-left"
-                style={isOpen ? { backgroundColor: t.accentRgba(0.08), borderColor: t.accentRgba(0.3) } : { backgroundColor: `${t.border}40`, borderColor: `${t.border}4D` }}>
-                <span className="text-[10px] font-bold flex-shrink-0 mt-0.5 px-1.5 py-0.5 rounded whitespace-nowrap" style={{ backgroundColor: t.accentRgba(0.15), color: t.accent }}>{b.ref.replace('Matthew', 'Mt')}</span>
+                className="w-full min-h-[44px] flex items-start gap-2.5 px-3 py-2.5 border transition-opacity hover:opacity-80 active:opacity-60 text-left"
+                style={isOpen ? { backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, borderColor: t.accent } : { backgroundColor: `${t.border}1F`, borderColor: t.border }}>
+                <span className="text-[10px] font-bold flex-shrink-0 mt-0.5 px-1.5 py-0.5 whitespace-nowrap" style={{ backgroundColor: t.accentRgba(0.15), color: t.accent }}>{b.ref.replace('Matthew', 'Mt')}</span>
                 <span className="text-[11px] font-medium leading-snug flex-1" style={{ color: isOpen ? t.text : t.textMuted }}>{b.verse}</span>
                 {beatChecked > 0 && <span className="text-[10px] tabular-nums flex-shrink-0" style={{ color: t.accent }}>{beatChecked}</span>}
                 <ChevronDown className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: t.textDim }} />
@@ -191,9 +192,9 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
                     const isChecked = notes[qid] || false;
                     return (
                       <button key={qi} onClick={() => toggle(qid)}
-                        className="w-full flex items-start gap-2 px-2.5 py-2 rounded-lg transition-all text-left"
+                        className="w-full flex items-start gap-2 px-2.5 py-2 transition-opacity hover:opacity-80 text-left"
                         style={isChecked ? { backgroundColor: t.accentRgba(0.06) } : {}}>
-                        <div className="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+                        <div className="w-4 h-4 border flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
                           style={isChecked ? { backgroundColor: t.accent, borderColor: t.accent, color: '#fff' } : { borderColor: t.borderLight, color: 'transparent' }}>
                           {isChecked && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
                         </div>
@@ -210,7 +211,7 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
       )}
 
       <div className="pt-3 border-t" style={{ borderColor: `${t.border}4D` }}>
-        <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: t.accent }}>Duties of State</p>
+        <p className={`${PRINT_STAMP_CLASS} mb-2`} style={{ color: t.accent }}>Duties of State</p>
         <div className="space-y-2.5">
           {dutiesOfState.map((duty) => (
             <div key={duty.label}>
@@ -221,9 +222,9 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
                   const isChecked = notes[qid] || false;
                   return (
                     <button key={qi} onClick={() => toggle(qid)}
-                      className="w-full flex items-start gap-2 px-2.5 py-1.5 rounded-lg transition-all text-left"
+                      className="w-full flex items-start gap-2 px-2.5 py-1.5 transition-opacity hover:opacity-80 text-left"
                       style={isChecked ? { backgroundColor: t.accentRgba(0.06) } : {}}>
-                      <div className="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+                      <div className="w-4 h-4 border flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
                         style={isChecked ? { backgroundColor: t.accent, borderColor: t.accent, color: '#fff' } : { borderColor: t.borderLight, color: 'transparent' }}>
                         {isChecked && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
                       </div>

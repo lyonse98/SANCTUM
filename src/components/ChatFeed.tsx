@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { COMPANION_PORTRAYAL_LINE } from '@/lib/privacyCopy';
+import { PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import { audienceNoun } from '@/lib/audience';
 import {
   BookOpen,
@@ -101,6 +102,16 @@ interface ChatFeedProps {
   onReflectGospel?: (cardId: string) => void;
 }
 
+/**
+ * The conversation as a dialogue manuscript (Stage 2 of the printed-page
+ * re-skin, Erik, Nov 14, 2026): no bubbles — each speech stands as a text
+ * block under its speaker's stamped name, the companion's in the calendar
+ * accent, the user's own under a quiet "You" beside a hairline rule. The
+ * portrait medallion and name head the page (the header and the empty
+ * state below); the words themselves carry the room. Every behaviour —
+ * tool links, the share line, the crisis card, the Gospel context card —
+ * is the conversation's own, unchanged.
+ */
 export function ChatFeed({ messages, isStreaming, streamingContent, persona, crisisActive, onCrisisDismiss, onOpenTool, onReflectGospel }: ChatFeedProps) {
   const endRef = useRef<HTMLDivElement>(null);
   const t = persona.theme;
@@ -115,23 +126,23 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
         <div className="relative mb-5">
           <div
-            className="rounded-xl shadow-xl border overflow-hidden"
-            style={{ backgroundColor: t.card, borderColor: t.borderLight }}
+            className="rounded-full shadow-xl overflow-hidden"
+            style={{ backgroundColor: t.card, boxShadow: `inset 0 0 0 1.5px ${t.borderLight}` }}
           >
             <CompanionAvatar personaId={persona.id} theme={t} size={72} />
           </div>
           <div
-            className="absolute -inset-1 rounded-xl blur-lg -z-10"
+            className="absolute -inset-1 rounded-full blur-lg -z-10"
             style={{ backgroundColor: t.glow }}
           />
         </div>
         <h2
-          className="text-xl font-bold mb-2 font-display uppercase tracking-wide"
-          style={{ color: t.textBright }}
+          className="text-[22px] font-semibold mb-2"
+          style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
         >
           {persona.name}
         </h2>
-        <p className="text-sm max-w-xs leading-relaxed" style={{ color: t.textMuted }}>
+        <p className="text-sm max-w-xs leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
           {persona.description}
         </p>
         <div className="mt-5 flex items-center gap-2 text-[10px] stamped" style={{ color: t.textDim }}>
@@ -142,7 +153,7 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
         <p className="mt-4 text-[11px] leading-relaxed max-w-[260px]" style={{ color: t.textDim }}>
           {COMPANION_PORTRAYAL_LINE}
         </p>
-        <p className="mt-6 text-sm italic" style={{ color: t.accent }}>
+        <p className="mt-6 text-sm italic" style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
           {`"I'm here, ${audienceNoun(persona.audience).toLowerCase()}. Speak when you're ready."`}
         </p>
       </div>
@@ -150,7 +161,7 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
   }
 
   return (
-    <div className="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-3">
+    <div className="flex-1 overflow-y-auto chat-scroll px-5 py-5 space-y-6 max-w-2xl mx-auto w-full">
       {crisisActive && (
         <CrisisCard theme={persona.theme} dismissable onDismiss={onCrisisDismiss} />
       )}
@@ -159,39 +170,31 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
         if (msg.kind === 'gospel') {
           return <GospelContextCard key={msg.id} message={msg} persona={persona} onReflect={onReflectGospel} />;
         }
-        return <MessageBubble key={msg.id} message={msg} persona={persona} onShare={setShareContent} onOpenTool={onOpenTool} />;
+        return <MessageBlock key={msg.id} message={msg} persona={persona} onShare={setShareContent} onOpenTool={onOpenTool} />;
       })}
       {isStreaming && (
-        <div className="flex gap-2.5 items-start animate-fade-in">
-          <div
-            className="flex-shrink-0 mt-0.5 shadow-sm border overflow-hidden rounded-lg"
-            style={{ backgroundColor: t.card, borderColor: t.borderLight }}
-          >
-            <CompanionAvatar personaId={persona.id} theme={t} size={32} />
-          </div>
-          <div className="max-w-[80%]">
-            {streamingContent ? (
-              <div
-                className="rounded-xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap border"
-                style={{ backgroundColor: t.card, borderColor: `${t.border}80`, color: t.text }}
-              >
-                {renderContent(streamingContent, t.accent, onOpenTool)}
-                <span
-                  className="inline-block w-1.5 h-3.5 ml-0.5 animate-pulse align-middle"
-                  style={{ backgroundColor: t.accent }}
-                />
-              </div>
-            ) : (
-              <div
-                className="rounded-xl rounded-tl-sm px-4 py-3.5 flex flex-row items-center gap-1.5 border"
-                style={{ backgroundColor: t.card, borderColor: `${t.border}80` }}
-              >
-                <span className="typing-dot w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.accent }} />
-                <span className="typing-dot w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.accent }} />
-                <span className="typing-dot w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.accent }} />
-              </div>
-            )}
-          </div>
+        <div className="animate-fade-in">
+          <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+            {persona.name}
+          </p>
+          {streamingContent ? (
+            <div
+              className="text-sm leading-relaxed whitespace-pre-wrap mt-1.5"
+              style={{ fontFamily: PRINT_SERIF, color: t.text }}
+            >
+              {renderContent(streamingContent, t.accent, onOpenTool)}
+              <span
+                className="inline-block w-1.5 h-3.5 ml-0.5 animate-pulse align-middle"
+                style={{ backgroundColor: t.accent }}
+              />
+            </div>
+          ) : (
+            <div className="flex flex-row items-center gap-1.5 mt-2.5">
+              <span className="typing-dot w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.accent }} />
+              <span className="typing-dot w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.accent }} />
+              <span className="typing-dot w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.accent }} />
+            </div>
+          )}
         </div>
       )}
       <div ref={endRef} />
@@ -205,7 +208,7 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
   );
 }
 
-function MessageBubble({
+function MessageBlock({
   message,
   persona,
   onShare,
@@ -221,48 +224,40 @@ function MessageBubble({
 
   if (isUser) {
     return (
-      <div className="flex gap-2.5 items-start justify-end animate-fade-in">
-        <div className="max-w-[80%]">
-          <div
-            className="rounded-xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap border"
-            style={{
-              backgroundColor: t.accentRgba(0.12),
-              borderColor: t.accentRgba(0.25),
-              color: t.textBright,
-            }}
-          >
-            {message.content}
-          </div>
+      <div className="animate-fade-in ml-5 pl-4" style={{ borderLeft: `1px solid ${t.border}` }}>
+        <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+          You
+        </p>
+        <div
+          className="text-sm leading-relaxed whitespace-pre-wrap mt-1.5"
+          style={{ fontFamily: PRINT_SERIF, color: t.text }}
+        >
+          {message.content}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex gap-2.5 items-start animate-fade-in">
+    <div className="animate-fade-in">
+      <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+        {persona.name}
+      </p>
       <div
-        className="flex-shrink-0 mt-0.5 shadow-sm border overflow-hidden rounded-lg"
-        style={{ backgroundColor: t.card, borderColor: t.borderLight }}
+        className="text-sm leading-relaxed whitespace-pre-wrap mt-1.5"
+        style={{ fontFamily: PRINT_SERIF, color: t.text }}
       >
-        <CompanionAvatar personaId={persona.id} theme={t} size={32} />
+        {renderContent(message.content, t.accent, onOpenTool)}
       </div>
-      <div className="max-w-[80%]">
-        <div
-          className="rounded-xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap border group"
-          style={{ backgroundColor: t.card, borderColor: `${t.border}80`, color: t.text }}
+      <div className="flex mt-2">
+        <button
+          onClick={() => onShare(message.content)}
+          className="flex items-center gap-1 text-[10px] font-medium transition-opacity hover:opacity-70"
+          style={{ color: t.textDim }}
         >
-          {renderContent(message.content, t.accent, onOpenTool)}
-          <div className="flex justify-end mt-2">
-            <button
-              onClick={() => onShare(message.content)}
-              className="flex items-center gap-1 text-[10px] font-medium transition-opacity hover:opacity-70"
-              style={{ color: t.textDim }}
-            >
-              <Share2 className="w-3 h-3" />
-              Share this
-            </button>
-          </div>
-        </div>
+          <Share2 className="w-3 h-3" />
+          Share this
+        </button>
       </div>
     </div>
   );
@@ -285,18 +280,18 @@ function GospelContextCard({
   const t = persona.theme;
   return (
     <div
-      className="rounded-xl border-2 px-4 py-3 animate-fade-in"
-      style={{ backgroundColor: `${t.accent}0D`, borderColor: t.accentRgba(0.4) }}
+      className="px-4 py-3.5 animate-fade-in"
+      style={{ backgroundColor: `${t.border}14`, border: `1px solid ${t.border}` }}
     >
       <div className="flex items-center gap-2 mb-2">
         <BookOpen className="w-3.5 h-3.5" style={{ color: t.accent }} />
-        <span className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: t.accent }}>
+        <span className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
           Today&rsquo;s Readings &middot; Context
         </span>
       </div>
       <div
-        className="text-[11px] leading-relaxed whitespace-pre-wrap max-h-36 overflow-y-auto chat-scroll pr-1"
-        style={{ color: t.textMuted }}
+        className="text-[12px] leading-relaxed whitespace-pre-wrap max-h-36 overflow-y-auto chat-scroll pr-1"
+        style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
       >
         {message.content}
       </div>
@@ -308,11 +303,11 @@ function GospelContextCard({
       ) : (
         <button
           onClick={() => onReflect?.(message.id)}
-          className="w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-lg border-2 transition-all active:scale-[0.98]"
-          style={{ backgroundColor: t.accentRgba(0.14), borderColor: t.accent, color: t.accent }}
+          className="w-full min-h-[48px] flex items-center justify-center gap-2 mt-3 px-3 py-2.5 transition-opacity hover:opacity-80 active:opacity-60"
+          style={{ backgroundColor: t.accentRgba(0.14), border: `1px solid ${t.accent}`, color: t.accent }}
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span className="text-[11px] font-bold uppercase tracking-wide">
+          <span className="text-[11px] font-bold uppercase tracking-wide" style={{ fontFamily: PRINT_SERIF }}>
             Reflect with {persona.name}
           </span>
         </button>
