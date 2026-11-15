@@ -57,12 +57,12 @@ function extractLiteral(src: string, name: string): unknown {
 describe("the extracted tables match the narrator bank exactly", () => {
   it("SAINT_LINES is narratorCore's SAINT_LINES_N, verbatim", () => {
     expect(SAINT_LINES).toEqual(extractLiteral(narratorCoreSrc, "SAINT_LINES_N"));
-    expect(Object.keys(SAINT_LINES).length).toBe(97);
+    expect(Object.keys(SAINT_LINES).length).toBe(100);
   });
 
   it("FIXED_FEASTS is narratorCore's FIXED_FEASTS_N, verbatim", () => {
     expect(FIXED_FEASTS).toEqual(extractLiteral(narratorCoreSrc, "FIXED_FEASTS_N"));
-    expect(Object.keys(FIXED_FEASTS).length).toBe(76);
+    expect(Object.keys(FIXED_FEASTS).length).toBe(80);
   });
 });
 
@@ -95,6 +95,60 @@ describe("activation — only a described saint day weaves", () => {
   it("a ferial day resolves nothing", () => {
     expect(saintForReflectionDate("2026-02-10")).toBeNull();
     expect(buildInputSaintBlock("2026-02-10")).toBe("");
+  });
+
+  // The optional memorials (Erik, Nov 15, 2026): named in the client
+  // calendar first, then given their bank lines so the weave fires for
+  // them too — under their own rank, which the block speaks as
+  // "optional memorial".
+  it("an optional-memorial saint now weaves, under his own rank (Juan Diego, Dec 9)", () => {
+    const saint = saintForReflectionDate("2026-12-09");
+    expect(saint).toEqual({
+      name: "St. Juan Diego",
+      descriptor: "A poor Aztec convert on whose cloak Our Lady of Guadalupe left her image in 1531.",
+      rank: "optional-memorial",
+    });
+    const block = buildInputSaintBlock("2026-12-09");
+    expect(block).toContain("Today the Church keeps the optional memorial of St. Juan Diego:");
+    expect(block).toContain("A poor Aztec convert on whose cloak Our Lady of Guadalupe left her image in 1531.");
+    expect(block).toContain("Weave the saint in ONCE");
+  });
+
+  it("the other two optional-memorial saints weave too (Becket, Sylvester)", () => {
+    expect(saintForReflectionDate("2026-12-29")).toEqual({
+      name: "St. Thomas Becket",
+      descriptor: "The chancellor turned Archbishop of Canterbury who defended the Church's liberty against his friend King Henry II.",
+      rank: "optional-memorial",
+    });
+    expect(buildInputSaintBlock("2026-12-29")).toContain("St. Thomas Becket");
+    expect(saintForReflectionDate("2026-12-31")).toEqual({
+      name: "St. Sylvester I",
+      descriptor: "The pope who led the Church out of the catacombs into the peace of Constantine.",
+      rank: "optional-memorial",
+    });
+    expect(buildInputSaintBlock("2026-12-31")).toContain("St. Sylvester I");
+  });
+
+  it("the Basilicas dedication gets NO weave — the feast table names it, but it is not a person", () => {
+    expect(FIXED_FEASTS["11-18"]).toEqual(["Dedication of the Basilicas of Sts. Peter and Paul", "optional-memorial"]);
+    expect(saintForReflectionDate("2026-11-18")).toBeNull();
+    expect(buildInputSaintBlock("2026-11-18")).toBe("");
+  });
+
+  it("Nov 23 already wove before the optional memorials arrived — for Miguel Pro, rankless", () => {
+    // The bank's Nov 23 line has always been St. Miguel Pro's (the client
+    // calendar names Clement and Columban for the date; the spoken slot
+    // is his). With no FIXED_FEASTS entry for 11-23, his weave rides the
+    // rankless shape — and it fired before this build, unchanged by it.
+    const saint = saintForReflectionDate("2026-11-23");
+    expect(saint).toEqual({
+      name: "St. Miguel Pro",
+      descriptor: "A Jesuit priest in Mexico who was executed by the government for his faith.",
+      rank: null,
+    });
+    expect(buildInputSaintBlock("2026-11-23")).toContain(
+      "Today the Church remembers St. Miguel Pro: A Jesuit priest in Mexico who was executed by the government for his faith.",
+    );
   });
 });
 

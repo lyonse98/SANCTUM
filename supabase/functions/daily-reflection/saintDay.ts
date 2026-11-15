@@ -22,7 +22,7 @@
  * suppression logic here for the same reason there is none there.
  */
 
-export type SaintRank = "solemnity" | "feast" | "memorial";
+export type SaintRank = "solemnity" | "feast" | "memorial" | "optional-memorial";
 
 /** MM-DD -> the saint's name and the bank's one-line descriptor. */
 export const SAINT_LINES: Record<string, { name: string; line: string }> = {
@@ -330,6 +330,10 @@ export const SAINT_LINES: Record<string, { name: string; line: string }> = {
     "name": "Immaculate Conception",
     "line": "The feast of Mary, preserved from original sin from the first moment of her existence."
   },
+  "12-09": {
+    "name": "St. Juan Diego",
+    "line": "A poor Aztec convert on whose cloak Our Lady of Guadalupe left her image in 1531."
+  },
   "12-12": {
     "name": "Our Lady of Guadalupe",
     "line": "Mary appeared to Juan Diego, a poor indigenous man, and left her image on his tilma."
@@ -337,6 +341,14 @@ export const SAINT_LINES: Record<string, { name: string; line: string }> = {
   "12-21": {
     "name": "St. Peter Canisius",
     "line": "A Jesuit who defended the faith in Germany after the Reformation."
+  },
+  "12-29": {
+    "name": "St. Thomas Becket",
+    "line": "The chancellor turned Archbishop of Canterbury who defended the Church's liberty against his friend King Henry II."
+  },
+  "12-31": {
+    "name": "St. Sylvester I",
+    "line": "The pope who led the Church out of the catacombs into the peace of Constantine."
   },
   "01-20": {
     "name": "St. Sebastian",
@@ -662,6 +674,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Elizabeth of Hungary",
     "memorial"
   ],
+  "11-18": [
+    "Dedication of the Basilicas of Sts. Peter and Paul",
+    "optional-memorial"
+  ],
   "11-21": [
     "Presentation of the Blessed Virgin Mary",
     "memorial"
@@ -694,6 +710,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "The Immaculate Conception",
     "solemnity"
   ],
+  "12-09": [
+    "St. Juan Diego",
+    "optional-memorial"
+  ],
   "12-12": [
     "Our Lady of Guadalupe",
     "feast"
@@ -721,6 +741,14 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   "12-28": [
     "The Holy Innocents",
     "feast"
+  ],
+  "12-29": [
+    "St. Thomas Becket",
+    "optional-memorial"
+  ],
+  "12-31": [
+    "St. Sylvester I",
+    "optional-memorial"
   ]
 };
 
@@ -755,7 +783,7 @@ export function saintForReflectionDate(dateISO: string): ReflectionSaint | null 
  */
 export function saintWeaveBlock(saint: ReflectionSaint): string {
   const head = saint.rank
-    ? `Today the Church keeps the ${saint.rank} of ${saint.name}: ${saint.descriptor}`
+    ? `Today the Church keeps the ${saint.rank.replace(/-/g, " ")} of ${saint.name}: ${saint.descriptor}`
     : `Today the Church remembers ${saint.name}: ${saint.descriptor}`;
   return [
     head,

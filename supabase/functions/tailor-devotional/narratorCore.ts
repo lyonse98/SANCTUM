@@ -334,7 +334,7 @@ export function withSpokenArticle(label: string): string {
 
 // ── Feast resolution (ported from src/data/feastDays.ts, reduced to name + rank) ──
 
-export type FeastRankN = 'solemnity' | 'feast' | 'memorial';
+export type FeastRankN = 'solemnity' | 'feast' | 'memorial' | 'optional-memorial';
 
 export interface FeastDayN {
   name: string;
@@ -405,6 +405,7 @@ const FIXED_FEASTS_N: Record<string, [string, FeastRankN]> = {
   '11-12': ["St. Josaphat", 'memorial'],
   '11-13': ["St. Frances Xavier Cabrini", 'memorial'],
   '11-17': ["St. Elizabeth of Hungary", 'memorial'],
+  '11-18': ["Dedication of the Basilicas of Sts. Peter and Paul", 'optional-memorial'],
   '11-21': ["Presentation of the Blessed Virgin Mary", 'memorial'],
   '11-22': ["St. Cecilia", 'memorial'],
   '11-24': ["Sts. Andrew Dung-Lac and Companions", 'memorial'],
@@ -413,6 +414,7 @@ const FIXED_FEASTS_N: Record<string, [string, FeastRankN]> = {
   '12-06': ["St. Nicholas", 'memorial'],
   '12-07': ["St. Ambrose", 'memorial'],
   '12-08': ["The Immaculate Conception", 'solemnity'],
+  '12-09': ["St. Juan Diego", 'optional-memorial'],
   '12-12': ["Our Lady of Guadalupe", 'feast'],
   '12-13': ["St. Lucy", 'memorial'],
   '12-14': ["St. John of the Cross", 'memorial'],
@@ -420,6 +422,8 @@ const FIXED_FEASTS_N: Record<string, [string, FeastRankN]> = {
   '12-26': ["St. Stephen", 'feast'],
   '12-27': ["St. John the Evangelist", 'feast'],
   '12-28': ["The Holy Innocents", 'feast'],
+  '12-29': ["St. Thomas Becket", 'optional-memorial'],
+  '12-31': ["St. Sylvester I", 'optional-memorial'],
 };
 
 /** Moveable feasts (Easter offsets / Advent Sundays), in the app's resolution order. */
@@ -545,8 +549,11 @@ const SAINT_LINES_N: Record<string, { name: string; line: string }> = {
   '11-30': { name: "St. Andrew", line: "The first apostle called — Peter's brother." },
   '12-03': { name: "St. Francis Xavier", line: "A Jesuit missionary who baptized tens of thousands in India, Indonesia, and Japan." },
   '12-08': { name: "Immaculate Conception", line: "The feast of Mary, preserved from original sin from the first moment of her existence." },
+  '12-09': { name: "St. Juan Diego", line: "A poor Aztec convert on whose cloak Our Lady of Guadalupe left her image in 1531." },
   '12-12': { name: "Our Lady of Guadalupe", line: "Mary appeared to Juan Diego, a poor indigenous man, and left her image on his tilma." },
   '12-21': { name: "St. Peter Canisius", line: "A Jesuit who defended the faith in Germany after the Reformation." },
+  '12-29': { name: "St. Thomas Becket", line: "The chancellor turned Archbishop of Canterbury who defended the Church's liberty against his friend King Henry II." },
+  '12-31': { name: "St. Sylvester I", line: "The pope who led the Church out of the catacombs into the peace of Constantine." },
   '01-20': { name: "St. Sebastian", line: "A Roman soldier who secretly served Christ until he was found out, shot full of arrows, and left for dead — then recovered and confronted the emperor again." },
   '05-15': { name: "St. Isidore the Farmer", line: "A poor farm laborer who prayed while he plowed." },
   '08-25': { name: "St. Louis IX", line: "King of France, father of eleven, crusader, and a man who washed the feet of the poor." },

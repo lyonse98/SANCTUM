@@ -187,12 +187,14 @@ describe('calendar resolution — drift checks against the app data', () => {
         const iso = `2026-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const ported = resolveFeastDay(iso);
         const app = getFeastForDate(dt);
-        if (app?.rank === 'optional-memorial') {
-          // Erik, Nov 15, 2026: optional memorials live in the client
-          // calendar only — the narrator neither names them nor weaves
-          // them, so on these days the ported table must stay silent
-          // while the app names the day. (Before this rank existed the
-          // two tables mirrored each other on every day of the year.)
+        if (app?.rank === 'optional-memorial' && iso === '2026-11-23') {
+          // The one scoped day that remains (Erik, Nov 15, 2026): the app
+          // names Sts. Clement I and Columban, but the narrator's spoken
+          // slot for Nov 23 belongs to St. Miguel Pro's saint line, which
+          // predates the optional rank — the ported feast table stays
+          // silent here by design. The other four optional memorials
+          // (Nov 18, Dec 9, Dec 29, Dec 31) carry ported entries and are
+          // compared in full below, name and rank alike.
           expect(ported, iso).toBeNull();
           continue;
         }
@@ -209,11 +211,14 @@ describe('calendar resolution — drift checks against the app data', () => {
     for (const saint of SAINTS) {
       if (seen.has(saint.feastDate)) continue;
       seen.add(saint.feastDate);
-      // Optional memorials (Erik, Nov 15, 2026) carry no narrator line —
-      // their bios have no ported first sentence to agree with. The skip
-      // needs BOTH the optional rank and the missing line, so a saint who
-      // shares an optional-memorial date but does have a line (Miguel Pro,
-      // Nov 23) is still checked in full.
+      // The one skip that remains (Nov 15, 2026): the Dedication of the
+      // Basilicas (Nov 18) is a feast-table day, not a person — the bank
+      // names it in the feast table but carries no saint line for it by
+      // design, so its bio has no ported first sentence to agree with.
+      // Every optional-memorial SAINT now carries a line (Juan Diego,
+      // Becket, Sylvester) and is checked in full, as is Miguel Pro
+      // (Nov 23): the skip needs BOTH the optional rank and the missing
+      // line, and theirs exist.
       const [mm, dd] = saint.feastDate.split('-').map(Number);
       if (
         getFeastForDate(new Date(2026, mm - 1, dd, 12))?.rank === 'optional-memorial' &&
@@ -323,6 +328,34 @@ describe('frame forms (§10.2 golden fixtures)', () => {
     });
     expect(s.persona).toBe('frank');
     expect(s.headAM).toContain('A Dominican lay brother in Lima');
+  });
+
+  it('optional memorial with a bank line: the feast table names the day, the frame speaks the line (Juan Diego, Dec 9)', () => {
+    expect(resolveFeastDay('2026-12-09')).toEqual({ name: 'St. Juan Diego', rank: 'optional-memorial' });
+    expect(saintLineFor('2026-12-09')).toBe(
+      'A poor Aztec convert on whose cloak Our Lady of Guadalupe left her image in 1531.',
+    );
+    // No celebration handed in: the ported feast table supplies the name,
+    // and the memorial frame speaks the bank's one line after it.
+    const s = assembleScript({ ...OCT30, dateISO: '2026-12-09', celebration: null });
+    expect(s.persona).toBe('ben');
+    expect(s.headAM).toContain('St. Juan Diego');
+    expect(s.headAM).toContain(
+      'A poor Aztec convert on whose cloak Our Lady of Guadalupe left her image in 1531.',
+    );
+    expect(s.headPM).toContain('St. Juan Diego');
+  });
+
+  it('optional memorial with no saint line: the feast table still names the day (Basilicas, Nov 18)', () => {
+    expect(resolveFeastDay('2026-11-18')).toEqual({
+      name: 'Dedication of the Basilicas of Sts. Peter and Paul',
+      rank: 'optional-memorial',
+    });
+    // A dedication, not a person: no saint line exists, and none is invented.
+    expect(saintLineFor('2026-11-18')).toBeNull();
+    const s = assembleScript({ ...OCT30, dateISO: '2026-11-18', celebration: null });
+    expect(s.headAM).toContain('Dedication of the Basilicas of Sts. Peter and Paul');
+    expect(s.headPM).toContain('Dedication of the Basilicas of Sts. Peter and Paul');
   });
 
   it('solemnity: the Lector reads, both heads the same ritual frame', () => {
