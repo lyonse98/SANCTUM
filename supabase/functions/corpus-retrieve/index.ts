@@ -18,6 +18,7 @@
 */
 
 import { rerankChunks, type RawChunk } from "./rerank.ts";
+import { expandCccNeighbors, type NeighborSource } from "./expand.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,8 +116,44 @@ async function corpusSearch(embedding: number[], p: SearchParams): Promise<RawCh
   }));
 }
 
-async function corpusVersion(): Promise<string> {
-  try {
+/**
+ * The PostgREST source behind neighbor expansion (./expand.ts): two small
+ * indexed reads on corpus_chunks — an anchor's ordinal by its id, then the
+ * rows at the neighboring ordinals of the same document. Either read failing
+ * throws, and the caller fails open to the unexpanded results.
+ */
+const neighborSource: NeighborSource = {
+  async ordinalFor(chunkId: number): Promise<number | null> {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/corpus_chunks?select=ordinal&id=eq.${chunkId}&limit=1`,
+      { headers: serviceHeaders(), signal: AbortSignal.timeout(3000) },
+    );
+    if (!res.ok) throw new Error("ordinal lookup failed");
+    const rows = (await res.json()) as { ordinal?: unknown }[];
+    return typeof rows[0]?.ordinal === "number" ? rows[0].ordinal : null;
+  },
+  async rowsAt(documentId: string, ordinals: number[]) {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/corpus_chunks?select=id,ordinal,locator,citation_label,text,companion_shelves` +
+        `&document_id=eq.${encodeURIComponent(documentId)}&ordinal=in.(${ordinals.join(",")})`,
+      { headers: serviceHeaders(), signal: AbortSignal.timeout(3000) },
+    );
+    if (!res.ok) throw new Error("neighbor lookup failed");
+    const rows = (await res.json()) as Record<string, unknown>[];
+    return rows.map((r) => ({
+      chunk_id: Number(r.id),
+      ordinal: Number(r.ordinal),
+      locator: String(r.locator),
+      citation_label: String(r.citation_label),
+      text: String(r.text),
+      companion_shelves: (r.companion_shelves as string[]) ?? [],
+    }));
+  },
+};
+
+async function corpusVersion(): Promise<string> {  try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const res = await fetch(
       `${supabaseUrl}/rest/v1/corpus_meta?key=eq.corpus_version&select=value`,
@@ -213,16 +250,31 @@ Deno.serve(async (req: Request) => {
     }
 
     const results = rerankChunks(candidates, { k, companion });
+
+    // Neighbor expansion (Nov 14, 2026): a bare Catechism paragraph among
+    // the results pulls its ±1 paragraphs in behind it — the exact required
+    // paragraph is so often the anchor's neighbor (see ./expand.ts).
+    // Fail-open: any error serves the unexpanded results untouched.
+    let presented = results;
+    try {
+      presented = await expandCccNeighbors(results, neighborSource, companion);
+    } catch (err) {
+      console.error(
+        "corpus-retrieve: neighbor expansion failed (serving unexpanded)",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+
     const version = await corpusVersion();
     const tookMs = Date.now() - started;
 
     // Counts-only telemetry (spec §11): no query text, no chunk content.
-    console.info("corpus-retrieve", { purpose, results: results.length, took_ms: tookMs });
+    console.info("corpus-retrieve", { purpose, results: presented.length, took_ms: tookMs });
 
     return jsonResponse({
       v: 1,
       corpus_version: version,
-      results: results.map((r) => ({
+      results: presented.map((r) => ({
         chunk_id: r.chunk_id,
         document_id: r.document_id,
         citation_label: r.citation_label,
