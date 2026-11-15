@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Send, Loader2, BookOpen, Sparkles, ChevronRight } from 'lucide-react';
-import { PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
+import { PRINT_PLATE_CLASS, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import type { Audience, PersonaTheme } from '@/types';
 import { streamChat } from '@/lib/llm';
 import type { ChatSource } from '@/lib/chatSources';
@@ -55,13 +55,22 @@ function AnswerSources({ sources, t }: { sources: ChatSource[]; t: PersonaTheme 
   );
 }
 
+/**
+ * The starter questions (Pocket Church build, Nov 14, 2026): six plates
+ * over the empty conversation, each one tap-to-ask. The apologetics three
+ * are the objections bank's own questions (src/data/catechism.ts — the
+ * confession and saints entries verbatim from OBJECTIONS, the baptism one
+ * from the Catechism bank, the objections bank carrying no infant-baptism
+ * entry); the practice three are the plain questions a man actually opens
+ * the door with.
+ */
 const SUGGESTED_QUESTIONS = [
-  'Why do Catholics confess to a priest?',
+  'Why can\'t I just confess my sins directly to God?',
+  'Why do Catholics pray to saints instead of going straight to God?',
+  'Why baptize infants?',
   'What is the Eucharist?',
-  'Why pray to Mary?',
-  'What happens after death?',
-  'Why baptize babies?',
-  'Is the Resurrection historical?',
+  'How do I start praying?',
+  'What happens at Mass?',
 ];
 
 export function CatechismQA({ t, audience }: CatechismQAProps) {
@@ -161,10 +170,11 @@ export function CatechismQA({ t, audience }: CatechismQAProps) {
                 <button
                   key={q}
                   onClick={() => handleSuggested(q)}
-                  className="w-full min-h-[44px] text-left px-3 py-2 border transition-opacity hover:opacity-80 active:opacity-60"
-                  style={{ backgroundColor: `${t.border}1F`, borderColor: t.border }}
+                  className={PRINT_PLATE_CLASS}
+                  style={{ backgroundColor: `${t.border}1F`, border: `1px solid ${t.border}` }}
                 >
-                  <p className="text-xs font-medium" style={{ color: t.text }}>{q}</p>
+                  <p className="text-xs font-medium flex-1" style={{ color: t.text }}>{q}</p>
+                  <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
                 </button>
               ))}
             </div>

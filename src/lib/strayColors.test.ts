@@ -75,10 +75,6 @@ const LITERAL_ALLOWLIST: Record<string, { literals: string[]; why: string }> = {
     literals: ['#991B1B', '#B91C1C'],
     why: 'the examination notice’s semantic warning red — a caution, not a decoration',
   },
-  'components/PocketCatechism.tsx': {
-    literals: ['#991B1B', '#B91C1C'],
-    why: '“The Objection” is marked in semantic red — the colour is the content’s label, not chrome',
-  },
   'components/EmailReminderForm.tsx': {
     literals: ['#991B1B'],
     why: 'semantic error red on the form’s failure notice',

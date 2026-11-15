@@ -71,9 +71,47 @@ describe('Pocket Church — three doors', () => {
       expect(html).toContain('Confession Prep');
     });
 
+    it(`the Pray door can open on the Novenas, in the track's order (${audience})`, () => {
+      const html = render(audience, 'pray', 'novenas');
+      expect(html).toContain('Novenas');
+      const joseph = html.indexOf('Novena to St. Joseph');
+      const jude = html.indexOf('Novena to St. Jude');
+      const mary = html.indexOf('Novena to Mary, Undoer of Knots');
+      expect(joseph).toBeGreaterThan(-1);
+      expect(jude).toBeGreaterThan(-1);
+      expect(mary).toBeGreaterThan(-1);
+      // Identical shelf, track order: men lead St. Joseph, women lead Mary.
+      if (audience === 'men') {
+        expect(joseph).toBeLessThan(jude);
+        expect(jude).toBeLessThan(mary);
+      } else {
+        expect(mary).toBeLessThan(joseph);
+        expect(joseph).toBeLessThan(jude);
+      }
+    });
+
+    it(`the Confession door carries the words and the marker (${audience})`, () => {
+      const html = render(audience, 'confession');
+      // The Real Help script, rendered in the door from the shared data.
+      expect(html).toContain('What to do');
+      expect(html).toContain('Bless me, Father, for I have sinned');
+      // The Act of Contrition, from the shared shelf.
+      expect(html).toContain('Act of Contrition');
+      expect(html).toContain('heartily sorry for having offended You');
+      // The last-confession marker, unset on a fresh device: a fact and a button.
+      expect(html).toContain('No confession marked yet.');
+      expect(html).toContain('I went to confession');
+    });
+
     it(`the Ask door opens the Catechism question surface by default (${audience})`, () => {
       const html = render(audience, 'ask');
       expect(html).toContain('Ask Aquinas');
+      // One door, one action (Nov 14, 2026): the reading surfaces are gone.
+      expect(html).not.toContain('Objections');
+      expect(html).not.toContain('The Faith');
+      // The starter questions stand over the empty conversation.
+      expect(html).toContain('What happens at Mass?');
+      expect(html).toContain('How do I start praying?');
     });
   }
 
@@ -82,8 +120,9 @@ describe('Pocket Church — three doors', () => {
     expect(page).toContain("export type ChurchTab = 'pray' | 'confession' | 'ask'");
     // Pray opens on the Rosary by construction.
     expect(page).toContain("useState<PraySection>(initialPraySection ?? 'rosary')");
-    // Ask mounts the Catechism in its question mode, logic untouched.
-    expect(page).toContain('<PocketCatechism t={t} audience={audience} defaultMode="ask" />');
+    // Ask mounts the Catechism as the question surface itself (Nov 14, 2026:
+    // the pillars/objections reading modes were removed — one door, one action).
+    expect(page).toContain('<PocketCatechism t={t} audience={audience} />');
     expect(page).toContain('<ConfessionGuide t={t} audience={audience} />');
     // No retired surface is mounted or named.
     expect(page).not.toContain('RuleOfLife');

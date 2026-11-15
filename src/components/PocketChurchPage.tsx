@@ -8,6 +8,7 @@ import { PrayerLibrary } from '@/components/PrayerLibrary';
 import { ConfessionGuide } from '@/components/ConfessionGuide';
 import { PocketCatechism } from '@/components/PocketCatechism';
 import { RosaryPrayer } from '@/components/RosaryPrayer';
+import { Novenas } from '@/components/Novenas';
 
 interface PocketChurchPageProps {
   onBack: () => void;
@@ -38,8 +39,8 @@ interface PocketChurchPageProps {
  */
 export type ChurchTab = 'pray' | 'confession' | 'ask';
 
-/** Inside the Pray door: the Rosary first, then the prayer library. */
-export type PraySection = 'rosary' | 'prayers';
+/** Inside the Pray door: the Rosary first, then the novenas, then the prayer library. */
+export type PraySection = 'rosary' | 'novenas' | 'prayers';
 
 const TABS: { id: ChurchTab; label: string }[] = [
   { id: 'pray', label: 'Pray' },
@@ -124,11 +125,12 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
         <div className="w-full">
           {activeTab === 'pray' && (
             <div>
-              {/* Inside Pray: the Rosary first, the library beside it. */}
+              {/* Inside Pray: the Rosary first, the novenas beside it, the library last. */}
               <div className="flex gap-2 mb-4">
                 {(
                   [
                     { id: 'rosary', label: 'The Rosary' },
+                    { id: 'novenas', label: 'Novenas' },
                     { id: 'prayers', label: 'Prayer Library' },
                   ] as { id: PraySection; label: string }[]
                 ).map((section) => {
@@ -154,11 +156,17 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
                   );
                 })}
               </div>
-              {praySection === 'rosary' ? <RosaryPrayer t={t} /> : <PrayerLibrary t={t} />}
+              {praySection === 'rosary' ? (
+                <RosaryPrayer t={t} />
+              ) : praySection === 'novenas' ? (
+                <Novenas t={t} audience={audience} />
+              ) : (
+                <PrayerLibrary t={t} />
+              )}
             </div>
           )}
           {activeTab === 'confession' && <ConfessionGuide t={t} audience={audience} />}
-          {activeTab === 'ask' && <PocketCatechism t={t} audience={audience} defaultMode="ask" />}
+          {activeTab === 'ask' && <PocketCatechism t={t} audience={audience} />}
         </div>
 
         <p className="text-[10px] text-center mt-6 leading-relaxed max-w-xs" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>

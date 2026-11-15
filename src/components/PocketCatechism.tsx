@@ -1,60 +1,23 @@
-import { useState } from 'react';
-import { BookOpen, Shield, Heart, Hand, ChevronRight, Quote, Users, Swords, ShieldAlert, Sparkles } from 'lucide-react';
-import { PRINT_CHOSEN_FILL_ALPHA, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
+import { BookOpen } from 'lucide-react';
+import { PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import type { Audience, PersonaTheme } from '@/types';
 import { CatechismQA } from '@/components/CatechismQA';
-import {
-  PILLARS,
-  CATECHISM,
-  OBJECTIONS,
-  type CatechismEntry,
-  type ObjectionEntry,
-  type PillarId,
-} from '@/data/catechism';
-
-const PILLAR_ICONS: Record<PillarId, typeof BookOpen> = {
-  creed: BookOpen,
-  sacraments: Heart,
-  commandments: Shield,
-  prayer: Hand,
-  anthropology: Users,
-};
 
 interface PocketCatechismProps {
   t: PersonaTheme;
   audience: Audience;
-  /**
-   * Which face the Catechism opens with. The Pocket Church re-cut (Nov 12, 2026)
-   * makes ASK the door — the Catechism as a question surface — so the page passes
-   * 'ask'; the pillars and objections remain one tap inside, unrebuilt.
-   */
-  defaultMode?: 'pillars' | 'objections' | 'ask';
 }
 
-const TEACHING_COUNT = PILLARS.reduce((n, p) => n + CATECHISM[p.id].length, 0);
-
-export function PocketCatechism({ t, audience, defaultMode }: PocketCatechismProps) {
-  const [mode, setMode] = useState<'pillars' | 'objections' | 'ask'>(defaultMode ?? 'pillars');
-  const [activePillar, setActivePillar] = useState<PillarId>('creed');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const entries = mode === 'pillars' ? CATECHISM[activePillar] : OBJECTIONS;
-
-  const modeBtn = (id: typeof mode, label: string) => (
-    <button
-      onClick={() => { setMode(id); setExpandedId(null); }}
-      className="flex-1 min-h-[44px] flex items-center justify-center gap-1 px-2 py-2 text-[11px] font-bold transition-opacity hover:opacity-80 active:opacity-60 whitespace-nowrap"
-      style={
-        mode === id
-          ? { backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, color: t.accent, border: `1px solid ${t.accent}` }
-          : { backgroundColor: `${t.border}1F`, color: t.textDim, border: `1px solid ${t.border}` }
-      }
-    >
-      {id === 'ask' && <Sparkles className="w-3 h-3" />}
-      {label}
-    </button>
-  );
-
+/**
+ * The Ask door (Pocket Church build, Erik's approval, Nov 14, 2026): one
+ * door, one action. The Catechism opens directly on the question surface —
+ * Ask Aquinas — and the two reading surfaces that used to stand beside it
+ * (the pillars browse, the objections bank) are gone as surfaces. Their
+ * data stays in src/data/catechism.ts: the objections' own questions seed
+ * the starter questions in the Ask surface, and the bank may serve the
+ * chat again. What a man does here is ask.
+ */
+export function PocketCatechism({ t, audience }: PocketCatechismProps) {
   return (
     <div className="px-1 pt-4" style={{ borderTop: `3px double ${t.border}`, fontFamily: PRINT_SERIF }}>
       <div className="flex items-center gap-2 mb-3">
@@ -65,203 +28,10 @@ export function PocketCatechism({ t, audience, defaultMode }: PocketCatechismPro
       </div>
 
       <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textDim }}>
-        The faith in plain language — {TEACHING_COUNT} core teachings, answers to common
-        objections, or ask Aquinas a question.
+        The Catechism as a question surface — ask, and the answer is grounded in the text itself.
       </p>
 
-      {/* Mode toggle */}
-      <div className="flex gap-1.5 mb-3">
-        {modeBtn('pillars', 'The Faith')}
-        {modeBtn('objections', 'Objections')}
-        {modeBtn('ask', 'Ask Aquinas')}
-      </div>
-
-      {mode === 'ask' ? (
-        <CatechismQA t={t} audience={audience} />
-      ) : (
-        <>
-          {/* Pillar tabs */}
-          {mode === 'pillars' && (
-            <div className="flex gap-1 mb-3 overflow-x-auto scrollbar-hide">
-              {PILLARS.map((p) => {
-                const Icon = PILLAR_ICONS[p.id];
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => { setActivePillar(p.id); setExpandedId(null); }}
-                    className="min-h-[40px] flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-opacity hover:opacity-80 active:opacity-60"
-                    style={
-                      activePillar === p.id
-                        ? { backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, color: t.accent, border: `1px solid ${t.accent}` }
-                        : { backgroundColor: `${t.border}1F`, color: t.textDim, border: `1px solid ${t.border}` }
-                    }
-                  >
-                    <Icon className="w-3 h-3" />
-                    {p.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Entries */}
-          <div className="space-y-2">
-            {mode === 'pillars' &&
-              (entries as CatechismEntry[]).map((entry) => (
-                <CatechismCard
-                  key={entry.id}
-                  entry={entry}
-                  expanded={expandedId === entry.id}
-                  onToggle={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
-                  t={t}
-                />
-              ))}
-
-            {mode === 'objections' &&
-              (entries as ObjectionEntry[]).map((entry) => (
-                <ObjectionCard
-                  key={entry.id}
-                  entry={entry}
-                  expanded={expandedId === entry.id}
-                  onToggle={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
-                  t={t}
-                />
-              ))}
-          </div>
-
-          {mode === 'objections' && (
-            <p className="text-[10px] text-center mt-3 leading-relaxed" style={{ color: t.textDim }}>
-              These are starting points, not the whole argument. When someone asks, listen first — then give what serves.
-            </p>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function CatechismCard({
-  entry,
-  expanded,
-  onToggle,
-  t,
-}: {
-  entry: CatechismEntry;
-  expanded: boolean;
-  onToggle: () => void;
-  t: PersonaTheme;
-}) {
-  return (
-    <div
-      className="border transition-opacity cursor-pointer"
-      style={{
-        backgroundColor: expanded ? t.accentRgba(0.05) : `${t.border}1F`,
-        borderColor: expanded ? t.accent : t.border,
-      }}
-      onClick={onToggle}
-    >
-      <div className="flex items-start gap-2 px-3 py-2.5">
-        <ChevronRight
-          className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 transition-transform"
-          style={{ color: t.accent, transform: expanded ? 'rotate(90deg)' : 'none' }}
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold leading-snug" style={{ color: expanded ? t.textBright : t.text }}>
-            {entry.question}
-          </p>
-          {expanded && (
-            <div className="mt-2 space-y-2.5 animate-fade-in">
-              <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>{entry.answer}</p>
-
-              <div className="flex items-start gap-1.5 pt-1">
-                <Quote className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: t.accent }} />
-                <p className="text-[11px] italic leading-relaxed" style={{ color: t.text }}>{entry.scripture}</p>
-              </div>
-
-              <div className="pt-1 border-t" style={{ borderColor: `${t.border}80` }}>
-                <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: t.accent }}>Tradition</p>
-                <p className="text-[11px] leading-relaxed" style={{ color: t.textDim }}>{entry.tradition}</p>
-              </div>
-
-              <div
-                className="pt-2 border-t p-2"
-                style={{ borderColor: 'rgba(185,28,28,0.2)', backgroundColor: 'rgba(153,27,27,0.06)' }}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Swords className="w-3 h-3 flex-shrink-0" style={{ color: '#B91C1C' }} />
-                  <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: '#991B1B' }}>The Objection</p>
-                </div>
-                <p className="text-[11px] leading-relaxed" style={{ color: t.textMuted }}>{entry.opposingView}</p>
-              </div>
-
-              <div
-                className="pt-2 border-t p-2"
-                style={{ borderColor: `${t.accentRgba(0.2)}`, backgroundColor: t.accentRgba(0.05) }}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <ShieldAlert className="w-3 h-3 flex-shrink-0" style={{ color: t.accent }} />
-                  <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: t.accent }}>The Defense</p>
-                </div>
-                <p className="text-[11px] leading-relaxed" style={{ color: t.textMuted }}>{entry.defense}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ObjectionCard({
-  entry,
-  expanded,
-  onToggle,
-  t,
-}: {
-  entry: ObjectionEntry;
-  expanded: boolean;
-  onToggle: () => void;
-  t: PersonaTheme;
-}) {
-  return (
-    <div
-      className="border transition-opacity cursor-pointer"
-      style={{
-        backgroundColor: expanded ? t.accentRgba(0.05) : `${t.border}1F`,
-        borderColor: expanded ? t.accent : t.border,
-      }}
-      onClick={onToggle}
-    >
-      <div className="flex items-start gap-2 px-3 py-2.5">
-        <ChevronRight
-          className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 transition-transform"
-          style={{ color: t.accent, transform: expanded ? 'rotate(90deg)' : 'none' }}
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold leading-snug" style={{ color: expanded ? t.textBright : t.text }}>
-            {entry.question}
-          </p>
-          {expanded && (
-            <div className="mt-2 space-y-2.5 animate-fade-in">
-              <p className="text-xs leading-relaxed font-medium" style={{ color: t.textBright }}>{entry.shortAnswer}</p>
-
-              <div className="flex items-start gap-1.5 pt-1">
-                <Quote className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: t.accent }} />
-                <p className="text-[11px] italic leading-relaxed" style={{ color: t.text }}>{entry.scripture}</p>
-              </div>
-
-              <div className="pt-1">
-                <p className="text-[11px] leading-relaxed" style={{ color: t.textMuted }}>{entry.tradition}</p>
-              </div>
-
-              <div className="pt-2 border-t" style={{ borderColor: `${t.border}80` }}>
-                <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: t.accent }}>Go Deeper</p>
-                <p className="text-[11px] leading-relaxed" style={{ color: t.textDim }}>{entry.deeper}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      <CatechismQA t={t} audience={audience} />
     </div>
   );
 }
