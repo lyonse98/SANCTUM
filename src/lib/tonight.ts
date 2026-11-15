@@ -1,5 +1,3 @@
-import { SAINTS } from '@/data/saints';
-import { getFeastForDate } from '@/data/feastDays';
 import { tailorFocusLabel, type TailorFocus } from '@/data/tailorBank';
 
 /**
@@ -45,24 +43,11 @@ export function gratitudeForDate(dateKey: string): string {
 }
 
 /**
- * Today's saint, resolved exactly as the Saint of the Day card resolves it —
- * the saints list first, the feast calendar second, the day-of-year fallback
- * last — so the closing names the same companion the day itself carried.
+ * No saint line (Erik, Nov 14, 2026): Saint of the Day was demoted in the
+ * reconfiguration, so the closing refers to no saint at all, on any day.
+ * (The narrator's spoken celebration lines are a different surface — they
+ * live in narratorCore and are untouched by this.)
  */
-export function tonightSaintName(date: Date = new Date()): string {
-  const mmdd = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  const listed = SAINTS.find((s) => s.feastDate === mmdd);
-  if (listed) return listed.name;
-  const feast = getFeastForDate(date);
-  if (feast) return feast.name;
-  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
-  return SAINTS[dayOfYear % SAINTS.length].name;
-}
-
-/** The saint line of the closing: "You walked today with —." */
-export function saintLine(date: Date = new Date()): string {
-  return `You walked today with ${tonightSaintName(date)}.`;
-}
 
 /**
  * The honest look: this morning's challenge, echoed back as a question. The

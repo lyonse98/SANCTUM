@@ -16,7 +16,6 @@ import {
   honestLookLine,
   loadTonightResolve,
   morningResolve,
-  saintLine,
   saveTonightResolve,
   tailorEchoLine,
 } from './tonight';
@@ -58,11 +57,13 @@ function render(audience: Audience) {
 }
 
 describe('the Tonight closing on Today', () => {
-  it('renders the shape: gratitude, the saint line, and one resolve (men)', () => {
+  it('renders the shape: gratitude and one resolve — and no saint line (men)', () => {
     const html = render('men');
     expect(html).toContain('Tonight');
     expect(html).toContain(gratitudeForDate(isoDate(new Date())));
-    expect(html).toContain('You walked today with');
+    // No saint line on any day (Erik, Nov 14, 2026): Saint of the Day was
+    // demoted in the reconfiguration, so the closing names no saint.
+    expect(html).not.toContain('You walked today with');
     expect(html).toContain('One resolve for tomorrow');
     expect(html).toContain('id="tonight-resolve"');
     // No checkboxes, no checklist — the tool is retired, the shape remains.
@@ -73,7 +74,7 @@ describe('the Tonight closing on Today', () => {
   it('renders on her track too, and never names the method on screen', () => {
     const html = render('women');
     expect(html).toContain('Tonight');
-    expect(html).toContain('You walked today with');
+    expect(html).not.toContain('You walked today with');
     expect(html).not.toContain('Examen');
   });
 
@@ -104,8 +105,10 @@ describe('the closing’s composed pieces', () => {
     for (const line of week) expect(GRATITUDE_LINES).toContain(line);
   });
 
-  it('the saint line names today’s saint', () => {
-    expect(saintLine(new Date(2026, 10, 11))).toBe('You walked today with St. Martin of Tours.');
+  it('no saint line exists in the closing’s pieces — gone entirely, listed day or not', () => {
+    // Erik, Nov 14, 2026: the closing refers to no saint at all, on any day.
+    expect(read('lib/tonight.ts')).not.toContain('You walked today with');
+    expect(read('components/TonightClosing.tsx')).not.toContain('saintLine');
   });
 
   it('the honest look echoes the morning challenge as a question, first sentence only', () => {

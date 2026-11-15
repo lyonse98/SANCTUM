@@ -7,7 +7,6 @@ import {
   gratitudeForDate,
   honestLookLine,
   loadTonightResolve,
-  saintLine,
   saveTonightResolve,
   tailorEchoLine,
 } from '@/lib/tonight';
@@ -23,8 +22,8 @@ interface TonightClosingProps {
  * Examen retired as an on-screen tool: its movements — gratitude, one honest
  * look, one resolve — are the SHAPE of this section, not a labeled checklist.
  * Everything here is composed on the device from pieces the day already
- * carried (the morning's challenge, today's saint, the tailored devotional's
- * stated focus). Nothing is checked, streaked, or scored; the section reads
+ * carried (the morning's challenge, the tailored devotional's stated
+ * focus). Nothing is checked, streaked, or scored; the section reads
  * in under thirty seconds. The one thing it keeps is tomorrow's resolve,
  * written by the user's own hand and stored on this device only.
  */
@@ -72,10 +71,6 @@ export function TonightClosing({ t, audience }: TonightClosingProps) {
 
       <p className="text-[13px] italic leading-relaxed mb-2.5" style={{ color: t.text }}>
         {gratitudeForDate(dateKey)}
-      </p>
-
-      <p className="text-xs leading-relaxed mb-2.5" style={{ color: t.textMuted }}>
-        {saintLine(now)}
       </p>
 
       {tailorFocus && (

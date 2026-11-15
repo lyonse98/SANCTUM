@@ -4,7 +4,6 @@ import { SAINTS } from '@/data/saints';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getDayRank, getMemorialMarker, memorialTakesLeadInOrdinaryTime } from '@/lib/dayTheme';
 import { resolveFeastDay, saintLineFor } from '@/lib/narratorCore';
-import { tonightSaintName } from '@/lib/tonight';
 
 /**
  * The six obligatory memorials added Nov 13, 2026 (Erik approved) — they were
@@ -38,11 +37,9 @@ describe('the six restored obligatory memorials', () => {
         expect(getFeastForDate(at(s.month, s.day))?.name).toBe(s.name);
       });
 
-      it('saint-of-the-day resolution returns the right saint everywhere', () => {
+      it('the saints list carries the right saint', () => {
         const listed = SAINTS.find((x) => x.feastDate === s.mmdd);
         expect(listed?.name, s.mmdd).toBe(s.name);
-        // The Tonight closing resolves exactly as the Saint of the Day card does.
-        expect(tonightSaintName(at(s.month, s.day))).toBe(s.name);
       });
 
       it('the narrator tables agree — feast name, and the saint line is the bio\'s first sentence', () => {
@@ -68,7 +65,6 @@ describe('the six restored obligatory memorials', () => {
   it('Cabrini, not Homobonus, holds Nov 13', () => {
     const listed = SAINTS.find((x) => x.feastDate === '11-13');
     expect(listed?.name).toBe('St. Frances Xavier Cabrini');
-    expect(tonightSaintName(at(11, 13))).toBe('St. Frances Xavier Cabrini');
     expect(saintLineFor('2026-11-13')).toContain('Italian nun');
     expect(saintLineFor('2026-11-13')).not.toContain('Homobonus');
   });

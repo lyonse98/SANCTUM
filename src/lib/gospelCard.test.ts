@@ -194,9 +194,11 @@ describe('the saint, demoted to the header line', () => {
     expect(WEEKDAY.celebration).toBe('St. Frances Xavier Cabrini');
   });
 
-  it('the Tonight closing keeps its saint line (the saint’s other surviving home)', () => {
+  it('the Tonight closing carries no saint line (Erik, Nov 14, 2026)', () => {
     expect(read('components/HomeScreen.tsx')).toContain('<TonightClosing');
-    expect(read('lib/tonight.ts')).toContain('You walked today with');
+    // Saint of the Day was demoted in the reconfiguration; the closing
+    // refers to no saint at all, on any day.
+    expect(read('lib/tonight.ts')).not.toContain('You walked today with');
   });
 });
 
