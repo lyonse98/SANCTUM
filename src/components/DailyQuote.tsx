@@ -499,7 +499,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           paragraph — Reflect (with its facet) and Challenge — so the block's
           height follows the text at every width and every day's length. */}
       {(shown.value || shown.pending) && (
-        <div className="space-y-3 mb-3">
+        <div className="space-y-3 mt-4 mb-3">
           {shown.pending && !shown.value ? (
             <div className="flex items-center gap-2" style={{ color: t.textDim }}>
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
