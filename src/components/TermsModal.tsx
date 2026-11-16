@@ -70,6 +70,13 @@ export function TermsModal({ onAccept }: TermsModalProps) {
           <p className="text-xs leading-relaxed" style={{ color: '#635C51' }}>
             You're stepping into a quiet space. A few things to know before you enter.
           </p>
+          {/* What the app does, in one plain line, before anything else is
+              asked (audit W-5, Nov 16, 2026). The thesis below still stands
+              as the door's epigraph — this line is the plain description a
+              cold visitor needs first, not a replacement for it. */}
+          <p className="text-[13px] font-semibold leading-relaxed mt-3" style={{ fontFamily: PRINT_SERIF, color: '#1B1815' }}>
+            Each day: today&rsquo;s Gospel, a short reflection, prayers and the Rosary. No account.
+          </p>
           {/* Why this place exists — the thesis, read once at the door. */}
           <p
             className="italic text-[13px] leading-snug mt-4"
@@ -85,23 +92,14 @@ export function TermsModal({ onAccept }: TermsModalProps) {
         <div className="px-6 py-4">
           <div style={{ borderTop: '1px solid #DCD3C5' }} className="pt-3.5 pb-1">
             <div className="flex items-start gap-2.5">
-              <Scroll className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#C2410C' }} />
-              <p className="text-[11px] leading-relaxed" style={{ color: '#4A443C' }}>
-                Sanctum is an automated AI spiritual companion and habit tool designed for educational,
-                reflective, and devotional purposes only. It is <span className="font-bold" style={{ color: '#1B1815' }}>NOT</span> a
-                licensed mental health service, medical device, crisis intervention platform, or official
-                Catholic sacrament (such as Sacramental Confession).
-              </p>
-            </div>
-          </div>
-
-          <div style={{ borderTop: '1px solid #DCD3C5' }} className="pt-3.5 pb-1 mt-2">
-            <div className="flex items-start gap-2.5">
               <Heart className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
               <p className="text-[11px] leading-relaxed" style={{ color: '#4A443C' }}>
                 If you are in crisis or considering self-harm, this app is not a substitute for professional
-                help. Call or text <span className="font-bold" style={{ color: '#B91C1C' }}>988</span> (US) or visit
-                findahelpline.com for international support.
+                help. Call or text{' '}
+                <a href="tel:988" className="font-bold underline underline-offset-2" style={{ color: '#B91C1C' }}>
+                  988
+                </a>{' '}
+                (US) or visit findahelpline.com for international support.
               </p>
             </div>
           </div>
@@ -116,7 +114,8 @@ export function TermsModal({ onAccept }: TermsModalProps) {
               Same Gospel, same saints' wisdom — companions, reflections, and
               examinations written for the life actually being lived. */}
           <p className="text-[11px] leading-relaxed text-center mb-3" style={{ color: '#756D61' }}>
-            Sanctum is kept in two tracks. Choose yours — you can change it later in Settings.
+            Sanctum is kept in two tracks, so the reflections and companions are written for your
+            life. Choose yours — you can change it later in Settings.
           </p>
           <div className="grid grid-cols-2 gap-2 mb-3" role="radiogroup" aria-label="Choose your track">
             {([
@@ -169,10 +168,24 @@ export function TermsModal({ onAccept }: TermsModalProps) {
           >
             Enter Sanctum
           </button>
+          {/* The legal notice stands below the door's button now (audit
+              W-5, Nov 16, 2026): the crisis line and the privacy paragraph
+              keep their places before entry; the scope disclaimer is read
+              after the choice, not stacked in front of it. Its words are
+              unchanged. */}
+          <div className="flex items-start gap-2.5 mt-5">
+            <Scroll className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#C2410C' }} />
+            <p className="text-[11px] leading-relaxed" style={{ color: '#4A443C' }}>
+              Sanctum is an automated AI spiritual companion and habit tool designed for educational,
+              reflective, and devotional purposes only. It is <span className="font-bold" style={{ color: '#1B1815' }}>NOT</span> a
+              licensed mental health service, medical device, crisis intervention platform, or official
+              Catholic sacrament (such as Sacramental Confession).
+            </p>
+          </div>
           <div className="mt-5 pt-3" style={{ borderTop: '1px solid #DCD3C5' }}>
             <div className="flex items-center justify-center gap-2 flex-wrap">
               <span className="text-[10px] stamped flex items-center gap-1" style={{ color: '#A39A8A' }}>
-                <Lock className="w-3 h-3" /> Nothing You Write Is Stored
+                <Lock className="w-3 h-3" /> Nothing You Write Is Stored on a Server
               </span>
               <span className="text-[10px]" style={{ color: '#A39A8A' }}>•</span>
               <span className="text-[10px] stamped flex items-center gap-1" style={{ color: '#A39A8A' }}>
