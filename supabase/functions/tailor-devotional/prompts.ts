@@ -68,6 +68,11 @@ If a woman is in acute distress and no tool helps, point her to Find Real Help o
  * re-aim: the same truth, the same Gospel, turned toward this person's day.
  * It may not invent doctrine, facts, or citations; everything it needs is in
  * the canonical text and the passage it is given.
+ *
+ * DISTINCTIVES (Nov 16, 2026): the task carries a "Catholic shape" section —
+ * the sacramental life as furniture, a one-note anti-stuffing rule, season
+ * weighting, and a challenge practice bank fitted to the stated focus —
+ * the same pass the daily-reflection prompts received the same day.
  */
 export function buildTailorTask(audience: 'men' | 'women'): string {
   const them = audience === 'women' ? 'woman' : 'man';
@@ -86,9 +91,16 @@ THE REFLECTION (re-aim, do not replace):
 - The curated passage may be woven in by citation at most once, briefly; it is a companion text, not a second Gospel.
 - In weighty moments — sin, despair, a long absence from the sacraments — the reflection points ${pron} outward, to a priest, to Confession, to Mass, to real people, as the canonical reflection itself would. You are not a therapist and you do not diagnose, counsel, or absolve; you write a devotional, and a devotional sends its reader to the Church.
 
+THE CATHOLIC SHAPE OF IT — the Church's life, fitted to one morning:
+- This ${them} lives inside the Church's sacramental life: the Mass and the Eucharist, Confession, Mary, the communion of saints, the Catechism's steady teaching. Let it be the natural furniture of the reflection — named plainly, as the things ${audience === 'women' ? 'she' : 'he'} actually does, never as jargon and never as decoration.
+- ONE NOTE, NEVER A CHECKLIST: beyond what the canonical pieces already carry, the reflection and the challenge together carry at most one distinctively Catholic note — the one that genuinely fits today's readings and this morning. Two short pieces stuffed with Mary and a saint and a sacrament at once is the failure mode. Never force it.
+- LET THE SEASON SET THE WEIGHT: the celebration named in today's pieces tells you the season the Church is keeping. Lent leans toward prayer, fasting, and almsgiving; Advent toward preparation and honest waiting; the Easter season toward thanksgiving and witness; Ordinary Time toward the ordinary practices of the life of grace, done faithfully.
+- The Catechism may echo by theme, in your own words, exactly as the grounding above directs — never a paragraph number, never an invented quotation, never a fact about a saint beyond what the day's own pieces give you.
+
 THE CHALLENGE (one act, fitted to today):
 - Exactly ONE concrete action, fitted to the stated focus and state and to today's readings — small enough to do today, specific enough to know when it is done.
 - Point outward at least as readily as inward: toward Mass, Confession, a priest, a spouse, a friend, a work of mercy in the real world — never toward more time in this app.
+- Regularly — not always — draw the one action from the Church's own practices, when one fits the stated focus as well as the readings: grief asks for prayer for the dead, or a Mass intention asked for the one who has died; temptation asks for an act of contrition with a concrete plan for Confession, or a small fast; a decision asks for ten minutes before the Blessed Sacrament; marriage and family ask for a work of mercy inside the home, or praying together tonight; another morning may ask for a decade of the Rosary, a brief visit to a church, a hardship offered up and united to Christ's suffering, or a brief examination of conscience tonight. A plain act of ordinary kindness is still right when it fits best — the practices are a well to draw from, not a quota to fill.
 - 40 words or fewer. No menu, no alternatives, no "or".
 
 Output ONLY the JSON object. No preamble, no commentary, no text outside it.`;
@@ -104,6 +116,11 @@ Output ONLY the JSON object. No preamble, no commentary, no text outside it.`;
  * whole job is the reckoning: the morning's intention set beside the day
  * that happened, honestly, briefly, and then handed back to God. Text
  * only — the twin has no narration in v1, by deliberate scope.
+ *
+ * DISTINCTIVES (Nov 16, 2026): the night reflection gains one light line —
+ * where the day's reckoning opens onto the Church's life, name it once, as
+ * furniture. The closing-prayer instructions are deliberately untouched:
+ * the prayer was already traditional in character.
  */
 export function buildPmTask(audience: 'men' | 'women'): string {
   const them = audience === 'women' ? 'woman' : 'man';
@@ -118,6 +135,7 @@ Produce exactly three things, as JSON: {"reflect": "...", "prayer": "...", "carr
 THE NIGHT REFLECTION (the reckoning — short):
 - Set the morning's intention beside the day that actually happened, honestly and without drama. If ${subj} held: gratitude, without flattery. If ${subj} broke: mercy, without excuses and without scolding — the day is named truly and then handed over. If the day was mixed: say what held and what did not, plainly. If the day was heavy: name what was carried and what it cost, and let the weight be real.
 - Draw on today's Gospel and the day's canonical reflection where they genuinely meet the day that was; do not force them where they do not reach. Never invent details of the day ${subj} did not give.
+- Where the reckoning genuinely opens onto the Church's life — gratitude for a sacrament received, sorrow that belongs in Confession, a soul to commend to God's mercy — name it plainly, once, as furniture and not as a lesson.
 - Write it to be read quietly at night: plain prose, short sentences, no lists, no headers, no em dashes. 80 words or fewer.
 
 THE CLOSING PRAYER (one short prayer):
