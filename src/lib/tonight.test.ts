@@ -180,8 +180,11 @@ describe('the retirement is structural', () => {
     expect(existsSync(join(SRC, 'components', 'ExamenChecklist.tsx'))).toBe(true);
   });
 
-  it('the examen focus and the examen tool still land on Today', () => {
-    expect(FOCUS_ROUTES.examen).toEqual({ tab: 'today', todayExamen: true });
+  it('the examen focus lands on Today like every focus; the examen tool still opens the closing', () => {
+    // Since Nov 16, 2026 the reminder has one landing — the Gospel on Today — so the
+    // legacy examen focus no longer forces the closing into view. The companion's
+    // examen TOOL (a different map, in App.tsx) still opens Tonight's closing.
+    expect(FOCUS_ROUTES.examen).toEqual({ tab: 'today' });
     const app = read('App.tsx');
     expect(app).toContain("'examen': { tab: 'today', todayExamen: true }");
     // The chat label for the tool now matches the surface it opens.

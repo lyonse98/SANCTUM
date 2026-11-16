@@ -79,7 +79,9 @@ describe('the set line and its time', () => {
   });
 
   it('the summary line names the time and the focus', () => {
-    expect(reminderSummaryLine(SET)).toBe('Morning reminder · 7:00 AM · The Rosary');
+    // SET still holds a legacy 'rosary' focus from before the Nov 16, 2026 collapse;
+    // it reads back as the Gospel, the reminder's one landing.
+    expect(reminderSummaryLine(SET)).toBe('Morning reminder · 7:00 AM · The day’s Gospel');
     expect(reminderSummaryLine({ ...SET, focus: 'gospel', localTime: '06:30' })).toBe(
       'Morning reminder · 6:30 AM · The day’s Gospel',
     );

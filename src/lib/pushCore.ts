@@ -13,7 +13,12 @@
 export const PUSH_TITLE = 'Sanctum';
 export const PUSH_BODY = 'Your Gospel and reflection are ready.';
 
-/** The four things a reminder can point at — the same vocabulary as the email reminder. */
+/**
+ * The stored vocabulary of reminder focuses — the same vocabulary as the email reminder.
+ * Since Erik's ruling of Nov 16, 2026 the reminder has exactly ONE landing (the day's
+ * Gospel — see FOCUS_ROUTES and deepLinkUrlForFocus below); the other three keys survive
+ * only so subscriptions and links created before the ruling still parse.
+ */
 export const PUSH_FOCUS_KEYS = ['gospel', 'examen', 'rosary', 'rule'] as const;
 export type PushFocus = (typeof PUSH_FOCUS_KEYS)[number];
 export const DEFAULT_PUSH_FOCUS: PushFocus = 'gospel';
@@ -23,13 +28,12 @@ export function isPushFocus(value: unknown): value is PushFocus {
 }
 
 /**
- * Where a tap on the notification lands. Mirrors the app's own tool routing: the Gospel is
- * Today, the examen focus closes the day on Today (the Tonight closing, forced into view
- * whatever the hour), the
- * Rosary sits behind Pocket Church's Pray door, and the rule focus — whose surface was
- * retired Nov 12, 2026 — lands on the Pocket Church page itself, at the top. A focus
- * that cannot resolve to a real screen would be a broken promise, so the map is total
- * over the four keys and a test pins it against the app's focus list.
+ * Where a tap on the notification lands. Erik's ruling (Nov 16, 2026): the reminder has
+ * one landing — the day's Gospel on Today. The notification's own words promise the
+ * Gospel ("Your Gospel and reflection are ready"), so every focus, including the three
+ * legacy keys kept for old subscriptions, resolves to the same route. A focus that
+ * cannot resolve to a real screen would be a broken promise, so the map stays total
+ * over the four keys and tests pin it.
  */
 export interface FocusRoute {
   tab: 'today' | 'church';
@@ -42,19 +46,18 @@ export interface FocusRoute {
 
 export const FOCUS_ROUTES: Record<PushFocus, FocusRoute> = {
   gospel: { tab: 'today' },
-  examen: { tab: 'today', todayExamen: true },
-  rosary: { tab: 'church', churchTab: 'pray', churchPray: 'rosary' },
-  rule: { tab: 'church' },
+  examen: { tab: 'today' },
+  rosary: { tab: 'today' },
+  rule: { tab: 'today' },
 };
 
 /**
- * The URL the notification opens. The app reads the `focus` parameter on load and walks to
- * the right surface; the Gospel also carries the `#daily-gospel` fragment the Today screen
- * already honours by scrolling the readings into view.
+ * The URL the notification opens. One landing since Nov 16, 2026: the Gospel, carrying
+ * the `#daily-gospel` fragment the Today screen honours by scrolling the readings into
+ * view. Whatever focus an old subscription still holds, this is where its tap goes.
  */
-export function deepLinkUrlForFocus(focus: string): string {
-  const safe: PushFocus = isPushFocus(focus) ? focus : DEFAULT_PUSH_FOCUS;
-  return safe === 'gospel' ? '/?focus=gospel#daily-gospel' : `/?focus=${safe}`;
+export function deepLinkUrlForFocus(_focus: string): string {
+  return '/?focus=gospel#daily-gospel';
 }
 
 export interface PushPayload {

@@ -187,11 +187,11 @@ describe('the utilities line — on Today and at the foot of the other three vie
 });
 
 describe('landings still resolve to views', () => {
-  it('push focuses land where they always landed', () => {
+  it('push focuses all land on Today — the Gospel is the one landing (Nov 16, 2026)', () => {
     expect(FOCUS_ROUTES.gospel).toEqual({ tab: 'today' });
-    expect(FOCUS_ROUTES.examen).toEqual({ tab: 'today', todayExamen: true });
-    expect(FOCUS_ROUTES.rosary).toEqual({ tab: 'church', churchTab: 'pray', churchPray: 'rosary' });
-    expect(FOCUS_ROUTES.rule).toEqual({ tab: 'church' });
+    expect(FOCUS_ROUTES.examen).toEqual({ tab: 'today' });
+    expect(FOCUS_ROUTES.rosary).toEqual({ tab: 'today' });
+    expect(FOCUS_ROUTES.rule).toEqual({ tab: 'today' });
     const app = read('App.tsx');
     expect(app).toContain('parseFocusParam(window.location.search)');
     expect(app).toContain('setView(route.tab)');

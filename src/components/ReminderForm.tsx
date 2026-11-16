@@ -10,7 +10,7 @@ import {
   updatePushPreferences,
   type PushState,
 } from '@/lib/push';
-import { REMINDER_FOCUS_OPTIONS, focusLabel } from '@/lib/reminderFocus';
+import { DEFAULT_FOCUS, focusLabel } from '@/lib/reminderFocus';
 import { InstallInstructions } from '@/components/InstallInstructions';
 
 interface ReminderFormProps {
@@ -28,7 +28,7 @@ function formatTime(localTime: string): string {
 
 /**
  * The dependable reminder, as a notification. A short poke at the time he chooses, and
- * tapping it opens the part of Sanctum he picked. The notification itself carries one
+ * tapping it opens the day's Gospel. The notification itself carries one
  * plain sentence — a lock screen is a public place, so nothing personal is ever in it.
  *
  * The form renders a different face for each state the device can be in (install first on
@@ -37,11 +37,9 @@ function formatTime(localTime: string): string {
  */
 export function ReminderForm({ t }: ReminderFormProps) {
   const initial = loadPushReminder();
-  const focusFieldId = useId();
   const timeFieldId = useId();
   const [pushState, setPushState] = useState<PushState>(() => getPushState());
   const [saved, setSaved] = useState(initial);
-  const [draftFocus, setDraftFocus] = useState(initial.focus);
   const [draftTime, setDraftTime] = useState(initial.localTime);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -49,7 +47,6 @@ export function ReminderForm({ t }: ReminderFormProps) {
   const refresh = () => {
     const next = loadPushReminder();
     setSaved(next);
-    setDraftFocus(next.focus);
     setDraftTime(next.localTime);
     setPushState(getPushState());
   };
@@ -57,7 +54,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
   const handleEnable = async () => {
     setBusy(true);
     setMessage(null);
-    const result = await subscribeToPush(draftFocus, draftTime);
+    const result = await subscribeToPush(DEFAULT_FOCUS, draftTime);
     setBusy(false);
     setMessage({ ok: result.ok, text: result.message });
     if (result.ok) refresh();
@@ -65,23 +62,11 @@ export function ReminderForm({ t }: ReminderFormProps) {
   };
 
   /**
-   * Changing the focus on a live reminder saves straight away — the choice is the whole
-   * action. The time saves from its own button, because a time picker is fiddled with on
-   * the way to a decision and the server should only hear the decision. If a save fails
-   * the form snaps back to what is actually stored.
+   * The time saves from its own button, because a time picker is fiddled with on the way
+   * to a decision and the server should only hear the decision. If a save fails the form
+   * snaps back to what is actually stored. (The landing needs no control at all: since
+   * Nov 16, 2026 the reminder opens the day's Gospel, always.)
    */
-  const handleFocusChange = async (focus: string) => {
-    setDraftFocus(focus);
-    if (pushState !== 'subscribed') return;
-    setBusy(true);
-    setMessage(null);
-    const result = await updatePushPreferences(focus, saved.localTime);
-    setBusy(false);
-    setMessage({ ok: result.ok, text: result.message });
-    if (result.ok) refresh();
-    else setDraftFocus(saved.focus);
-  };
-
   const handleSaveTime = async () => {
     setBusy(true);
     setMessage(null);
@@ -108,35 +93,6 @@ export function ReminderForm({ t }: ReminderFormProps) {
     setBusy(false);
     setMessage({ ok: result.ok, text: result.message });
   };
-
-  const focusSelect = (
-    <div>
-      <label
-        htmlFor={focusFieldId}
-        className="block text-[10px] uppercase tracking-widest font-bold mb-2"
-        style={{ color: t.textDim }}
-      >
-        Remind me to
-      </label>
-      <select
-        id={focusFieldId}
-        value={draftFocus}
-        onChange={(e) => void handleFocusChange(e.target.value)}
-        disabled={busy}
-        className="w-full text-sm rounded-lg px-3 py-2.5 border focus:outline-none transition-colors disabled:opacity-60"
-        style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
-      >
-        {REMINDER_FOCUS_OPTIONS.map((option) => (
-          <option key={option.key} value={option.key} style={{ backgroundColor: t.card }}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <p className="text-[10px] leading-relaxed mt-1.5" style={{ color: t.textDim }}>
-        {REMINDER_FOCUS_OPTIONS.find((o) => o.key === draftFocus)?.detail ?? ''}
-      </p>
-    </div>
-  );
 
   const timeField = (
     <div>
@@ -167,7 +123,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
       <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.textDim }} />
       <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
         This is the one thing Sanctum keeps on a server: an anonymous notification address for
-        this device, and these two choices — no name, no account, nothing you have written to a
+        this device, and the time you chose — no name, no account, nothing you have written to a
         companion.
       </p>
     </div>
@@ -231,7 +187,6 @@ export function ReminderForm({ t }: ReminderFormProps) {
           </p>
         </div>
 
-        {focusSelect}
         {timeField}
 
         {draftTime !== saved.localTime && (
@@ -274,12 +229,11 @@ export function ReminderForm({ t }: ReminderFormProps) {
     body = (
       <div className="space-y-3">
         <p className="text-[11px] leading-relaxed" style={{ color: t.textMuted }}>
-          A short notification at the time you choose — and tapping it opens the part of
-          Sanctum you picked. The notification itself says only that your Gospel and
+          A short notification at the time you choose — and tapping it opens today's
+          Gospel. The notification itself says only that your Gospel and
           reflection are ready; everything it points to stays inside the app.
         </p>
 
-        {focusSelect}
         {timeField}
 
         {/* One sentence of warning before the phone's own ask appears

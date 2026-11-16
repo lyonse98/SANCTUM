@@ -91,7 +91,9 @@ describe('RPC contract — the client bodies', () => {
     expect(Object.keys(body).sort()).toEqual(
       ['p_auth', 'p_endpoint', 'p_focus', 'p_local_time', 'p_p256dh', 'p_tz'].sort(),
     );
-    expect(body.p_focus).toBe('examen');
+    // A legacy focus in the input normalizes to the Gospel on the way out — since
+    // Nov 16, 2026 it is the only focus a write can store.
+    expect(body.p_focus).toBe('gospel');
     expect(body.p_local_time).toBe('21:30');
   });
 

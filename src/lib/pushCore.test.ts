@@ -41,24 +41,23 @@ describe('push payload — the copy rule', () => {
 });
 
 describe('deep links', () => {
-  it('maps every focus to the surface that actually holds it', () => {
+  it('lands every focus on Today — the Gospel is the one landing (Nov 16, 2026)', () => {
     expect(FOCUS_ROUTES.gospel).toEqual({ tab: 'today' });
-    expect(FOCUS_ROUTES.examen).toEqual({ tab: 'today', todayExamen: true });
-    expect(FOCUS_ROUTES.rosary).toEqual({ tab: 'church', churchTab: 'pray', churchPray: 'rosary' });
-    // The Rule of Life surface was retired Nov 12, 2026: the rule focus lands
-    // on the Pocket Church page itself, at the top.
-    expect(FOCUS_ROUTES.rule).toEqual({ tab: 'church' });
+    expect(FOCUS_ROUTES.examen).toEqual({ tab: 'today' });
+    expect(FOCUS_ROUTES.rosary).toEqual({ tab: 'today' });
+    expect(FOCUS_ROUTES.rule).toEqual({ tab: 'today' });
   });
 
-  it('agrees with the focus list the app already offers', () => {
-    expect([...PUSH_FOCUS_KEYS].sort()).toEqual(REMINDER_FOCUS_OPTIONS.map((o) => o.key).sort());
+  it('the app offers exactly one focus, while the stored vocabulary keeps the legacy keys', () => {
+    expect(REMINDER_FOCUS_OPTIONS.map((o) => o.key)).toEqual(['gospel']);
+    expect([...PUSH_FOCUS_KEYS]).toEqual(['gospel', 'examen', 'rosary', 'rule']);
   });
 
-  it('builds the URL the app will open', () => {
+  it('builds the URL the app will open — the Gospel URL, whatever the stored focus', () => {
     expect(deepLinkUrlForFocus('gospel')).toBe('/?focus=gospel#daily-gospel');
-    expect(deepLinkUrlForFocus('examen')).toBe('/?focus=examen');
-    expect(deepLinkUrlForFocus('rosary')).toBe('/?focus=rosary');
-    expect(deepLinkUrlForFocus('rule')).toBe('/?focus=rule');
+    expect(deepLinkUrlForFocus('examen')).toBe('/?focus=gospel#daily-gospel');
+    expect(deepLinkUrlForFocus('rosary')).toBe('/?focus=gospel#daily-gospel');
+    expect(deepLinkUrlForFocus('rule')).toBe('/?focus=gospel#daily-gospel');
   });
 
   it('parses the focus back out of the query string', () => {
