@@ -8,16 +8,18 @@
  * together or neither ships.
  */
 
-/** One-paragraph version for the welcome gate and Settings. */
+/** One-paragraph version for the welcome gate and Settings. Plain words, no
+ * plumbing vocabulary (audit W-4, Nov 16, 2026): what you type stays on your
+ * phone; to answer, it is sent to an AI service once and not kept. */
 export const PRIVACY_PARAGRAPH =
-  'We do not store your conversations on a server. To generate a companion\u2019s reply, your message is sent through Sanctum\u2019s relay to our AI provider and then discarded \u2014 it is not kept. Your chat history lives only in this browser, and you can wipe it at any time.';
+  'Your conversations are not stored on a server. What you type stays on this phone: to write a companion\u2019s reply, your message is sent to an AI service once, and then it is gone \u2014 it is not kept. Your chat history lives only in this browser, and you can wipe it at any time.';
 
 /** The complete list of what can be held server-side. Used by the Terms & Privacy page. */
 export const PRIVACY_SERVER_LIST: string[] = [
   'A scrambled (hashed) network identifier with message counters, kept only to limit abuse. It cannot be turned back into your address.',
   'Anonymous usage events \u2014 which screen, which tool, which companion \u2014 only if you turn analytics on in Settings. They never include message text, an email, or an identity, and analytics is off by default.',
-  'A notification subscription, only if you turn on the daily reminder: an anonymous address for this device\u2019s notifications, the part of Sanctum you chose to be reminded about, and a time of day. It carries no name and no identity, and it is used for that reminder and nothing else.',
-  'A feedback note, only if you choose to send one, along with the name of the screen you sent it from.',
+  'A notification subscription, only if you turn on the daily reminder: an anonymous address for this device\u2019s notifications, the encryption keys that let this device receive them, the part of Sanctum you chose to be reminded about, the track you chose, a time of day, and your timezone. It carries no name and no identity, and it is used for that reminder and nothing else.',
+  'A feedback note, only if you choose to send one, along with the name of the screen you sent it from \u2014 and an email address, only if you choose to add one so you can be answered.',
   'A tailored devotional, only if you ask Tailor Today to write one for your morning — or to close your day at night: the devotional text Sanctum generated — its reflection, challenge, passage, tradition quote, and media pick, or at night its night reflection, closing prayer, and carry line — kept unattributed, with none of your answers and nothing that identifies you, so its quality can be reviewed. It is deleted within 90 days.',
 ];
 

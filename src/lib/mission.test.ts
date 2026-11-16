@@ -65,7 +65,10 @@ describe('mission placements', () => {
     for (const source of [termsModal, aboutPage]) {
       expect(source).toContain('A private sanctuary for men seeking counsel, stillness, and strength');
       expect(source).toContain('A private sanctuary for women seeking counsel, stillness, and strength');
-      expect(source).toContain('Nothing You Write Is Stored');
+      // Audit W-4 (Nov 16, 2026): the chip carries its qualifier — the
+      // unqualified string is literally false (on-device storage, feedback,
+      // the Tailor output store), so the full sentence is what is pinned.
+      expect(source).toContain('Nothing You Write Is Stored on a Server');
       expect(source).toContain('No Account Needed');
     }
   });

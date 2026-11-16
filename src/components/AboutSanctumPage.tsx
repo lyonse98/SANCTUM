@@ -37,8 +37,8 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
       icon: Church,
       title: 'What it is',
       body: w
-        ? 'A private place for a woman to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a pocket church of prayers, the Rosary, Confession preparation, the Catechism, and a rule of life, and eight companions drawn from Scripture and the saints.'
-        : 'A private place for a man to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a pocket church of prayers, the Rosary, Confession preparation, the Catechism, and a rule of life, and eight companions drawn from Scripture and the saints.',
+        ? 'A private place for a woman to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a pocket church of prayers, the Rosary, Confession preparation, the Catechism, and eight companions drawn from Scripture and the saints.'
+        : 'A private place for a man to pray and to think. It opens on the day\u2019s Gospel and the saint of the day, offers a pocket church of prayers, the Rosary, Confession preparation, the Catechism, and eight companions drawn from Scripture and the saints.',
     },
     {
       icon: ShieldCheck,
@@ -58,8 +58,8 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
       icon: Users,
       title: 'What it keeps',
       body: w
-        ? 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a woman writes lives only in her own browser. The only things ever held remotely are a scrambled anti-abuse counter, a push subscription if she asks for the daily reminder, a feedback note if she sends one, and anonymous usage counts if she turns them on.'
-        : 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a man writes lives only in his own browser. The only things ever held remotely are a scrambled anti-abuse counter, a push subscription if he asks for the daily reminder, a feedback note if he sends one, and anonymous usage counts if he turns them on.',
+        ? 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a woman writes lives only in her own browser. The only things ever held remotely are a scrambled anti-abuse counter, a push subscription if she asks for the daily reminder (its notification address and encryption keys, her track, and her timezone), a feedback note if she sends one — with an email address only if she adds one — anonymous usage counts if she turns them on, and, if she asks Tailor Today to write for her, the devotional it writes: the text itself, with none of her answers and nothing that identifies her, deleted within 90 days.'
+        : 'There is no account and no name, and no conversation is ever stored on a server — a message travels to the AI provider for its reply and is then discarded. What a man writes lives only in his own browser. The only things ever held remotely are a scrambled anti-abuse counter, a push subscription if he asks for the daily reminder (its notification address and encryption keys, his track, and his timezone), a feedback note if he sends one — with an email address only if he adds one — anonymous usage counts if he turns them on, and, if he asks Tailor Today to write for him, the devotional it writes: the text itself, with none of his answers and nothing that identifies him, deleted within 90 days.',
     },
     {
       icon: BookOpen,
@@ -106,7 +106,7 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
           </p>
           <div className="flex items-center justify-center gap-2 flex-wrap mt-3">
             <span className="text-[10px] stamped flex items-center gap-1" style={{ color: t.textDim }}>
-              <Lock className="w-3 h-3" /> Nothing You Write Is Stored
+              <Lock className="w-3 h-3" /> Nothing You Write Is Stored on a Server
             </span>
             <span className="text-[10px]" style={{ color: t.textDim }}>•</span>
             <span className="text-[10px] stamped flex items-center gap-1" style={{ color: t.textDim }}>
