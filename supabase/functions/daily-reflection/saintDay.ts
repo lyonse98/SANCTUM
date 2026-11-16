@@ -669,6 +669,122 @@ export const SAINT_LINES: Record<string, { name: string; line: string }> = {
   "12-23": {
     "name": "St. John of Kanty",
     "line": "A professor of theology at Kraków who shared his salary and possessions with the poor."
+  },
+  "01-04": {
+    "name": "St. Elizabeth Ann Seton",
+    "line": "A New York widow who converted to Catholicism and founded the Sisters of Charity, opening the first free Catholic school in the United States."
+  },
+  "01-05": {
+    "name": "St. John Neumann",
+    "line": "A Bohemian-born Redemptorist missionary who became bishop of Philadelphia and built its Catholic school system parish by parish."
+  },
+  "01-25": {
+    "name": "The Conversion of St. Paul",
+    "line": "The feast of Saul's conversion on the road to Damascus, when the persecutor of the Church heard Christ's voice and became its apostle."
+  },
+  "01-26": {
+    "name": "St. Timothy",
+    "line": "A companion and delegate of Paul who became bishop of Ephesus and received two of the apostle's letters."
+  },
+  "02-05": {
+    "name": "St. Agatha",
+    "line": "A Sicilian virgin martyred at Catania under Decius around 251, after refusing a Roman official's advances."
+  },
+  "02-10": {
+    "name": "St. Scholastica",
+    "line": "The twin sister of Benedict, who founded a convent near Monte Cassino and met her brother yearly for a day of prayer."
+  },
+  "03-07": {
+    "name": "St. Perpetua",
+    "line": "A young mother of Carthage who wrote a prison diary before she was martyred in the arena in 203."
+  },
+  "04-07": {
+    "name": "St. John Baptist de la Salle",
+    "line": "A French priest who founded the Brothers of the Christian Schools and opened free schools for poor boys."
+  },
+  "04-11": {
+    "name": "St. Stanislaus",
+    "line": "The bishop of Kraków who rebuked King Bolesław for his cruelties and was killed at the altar in 1079."
+  },
+  "05-02": {
+    "name": "St. Athanasius",
+    "line": "The bishop of Alexandria who defended the divinity of Christ against Arianism and was exiled five times for it."
+  },
+  "05-03": {
+    "name": "St. Philip",
+    "line": "An apostle from Bethsaida who brought Nathanael to Jesus and asked at the Last Supper to be shown the Father."
+  },
+  "05-14": {
+    "name": "St. Matthias",
+    "line": "The disciple chosen by lot to take the place of Judas among the Twelve."
+  },
+  "05-31": {
+    "name": "The Visitation",
+    "line": "The feast of Mary's visit to her cousin Elizabeth, when the unborn John the Baptist leapt for joy and Mary sang the Magnificat."
+  },
+  "06-01": {
+    "name": "St. Justin",
+    "line": "A philosopher of Samaria who came to Christ through his search for truth and wrote the earliest surviving accounts of how the Mass was celebrated."
+  },
+  "06-11": {
+    "name": "St. Barnabas",
+    "line": "A Levite from Cyprus who sold his field for the apostles, vouched for the converted Saul, and travelled with Paul on the first missionary journey."
+  },
+  "06-28": {
+    "name": "St. Irenaeus",
+    "line": "A bishop of Lyons formed by Polycarp, who had himself known the apostles, and the great opponent of Gnosticism."
+  },
+  "07-03": {
+    "name": "St. Thomas",
+    "line": "The apostle who would not believe the Resurrection until he saw the wounds, and then cried, My Lord and my God."
+  },
+  "07-15": {
+    "name": "St. Bonaventure",
+    "line": "A Franciscan friar and theologian who governed his order, wrote the life of Francis, and taught that creation leads the mind to God."
+  },
+  "07-26": {
+    "name": "St. Joachim",
+    "line": "The father of the Virgin Mary, honoured with his wife Anne in the Church's tradition."
+  },
+  "07-29": {
+    "name": "St. Martha",
+    "line": "The sister of Mary and Lazarus of Bethany, who served the Lord at her table and confessed him as the Christ before he raised her brother."
+  },
+  "08-01": {
+    "name": "St. Alphonsus Liguori",
+    "line": "A Neapolitan lawyer who founded the Redemptorists and became the Church's great teacher of moral theology and prayer."
+  },
+  "08-22": {
+    "name": "Queenship of the Blessed Virgin Mary",
+    "line": "The feast of Mary as Queen of heaven and earth, kept a week after the Assumption."
+  },
+  "08-24": {
+    "name": "St. Bartholomew",
+    "line": "An apostle, often identified with Nathanael, who asked whether anything good could come from Nazareth and then confessed Jesus as Son of God."
+  },
+  "08-29": {
+    "name": "The Passion of St. John the Baptist",
+    "line": "The feast of the beheading of John the Baptist, when a rash oath at a birthday feast cost the forerunner his head."
+  },
+  "09-08": {
+    "name": "Nativity of the Blessed Virgin Mary",
+    "line": "The feast of the birth of the Virgin Mary, celebrated in the Church since at least the sixth century."
+  },
+  "09-16": {
+    "name": "St. Cornelius",
+    "line": "A pope elected after a long vacancy in persecution who readmitted repentant Christians who had lapsed."
+  },
+  "10-17": {
+    "name": "St. Ignatius of Antioch",
+    "line": "A bishop of Antioch who, condemned to the beasts at Rome, wrote seven letters on the road begging the Christians not to save him."
+  },
+  "11-09": {
+    "name": "Dedication of the Lateran Basilica",
+    "line": "The feast of the dedication of the Lateran basilica in Rome, the cathedral of the Pope and mother and head of all churches in the city and the world."
+  },
+  "11-10": {
+    "name": "St. Leo the Great",
+    "line": "The pope who met Attila the Hun and turned him back from Rome, and whose Tome on the two natures of Christ was acclaimed at Chalcedon."
   }
 };
 
@@ -678,9 +794,21 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "Mary, Mother of God",
     "solemnity"
   ],
+  "01-02": [
+    "Sts. Basil the Great and Gregory Nazianzen",
+    "memorial"
+  ],
   "01-03": [
     "The Most Holy Name of Jesus",
     "optional-memorial"
+  ],
+  "01-04": [
+    "St. Elizabeth Ann Seton",
+    "memorial"
+  ],
+  "01-05": [
+    "St. John Neumann",
+    "memorial"
   ],
   "01-06": [
     "Epiphany",
@@ -702,6 +830,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Sebastian",
     "memorial"
   ],
+  "01-21": [
+    "St. Agnes",
+    "memorial"
+  ],
   "01-22": [
     "St. Vincent",
     "optional-memorial"
@@ -714,12 +846,24 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Francis de Sales",
     "memorial"
   ],
+  "01-25": [
+    "The Conversion of St. Paul",
+    "feast"
+  ],
+  "01-26": [
+    "Sts. Timothy and Titus",
+    "memorial"
+  ],
   "01-27": [
     "St. Angela Merici",
     "optional-memorial"
   ],
   "01-28": [
     "St. Thomas Aquinas",
+    "memorial"
+  ],
+  "01-31": [
+    "St. John Bosco",
     "memorial"
   ],
   "02-02": [
@@ -730,16 +874,28 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Blaise",
     "memorial"
   ],
+  "02-05": [
+    "St. Agatha",
+    "memorial"
+  ],
+  "02-06": [
+    "St. Paul Miki and Companions",
+    "memorial"
+  ],
   "02-08": [
     "St. Jerome Emiliani and St. Josephine Bakhita",
     "optional-memorial"
+  ],
+  "02-10": [
+    "St. Scholastica",
+    "memorial"
   ],
   "02-11": [
     "Our Lady of Lourdes",
     "memorial"
   ],
   "02-14": [
-    "St. Valentine",
+    "Sts. Cyril and Methodius",
     "memorial"
   ],
   "02-17": [
@@ -750,6 +906,14 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Peter Damian",
     "optional-memorial"
   ],
+  "02-22": [
+    "The Chair of St. Peter",
+    "feast"
+  ],
+  "02-23": [
+    "St. Polycarp",
+    "memorial"
+  ],
   "03-03": [
     "St. Katharine Drexel",
     "optional-memorial"
@@ -757,6 +921,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   "03-04": [
     "St. Casimir",
     "optional-memorial"
+  ],
+  "03-07": [
+    "Sts. Perpetua and Felicity",
+    "memorial"
   ],
   "03-08": [
     "St. John of God",
@@ -798,6 +966,14 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Vincent Ferrer",
     "optional-memorial"
   ],
+  "04-07": [
+    "St. John Baptist de la Salle",
+    "memorial"
+  ],
+  "04-11": [
+    "St. Stanislaus",
+    "memorial"
+  ],
   "04-13": [
     "St. Martin I",
     "optional-memorial"
@@ -830,6 +1006,14 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Joseph the Worker",
     "optional-memorial"
   ],
+  "05-02": [
+    "St. Athanasius",
+    "memorial"
+  ],
+  "05-03": [
+    "Sts. Philip and James",
+    "feast"
+  ],
   "05-10": [
     "St. John of Ávila and St. Damien de Veuster",
     "optional-memorial"
@@ -841,6 +1025,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   "05-13": [
     "Our Lady of Fatima",
     "memorial"
+  ],
+  "05-14": [
+    "St. Matthias",
+    "feast"
   ],
   "05-15": [
     "St. Isidore the Farmer",
@@ -874,9 +1062,21 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Paul VI",
     "optional-memorial"
   ],
+  "05-31": [
+    "The Visitation",
+    "feast"
+  ],
+  "06-01": [
+    "St. Justin",
+    "memorial"
+  ],
   "06-02": [
     "Sts. Marcellinus and Peter",
     "optional-memorial"
+  ],
+  "06-05": [
+    "St. Boniface",
+    "memorial"
   ],
   "06-06": [
     "St. Norbert",
@@ -886,6 +1086,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Ephrem",
     "optional-memorial"
   ],
+  "06-11": [
+    "St. Barnabas",
+    "memorial"
+  ],
   "06-13": [
     "St. Anthony of Padua",
     "memorial"
@@ -893,6 +1097,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   "06-19": [
     "St. Romuald",
     "optional-memorial"
+  ],
+  "06-21": [
+    "St. Aloysius Gonzaga",
+    "memorial"
   ],
   "06-22": [
     "St. Paulinus of Nola and Sts. John Fisher and Thomas More",
@@ -906,6 +1114,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Cyril of Alexandria",
     "optional-memorial"
   ],
+  "06-28": [
+    "St. Irenaeus",
+    "memorial"
+  ],
   "06-29": [
     "Sts. Peter and Paul",
     "solemnity"
@@ -913,6 +1125,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   "07-01": [
     "St. Junípero Serra",
     "optional-memorial"
+  ],
+  "07-03": [
+    "St. Thomas",
+    "feast"
   ],
   "07-04": [
     "St. Elizabeth of Portugal",
@@ -940,6 +1156,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   ],
   "07-14": [
     "St. Camillus de Lellis",
+    "memorial"
+  ],
+  "07-15": [
+    "St. Bonaventure",
     "memorial"
   ],
   "07-16": [
@@ -970,12 +1190,24 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. James",
     "feast"
   ],
+  "07-26": [
+    "Sts. Joachim and Anne",
+    "memorial"
+  ],
+  "07-29": [
+    "Sts. Martha, Mary and Lazarus",
+    "memorial"
+  ],
   "07-30": [
     "St. Peter Chrysologus",
     "optional-memorial"
   ],
   "07-31": [
     "St. Ignatius of Loyola",
+    "memorial"
+  ],
+  "08-01": [
+    "St. Alphonsus Liguori",
     "memorial"
   ],
   "08-02": [
@@ -989,6 +1221,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   "08-05": [
     "Dedication of the Basilica of St. Mary Major",
     "optional-memorial"
+  ],
+  "08-06": [
+    "The Transfiguration",
+    "feast"
   ],
   "08-07": [
     "St. Sixtus II and Companions, and St. Cajetan",
@@ -1034,16 +1270,36 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Bernard of Clairvaux",
     "memorial"
   ],
+  "08-21": [
+    "St. Pius X",
+    "memorial"
+  ],
+  "08-22": [
+    "Queenship of the Blessed Virgin Mary",
+    "memorial"
+  ],
   "08-23": [
     "St. Rose of Lima",
     "optional-memorial"
+  ],
+  "08-24": [
+    "St. Bartholomew",
+    "feast"
   ],
   "08-25": [
     "St. Louis IX",
     "memorial"
   ],
+  "08-27": [
+    "St. Monica",
+    "memorial"
+  ],
   "08-28": [
     "St. Augustine",
+    "memorial"
+  ],
+  "08-29": [
+    "The Passion of St. John the Baptist",
     "memorial"
   ],
   "09-03": [
@@ -1054,13 +1310,21 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Teresa of Calcutta",
     "memorial"
   ],
+  "09-08": [
+    "Nativity of the Blessed Virgin Mary",
+    "feast"
+  ],
   "09-09": [
     "St. Peter Claver",
-    "optional-memorial"
+    "memorial"
   ],
   "09-12": [
     "The Most Holy Name of Mary",
     "optional-memorial"
+  ],
+  "09-13": [
+    "St. John Chrysostom",
+    "memorial"
   ],
   "09-14": [
     "Exaltation of the Holy Cross",
@@ -1070,6 +1334,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "Our Lady of Sorrows",
     "memorial"
   ],
+  "09-16": [
+    "Sts. Cornelius and Cyprian",
+    "memorial"
+  ],
   "09-17": [
     "St. Robert Bellarmine and St. Hildegard of Bingen",
     "optional-memorial"
@@ -1077,6 +1345,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   "09-19": [
     "St. Januarius",
     "optional-memorial"
+  ],
+  "09-20": [
+    "Sts. Andrew Kim Tae-gŏn, Paul Chŏng Ha-sang and Companions",
+    "memorial"
   ],
   "09-21": [
     "St. Matthew",
@@ -1090,6 +1362,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "Sts. Cosmas and Damian",
     "optional-memorial"
   ],
+  "09-27": [
+    "St. Vincent de Paul",
+    "memorial"
+  ],
   "09-28": [
     "St. Wenceslaus and St. Lawrence Ruiz and Companions",
     "optional-memorial"
@@ -1097,6 +1373,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   "09-29": [
     "Sts. Michael, Gabriel & Raphael",
     "feast"
+  ],
+  "09-30": [
+    "St. Jerome",
+    "memorial"
   ],
   "10-01": [
     "St. Thérèse of Lisieux",
@@ -1142,6 +1422,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "St. Hedwig and St. Margaret Mary Alacoque",
     "optional-memorial"
   ],
+  "10-17": [
+    "St. Ignatius of Antioch",
+    "memorial"
+  ],
   "10-18": [
     "St. Luke",
     "feast"
@@ -1172,6 +1456,18 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   ],
   "11-03": [
     "St. Martin de Porres",
+    "memorial"
+  ],
+  "11-04": [
+    "St. Charles Borromeo",
+    "memorial"
+  ],
+  "11-09": [
+    "Dedication of the Lateran Basilica",
+    "feast"
+  ],
+  "11-10": [
+    "St. Leo the Great",
     "memorial"
   ],
   "11-11": [
