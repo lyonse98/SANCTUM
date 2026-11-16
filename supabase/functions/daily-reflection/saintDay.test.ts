@@ -57,12 +57,12 @@ function extractLiteral(src: string, name: string): unknown {
 describe("the extracted tables match the narrator bank exactly", () => {
   it("SAINT_LINES is narratorCore's SAINT_LINES_N, verbatim", () => {
     expect(SAINT_LINES).toEqual(extractLiteral(narratorCoreSrc, "SAINT_LINES_N"));
-    expect(Object.keys(SAINT_LINES).length).toBe(161);
+    expect(Object.keys(SAINT_LINES).length).toBe(190);
   });
 
   it("FIXED_FEASTS is narratorCore's FIXED_FEASTS_N, verbatim", () => {
     expect(FIXED_FEASTS).toEqual(extractLiteral(narratorCoreSrc, "FIXED_FEASTS_N"));
-    expect(Object.keys(FIXED_FEASTS).length).toBe(156);
+    expect(Object.keys(FIXED_FEASTS).length).toBe(201);
   });
 });
 
@@ -77,10 +77,14 @@ describe("activation — only a described saint day weaves", () => {
   });
 
   it("a saint the line bank knows without a feast-table entry still weaves, rankless", () => {
-    const saint = saintForReflectionDate("2027-01-31");
-    expect(saint?.name).toBe("St. John Bosco");
+    // Gabriel Possenti (Feb 27) is a bank saint with no calendar face —
+    // the rankless shape. (This pin used John Bosco until the obligatory
+    // completion gave Jan 31 its feast-table entry; Bosco's ranked shape
+    // is pinned in the completion block below.)
+    const saint = saintForReflectionDate("2027-02-27");
+    expect(saint?.name).toBe("St. Gabriel Possenti");
     expect(saint?.rank).toBeNull();
-    expect(saintWeaveBlock(saint!)).toContain("Today the Church remembers St. John Bosco:");
+    expect(saintWeaveBlock(saint!)).toContain("Today the Church remembers St. Gabriel Possenti:");
   });
 
   it("a feast the line bank cannot describe gets NO weave — never a bare name", () => {
@@ -93,8 +97,10 @@ describe("activation — only a described saint day weaves", () => {
   });
 
   it("a ferial day resolves nothing", () => {
-    expect(saintForReflectionDate("2026-02-10")).toBeNull();
-    expect(buildInputSaintBlock("2026-02-10")).toBe("");
+    // Feb 12: no feast, no line. (This pin used Feb 10 until the
+    // obligatory completion restored St. Scholastica to that date.)
+    expect(saintForReflectionDate("2026-02-12")).toBeNull();
+    expect(buildInputSaintBlock("2026-02-12")).toBe("");
   });
 
   // The optional memorials (Erik, Nov 15, 2026): named in the client
@@ -204,10 +210,79 @@ describe("the two input shapes the brief requires", () => {
   });
 
   it("a ferial day's block is empty — neither weave nor name nor placeholder", () => {
-    const block = buildInputSaintBlock("2026-02-10");
+    const block = buildInputSaintBlock("2026-02-12");
     expect(block).toBe("");
     expect(block).not.toContain("Weave");
     expect(block).not.toContain("saint");
+  });
+});
+
+describe("the obligatory-calendar completion weaves too (Nov 15, 2026)", () => {
+  it("a restored memorial whose line predates its face now weaves WITH its rank (Bosco, Jan 31)", () => {
+    // Bosco's line has been in the bank for as long as the weave has
+    // existed, but Jan 31 had no feast-table entry, so his weave rode the
+    // rankless shape. The completion added the face; the rank now rides
+    // along from the one table.
+    const saint = saintForReflectionDate("2027-01-31");
+    expect(saint).toEqual({
+      name: "St. John Bosco",
+      descriptor: "A priest who dedicated his life to troubled youth, founding schools and orphanages for boys others had given up on.",
+      rank: "memorial",
+    });
+    expect(buildInputSaintBlock("2027-01-31")).toContain(
+      "Today the Church keeps the memorial of St. John Bosco:",
+    );
+  });
+
+  it("Monica (Aug 27) weaves under her memorial rank — her line predates her face", () => {
+    expect(saintForReflectionDate("2026-08-27")).toEqual({
+      name: "St. Monica",
+      descriptor: "A mother who prayed for her wayward son Augustine for 17 years without giving up.",
+      rank: "memorial",
+    });
+  });
+
+  it("a brand-new obligatory saint weaves from his new bio's first sentence (Seton, Jan 4)", () => {
+    expect(saintForReflectionDate("2027-01-04")).toEqual({
+      name: "St. Elizabeth Ann Seton",
+      descriptor: "A New York widow who converted to Catholicism and founded the Sisters of Charity, opening the first free Catholic school in the United States.",
+      rank: "memorial",
+    });
+    expect(buildInputSaintBlock("2027-01-04")).toContain("Weave the saint in ONCE");
+  });
+
+  it("feasts of the Lord get NO weave — the feast table names them, but there is no saint line", () => {
+    expect(FIXED_FEASTS["08-06"]).toEqual(["The Transfiguration", "feast"]);
+    expect(saintForReflectionDate("2026-08-06")).toBeNull();
+    expect(buildInputSaintBlock("2026-08-06")).toBe("");
+    expect(FIXED_FEASTS["02-22"]).toEqual(["The Chair of St. Peter", "feast"]);
+    expect(saintForReflectionDate("2027-02-22")).toBeNull();
+    expect(buildInputSaintBlock("2027-02-22")).toBe("");
+  });
+
+  it("Feb 14: the weave still speaks Valentine — his line holds the spoken slot (the Nov 23 pattern)", () => {
+    // The calendar face for Feb 14 is now Sts. Cyril and Methodius (the
+    // obligatory memorial), and the feast table says so — but St.
+    // Valentine's saint line predates the change and keeps the date's
+    // spoken slot, exactly as Miguel Pro kept Nov 23's. The rank rides
+    // from the day's feast entry; the name and clause are Valentine's.
+    expect(FIXED_FEASTS["02-14"]).toEqual(["Sts. Cyril and Methodius", "memorial"]);
+    const saint = saintForReflectionDate("2026-02-14");
+    expect(saint?.name).toBe("St. Valentine");
+    expect(saint?.rank).toBe("memorial");
+    expect(buildInputSaintBlock("2026-02-14")).toContain("St. Valentine");
+    expect(buildInputSaintBlock("2026-02-14")).not.toContain("Cyril");
+  });
+
+  it("held slots keep their holder's weave: Meinrad on Jan 21, Eustace on Sep 20", () => {
+    // Agnes (Jan 21) and Andrew Kim & Companions (Sep 20) gained faces,
+    // bios, and feast-table entries in the completion — but both dates'
+    // spoken slots were already held by bank saints (Meinrad, Eustace),
+    // and a slot does not change hands. Their weaves are unchanged.
+    expect(FIXED_FEASTS["01-21"]).toEqual(["St. Agnes", "memorial"]);
+    expect(saintForReflectionDate("2027-01-21")?.name).toBe("St. Meinrad");
+    expect(FIXED_FEASTS["09-20"]).toEqual(["Sts. Andrew Kim Tae-gŏn, Paul Chŏng Ha-sang and Companions", "memorial"]);
+    expect(saintForReflectionDate("2026-09-20")?.name).toBe("St. Eustace");
   });
 });
 

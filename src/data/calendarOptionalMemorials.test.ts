@@ -131,7 +131,10 @@ describe('the five optional memorials', () => {
  * year"): every optional memorial of the General Roman Calendar plus the
  * US proper calendar's optional additions, under the same rule — named,
  * ranked 'optional-memorial', the season keeps the accent set. The set
- * below is the audit's: the five above + 76 more dates. Two GRC optionals
+ * below is the audit's: the five above + 76 more dates, MINUS one —
+ * St. Peter Claver (09-09) was raised to 'memorial' by the obligatory
+ * completion later the same day, because the US calendar ranks him an
+ * obligatory memorial; the set is now 80 dates. Two GRC optionals
  * are deliberately absent: Gregory of Narek (02-27) and Stephen of
  * Hungary (08-16) — those dates' narrator lines already belong to
  * non-calendar saints of the bank (Gabriel Possenti, Roch), and existing
@@ -146,7 +149,7 @@ const FULL_YEAR: string[] = [
   '06-02', '06-06', '06-09', '06-19', '06-22', '06-27',
   '07-01', '07-04', '07-05', '07-06', '07-09', '07-13', '07-20', '07-21', '07-23', '07-24', '07-30',
   '08-02', '08-05', '08-07', '08-09', '08-12', '08-13', '08-19', '08-23',
-  '09-09', '09-12', '09-17', '09-19', '09-26', '09-28',
+  '09-12', '09-17', '09-19', '09-26', '09-28',
   '10-06', '10-09', '10-11', '10-14', '10-16', '10-23',
   '11-15', '11-16', '11-18', '11-23', '11-25',
   '12-04', '12-09', '12-10', '12-11', '12-21', '12-23', '12-29', '12-31',

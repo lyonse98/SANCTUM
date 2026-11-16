@@ -305,19 +305,22 @@ describe('frame forms (§10.2 golden fixtures)', () => {
   });
 
   it('memorial without a saint entry: no line is invented', () => {
-    expect(saintLineFor('2026-09-16')).toBeNull();
+    // This pin used Cornelius & Cyprian (Sep 16) until the obligatory
+    // completion gave them a line; Our Lady of the Rosary is a memorial
+    // the feast table names but the line bank does not describe.
+    expect(saintLineFor('2026-10-07')).toBeNull();
     const s = assembleScript({
       ...OCT30,
-      dateISO: '2026-09-16',
-      celebration: 'Saints Cornelius, Pope, and Cyprian, Bishop, Martyrs',
-      gospelCitation: 'Luke 7:31-35',
+      dateISO: '2026-10-07',
+      celebration: 'Our Lady of the Rosary',
+      gospelCitation: 'Luke 1:26-38',
     });
     expect(s.persona).toBe('ben');
     expect(s.headAM).toContain(
-      "It's Wednesday of the Twenty-Fourth Week in Ordinary Time — and today the Church gives us Saints Cornelius, Pope, and Cyprian, Bishop, Martyrs.",
+      "It's Wednesday of the Twenty-Seventh Week in Ordinary Time — and today the Church gives us Our Lady of the Rosary.",
     );
     // The frame ends at the celebration — no biographical sentence follows it.
-    expect(s.headAM).not.toContain('reconciliation');
+    expect(s.headAM).not.toContain('Lepanto');
   });
 
   it('a saint the app knows gets his line (Martin de Porres, Nov 3)', () => {
