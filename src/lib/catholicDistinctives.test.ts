@@ -13,10 +13,15 @@ const count = (haystack: string, needle: string) => haystack.split(needle).lengt
  * challenge writers named the app "Catholic" but were given nothing Catholic
  * to write from, and the output drifted generic. These pins hold the fix:
  * both daily-reflection track prompts and the Tailor task carry the same
- * substance — the sacramental life as the writing's natural furniture, the
- * one-note anti-stuffing rule, a challenge practice bank drawn from the
- * Church's own practices, season weighting, and a hard ban on citations the
- * input did not supply. The spoken bridge gains framing only, under its
+ * substance — the sacramental life as the writing's natural furniture, a
+ * challenge practice bank drawn from the Church's own practices, season
+ * weighting, and a hard ban on citations the input did not supply. The push
+ * itself is placed pair-level and kept subtle (tuned on Erik's word the same
+ * day — "a subtle catholic push, not super obvious but enough to sell a
+ * priest"): on a given day it lands in the Reflect OR the Challenge, never
+ * both, woven in assumed, lived, and unexplained, so a priest reading a week
+ * of them would know they are ours while a newcomer never feels lectured.
+ * The spoken bridge gains framing only, as background texture, under its
  * unchanged fence; output shapes and length gates do not move.
  */
 
@@ -34,9 +39,22 @@ describe('daily-reflection — the Catholic shape section', () => {
     expect(count(source, 'never as jargon, never as decoration, never as a lecture')).toBe(2);
   });
 
-  it('the one-note rule is stated in both prompts', () => {
-    expect(count(source, 'ONE NOTE, NEVER A CHECKLIST')).toBe(2);
-    expect(count(source, 'at most one distinctively Catholic note')).toBe(2);
+  it('the push is placed pair-level — Reflect OR Challenge, never both — in both prompts', () => {
+    expect(count(source, 'ONE PUSH, IN ONE PIECE, NEVER BOTH')).toBe(2);
+    expect(count(source, 'the Reflect OR the Challenge — never in both')).toBe(2);
+    expect(count(source, 'the Reflect stays a plain question, with no Catholic furniture added')).toBe(2);
+    expect(count(source, 'the Challenge stays an ordinary concrete action')).toBe(2);
+    expect(count(source, 'add no push at all — the readings carry the day')).toBe(2);
+    expect(count(source, 'the push should be there most days, in one slot or the other')).toBe(2);
+  });
+
+  it('the subtlety standard is stated in both prompts', () => {
+    expect(count(source, 'AND KEEP IT SUBTLE')).toBe(2);
+    expect(count(source, 'the way a Catholic friend would say it — assumed, lived, unexplained')).toBe(2);
+    expect(count(source, 'no announcing it, no explaining what it is, no catechesis, no signaling')).toBe(2);
+    expect(count(source, 'should recognize them as genuinely ours')).toBe(2);
+    expect(count(source, 'should never feel lectured or marketed to')).toBe(2);
+    expect(count(source, 'Authenticity over visibility')).toBe(2);
     expect(count(source, 'is the failure mode. Never force it.')).toBe(2);
   });
 
@@ -84,6 +102,8 @@ describe('daily-reflection — the Catholic shape section', () => {
     expect(count(source, 'FRAMING: you may name the day the way the Church names it')).toBe(2);
     expect(count(source, 'say plainly that the Church gives us this Gospel today')).toBe(2);
     expect(count(source, 'Framing only: it adds no claim of its own')).toBe(2);
+    expect(count(source, 'Keep it background texture')).toBe(2);
+    expect(count(source, 'never spotlight it')).toBe(2);
     expect(count(source, "no opinions — not yours, not anyone's")).toBe(2);
     expect(source).toContain('SPOKEN_BRIDGE_MAX_CHARS = 1200');
     expect(source).toContain('SPOKEN_CARRY_MAX_CHARS = 300');
@@ -108,8 +128,12 @@ describe('tailor-devotional — the same shape, fitted to one morning', () => {
       expect(task).toContain(
         "the Church's sacramental life: the Mass and the Eucharist, Confession, Mary, the communion of saints",
       );
-      expect(task).toContain('ONE NOTE, NEVER A CHECKLIST');
-      expect(task).toContain('at most one distinctively Catholic note');
+      expect(task).toContain('ONE PUSH ACROSS THE PAIR, IN ONE PIECE, KEPT QUIET');
+      expect(task).toContain('at most one distinctively Catholic push');
+      expect(task).toContain('it lands in one piece or the other, never both');
+      expect(task).toContain('assumed, lived, unexplained');
+      expect(task).toContain('should recognize them as genuinely ours');
+      expect(task).toContain('should never feel lectured or marketed to');
       expect(task).toContain('LET THE SEASON SET THE WEIGHT');
       expect(task).toContain('Lent leans toward prayer, fasting, and almsgiving');
       expect(task).toContain('never a paragraph number, never an invented quotation');

@@ -70,9 +70,11 @@ If a woman is in acute distress and no tool helps, point her to Find Real Help o
  * the canonical text and the passage it is given.
  *
  * DISTINCTIVES (Nov 16, 2026): the task carries a "Catholic shape" section —
- * the sacramental life as furniture, a one-note anti-stuffing rule, season
- * weighting, and a challenge practice bank fitted to the stated focus —
- * the same pass the daily-reflection prompts received the same day.
+ * the sacramental life as furniture, season weighting, and a challenge
+ * practice bank fitted to the stated focus — the same pass the
+ * daily-reflection prompts received the same day, tuned the same day to
+ * Erik's register: one subtle push across the reflection/challenge pair,
+ * landing in one piece or the other and never both, assumed and unexplained.
  */
 export function buildTailorTask(audience: 'men' | 'women'): string {
   const them = audience === 'women' ? 'woman' : 'man';
@@ -93,7 +95,7 @@ THE REFLECTION (re-aim, do not replace):
 
 THE CATHOLIC SHAPE OF IT — the Church's life, fitted to one morning:
 - This ${them} lives inside the Church's sacramental life: the Mass and the Eucharist, Confession, Mary, the communion of saints, the Catechism's steady teaching. Let it be the natural furniture of the reflection — named plainly, as the things ${audience === 'women' ? 'she' : 'he'} actually does, never as jargon and never as decoration.
-- ONE NOTE, NEVER A CHECKLIST: beyond what the canonical pieces already carry, the reflection and the challenge together carry at most one distinctively Catholic note — the one that genuinely fits today's readings and this morning. Two short pieces stuffed with Mary and a saint and a sacrament at once is the failure mode. Never force it.
+- ONE PUSH ACROSS THE PAIR, IN ONE PIECE, KEPT QUIET: beyond what the canonical pieces already carry, the reflection and the challenge together carry at most one distinctively Catholic push — the one that genuinely fits today's readings and this morning — and it lands in one piece or the other, never both: if the challenge carries it, the reflection adds no Catholic furniture of its own; if the reflection carries it, the challenge stays an ordinary concrete act. If the canonical pieces already carry one, keep it where it lives and add none. Weave it the way a Catholic friend would say it — assumed, lived, unexplained: name the thing plainly and move on, with no announcing it, no explaining what it is, no catechesis, no signaling. A priest reading a week of these should recognize them as genuinely ours; a newcomer should never feel lectured or marketed to. Two short pieces stuffed with Mary and a saint and a sacrament at once is the failure mode. Never force it.
 - LET THE SEASON SET THE WEIGHT: the celebration named in today's pieces tells you the season the Church is keeping. Lent leans toward prayer, fasting, and almsgiving; Advent toward preparation and honest waiting; the Easter season toward thanksgiving and witness; Ordinary Time toward the ordinary practices of the life of grace, done faithfully.
 - The Catechism may echo by theme, in your own words, exactly as the grounding above directs — never a paragraph number, never an invented quotation, never a fact about a saint beyond what the day's own pieces give you.
 
