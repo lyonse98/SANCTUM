@@ -8,6 +8,7 @@ import { PRINT_SERIF } from '@/lib/print';
 import { loadPushReminder } from '@/lib/push';
 import {
   listenReminderLineDue,
+  markFirstValue,
   markListenReminderPrompted,
   readListenReminderPrompted,
 } from '@/lib/reminderCard';
@@ -77,7 +78,10 @@ function encodeWav(buffer: AudioBuffer): ArrayBuffer {
 export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: ListenBarProps) {
   const [audio, setAudio] = useState<DailyAudio | null>(null);
   const [gone, setGone] = useState(false);
-  const [showDisclosure, setShowDisclosure] = useState(false);
+  // The first-listen disclosure, demoted from a blocking card to a note
+  // under the playing bar (audit W-6, Nov 16, 2026): true only during the
+  // session of the first play on a track whose disclosure flag was unset.
+  const [showDisclosureNote, setShowDisclosureNote] = useState(false);
   const [showListenPrompt, setShowListenPrompt] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -352,6 +356,9 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
     try {
       await el.play();
       setPlaying(true);
+      // A first Listen actually heard: one of the two first-value moments
+      // that let the reminder invitation appear on Today (audit W-7).
+      markFirstValue();
     } catch {
       setPlaying(false);
     }
@@ -368,27 +375,19 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
       }
       return;
     }
-    // The first tap ever shows the disclosure card before anything plays (§11.6).
-    let disclosed = false;
+    // The first tap PLAYS (audit W-6, Nov 16, 2026 — this replaces the old
+    // §11.6 blocking card). The disclosure is not skipped, it is demoted:
+    // on the first listen of a track, its flag is set as the sound starts
+    // and the one-line disclosure stands under the playing bar for that
+    // session — once per track, exactly as the card was shown once.
+    let disclosed = true;
     try {
       disclosed = localStorage.getItem(disclosedKey(audience)) === '1';
+      if (!disclosed) localStorage.setItem(disclosedKey(audience), '1');
     } catch {
-      disclosed = true; // If the flag can't be read, don't trap the listener behind the card.
+      disclosed = true; // If the flag can't be read, don't nag — just play.
     }
-    if (!disclosed) {
-      setShowDisclosure(true);
-      return;
-    }
-    void prepareAndPlay();
-  };
-
-  const handleListenFromCard = () => {
-    try {
-      localStorage.setItem(disclosedKey(audience), '1');
-    } catch {
-      // ignore — the card simply returns next time
-    }
-    setShowDisclosure(false);
+    if (!disclosed) setShowDisclosureNote(true);
     void prepareAndPlay();
   };
 
@@ -427,32 +426,6 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
     setScrubValue(null);
   };
 
-  if (showDisclosure) {
-    return (
-      <div
-        className="border p-3.5 mb-3 animate-fade-in"
-        style={{ backgroundColor: `${t.border}1F`, borderColor: `${t.border}80` }}
-      >
-        <p className="text-xs font-bold mb-1" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
-          {audio.persona === 'lector'
-            ? "Today's reader is the Lector."
-            : `Today's reader is ${display.displayName} — ${display.weekdayName}'s narrator.`}
-        </p>
-        <p className="text-[11px] leading-relaxed mb-3" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
-          {narratorDisclosureLine(audience)}
-        </p>
-        <button
-          onClick={handleListenFromCard}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-md border transition-all active:scale-[0.98]"
-          style={{ backgroundColor: t.accentRgba(0.16), borderColor: t.accent, color: t.accent }}
-        >
-          <Play className="w-3.5 h-3.5" />
-          <span className="text-[11px] font-bold uppercase tracking-wide">Listen</span>
-        </button>
-      </div>
-    );
-  }
-
   return (
     <>
     {/* The program strip (Stage 1 of the printed-page re-skin, Erik,
@@ -461,8 +434,8 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
         and the same seek slider, in the page's serif voice. Every
         behaviour beneath the setting is the bar it replaces. Erik's
         revision the same day: the strip carries no narrator credit (the
-        reader is named in the disclosure card and the lock-screen
-        metadata, where the naming belongs), and the play control is a solid
+        reader is named in the first-listen disclosure note under the bar
+        and the lock-screen metadata, where the naming belongs), and the play control is a solid
         accent disc — Stage 1's outlined ring did not read as a button. */}
     <div
       className="flex items-center gap-3 px-1 py-3 mb-3"
@@ -519,6 +492,15 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
         </button>
       )}
     </div>
+    {showDisclosureNote && (
+      <p
+        className="text-[10px] leading-relaxed mb-3 -mt-1 animate-fade-in"
+        style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+        data-listen-disclosure-note
+      >
+        {narratorDisclosureLine(audience)}
+      </p>
+    )}
     {showListenPrompt && onOpenReminder && (
       <button
         onClick={() => {

@@ -14,8 +14,14 @@ import { focusLabel } from '@/lib/reminderFocus';
  * - `hidden` — none exists and the invitation was dismissed inside the
  *   window: the card renders nothing at all.
  *
- * All state is the app's existing reminder state plus two small local keys,
- * both under the sanctum_ prefix and so inside the panic wipe's sweep.
+ * The invitation also waits for a first moment of value (Erik's ruling on
+ * audit W-7, Nov 16, 2026): until the flag below records a first Listen
+ * play or a first prayer-surface open, an unset reminder reads `hidden` —
+ * the ask is not made in minute one, before trust exists. A reminder
+ * already set is unaffected: its quiet `set` line always shows.
+ *
+ * All state is the app's existing reminder state plus small local keys,
+ * all under the sanctum_ prefix and so inside the panic wipe's sweep.
  */
 
 export const REMINDER_PROMPT_DISMISSED_KEY = 'sanctum_reminder_prompt_dismissed_at';
@@ -27,10 +33,36 @@ export function reminderCardState(
   reminder: PushReminderState,
   dismissedAt: number | null,
   now: number,
+  firstValue: boolean,
 ): ReminderCardState {
   if (reminder.enabled) return 'set';
+  if (!firstValue) return 'hidden';
   if (dismissedAt !== null && now - dismissedAt < REMINDER_DISMISS_WINDOW_MS) return 'hidden';
   return 'prompt';
+}
+
+/**
+ * The first-value flag: set the moment a first Listen actually plays, or a
+ * prayer surface (the Rosary, a novena, the prayer library) is first
+ * opened. One bit, on this device only; the panic wipe clears it with
+ * everything else under the prefix.
+ */
+export const FIRST_VALUE_KEY = 'sanctum_first_value';
+
+export function readFirstValue(): boolean {
+  try {
+    return localStorage.getItem(FIRST_VALUE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function markFirstValue(): void {
+  try {
+    localStorage.setItem(FIRST_VALUE_KEY, '1');
+  } catch {
+    // ignore — the invitation simply keeps waiting
+  }
 }
 
 export function readReminderDismissedAt(): number | null {

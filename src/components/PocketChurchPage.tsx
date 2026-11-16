@@ -9,6 +9,7 @@ import { ConfessionGuide } from '@/components/ConfessionGuide';
 import { PocketCatechism } from '@/components/PocketCatechism';
 import { RosaryPrayer } from '@/components/RosaryPrayer';
 import { Novenas } from '@/components/Novenas';
+import { markFirstValue } from '@/lib/reminderCard';
 
 interface PocketChurchPageProps {
   onBack: () => void;
@@ -73,6 +74,14 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
     setPraySection(initialPraySection);
     onConsumePraySection?.();
   }, [initialPraySection, onConsumePraySection]);
+
+  // Opening a prayer surface — the Rosary, a novena, the prayer library —
+  // is one of the two first-value moments that let the reminder invitation
+  // appear on Today (audit W-7 + Erik's ruling, Nov 16, 2026). The other
+  // is a first Listen play.
+  useEffect(() => {
+    if (activeTab === 'pray') markFirstValue();
+  }, [activeTab]);
 
   return (
     <div className="absolute inset-0 overflow-y-auto chat-scroll" style={{ backgroundColor: t.bg }}>

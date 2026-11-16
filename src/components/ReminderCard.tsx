@@ -5,6 +5,7 @@ import { PRINT_SERIF } from '@/lib/print';
 import { loadPushReminder } from '@/lib/push';
 import {
   dismissReminderPrompt,
+  readFirstValue,
   readReminderDismissedAt,
   reminderCardState,
   reminderSummaryLine,
@@ -25,11 +26,19 @@ interface ReminderCardProps {
  * re-sets it as a colophon entry — the same states between hairline rules,
  * in the serif voice; the invitation, the snooze, and the set-line are
  * exactly as they were.
+ *
+ * Nov 16, 2026 (audit W-7 + Erik's ruling): the invitation speaks plainly
+ * now — "reminder" and "notification" are its words — and it waits for a
+ * first moment of value (a first Listen, a first prayer) before it
+ * appears at all. The snooze and the set-line are untouched.
  */
 export function ReminderCard({ t, onOpenReminder }: ReminderCardProps) {
   const reminder = loadPushReminder();
   const [dismissedAt, setDismissedAt] = useState<number | null>(() => readReminderDismissedAt());
-  const state = reminderCardState(reminder, dismissedAt, Date.now());
+  // Read fresh on every render, like the reminder itself: the flag can be
+  // set by a Listen or a prayer on this same page, and the next render of
+  // the card should honour it.
+  const state = reminderCardState(reminder, dismissedAt, Date.now(), readFirstValue());
 
   if (state === 'hidden') return null;
 
@@ -72,7 +81,7 @@ export function ReminderCard({ t, onOpenReminder }: ReminderCardProps) {
         className="flex-1 text-[11px] font-medium leading-snug"
         style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
       >
-        Have Sanctum meet you in the morning
+        Get a morning reminder — a notification with today&rsquo;s Gospel
       </span>
       <button
         onClick={onOpenReminder}

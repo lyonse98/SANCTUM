@@ -110,6 +110,24 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           <TodayHero t={seasonTheme} accent={seasonAccent} audience={audience} onOpenHelp={onOpenHelp} />
         </div>
 
+        {/* The crisis line stands at the head of Today (audit W-1, Nov 16,
+            2026): one tappable line under the masthead, reachable without a
+            scroll — the footer's line stays, and is a link now too. */}
+        <p
+          className="w-full text-center text-[11px] mb-5"
+          style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textMuted }}
+        >
+          In crisis? Call or text{' '}
+          <a
+            href="tel:988"
+            className="font-bold underline underline-offset-2"
+            style={{ color: seasonTheme.textBright }}
+          >
+            988
+          </a>{' '}
+          — free, day or night.
+        </p>
+
         {/* Daily Gospel — the day's anchor */}
         <div ref={gospelRef} className="w-full mb-5">
           <DailyQuote
@@ -147,7 +165,11 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           className="text-[11px] text-forge-text-dim text-center leading-relaxed max-w-xs mb-5"
           style={{ fontFamily: PRINT_SERIF }}
         >
-          Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US). {PRIVACY_SHORT}
+          Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text{' '}
+          <a href="tel:988" className="font-bold underline underline-offset-2">
+            988
+          </a>{' '}
+          (US). {PRIVACY_SHORT}
         </p>
 
         {/* The utilities line closes the page — Settings · Reminders ·

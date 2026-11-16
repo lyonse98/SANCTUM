@@ -180,8 +180,8 @@ export function ReminderForm({ t }: ReminderFormProps) {
       <div>
         <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
           On an iPhone, notifications only reach apps that live on the Home Screen — a browser
-          tab cannot be poked. Put Sanctum there first, open it from the icon, and this sheet
-          will let you turn the reminder on.
+          tab cannot receive notifications. Put Sanctum there first, open it from the icon, and
+          this sheet will let you turn the reminder on.
         </p>
         <InstallInstructions
           tokens={{
@@ -281,6 +281,14 @@ export function ReminderForm({ t }: ReminderFormProps) {
 
         {focusSelect}
         {timeField}
+
+        {/* One sentence of warning before the phone's own ask appears
+            (audit W-7, Nov 16, 2026): the permission prompt is never the
+            first explanation a man gets. */}
+        <p className="text-[11px] leading-relaxed" style={{ color: t.textMuted }}>
+          When you tap below, your phone will ask whether Sanctum may send notifications —
+          that ask is only for this reminder.
+        </p>
 
         <button
           onClick={() => void handleEnable()}

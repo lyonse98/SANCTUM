@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  FIRST_VALUE_KEY,
   LISTEN_REMINDER_PROMPTED_KEY,
   REMINDER_DISMISS_WINDOW_MS,
   REMINDER_PROMPT_DISMISSED_KEY,
@@ -29,24 +30,42 @@ const NOW = 1_800_000_000_000;
 
 describe('the reminder card — three states', () => {
   it('a set reminder collapses the card to its quiet line, whatever the dismiss state', () => {
-    expect(reminderCardState(SET, null, NOW)).toBe('set');
-    expect(reminderCardState(SET, NOW, NOW)).toBe('set');
+    expect(reminderCardState(SET, null, NOW, true)).toBe('set');
+    expect(reminderCardState(SET, NOW, NOW, true)).toBe('set');
   });
 
-  it('no reminder and no dismiss: the invitation shows', () => {
-    expect(reminderCardState(UNSET, null, NOW)).toBe('prompt');
+  it('a set reminder shows its line even before any first-value moment', () => {
+    expect(reminderCardState(SET, null, NOW, false)).toBe('set');
+  });
+
+  it('no reminder, no dismiss, first value had: the invitation shows', () => {
+    expect(reminderCardState(UNSET, null, NOW, true)).toBe('prompt');
   });
 
   it('a dismiss hides the invitation for fourteen days — then it returns, gently', () => {
-    expect(reminderCardState(UNSET, NOW - 1000, NOW)).toBe('hidden');
-    expect(reminderCardState(UNSET, NOW - REMINDER_DISMISS_WINDOW_MS + 1000, NOW)).toBe('hidden');
-    expect(reminderCardState(UNSET, NOW - REMINDER_DISMISS_WINDOW_MS, NOW)).toBe('prompt');
-    expect(reminderCardState(UNSET, NOW - REMINDER_DISMISS_WINDOW_MS * 3, NOW)).toBe('prompt');
+    expect(reminderCardState(UNSET, NOW - 1000, NOW, true)).toBe('hidden');
+    expect(reminderCardState(UNSET, NOW - REMINDER_DISMISS_WINDOW_MS + 1000, NOW, true)).toBe('hidden');
+    expect(reminderCardState(UNSET, NOW - REMINDER_DISMISS_WINDOW_MS, NOW, true)).toBe('prompt');
+    expect(reminderCardState(UNSET, NOW - REMINDER_DISMISS_WINDOW_MS * 3, NOW, true)).toBe('prompt');
   });
 
-  it('both flywheel keys live under the sanctum_ prefix — inside the panic wipe', () => {
+  it('the flywheel keys live under the sanctum_ prefix — inside the panic wipe', () => {
     expect(REMINDER_PROMPT_DISMISSED_KEY.startsWith('sanctum_')).toBe(true);
     expect(LISTEN_REMINDER_PROMPTED_KEY.startsWith('sanctum_')).toBe(true);
+    expect(FIRST_VALUE_KEY.startsWith('sanctum_')).toBe(true);
+  });
+});
+
+describe('the deferred offer — the invitation waits for a first moment of value (W-7)', () => {
+  it('before any first value, an unset reminder is hidden — no dismiss needed', () => {
+    expect(reminderCardState(UNSET, null, NOW, false)).toBe('hidden');
+    expect(reminderCardState(UNSET, NOW - REMINDER_DISMISS_WINDOW_MS * 3, NOW, false)).toBe('hidden');
+  });
+
+  it('the two first-value moments are wired: a Listen play and a prayer-surface open', () => {
+    expect(read('components/ListenBar.tsx')).toContain('markFirstValue()');
+    expect(read('components/PocketChurchPage.tsx')).toContain('markFirstValue()');
+    expect(read('components/ReminderCard.tsx')).toContain('readFirstValue()');
   });
 });
 
@@ -87,7 +106,10 @@ describe('the post-listen line — once ever, and only when there is something t
     const home = read('components/HomeScreen.tsx');
     expect(home).toContain('<ReminderCard t={seasonTheme} onOpenReminder={onOpenReminder} />');
     const card = read('components/ReminderCard.tsx');
-    expect(card).toContain('Have Sanctum meet you in the morning');
+    // Plain words since audit W-7: the invitation says "reminder" and
+    // "notification" — the old line named neither.
+    expect(card).toContain('Get a morning reminder — a notification with today');
+    expect(card).not.toContain('Have Sanctum meet you in the morning');
     expect(card).toContain('data-reminder-card="set"');
     expect(card).toContain('data-reminder-card="prompt"');
   });
