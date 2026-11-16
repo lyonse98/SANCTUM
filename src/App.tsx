@@ -32,6 +32,7 @@ import { PersonaIntro } from '@/components/PersonaIntro';
 import type { ChurchTab, PraySection } from '@/components/PocketChurchPage';
 import { ReminderModal } from '@/components/ReminderModal';
 import { FOCUS_ROUTES, parseFocusParam } from '@/lib/pushCore';
+import { deactivatePushOnPanic } from '@/lib/push';
 import { ShareInviteModal } from '@/components/ShareInviteModal';
 import { FeedbackProvider, useFeedback } from '@/components/FeedbackProvider';
 import { streamChat } from '@/lib/llm';
@@ -441,6 +442,11 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     if (isStreaming) {
       abortRef.current?.abort();
     }
+    // Before anything is cleared (audit W-8, Nov 16, 2026): turn the pokes
+    // off at the source. The helper reads the subscription's endpoint from
+    // local state first, then works fire-and-forget — the wipe below is
+    // never blocked by it, and a wiped phone stops being reminded.
+    deactivatePushOnPanic();
     wipeAllSanctumData();
     setAudience(loadAudience());
     setRemainingMessages(getRemainingMessages());
@@ -489,7 +495,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#EFEAE2' }}>
         <p className="text-sm text-center mb-2" style={{ color: '#635C51' }}>
-          All data cleared. You are safe.
+          All data cleared from this device. You are safe.
         </p>
         <button
           onClick={() => { setPanicActive(false); setTermsAccepted(hasAcceptedTerms()); }}

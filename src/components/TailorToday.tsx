@@ -560,6 +560,15 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
             your answers — so its quality can be reviewed; it&rsquo;s deleted within 90 days.
           </p>
 
+          {/* One plain sentence at the point of typing (Erik's ruling on
+              audit P-9/UX #8, Nov 16, 2026): what happens to what is typed
+              here, said once, in plain words, directly above the first
+              question. The fuller disclosure stands in the paragraph above. */}
+          <p className="text-[11px] leading-relaxed mb-3.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+            What you type here stays on this phone. It is sent once, to write your devotional,
+            and it is never stored on a server.
+          </p>
+
           <div className="mb-3.5">
             <span className={formLabel} style={formLabelStyle}>
               How are you coming in?

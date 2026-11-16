@@ -356,6 +356,33 @@ export async function unsubscribeFromPush(): Promise<PushActionResult> {
   return result(true, 'Reminder off. Nothing will be sent to this device.');
 }
 
+/**
+ * The panic wipe's server half (audit W-8, Nov 16, 2026). The wipe clears this
+ * device, but a push subscription lives in the browser and on the server — a
+ * "wiped" phone would keep receiving the daily pokes while its screen says it
+ * is safe. This is the deactivation half of `unsubscribeFromPush`, split out
+ * for the panic path: it captures the endpoint from local state BEFORE the
+ * wipe clears it, drops the browser subscription, and deactivates the server
+ * row. Fire-and-forget by design — the wipe must never wait on, or be failed
+ * by, the network — so it starts synchronously, finishes silently, and every
+ * step is best-effort.
+ */
+export function deactivatePushOnPanic(): void {
+  const endpoint = loadPushReminder().endpoint;
+  void (async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (subscription) await subscription.unsubscribe().catch(() => {});
+    } catch {
+      // No live subscription to drop — the server row is still deactivated below.
+    }
+    if (endpoint) {
+      await callRpc('deactivate_push_subscription', buildDeactivateBody(endpoint)).catch(() => false);
+    }
+  })();
+}
+
 /** Poke this device once, now — the deploy-day proof, and a way to feel what subscribers feel. */
 export async function sendTestPoke(): Promise<PushActionResult> {
   const local = loadPushReminder();
