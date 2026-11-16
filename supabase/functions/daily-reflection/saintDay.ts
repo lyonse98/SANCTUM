@@ -223,6 +223,10 @@ export const SAINT_LINES: Record<string, { name: string; line: string }> = {
     "line": "The \"Apostle of Germany\" who chopped down the sacred oak of Thor and built a chapel from its wood."
   },
   "07-14": {
+    "name": "St. Kateri Tekakwitha",
+    "line": "A Mohawk-Algonquin woman of New York who converted at nineteen, endured mockery for her faith, and devoted herself to prayer and penance."
+  },
+  "07-18": {
     "name": "St. Camillus de Lellis",
     "line": "A gambling addict and soldier who lost everything, found Christ in a hospital, and founded an order to serve the sick."
   },
@@ -1155,7 +1159,7 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
     "optional-memorial"
   ],
   "07-14": [
-    "St. Camillus de Lellis",
+    "St. Kateri Tekakwitha",
     "memorial"
   ],
   "07-15": [
@@ -1164,6 +1168,10 @@ export const FIXED_FEASTS: Record<string, [string, SaintRank]> = {
   ],
   "07-16": [
     "Our Lady of Mount Carmel",
+    "memorial"
+  ],
+  "07-18": [
+    "St. Camillus de Lellis",
     "memorial"
   ],
   "07-20": [

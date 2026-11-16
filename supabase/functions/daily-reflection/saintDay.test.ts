@@ -57,12 +57,12 @@ function extractLiteral(src: string, name: string): unknown {
 describe("the extracted tables match the narrator bank exactly", () => {
   it("SAINT_LINES is narratorCore's SAINT_LINES_N, verbatim", () => {
     expect(SAINT_LINES).toEqual(extractLiteral(narratorCoreSrc, "SAINT_LINES_N"));
-    expect(Object.keys(SAINT_LINES).length).toBe(190);
+    expect(Object.keys(SAINT_LINES).length).toBe(191);
   });
 
   it("FIXED_FEASTS is narratorCore's FIXED_FEASTS_N, verbatim", () => {
     expect(FIXED_FEASTS).toEqual(extractLiteral(narratorCoreSrc, "FIXED_FEASTS_N"));
-    expect(Object.keys(FIXED_FEASTS).length).toBe(201);
+    expect(Object.keys(FIXED_FEASTS).length).toBe(202);
   });
 });
 
@@ -283,6 +283,32 @@ describe("the obligatory-calendar completion weaves too (Nov 15, 2026)", () => {
     expect(saintForReflectionDate("2027-01-21")?.name).toBe("St. Meinrad");
     expect(FIXED_FEASTS["09-20"]).toEqual(["Sts. Andrew Kim Tae-gŏn, Paul Chŏng Ha-sang and Companions", "memorial"]);
     expect(saintForReflectionDate("2026-09-20")?.name).toBe("St. Eustace");
+  });
+
+  it("the Kateri transfer (Nov 16, 2026): Kateri weaves on Jul 14; Camillus weaves on his US date, Jul 18", () => {
+    // Erik approved the transfer that completes Kateri Tekakwitha:
+    // Camillus de Lellis moves to Jul 18 — his memorial in the US
+    // calendar — taking his line with him (Jul 18's spoken slot was
+    // free), and Kateri takes Jul 14 end-to-end. Her descriptor is her
+    // bio's first sentence, the standing discipline.
+    expect(FIXED_FEASTS["07-14"]).toEqual(["St. Kateri Tekakwitha", "memorial"]);
+    expect(saintForReflectionDate("2026-07-14")).toEqual({
+      name: "St. Kateri Tekakwitha",
+      descriptor: "A Mohawk-Algonquin woman of New York who converted at nineteen, endured mockery for her faith, and devoted herself to prayer and penance.",
+      rank: "memorial",
+    });
+    expect(buildInputSaintBlock("2026-07-14")).toContain(
+      "Today the Church keeps the memorial of St. Kateri Tekakwitha:",
+    );
+    expect(FIXED_FEASTS["07-18"]).toEqual(["St. Camillus de Lellis", "memorial"]);
+    expect(saintForReflectionDate("2026-07-18")).toEqual({
+      name: "St. Camillus de Lellis",
+      descriptor: "A gambling addict and soldier who lost everything, found Christ in a hospital, and founded an order to serve the sick.",
+      rank: "memorial",
+    });
+    expect(buildInputSaintBlock("2026-07-18")).toContain(
+      "Today the Church keeps the memorial of St. Camillus de Lellis:",
+    );
   });
 });
 

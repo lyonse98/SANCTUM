@@ -24,6 +24,11 @@ import { resolveFeastDay, saintLineFor } from '@/lib/narratorCore';
  * image of the optional rule: an obligatory memorial's colour DOES take
  * the accent set in Ordinary Time (Nov 11, 2026), and a feast speaks at
  * feast intensity.
+ *
+ * One face arrived a day later than the rest: the Nov 15 build left
+ * Kateri Tekakwitha bio-only behind Camillus de Lellis's Jul 14 face,
+ * and Erik's transfer ruling (Nov 16, 2026) moved Camillus to his US
+ * date, Jul 18, completing her — pinned in the transfer describe below.
  */
 const FACES: { mmdd: string; name: string; rank: 'memorial' | 'feast'; color: 'red' | 'white' }[] = [
   { mmdd: '01-02', name: 'Sts. Basil the Great and Gregory Nazianzen', rank: 'memorial', color: 'white' },
@@ -52,6 +57,7 @@ const FACES: { mmdd: string; name: string; rank: 'memorial' | 'feast'; color: 'r
   { mmdd: '06-21', name: 'St. Aloysius Gonzaga', rank: 'memorial', color: 'white' },
   { mmdd: '06-28', name: 'St. Irenaeus', rank: 'memorial', color: 'red' },
   { mmdd: '07-03', name: 'St. Thomas', rank: 'feast', color: 'red' },
+  { mmdd: '07-14', name: 'St. Kateri Tekakwitha', rank: 'memorial', color: 'white' },
   { mmdd: '07-15', name: 'St. Bonaventure', rank: 'memorial', color: 'white' },
   { mmdd: '07-26', name: 'Sts. Joachim and Anne', rank: 'memorial', color: 'white' },
   { mmdd: '07-29', name: 'Sts. Martha, Mary and Lazarus', rank: 'memorial', color: 'white' },
@@ -204,7 +210,7 @@ describe('Feb 14 — the face changes, the voice does not', () => {
   });
 });
 
-describe('held slots and the held face', () => {
+describe('held slots', () => {
   it('Jan 21: Agnes takes the face; Meinrad keeps the spoken slot', () => {
     // St. Meinrad — a non-calendar bank saint — has held Jan 21's saint
     // line all along. Agnes gains face, bio, and feast-table entry; the
@@ -223,17 +229,36 @@ describe('held slots and the held face', () => {
     expect(saintLineFor('2026-09-20')).toContain('Roman general');
   });
 
-  it('Jul 14: the face stays Camillus — Kateri gains a bio only', () => {
-    // In the US calendar Kateri Tekakwitha (memorial) holds Jul 14 and
-    // Camillus de Lellis moves to Jul 18 — but US transfer dates for
-    // existing entries are out of scope for this build, and Camillus's
-    // face is an obligatory memorial, not an optional one the completion
-    // may displace. So the face and the line stay Camillus's; Kateri is
-    // present in the saints list, awaiting a transfer ruling.
-    const date = new Date(2026, 6, 14, 12);
-    expect(getFeastForDate(date)?.name).toBe('St. Camillus de Lellis');
-    expect(resolveFeastDay('2026-07-14')).toEqual({ name: 'St. Camillus de Lellis', rank: 'memorial' });
-    expect(SAINTS.some((x) => x.feastDate === '07-14' && x.name === 'St. Kateri Tekakwitha')).toBe(true);
-    expect(saintLineFor('2026-07-14')).toContain('gambling addict');
+});
+
+describe('the Kateri transfer (Nov 16, 2026 — Erik approved)', () => {
+  it('Jul 14 is Kateri end-to-end; Jul 18 is Camillus, line and all', () => {
+    // The Nov 15 completion left Kateri bio-only: her US memorial
+    // (Jul 14) was held by Camillus de Lellis's existing memorial face,
+    // and moving him was a US transfer, out of that build's scope.
+    // Erik's ruling completes the transfer: Camillus moves to Jul 18 —
+    // his memorial date in the US calendar — and Jul 18 was entirely
+    // free (no face, no line, no optional entry), so his spoken line
+    // moves with him and Kateri takes Jul 14's slot, her line drawn
+    // from her bio's first sentence.
+    const jul14 = new Date(2026, 6, 14, 12);
+    expect(getFeastForDate(jul14)?.name).toBe('St. Kateri Tekakwitha');
+    expect(getFeastForDate(jul14)?.rank).toBe('memorial');
+    expect(getFeastForDate(jul14)?.color).toBe('white');
+    expect(resolveFeastDay('2026-07-14')).toEqual({ name: 'St. Kateri Tekakwitha', rank: 'memorial' });
+    // Kateri is now the first-found saints entry for her date…
+    expect(SAINTS.find((x) => x.feastDate === '07-14')?.name).toBe('St. Kateri Tekakwitha');
+    const kateri = SAINTS.find((x) => x.name === 'St. Kateri Tekakwitha')!;
+    expect(saintLineFor('2026-07-14')).toBe(kateri.shortBio.split(/(?<=[.!?])\s/)[0].trim());
+    // …and Camillus holds nothing on Jul 14 anymore.
+    expect(SAINTS.some((x) => x.feastDate === '07-14' && x.name === 'St. Camillus de Lellis')).toBe(false);
+
+    const jul18 = new Date(2026, 6, 18, 12);
+    expect(getFeastForDate(jul18)?.name).toBe('St. Camillus de Lellis');
+    expect(getFeastForDate(jul18)?.rank).toBe('memorial');
+    expect(getFeastForDate(jul18)?.color).toBe('white');
+    expect(resolveFeastDay('2026-07-18')).toEqual({ name: 'St. Camillus de Lellis', rank: 'memorial' });
+    expect(SAINTS.find((x) => x.feastDate === '07-18')?.name).toBe('St. Camillus de Lellis');
+    expect(saintLineFor('2026-07-18')).toContain('gambling addict');
   });
 });
