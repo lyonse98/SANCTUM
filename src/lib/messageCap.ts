@@ -42,3 +42,27 @@ export function getRemainingMessages(): number {
 export function isAtMessageCap(): boolean {
   return getDailyMessageCount() >= DAILY_MESSAGE_CAP;
 }
+
+/**
+ * Cap-as-rhythm copy (Play 9b, Nov 16, 2026). The cap counts MESSAGES —
+ * one per user send — so the counting line says messages, plainly, in the
+ * companions' own frame: they keep hours, the way a house of prayer keeps
+ * hours. There is no escalation in the wording or (in ChatInput) the
+ * styling as the count runs down; the number simply counts.
+ */
+export function capRemainingLine(remaining: number): string {
+  if (remaining <= 0) return 'Companions keep hours — no messages left today';
+  return `Companions keep hours — ${remaining} message${remaining === 1 ? '' : 's'} left today`;
+}
+
+/**
+ * The closing prayer offered at the cap (Play 9b): brief and original,
+ * ending the conversation the way the companions themselves would — in
+ * prayer, pointed outward to the sacraments.
+ */
+export const CAP_CLOSING_PRAYER =
+  'Lord Jesus, thank You for the words shared here today. Quiet my heart, keep me in Your grace, and lead me to You in person — at Mass, and in Confession. Amen.';
+
+/** The outward pointer shown at the cap: a priest and the sacraments first. */
+export const CAP_OUTWARD_LINE =
+  'What a companion cannot give, a priest can. Take what came up today to Mass and to Confession — Real Help can help you find a priest, a director, or a counselor near you.';

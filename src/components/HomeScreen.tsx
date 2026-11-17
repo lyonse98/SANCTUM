@@ -26,6 +26,10 @@ interface HomeScreenProps {
   utilities: UtilityActions;
   /** The More of Sanctum rows walk to the three destinations. */
   onNavigate: (view: TabId) => void;
+  /** Play 6c: Today's scroll position when it was last left, restored on return. */
+  initialScrollTop?: number;
+  /** Play 6c: reports Today's scroll position as it changes, for the scroll map. */
+  onScrollTopChange?: (top: number) => void;
 }
 
 /**
@@ -45,9 +49,21 @@ interface HomeScreenProps {
  * "Foot of Today"): the three destinations as rows under the day itself,
  * Real Help among them at full weight, and the utilities line last of all.
  */
-export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate }: HomeScreenProps) {
+export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate, initialScrollTop, onScrollTopChange }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
   const tonightRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Play 6c: returning to Today restores where the day was left, instead of
+  // a full re-scroll from the top. A #daily-gospel deep link still wins —
+  // its scroll effect below runs after this one and walks to the readings.
+  useEffect(() => {
+    if (initialScrollTop && scrollRef.current) {
+      scrollRef.current.scrollTop = initialScrollTop;
+    }
+    // Mount only: the position handed in at mount is the saved one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const seasonTheme = getSeasonTheme(new Date(), audience);
   const seasonAccent = getSeasonAccentColor();
 
@@ -79,6 +95,8 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
 
   return (
     <div
+      ref={scrollRef}
+      onScroll={(e) => onScrollTopChange?.(e.currentTarget.scrollTop)}
       className="absolute inset-0 overflow-y-auto chat-scroll"
       style={{ backgroundColor: seasonTheme.bg }}
     >

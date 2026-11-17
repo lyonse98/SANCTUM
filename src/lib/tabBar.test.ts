@@ -66,12 +66,18 @@ describe('the retired chrome stays in the repo, unwired', () => {
     expect(app).not.toContain('setMenuOpen');
   });
 
-  it('sub-views carry the "‹ Today" return in their own page head — the shell adds no strip', () => {
+  it('sub-views carry the "‹ Today" return in their page head, and the shell adds ONE persistent strip (Play 6c)', () => {
     const app = read('App.tsx');
-    // The shell-level strip is gone (Nov 14, 2026): once every section page
-    // grew its own PrintPageHead, the strip rendered a second return above it.
-    expect(app).not.toContain('&lsaquo; Today');
-    // The single return lives in each section page's PrintPageHead.
+    // DELIBERATE PIN UPDATE (Play 6c, Nov 16, 2026): the Nov 14 pin ("the
+    // shell adds no strip") is reversed on purpose. The page-head return
+    // scrolls away with the page; the return build adds a single slim
+    // persistent strip in the shell, shown only while a sub-surface is
+    // showing (never on Today), so the way back never scrolls away.
+    expect(app).toContain('data-return-strip');
+    expect(app).toContain("view !== 'today'");
+    expect(app).toContain('&lsaquo; Today');
+    expect(app).toContain("onClick={() => handleChangeView('today')}");
+    // The page-head return still lives in each section page's PrintPageHead.
     expect(read('components/PrintPageHead.tsx')).toContain('&lsaquo; Today');
     expect(read('components/CompanionSelect.tsx')).toContain('<PrintPageHead');
     expect(read('components/PocketChurchPage.tsx')).toContain('<PrintPageHead');

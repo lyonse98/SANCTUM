@@ -64,8 +64,8 @@ const LITERAL_ALLOWLIST: Record<string, { literals: string[]; why: string }> = {
     why: 'warm-white text drawn over feast-art photography, with its dark scrim — legibility over imagery, not an accent',
   },
   'components/ChatInput.tsx': {
-    literals: ['#991B1B', '#B91C1C', '#F59E0B'],
-    why: 'semantic status colours — deep red for the crisis/error notices, amber for the low-message warning; their meaning would break if they followed the day accent',
+    literals: ['#991B1B', '#B91C1C'],
+    why: 'semantic status colours — deep red for the crisis/error notices and the stop control; their meaning would break if they followed the day accent. (The amber low-message warning left with Play 9b, Nov 16, 2026: the cap count is now neutral theme ink at every value.)',
   },
   'components/CrisisCard.tsx': {
     literals: ['#991B1B', '#B91C1C', '#F87171', '#FCA5A5', '#D1D5DB', '#9CA3AF', '#A3C4A3'],

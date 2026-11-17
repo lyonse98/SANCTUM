@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+  CAP_CLOSING_PRAYER,
+  CAP_OUTWARD_LINE,
   DAILY_MESSAGE_CAP,
+  capRemainingLine,
   getDailyMessageCount,
   incrementDailyMessageCount,
   getRemainingMessages,
@@ -43,5 +46,31 @@ describe('daily message cap', () => {
     }
     expect(isAtMessageCap()).toBe(true);
     expect(getRemainingMessages()).toBe(0);
+  });
+});
+
+describe('cap-as-rhythm copy (Play 9b)', () => {
+  it('the cap itself is unchanged: 15 messages a day', () => {
+    expect(DAILY_MESSAGE_CAP).toBe(15);
+  });
+
+  it('counts the unit the cap actually counts — messages — in the keeping-hours frame', () => {
+    expect(capRemainingLine(5)).toBe('Companions keep hours — 5 messages left today');
+    expect(capRemainingLine(1)).toBe('Companions keep hours — 1 message left today');
+    expect(capRemainingLine(0)).toBe('Companions keep hours — no messages left today');
+    // The old mislabel is gone: the cap never counted conversations.
+    expect(capRemainingLine(5)).not.toContain('conversation');
+  });
+
+  it('at the cap there is a closing prayer, and it ends in Amen', () => {
+    expect(CAP_CLOSING_PRAYER.length).toBeGreaterThan(0);
+    expect(CAP_CLOSING_PRAYER).toContain('Amen.');
+  });
+
+  it('at the cap the pointer runs outward — a priest, Mass, and Confession first', () => {
+    expect(CAP_OUTWARD_LINE).toContain('priest');
+    expect(CAP_OUTWARD_LINE).toContain('Mass');
+    expect(CAP_OUTWARD_LINE).toContain('Confession');
+    expect(CAP_OUTWARD_LINE).toContain('Real Help');
   });
 });
