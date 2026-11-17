@@ -5,6 +5,8 @@ import { KeptShelf } from '../components/KeptShelf';
 import { getSeasonTheme } from './seasonTheme';
 import { DAYS_PRAYED_KEY } from './daysPrayed';
 import { KEPT_DAYS_KEY } from './keptDays';
+import { LETTERS_KEY } from './letters';
+import { CHALLENGES_LIVED_KEY } from './challengesLived';
 import type { Audience } from '@/types';
 
 function makeStorage(): Storage {
@@ -109,6 +111,47 @@ describe('KeptShelf — the foot of Tonight', () => {
     // The guided examen stays folded until it is opened.
     expect(html).not.toContain('Gratitude');
     expect(html).not.toContain('Resolve');
+  });
+
+  it('lived challenges are listed as a journal — and never totalled', () => {
+    localStorage.setItem(
+      CHALLENGES_LIVED_KEY,
+      JSON.stringify([
+        { dateKey: '2026-11-12', source: 'daily', text: 'Visit the Blessed Sacrament for ten minutes.' },
+        { dateKey: '2026-11-10', source: 'tailor', text: 'Fast from the phone at dinner.' },
+      ]),
+    );
+    const html = render('2026-11-16');
+    expect(html).toContain('Challenges lived');
+    expect(html).toContain('Visit the Blessed Sacrament for ten minutes.');
+    expect(html).toContain('Fast from the phone at dinner.');
+    // Most recent first, and no headline total anywhere in the section.
+    expect(html.indexOf('Visit the Blessed Sacrament')).toBeLessThan(html.indexOf('Fast from the phone'));
+    expect(html).not.toMatch(/2 challenges/);
+  });
+
+  it('a stored letter stands on the shelf under its writer’s name, folded', () => {
+    localStorage.setItem(
+      LETTERS_KEY,
+      JSON.stringify([
+        {
+          personaId: 'joseph',
+          personaName: 'St. Joseph',
+          dateKey: '2026-11-12',
+          seasonKey: 'ordinary-2:2026-06-08',
+          text: 'Dear friend, keep to the hidden work.',
+          shown: true,
+        },
+      ]),
+    );
+    const html = render('2026-11-16');
+    expect(html).toContain('Letters');
+    // SSR splits adjacent text nodes with comment markers; assert the parts.
+    expect(html).toContain('A letter from');
+    expect(html).toContain('St. Joseph');
+    expect(html).toContain('Thursday, Nov 12');
+    // Folded until opened: the letter's text is not in the resting render.
+    expect(html).not.toContain('keep to the hidden work');
   });
 
   it('four kept days last month raise no offer', () => {

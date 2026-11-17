@@ -11,6 +11,8 @@ import {
 } from '@/lib/keptDays';
 import { keptWeeks, weekIsKept, weekRangeOf, type KeptWeek } from '@/lib/keptWeeks';
 import { loadDaysPrayedDates } from '@/lib/daysPrayed';
+import { listLetters } from '@/lib/letters';
+import { listChallengesLived } from '@/lib/challengesLived';
 import { fetchDailyReadings } from '@/lib/readings';
 import { sundayCelebrationName } from '@/components/TonightClosing';
 import type { Audience, PersonaTheme } from '@/types';
@@ -99,9 +101,8 @@ function KeptWeekCard({ t, week }: { t: PersonaTheme; week: KeptWeek }) {
  * is read from this device — kept days, prayed days, the examen's seen
  * mark — and none of it leaves the device.
  *
- * Letters (the Companion's Letter workstream, src/lib/letters.ts) are
- * not rendered here yet: that module does not exist in this worktree,
- * so the section is wired at integration, not stubbed.
+ * The foot of the shelf holds the lived challenges (a journal, listed,
+ * never totalled) and the companions' letters, kept to be re-read.
  */
 export function KeptShelf({ t, dateKey }: KeptShelfProps) {
   const [kept] = useState(loadKeptDays);
@@ -115,6 +116,9 @@ export function KeptShelf({ t, dateKey }: KeptShelfProps) {
   });
   const [seen, setSeen] = useState<string | null>(loadMonthExamenSeen);
   const [examenOpen, setExamenOpen] = useState(false);
+  const [letters] = useState(listLetters);
+  const [lived] = useState(listChallengesLived);
+  const [openLetter, setOpenLetter] = useState<string | null>(null);
 
   // Sunday harvest: on a Sunday, this week's kept pages read back plainly.
   const isSunday = dateOfKey(dateKey).getDay() === 0;
@@ -126,7 +130,13 @@ export function KeptShelf({ t, dateKey }: KeptShelfProps) {
   const examenOffered = Boolean(candidate) && seen !== candidate?.monthKey;
 
   const hasContent =
-    harvest.length > 0 || examenOpen || examenOffered || weeks.length > 0 || kept.length > 0;
+    harvest.length > 0 ||
+    examenOpen ||
+    examenOffered ||
+    weeks.length > 0 ||
+    kept.length > 0 ||
+    lived.length > 0 ||
+    letters.length > 0;
   if (!hasContent) return null;
 
   const openExamen = () => {
@@ -293,6 +303,86 @@ export function KeptShelf({ t, dateKey }: KeptShelfProps) {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Challenges lived — the journal of the ones that were taken up.
+          Listed in the order they were lived, never totalled: the shelf
+          keeps them the way a journal does, not the way a scoreboard does. */}
+      {lived.length > 0 && (
+        <div className="mt-4 pt-3.5" style={sectionRule}>
+          <p className={`${PRINT_STAMP_CLASS} mb-2.5`} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+            Challenges lived
+          </p>
+          <div className="space-y-3.5">
+            {lived.map((entry) => (
+              <div key={`${entry.dateKey}-${entry.source}`}>
+                <p
+                  className="text-[12px] font-bold"
+                  style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
+                >
+                  {readableDay(entry.dateKey)}
+                </p>
+                <p
+                  className="text-[13px] leading-relaxed mt-0.5"
+                  style={{ fontFamily: PRINT_SERIF, color: t.text }}
+                >
+                  {entry.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Letters — a companion's letter, once left for the user, is kept
+          here to be re-read. Each stands under its writer's name and the
+          day it came; the text opens on a tap and folds away again. */}
+      {letters.length > 0 && (
+        <div className="mt-4 pt-3.5" style={sectionRule}>
+          <p className={`${PRINT_STAMP_CLASS} mb-2.5`} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+            Letters
+          </p>
+          <div className="space-y-2">
+            {letters.map((letter) => {
+              const key = `${letter.dateKey}-${letter.personaId}`;
+              const open = openLetter === key;
+              return (
+                <div
+                  key={key}
+                  className="px-3.5 py-3"
+                  style={{ backgroundColor: `${t.border}1F`, border: `1px solid ${t.border}` }}
+                >
+                  <button
+                    onClick={() => setOpenLetter(open ? null : key)}
+                    aria-expanded={open}
+                    className="w-full text-left transition-opacity hover:opacity-80"
+                  >
+                    <span
+                      className="block text-[13px] font-bold"
+                      style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
+                    >
+                      A letter from {letter.personaName}
+                    </span>
+                    <span
+                      className="block text-[12px] mt-0.5"
+                      style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
+                    >
+                      {readableDay(letter.dateKey)} &middot; {open ? 'fold it away' : 'read it again'}
+                    </span>
+                  </button>
+                  {open && (
+                    <p
+                      className="text-[13px] leading-relaxed mt-2.5 whitespace-pre-wrap"
+                      style={{ fontFamily: PRINT_SERIF, color: t.text }}
+                    >
+                      {letter.text}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
