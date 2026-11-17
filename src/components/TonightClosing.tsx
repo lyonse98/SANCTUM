@@ -6,6 +6,7 @@ import { contentDate, contentDateKey, contentNow, shiftDateKey } from '@/lib/day
 import { readTailorMeta } from '@/lib/tailor';
 import { loadTonightsClose } from '@/lib/tailorPm';
 import { TailorPm } from '@/components/TailorPm';
+import { KeptShelf } from '@/components/KeptShelf';
 import {
   gratitudeForDate,
   honestLookLine,
@@ -342,6 +343,12 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
       {tailorMeta?.morning && (
         <TailorPm t={t} audience={audience} dateKey={dateKey} morning={tailorMeta.morning} />
       )}
+
+      {/* The Kept shelf (incentives build, Nov 16, 2026): at the foot of
+          Tonight, what Sanctum has kept is given back — this week's
+          pages on a Sunday, last month's as an examen, the kept weeks,
+          the kept days. It renders nothing when it has nothing to give. */}
+      <KeptShelf t={t} audience={audience} dateKey={dateKey} />
     </div>
   );
 }

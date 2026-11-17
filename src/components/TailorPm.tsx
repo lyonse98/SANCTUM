@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronRight, Loader2, MoonStar } from 'lucide-react';
 import { PRINT_PLATE_CLASS, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import type { TailorMorningRecord } from '@/lib/tailor';
@@ -10,6 +10,7 @@ import {
   type TailorPmPackage,
 } from '@/lib/tailorPm';
 import { recordCoreAct } from '@/lib/daysPrayed';
+import { recordKeptDay } from '@/lib/keptDays';
 import type { Audience, PersonaTheme } from '@/types';
 
 interface TailorPmProps {
@@ -39,6 +40,15 @@ export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
   const [building, setBuilding] = useState<EveningState | null>(null);
   const [failed, setFailed] = useState(false);
 
+  // The Kept shelf's page for this day (incentives build, Nov 16, 2026):
+  // a close already on the device — including one written before the
+  // shelf existed — becomes a kept day on mount, its carry line the
+  // day's page. Quiet: no visible change here.
+  useEffect(() => {
+    const cached = loadTonightsClose(dateKey, audience);
+    if (cached) recordKeptDay(dateKey, cached.evening.carry);
+  }, [dateKey, audience]);
+
   const onChoose = async (eveningState: EveningState) => {
     if (building || built) return;
     setBuilding(eveningState);
@@ -48,6 +58,8 @@ export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
       setBuilt(evening);
       // The day is closed: one of the day's core acts (Play 4).
       recordCoreAct('tonight');
+      // And the day is kept: its carry line becomes the day's page.
+      recordKeptDay(dateKey, evening.carry);
     } catch {
       setFailed(true);
     } finally {
