@@ -9,6 +9,7 @@ import {
   type EveningState,
   type TailorPmPackage,
 } from '@/lib/tailorPm';
+import { recordCoreAct } from '@/lib/daysPrayed';
 import type { Audience, PersonaTheme } from '@/types';
 
 interface TailorPmProps {
@@ -45,6 +46,8 @@ export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
     try {
       const evening = await buildCloseOfDay(dateKey, audience, morning, eveningState);
       setBuilt(evening);
+      // The day is closed: one of the day's core acts (Play 4).
+      recordCoreAct('tonight');
     } catch {
       setFailed(true);
     } finally {

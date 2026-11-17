@@ -643,8 +643,12 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             onConsumeForceTonight={() => setForceExamen(false)}
             utilities={utilities}
             onNavigate={handleChangeView}
+<<<<<<< HEAD
             initialScrollTop={loadScrollPosition('today')}
             onScrollTopChange={(top) => saveScrollPosition('today', top)}
+=======
+            onOpenNovenas={() => { setChurchTab('pray'); setChurchPray('novenas'); setView('church'); }}
+>>>>>>> retention/today
           />
         </>
       );

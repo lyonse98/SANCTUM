@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { DailyQuote } from '@/components/DailyQuote';
 import { ReminderCard } from '@/components/ReminderCard';
 import { MoreOfSanctum } from '@/components/MoreOfSanctum';
@@ -6,11 +7,15 @@ import { UtilitiesLine } from '@/components/UtilitiesLine';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { TodayHero } from '@/components/TodayHero';
 import { TonightClosing } from '@/components/TonightClosing';
+import { DaysPrayedMark } from '@/components/DaysPrayedMark';
+import { TailorToday } from '@/components/TailorToday';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
-import { PRINT_SERIF } from '@/lib/print';
+import { PRINT_PLATE_CLASS, PRINT_SERIF } from '@/lib/print';
 import { AUDIO_PM_START_HOUR } from '@/lib/narratorCore';
 import { morningResolve } from '@/lib/tonight';
-import { DAY_START_HOUR, contentDate, contentNow } from '@/lib/dayBoundary';
+import { DAY_START_HOUR, contentDate, contentDateKey, contentNow } from '@/lib/dayBoundary';
+import { currentNovenaArc } from '@/lib/novenaProgress';
+import { adventProgress } from '@/lib/seasonArcs';
 import type { Audience, TabId, UtilityActions } from '@/types';
 import { PRIVACY_SHORT } from '@/lib/privacyCopy';
 
@@ -31,6 +36,8 @@ interface HomeScreenProps {
   initialScrollTop?: number;
   /** Play 6c: reports Today's scroll position as it changes, for the scroll map. */
   onScrollTopChange?: (top: number) => void;
+  /** Opens Pocket Church on the Pray door's Novenas section — the novena arc line's way onward. */
+  onOpenNovenas?: () => void;
 }
 
 /**
@@ -50,7 +57,7 @@ interface HomeScreenProps {
  * "Foot of Today"): the three destinations as rows under the day itself,
  * Real Help among them at full weight, and the utilities line last of all.
  */
-export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate, initialScrollTop, onScrollTopChange }: HomeScreenProps) {
+export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate, initialScrollTop, onScrollTopChange, onOpenNovenas }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
   const tonightRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -67,6 +74,15 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
   }, []);
   const seasonTheme = getSeasonTheme(contentDate(), audience);
   const seasonAccent = getSeasonAccentColor(contentDate());
+
+  // The retention lines (Nov 16, 2026): the content day's key for the
+  // Tailor door below, the novena arc already under way on this device,
+  // and Advent's own arc when the season is Advent — each read once,
+  // from what the day already carries; nothing new is fetched for them.
+  const [contentKey] = useState(() => contentDateKey());
+  const [novenaArc] = useState(() => currentNovenaArc());
+  const [advent] = useState(() => adventProgress(contentDate()));
+  const [tailorOpen, setTailorOpen] = useState(false);
 
   // The evening is the content day's evening (Play 7): from the PM hour, and
   // still — in the small hours before the 04:00 flip — the night that belongs
@@ -133,6 +149,12 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           <TodayHero t={seasonTheme} accent={seasonAccent} audience={audience} onOpenHelp={onOpenHelp} />
         </div>
 
+        {/* The days-prayed mark — one quiet line under the masthead: the
+            cumulative tally and today's flame, nothing more. */}
+        <div className="w-full mb-4">
+          <DaysPrayedMark t={seasonTheme} />
+        </div>
+
         {/* The crisis line stands at the head of Today (audit W-1, Nov 16,
             2026): one tappable line under the masthead, reachable without a
             scroll — the footer's line stays, and is a link now too. */}
@@ -168,11 +190,81 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           <ReminderCard t={seasonTheme} onOpenReminder={onOpenReminder} />
         </div>
 
+        {/* In progress — the arcs the day already carries (Plays 5b/5c):
+            a novena under way on this device, and Advent itself in its
+            season. One small area, quiet lines; the novena line walks to
+            the Novenas section of the Pray door. */}
+        {(novenaArc || advent) && (
+          <div className="w-full mb-5 text-center" data-in-progress>
+            <p
+              className="text-[9px] font-bold uppercase tracking-[0.2em] mb-1.5"
+              style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textDim }}
+            >
+              In progress
+            </p>
+            {novenaArc && (
+              <button
+                data-novena-arc
+                onClick={() => (onOpenNovenas ? onOpenNovenas() : onNavigate('church'))}
+                className="block w-full text-[11px] py-1 transition-opacity hover:opacity-70"
+                style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textMuted }}
+              >
+                {novenaArc.name} &middot; day {novenaArc.dayCount} of 9
+              </button>
+            )}
+            {advent && (
+              <p
+                data-advent-arc
+                className="text-[11px] py-1"
+                style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textMuted }}
+              >
+                Advent &middot; day {advent.day} of {advent.totalDays}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Tailor Today, on Today itself (Play 4): the Gospel card's door
+            stays where it is; this quiet plate is a second door into the
+            same flow, so the morning's tailoring can be found from the
+            page's own stack. The panel is the existing intake, whole. */}
+        <div className="w-full mb-5">
+          <button
+            data-tailor-entry
+            onClick={() => setTailorOpen((open) => !open)}
+            aria-expanded={tailorOpen}
+            className={PRINT_PLATE_CLASS}
+            style={{ border: `1px solid ${seasonTheme.border}`, backgroundColor: `${seasonTheme.border}1F` }}
+          >
+            <span
+              className="text-[12px] font-bold uppercase tracking-wide flex-shrink-0"
+              style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textBright }}
+            >
+              Tailor today&rsquo;s devotional
+            </span>
+            <span
+              aria-hidden="true"
+              className="flex-1"
+              style={{ borderBottom: `1px dotted ${seasonTheme.textDim}` }}
+            />
+            <span
+              className="text-[10px] italic flex-shrink-0"
+              style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textDim }}
+            >
+              For your morning
+            </span>
+            <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: seasonAccent }} strokeWidth={2.5} aria-hidden="true" />
+          </button>
+          {tailorOpen && (
+            <TailorToday t={seasonTheme} audience={audience} dateKey={contentKey} startOpen />
+          )}
+        </div>
+
         {/* Tonight — the day's closing, in its home on Today. Present from the
             PM hour; a reminder's tap lands the eye on it at any hour. */}
         {showTonight && (
           <div ref={tonightRef} className="w-full mb-5 animate-fade-in">
-            <TonightClosing t={seasonTheme} audience={audience} />
+            <TonightClosing t={seasonTheme} audience={audience} onOpenHelp={onOpenHelp} />
           </div>
         )}
 

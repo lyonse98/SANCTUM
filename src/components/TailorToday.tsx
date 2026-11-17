@@ -31,6 +31,7 @@ import {
   type TailorTone,
 } from '@/data/tailorBank';
 import { tailorOffered } from '@/lib/tailorAccess';
+import { recordCoreAct } from '@/lib/daysPrayed';
 import {
   MEDIA_KIND_LABELS,
   fetchTailorAudio,
@@ -510,6 +511,9 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
       const { devotional: built } = await getOrBuildTailored(dateKey, audience, intake);
       setDevotional(built);
       setView('done');
+      // A completed build is one of the day's core acts (Play 4): the
+      // cumulative tally counts today. On-device only, like the tally.
+      recordCoreAct('tailor');
     } catch {
       // A calm line, here only — the free devotional above is never touched.
       setError('The tailored devotional could not be built just now. Everything above still stands.');
