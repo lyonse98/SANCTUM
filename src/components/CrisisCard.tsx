@@ -56,9 +56,9 @@ export function CrisisCard({ theme: t, dismissable = false, onDismiss }: CrisisC
               <Icon className="w-4 h-4 flex-shrink-0" style={{ color: '#B91C1C' }} />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold" style={{ color: '#991B1B' }}>{r.label}</p>
-                <p className="text-[11px]" style={{ color: t.textMuted }}>{r.detail}</p>
+                <p className="text-[12px]" style={{ color: t.textMuted }}>{r.detail}</p>
               </div>
-              <span className="text-[11px] font-bold flex-shrink-0" style={{ color: '#B91C1C' }}>
+              <span className="text-[12px] font-bold flex-shrink-0" style={{ color: '#B91C1C' }}>
                 {r.action}
               </span>
             </a>
@@ -115,7 +115,7 @@ export function CrisisModal({ onFindHelp }: { theme: PersonaTheme; onFindHelp?: 
                 <Icon className="w-5 h-5 flex-shrink-0" style={{ color: '#fca5a5' }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold" style={{ color: '#fca5a5' }}>{r.label}</p>
-                  <p className="text-[11px]" style={{ color: '#d1d5db' }}>{r.detail}</p>
+                  <p className="text-[12px]" style={{ color: '#d1d5db' }}>{r.detail}</p>
                 </div>
                 <span className="text-xs font-bold flex-shrink-0" style={{ color: '#f87171' }}>
                   {r.action}
@@ -155,7 +155,7 @@ export function CrisisModal({ onFindHelp }: { theme: PersonaTheme; onFindHelp?: 
           </button>
         )}
 
-        <p className="text-[11px] text-center mt-4 leading-relaxed" style={{ color: '#9ca3af' }}>
+        <p className="text-[13px] text-center mt-4 leading-relaxed" style={{ color: '#9ca3af' }}>
           Sanctum is not a crisis service. These resources are. Please use them.
         </p>
       </div>

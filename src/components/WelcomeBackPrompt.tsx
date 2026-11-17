@@ -49,7 +49,7 @@ export function WelcomeBackPrompt() {
               <p className="text-xs font-bold font-display" style={{ color: t.textBright }}>
                 Welcome back.
               </p>
-              <p className="text-[11px] leading-relaxed" style={{ color: t.textDim }}>
+              <p className="text-[13px] leading-relaxed" style={{ color: t.textDim }}>
                 Today is a new day. The Gospel is ready when you are.
               </p>
             </div>

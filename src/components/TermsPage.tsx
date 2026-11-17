@@ -136,11 +136,11 @@ export function TermsPage({ t, accent, audience, onClose }: TermsPageProps) {
           })}
         </div>
 
-        <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>
+        <p className="text-[13px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>
           {narratorDisclosureLine(audience)}
         </p>
 
-        <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>
+        <p className="text-[13px] text-center mt-6 leading-relaxed max-w-sm" style={{ color: t.textDim }}>
           Using Sanctum means accepting these terms. The panic button in any conversation wipes
           everything Sanctum holds on this device.
         </p>

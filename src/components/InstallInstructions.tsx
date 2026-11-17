@@ -90,7 +90,7 @@ export function InstallInstructions({
 
   return (
     <div>
-      <p className="text-[11px] leading-relaxed mb-3" style={{ color: tokens.textMuted }}>
+      <p className="text-[13px] leading-relaxed mb-3" style={{ color: tokens.textMuted }}>
         No app store, no account — ten seconds, and Sanctum is one tap away every morning
         and every hard night.
       </p>
@@ -110,7 +110,7 @@ export function InstallInstructions({
           {steps.map((step, i) => (
             <li key={i} className="flex items-start gap-2.5">
               <span
-                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold border"
+                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-bold border"
                 style={{
                   backgroundColor: tokens.accentSoft,
                   borderColor: tokens.accent,
@@ -119,7 +119,7 @@ export function InstallInstructions({
               >
                 {i + 1}
               </span>
-              <span className="text-[11px] leading-relaxed" style={{ color: tokens.text }}>
+              <span className="text-[13px] leading-relaxed" style={{ color: tokens.text }}>
                 {step}
               </span>
             </li>
@@ -128,7 +128,7 @@ export function InstallInstructions({
       )}
 
       {platform === 'ios' && !inApp && (
-        <p className="flex items-center gap-1.5 text-[10px] mt-3" style={{ color: tokens.textDim }}>
+        <p className="flex items-center gap-1.5 text-[12px] mt-3" style={{ color: tokens.textDim }}>
           <Share className="w-3 h-3 flex-shrink-0" />
           Look for this Share icon in Safari&rsquo;s toolbar.
         </p>

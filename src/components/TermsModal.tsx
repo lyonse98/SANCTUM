@@ -84,7 +84,7 @@ export function TermsModal({ onAccept }: TermsModalProps) {
           >
             {MISSION_LINE}
           </p>
-          <p className="text-[9px] uppercase tracking-[0.25em] mt-1" style={{ color: '#A39A8A' }}>
+          <p className="text-[12px] uppercase tracking-[0.25em] mt-1" style={{ color: '#A39A8A' }}>
             {MISSION_ATTRIBUTION}
           </p>
         </div>
@@ -93,7 +93,7 @@ export function TermsModal({ onAccept }: TermsModalProps) {
           <div style={{ borderTop: '1px solid #DCD3C5' }} className="pt-3.5 pb-1">
             <div className="flex items-start gap-2.5">
               <Heart className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
-              <p className="text-[11px] leading-relaxed" style={{ color: '#4A443C' }}>
+              <p className="text-[13px] leading-relaxed" style={{ color: '#4A443C' }}>
                 If you are in crisis or considering self-harm, this app is not a substitute for professional
                 help. Call or text{' '}
                 <a href="tel:988" className="font-bold underline underline-offset-2" style={{ color: '#B91C1C' }}>
@@ -104,7 +104,7 @@ export function TermsModal({ onAccept }: TermsModalProps) {
             </div>
           </div>
 
-          <p className="text-[11px] leading-relaxed text-center mt-3" style={{ color: '#756D61' }}>
+          <p className="text-[13px] leading-relaxed text-center mt-3" style={{ color: '#756D61' }}>
 {PRIVACY_PARAGRAPH}
           </p>
         </div>
@@ -113,7 +113,7 @@ export function TermsModal({ onAccept }: TermsModalProps) {
           {/* The one choice the door asks for: which track of Sanctum is hers (or his).
               Same Gospel, same saints' wisdom — companions, reflections, and
               examinations written for the life actually being lived. */}
-          <p className="text-[11px] leading-relaxed text-center mb-3" style={{ color: '#756D61' }}>
+          <p className="text-[13px] leading-relaxed text-center mb-3" style={{ color: '#756D61' }}>
             Sanctum is kept in two tracks, so the reflections and companions are written for your
             life. Choose yours — you can change it later in Settings.
           </p>
@@ -137,7 +137,7 @@ export function TermsModal({ onAccept }: TermsModalProps) {
                   }}
                 >
                   <span className="block text-sm font-bold" style={{ fontFamily: PRINT_SERIF }}>{opt.label}</span>
-                  <span className="block text-[10px] mt-0.5" style={{ color: selected ? '#E7E2D6' : '#A39A8A' }}>
+                  <span className="block text-[12px] mt-0.5" style={{ color: selected ? '#E7E2D6' : '#A39A8A' }}>
                     {opt.sub}
                   </span>
                 </button>
@@ -175,7 +175,7 @@ export function TermsModal({ onAccept }: TermsModalProps) {
               unchanged. */}
           <div className="flex items-start gap-2.5 mt-5">
             <Scroll className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#C2410C' }} />
-            <p className="text-[11px] leading-relaxed" style={{ color: '#4A443C' }}>
+            <p className="text-[13px] leading-relaxed" style={{ color: '#4A443C' }}>
               Sanctum is an automated AI spiritual companion and habit tool designed for educational,
               reflective, and devotional purposes only. It is <span className="font-bold" style={{ color: '#1B1815' }}>NOT</span> a
               licensed mental health service, medical device, crisis intervention platform, or official
@@ -184,11 +184,11 @@ export function TermsModal({ onAccept }: TermsModalProps) {
           </div>
           <div className="mt-5 pt-3" style={{ borderTop: '1px solid #DCD3C5' }}>
             <div className="flex items-center justify-center gap-2 flex-wrap">
-              <span className="text-[10px] stamped flex items-center gap-1" style={{ color: '#A39A8A' }}>
+              <span className="text-[12px] stamped flex items-center gap-1" style={{ color: '#A39A8A' }}>
                 <Lock className="w-3 h-3" /> Nothing You Write Is Stored on a Server
               </span>
-              <span className="text-[10px]" style={{ color: '#A39A8A' }}>•</span>
-              <span className="text-[10px] stamped flex items-center gap-1" style={{ color: '#A39A8A' }}>
+              <span className="text-[12px]" style={{ color: '#A39A8A' }}>•</span>
+              <span className="text-[12px] stamped flex items-center gap-1" style={{ color: '#A39A8A' }}>
                 <Zap className="w-3 h-3" /> No Account Needed
               </span>
             </div>

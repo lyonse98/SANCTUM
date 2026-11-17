@@ -26,7 +26,7 @@ export function PrintPageHead({ t, title, onBack, onClose }: PrintPageHeadProps)
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="text-[11px] font-bold uppercase tracking-[0.18em] transition-opacity hover:opacity-70 py-1"
+          className="text-[12px] font-bold uppercase tracking-[0.18em] transition-opacity hover:opacity-70 py-1"
           style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
         >
           &lsaquo; Today

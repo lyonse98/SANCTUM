@@ -160,7 +160,7 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
             key={set}
             onClick={() => handleSetChange(set)}
             aria-pressed={mysterySet === set}
-            className="min-h-[40px] px-3 py-1.5 text-[11px] font-bold transition-opacity hover:opacity-80 active:opacity-60"
+            className="min-h-[40px] px-3 py-1.5 text-[12px] font-bold transition-opacity hover:opacity-80 active:opacity-60"
             style={
               mysterySet === set
                 ? { backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, color: t.accent, border: `1px solid ${t.accent}` }
@@ -178,13 +178,13 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
           className="px-4 py-3 mb-4 border text-center animate-fade-in"
           style={{ backgroundColor: t.accentRgba(0.06), borderColor: t.accentRgba(0.2) }}
         >
-          <p className="text-[10px] uppercase tracking-widest font-bold mb-1" style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+          <p className="text-[12px] uppercase tracking-widest font-bold mb-1" style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
             {SET_LABELS[mysterySet]} Mystery · {phase.kind === 'decade' ? phase.decadeIndex + 1 : 1} of 5
           </p>
           <p className="text-sm font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
             {currentMystery.name}
           </p>
-          <p className="text-[11px] mt-1" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+          <p className="text-[12px] mt-1" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             {currentMystery.scripture} · Fruit: {currentMystery.fruit}
           </p>
         </div>
@@ -216,7 +216,7 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
           {prayer.title}
         </p>
         {prayer.sub && (
-          <p className="text-[11px] italic mt-2" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+          <p className="text-[12px] italic mt-2" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             {prayer.sub}
           </p>
         )}
@@ -228,10 +228,10 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
       {/* Progress bar */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] uppercase tracking-widest font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+          <span className="text-[12px] uppercase tracking-widest font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             Progress
           </span>
-          <span className="text-[10px] font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+          <span className="text-[12px] font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             {progress}%
           </span>
         </div>

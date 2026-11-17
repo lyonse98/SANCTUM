@@ -662,7 +662,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             <div className="max-w-2xl mx-auto px-4 py-2">
               <button
                 onClick={() => handleChangeView('today')}
-                className="text-[11px] font-bold uppercase tracking-[0.18em] transition-opacity hover:opacity-70 py-1"
+                className="text-[12px] font-bold uppercase tracking-[0.18em] transition-opacity hover:opacity-70 py-1"
                 style={{ fontFamily: PRINT_SERIF, color: areaTheme.textMuted }}
               >
                 &lsaquo; Today
@@ -768,15 +768,15 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           className="px-4 py-1.5 border-b"
           style={{ backgroundColor: t.accentRgba(0.05), borderColor: t.border }}
         >
-          <p className="text-[11px] text-center" style={{ color: t.textDim }}>
+          <p className="text-[13px] text-center" style={{ color: t.textDim }}>
             Incognito mode — this conversation is not saved. Your saved conversation is paused, untouched.
           </p>
         </div>
       )}
 
-      <div className="px-4 py-1.5 flex items-center justify-center gap-2">
+      <div className="px-4 py-1.5 flex flex-wrap items-center justify-center gap-2">
         <span
-          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-widest"
+          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[12px] font-bold uppercase tracking-widest"
           style={{
             backgroundColor: `${season.accentColor}15`,
             borderColor: `${season.accentColor}40`,
@@ -787,7 +787,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           {season.name}
         </span>
         <span
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[12px] font-bold uppercase tracking-wider"
           style={{ backgroundColor: t.accentRgba(0.06), borderColor: t.accentRgba(0.2), color: t.textDim }}
         >
           Not Stored · Sent to AI for Reply
@@ -804,7 +804,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         className="px-4 py-2 border-t text-center"
         style={{ borderColor: `${t.border}4D`, backgroundColor: `${t.bg}80`, paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
       >
-        <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
+        <p className="text-[13px] leading-relaxed" style={{ color: t.textDim }}>
           Sanctum — a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US).{' '}
           <button onClick={() => setShowTerms(true)} className="underline decoration-dotted hover:opacity-70 transition-opacity" style={{ color: t.textDim }}>
             Terms &amp; Privacy
@@ -812,7 +812,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         </p>
         <button
           onClick={() => handleChangeView('help')}
-          className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider mt-1.5 transition-opacity hover:opacity-70"
+          className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider mt-1.5 transition-opacity hover:opacity-70"
           style={{ color: t.accent }}
         >
           <HeartHandshake className="w-3 h-3" />
@@ -820,15 +820,15 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         </button>
         <button
           onClick={() => feedback?.openFeedback('chat')}
-          className="text-[10px] underline decoration-dotted hover:opacity-70 transition-opacity mt-1 inline-block"
+          className="text-[12px] underline decoration-dotted hover:opacity-70 transition-opacity mt-1 inline-block"
           style={{ color: t.textDim }}
         >
           Send Feedback
         </button>
-        <span className="text-[10px] mx-1.5" style={{ color: t.textDim }}>·</span>
+        <span className="text-[12px] mx-1.5" style={{ color: t.textDim }}>·</span>
         <button
           onClick={() => setShowAbout(true)}
-          className="text-[10px] underline decoration-dotted hover:opacity-70 transition-opacity mt-1 inline-block"
+          className="text-[12px] underline decoration-dotted hover:opacity-70 transition-opacity mt-1 inline-block"
           style={{ color: t.textDim }}
         >
           About Sanctum
@@ -890,7 +890,7 @@ function MessageCapModal({ t, onClose, onOpenHelp }: { t: Persona['theme']; onCl
         </p>
         {/* At the cap, a closing prayer — the conversation ends the way it
             should, in prayer — and then the outward pointer (Play 9b). */}
-        <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: t.textDim }}>
+        <p className="text-[12px] font-bold uppercase tracking-widest mb-1.5" style={{ color: t.textDim }}>
           A closing prayer
         </p>
         <p className="text-xs italic leading-relaxed mb-4" style={{ color: t.textMuted }}>

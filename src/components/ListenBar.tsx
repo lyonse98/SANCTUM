@@ -168,7 +168,7 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
   if (audio.status === 'failed') {
     // Erik's no-fallback rule, on screen: one plain line, nothing else.
     return (
-      <p className="text-[10px] mb-3" style={{ color: t.textDim }}>
+      <p className="text-[12px] mb-3" style={{ color: t.textDim }}>
         Audio is unavailable today.
       </p>
     );
@@ -472,13 +472,13 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
       </button>
       <div className="flex-1 min-w-0">
         <p
-          className="text-[10px] font-bold uppercase tracking-widest"
+          className="text-[12px] font-bold uppercase tracking-widest"
           style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
         >
           Listen to the Gospel
         </p>
         {total > 0 && (
-          <p className="text-[10px] truncate" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+          <p className="text-[12px] truncate" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             {preparedRef.current ? `${fmt(displayElapsed)} / ${fmt(total)}` : fmt(total)}
           </p>
         )}
@@ -512,7 +512,7 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
     </div>
     {showDisclosureNote && (
       <p
-        className="text-[10px] leading-relaxed mb-3 -mt-1 animate-fade-in"
+        className="text-[13px] leading-relaxed mb-3 -mt-1 animate-fade-in"
         style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
         data-listen-disclosure-note
       >
@@ -525,7 +525,7 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
           setShowListenPrompt(false);
           onOpenReminder();
         }}
-        className="w-full text-left text-[11px] font-medium mb-3 -mt-1 transition-opacity hover:opacity-70 animate-fade-in"
+        className="w-full text-left text-[12px] font-medium mb-3 -mt-1 transition-opacity hover:opacity-70 animate-fade-in"
         style={{ color: t.textMuted }}
         data-listen-reminder-line
       >

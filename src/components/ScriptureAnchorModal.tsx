@@ -77,7 +77,7 @@ export function ScriptureAnchorModal({ open, onClose, t }: ScriptureAnchorModalP
         </div>
 
         <div className="px-6 py-8 text-center">
-          <p className="text-[10px] uppercase tracking-[0.15em] font-bold mb-4" style={{ color: t.accent }}>
+          <p className="text-[12px] uppercase tracking-[0.15em] font-bold mb-4" style={{ color: t.accent }}>
             Today's Anchor
           </p>
           <blockquote

@@ -139,12 +139,12 @@ export function FeedbackModal({ open, onClose, t, page }: FeedbackModalProps) {
           </div>
         ) : (
           <div className="px-5 py-4">
-            <p className="text-[11px] leading-relaxed mb-4" style={{ color: t.textMuted }}>
+            <p className="text-[13px] leading-relaxed mb-4" style={{ color: t.textMuted }}>
               Tell us what is working, what is broken, or what is missing. This goes straight to the
               person who builds Sanctum.
             </p>
 
-            <p className="text-[10px] uppercase tracking-widest font-bold mb-2" style={{ color: t.textDim }}>
+            <p className="text-[12px] uppercase tracking-widest font-bold mb-2" style={{ color: t.textDim }}>
               What is this?
             </p>
             <div className="grid grid-cols-3 gap-2 mb-4">
@@ -163,7 +163,7 @@ export function FeedbackModal({ open, onClose, t, page }: FeedbackModalProps) {
                     }}
                   >
                     <Icon className="w-4 h-4" />
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-center leading-tight">
+                    <span className="text-[12px] font-bold uppercase tracking-wide text-center leading-tight">
                       {label}
                     </span>
                   </button>
@@ -173,7 +173,7 @@ export function FeedbackModal({ open, onClose, t, page }: FeedbackModalProps) {
 
             <label
               htmlFor="feedback-message"
-              className="block text-[10px] uppercase tracking-widest font-bold mb-2"
+              className="block text-[12px] uppercase tracking-widest font-bold mb-2"
               style={{ color: t.textDim }}
             >
               Your note
@@ -194,14 +194,14 @@ export function FeedbackModal({ open, onClose, t, page }: FeedbackModalProps) {
               style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
             />
             {trimmed.length > MAX_MESSAGE_LENGTH - 500 && (
-              <p className="text-[10px] mt-1 text-right" style={{ color: t.textDim }}>
+              <p className="text-[12px] mt-1 text-right" style={{ color: t.textDim }}>
                 {MAX_MESSAGE_LENGTH - trimmed.length} characters left
               </p>
             )}
 
             <label
               htmlFor="feedback-email"
-              className="block text-[10px] uppercase tracking-widest font-bold mb-2 mt-4"
+              className="block text-[12px] uppercase tracking-widest font-bold mb-2 mt-4"
               style={{ color: t.textDim }}
             >
               Email — optional
@@ -225,7 +225,7 @@ export function FeedbackModal({ open, onClose, t, page }: FeedbackModalProps) {
                 style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
               />
             </div>
-            <p className="text-[10px] leading-relaxed mt-2" style={{ color: t.textDim }}>
+            <p className="text-[13px] leading-relaxed mt-2" style={{ color: t.textDim }}>
               Leave it blank to stay anonymous. Your note is saved along with the name of the screen you
               were on — nothing else about you is recorded.
             </p>
@@ -236,7 +236,7 @@ export function FeedbackModal({ open, onClose, t, page }: FeedbackModalProps) {
                 style={{ backgroundColor: 'rgba(153,27,27,0.06)', borderColor: 'rgba(153,27,27,0.25)' }}
               >
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#991B1B' }} />
-                <p className="text-[10px] leading-relaxed" style={{ color: '#991B1B' }}>
+                <p className="text-[13px] leading-relaxed" style={{ color: '#991B1B' }}>
                   {error}
                 </p>
               </div>
@@ -254,7 +254,7 @@ export function FeedbackModal({ open, onClose, t, page }: FeedbackModalProps) {
               </span>
             </button>
 
-            <p className="text-[10px] leading-relaxed mt-3 text-center" style={{ color: t.textDim }}>
+            <p className="text-[13px] leading-relaxed mt-3 text-center" style={{ color: t.textDim }}>
               Nothing is emailed yet. Your note is saved where it can be read, so nothing is lost.
             </p>
           </div>

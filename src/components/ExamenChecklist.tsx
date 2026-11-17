@@ -94,7 +94,7 @@ export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenH
 
   const resetControl = completedCount > 0 ? (
     <div className="flex items-center gap-3">
-      <button onClick={reset} className="flex items-center gap-1 text-[11px] transition-colors" style={{ color: t.textDim }}>
+      <button onClick={reset} className="flex items-center gap-1 text-[12px] transition-colors" style={{ color: t.textDim }}>
         <RotateCcw className="w-3 h-3" /> Reset
       </button>
     </div>
@@ -126,14 +126,14 @@ export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenH
       >
         <div className="flex items-center gap-1.5 mb-1.5">
           <BookOpen className="w-3 h-3" style={{ color: t.accent, opacity: 0.7 }} />
-          <span className="text-[9px] uppercase tracking-widest font-bold" style={{ color: t.accent }}>
+          <span className="text-[12px] uppercase tracking-widest font-bold" style={{ color: t.accent }}>
             Today's Gospel
           </span>
         </div>
         <p className="text-xs italic leading-relaxed mb-1.5" style={{ color: t.textBright }}>
           &ldquo;{todayQuote.text}&rdquo;
         </p>
-        <p className="text-[10px] font-medium" style={{ color: t.textDim }}>
+        <p className="text-[12px] font-medium" style={{ color: t.textDim }}>
           — {todayQuote.author}{todayQuote.source && <span className="opacity-70">, {todayQuote.source}</span>}
         </p>
       </div>
@@ -161,10 +161,10 @@ export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenH
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: t.accent }}>{i + 1}</span>
+                    <span className="text-[12px] font-bold uppercase tracking-wide" style={{ color: t.accent }}>{i + 1}</span>
                     <span className="text-xs font-bold font-display uppercase tracking-wide" style={{ color: isChecked ? t.textBright : t.text }}>{step.label}</span>
                   </div>
-                  <p className="text-[11px] leading-relaxed" style={{ color: isChecked ? t.textMuted : t.textDim }}>{step.prompt}</p>
+                  <p className="text-[13px] leading-relaxed" style={{ color: isChecked ? t.textMuted : t.textDim }}>{step.prompt}</p>
                 </div>
               </button>
             </div>
@@ -182,7 +182,7 @@ export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenH
               {onOpenConfession && (
                 <button
                   onClick={onOpenConfession}
-                  className="text-[11px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
+                  className="text-[12px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
                   style={{ color: t.textMuted }}
                 >
                   Take tonight&rsquo;s examination to Confession
@@ -191,7 +191,7 @@ export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenH
               {onOpenHelp && (
                 <button
                   onClick={onOpenHelp}
-                  className="text-[11px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
+                  className="text-[12px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
                   style={{ color: t.textMuted }}
                 >
                   Find a priest · Real Help
@@ -202,7 +202,7 @@ export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenH
         </div>
       )}
 
-      <p className="text-[11px] text-center leading-relaxed mt-3" style={{ color: t.textDim }}>
+      <p className="text-[13px] text-center leading-relaxed mt-3" style={{ color: t.textDim }}>
         St. Ignatius' six-step examen, anchored in today's Gospel. Resets each night so you start fresh.
       </p>
     </div>

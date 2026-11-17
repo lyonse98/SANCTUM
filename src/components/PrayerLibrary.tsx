@@ -34,13 +34,13 @@ export function PrayerLibrary({ t }: PrayerLibraryProps) {
         }}
       >
         <span
-          className="text-[11px] font-bold uppercase tracking-widest"
+          className="text-[12px] font-bold uppercase tracking-widest"
           style={{ fontFamily: PRINT_SERIF, color: referenceOpen ? t.accent : t.textDim }}
         >
           Prayer reference
         </span>
         <span className="flex items-center gap-2" style={{ color: t.textDim }}>
-          <span className="text-[10px]" style={{ fontFamily: PRINT_SERIF }}>{PRAYERS.length} prayers</span>
+          <span className="text-[12px]" style={{ fontFamily: PRINT_SERIF }}>{PRAYERS.length} prayers</span>
           <ChevronDown
             className={`w-3.5 h-3.5 transition-transform duration-200 ${referenceOpen ? 'rotate-180' : ''}`}
           />
@@ -63,7 +63,7 @@ export function PrayerLibrary({ t }: PrayerLibraryProps) {
                 {isOpen && (
                   <div className="mt-1.5 px-3 py-3 border animate-fade-in" style={{ backgroundColor: `${t.border}14`, borderColor: t.border }}>
                     <p className="text-xs leading-relaxed whitespace-pre-wrap" style={{ fontFamily: PRINT_SERIF, color: t.text }}>{prayer.text}</p>
-                    {prayer.source && <p className="text-[10px] mt-2 italic" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>— {prayer.source}</p>}
+                    {prayer.source && <p className="text-[12px] mt-2 italic" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>— {prayer.source}</p>}
                   </div>
                 )}
               </div>

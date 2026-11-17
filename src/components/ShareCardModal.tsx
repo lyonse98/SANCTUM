@@ -358,21 +358,21 @@ export function ShareCardModal({ open, content, persona, onClose }: ShareCardMod
           {/* Quote type badge */}
           <div className="flex items-center justify-center gap-1.5 mt-2">
             {currentQuote.type === 'scripture' && (
-              <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: t.accentRgba(0.12), color: t.accent }}>
+              <span className="text-[12px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: t.accentRgba(0.12), color: t.accent }}>
                 Scripture
               </span>
             )}
             {currentQuote.type === 'quote' && (
-              <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: t.accentRgba(0.12), color: t.accent }}>
+              <span className="text-[12px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: t.accentRgba(0.12), color: t.accent }}>
                 Quote
               </span>
             )}
             {currentQuote.type === 'counsel' && (
-              <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: t.accentRgba(0.12), color: t.accent }}>
+              <span className="text-[12px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: t.accentRgba(0.12), color: t.accent }}>
                 Counsel
               </span>
             )}
-            <span className="text-[10px]" style={{ color: t.textDim }}>
+            <span className="text-[12px]" style={{ color: t.textDim }}>
               {selectedIdx + 1} of {candidates.length}
             </span>
           </div>
@@ -383,7 +383,7 @@ export function ShareCardModal({ open, content, persona, onClose }: ShareCardMod
               <button
                 key={s}
                 onClick={() => setStyle(s)}
-                className="flex-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all border"
+                className="flex-1 px-2 py-1.5 rounded-lg text-[12px] font-medium transition-all border"
                 style={
                   style === s
                     ? { backgroundColor: t.accentRgba(0.12), color: t.accent, borderColor: t.accentRgba(0.3) }
@@ -395,7 +395,7 @@ export function ShareCardModal({ open, content, persona, onClose }: ShareCardMod
             ))}
           </div>
 
-          <p className="text-[11px] mt-3 text-center leading-relaxed" style={{ color: t.textDim }}>
+          <p className="text-[13px] mt-3 text-center leading-relaxed" style={{ color: t.textDim }}>
             Only the saint's name and their words are shared. Your conversation stays private.
           </p>
 

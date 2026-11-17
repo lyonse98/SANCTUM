@@ -138,7 +138,7 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
         {/* Last night's resolve — one small line over the morning, gone by midday. */}
         {lastNightsResolve && (
           <p
-            className="w-full text-center text-[11px] italic text-forge-text-dim mb-5 animate-fade-in"
+            className="w-full text-center text-[13px] italic text-forge-text-dim mb-5 animate-fade-in"
             style={{ fontFamily: PRINT_SERIF }}
           >
             Last night&rsquo;s resolve: {lastNightsResolve}
@@ -159,7 +159,7 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
             2026): one tappable line under the masthead, reachable without a
             scroll — the footer's line stays, and is a link now too. */}
         <p
-          className="w-full text-center text-[11px] mb-5"
+          className="w-full text-center text-[13px] mb-5"
           style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textMuted }}
         >
           In crisis? Call or text{' '}
@@ -197,7 +197,7 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
         {(novenaArc || advent) && (
           <div className="w-full mb-5 text-center" data-in-progress>
             <p
-              className="text-[9px] font-bold uppercase tracking-[0.2em] mb-1.5"
+              className="text-[12px] font-bold uppercase tracking-[0.2em] mb-1.5"
               style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textDim }}
             >
               In progress
@@ -206,7 +206,7 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
               <button
                 data-novena-arc
                 onClick={() => (onOpenNovenas ? onOpenNovenas() : onNavigate('church'))}
-                className="block w-full text-[11px] py-1 transition-opacity hover:opacity-70"
+                className="block w-full text-[12px] py-1 transition-opacity hover:opacity-70"
                 style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textMuted }}
               >
                 {novenaArc.name} &middot; day {novenaArc.dayCount} of 9
@@ -215,7 +215,7 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
             {advent && (
               <p
                 data-advent-arc
-                className="text-[11px] py-1"
+                className="text-[12px] py-1"
                 style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textMuted }}
               >
                 Advent &middot; day {advent.day} of {advent.totalDays}
@@ -248,7 +248,7 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
               style={{ borderBottom: `1px dotted ${seasonTheme.textDim}` }}
             />
             <span
-              className="text-[10px] italic flex-shrink-0"
+              className="text-[12px] italic flex-shrink-0"
               style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textDim }}
             >
               For your morning
@@ -277,7 +277,7 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
         </div>
 
         <p
-          className="text-[11px] text-forge-text-dim text-center leading-relaxed max-w-xs mb-5"
+          className="text-[13px] text-forge-text-dim text-center leading-relaxed max-w-xs mb-5"
           style={{ fontFamily: PRINT_SERIF }}
         >
           Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text{' '}

@@ -98,7 +98,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
     <div>
       <label
         htmlFor={timeFieldId}
-        className="block text-[10px] uppercase tracking-widest font-bold mb-2"
+        className="block text-[12px] uppercase tracking-widest font-bold mb-2"
         style={{ color: t.textDim }}
       >
         At this time
@@ -121,7 +121,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
       style={{ backgroundColor: `${t.border}26`, borderColor: `${t.border}66` }}
     >
       <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.textDim }} />
-      <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
+      <p className="text-[13px] leading-relaxed" style={{ color: t.textDim }}>
         This is the one thing Sanctum keeps on a server: an anonymous notification address for
         this device, and the time you chose — no name, no account, nothing you have written to a
         companion.
@@ -137,7 +137,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
         {/* The steps come first, in plain words (Play 3): a man who opened
             this sheet to set a reminder should meet the one thing he has to
             do, not a paragraph about it. The why follows the steps. */}
-        <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
+        <p className="text-[13px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
           First, put Sanctum on your Home Screen — three taps, about ten seconds:
         </p>
         <InstallInstructions
@@ -151,7 +151,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
             textDim: t.textDim,
           }}
         />
-        <p className="text-[11px] leading-relaxed mt-3" style={{ color: t.textMuted }}>
+        <p className="text-[13px] leading-relaxed mt-3" style={{ color: t.textMuted }}>
           Why: on an iPhone, notifications only reach apps that live on the Home Screen — a
           browser tab cannot receive notifications. Once Sanctum is there, open it from the
           icon, and this sheet will let you turn the reminder on.
@@ -160,7 +160,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
     );
   } else if (pushState === 'unsupported') {
     body = (
-      <p className="text-[11px] leading-relaxed" style={{ color: t.textMuted }}>
+      <p className="text-[13px] leading-relaxed" style={{ color: t.textMuted }}>
         This browser cannot receive notifications, so the reminder cannot reach you here. On an
         iPhone, Sanctum needs to be on the Home Screen; on a computer or an Android phone, a
         current Chrome, Edge, Firefox, or Safari will work.
@@ -169,11 +169,11 @@ export function ReminderForm({ t }: ReminderFormProps) {
   } else if (pushState === 'denied') {
     body = (
       <div>
-        <p className="text-[11px] leading-relaxed mb-2" style={{ color: t.textMuted }}>
+        <p className="text-[13px] leading-relaxed mb-2" style={{ color: t.textMuted }}>
           Notifications are turned off for Sanctum, and the browser will not ask again from
           here. You can turn them back on yourself:
         </p>
-        <p className="text-[11px] leading-relaxed" style={{ color: t.textMuted }}>
+        <p className="text-[13px] leading-relaxed" style={{ color: t.textMuted }}>
           On iPhone: Settings → Notifications → Sanctum → Allow Notifications. On Android or a
           computer: the lock or tune icon beside the address → site settings → Notifications →
           Allow. Then come back to this sheet.
@@ -210,7 +210,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
         <button
           onClick={() => void handleTest()}
           disabled={busy}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-[11px] font-bold transition-all active:scale-[0.98] disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-[12px] font-bold transition-all active:scale-[0.98] disabled:opacity-60"
           style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}99`, color: t.textMuted }}
         >
           {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
@@ -220,7 +220,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
         <button
           onClick={() => void handleOff()}
           disabled={busy}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-[11px] font-bold transition-all active:scale-[0.98] disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-[12px] font-bold transition-all active:scale-[0.98] disabled:opacity-60"
           style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}99`, color: t.textMuted }}
         >
           {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellOff className="w-3.5 h-3.5" />}
@@ -234,7 +234,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
     // 'default' (never asked) or 'granted' (permission given, subscription missing)
     body = (
       <div className="space-y-3">
-        <p className="text-[11px] leading-relaxed" style={{ color: t.textMuted }}>
+        <p className="text-[13px] leading-relaxed" style={{ color: t.textMuted }}>
           A short notification at the time you choose — and tapping it opens today's
           Gospel. The notification itself says only that your Gospel and
           reflection are ready; everything it points to stays inside the app.
@@ -245,7 +245,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
         {/* One sentence of warning before the phone's own ask appears
             (audit W-7, Nov 16, 2026): the permission prompt is never the
             first explanation a man gets. */}
-        <p className="text-[11px] leading-relaxed" style={{ color: t.textMuted }}>
+        <p className="text-[13px] leading-relaxed" style={{ color: t.textMuted }}>
           When you tap below, your phone will ask whether Sanctum may send notifications —
           that ask is only for this reminder.
         </p>
@@ -285,7 +285,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
           ) : (
             <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#991B1B' }} />
           )}
-          <p className="text-[10px] leading-relaxed" style={{ color: message.ok ? t.textMuted : '#991B1B' }}>
+          <p className="text-[13px] leading-relaxed" style={{ color: message.ok ? t.textMuted : '#991B1B' }}>
             {message.text}
           </p>
         </div>

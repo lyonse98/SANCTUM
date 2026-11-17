@@ -156,7 +156,7 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
                       }}
                     >
                       <span
-                        className="text-[11px] font-bold uppercase tracking-widest"
+                        className="text-[12px] font-bold uppercase tracking-widest"
                         style={{ fontFamily: PRINT_SERIF, color: open ? t.accent : t.textDim }}
                       >
                         {section.label}
@@ -178,7 +178,7 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
           {activeTab === 'ask' && <PocketCatechism t={t} audience={audience} />}
         </div>
 
-        <p className="text-[10px] text-center mt-6 leading-relaxed max-w-xs" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+        <p className="text-[13px] text-center mt-6 leading-relaxed max-w-xs" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
           Pocket Church is for faith formation, not sacramental absolution. For the sacraments, see a priest.
         </p>
 

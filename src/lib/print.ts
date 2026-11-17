@@ -31,12 +31,16 @@ export const PRINT_PLATE_CLASS =
 /**
  * The stamped label (Stage 2 of the re-skin, Erik, Nov 14, 2026): small
  * caps, letterspaced, set in the serif voice — the way a printed book
- * stamps a section's name in the margin or over a rule. Callers supply
+ * stamps a section's name in the margin or over a rule. Set at 12px —
+ * the readable floor of the retention readability pass (Play 2): stamps
+ * name sections and label forms, so they are information, not ornament,
+ * and the idiom survives at a size the parish backbone can read.
+ * Callers supply
  * PRINT_SERIF and the calendar-owned accent (or a quieter ink) inline,
  * exactly as Stage 1's Gospel header does. Rooms use this for every
  * section label so the stamp is one by construction.
  */
-export const PRINT_STAMP_CLASS = 'text-[10px] font-bold uppercase tracking-[0.2em]';
+export const PRINT_STAMP_CLASS = 'text-[12px] font-bold uppercase tracking-[0.2em]';
 
 /**
  * The chosen state for a printed choice (Stage 2): where the form or the

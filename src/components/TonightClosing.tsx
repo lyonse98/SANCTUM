@@ -239,7 +239,7 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
 
       <label
         htmlFor="tonight-resolve"
-        className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5"
+        className="block text-[12px] font-bold uppercase tracking-[0.15em] mb-1.5"
         style={{ color: t.textDim }}
       >
         One resolve for tomorrow
@@ -262,7 +262,7 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
       {isSaturday && (
         <div data-tomorrow-at-mass className="mt-4 pt-3.5" style={{ borderTop: `1px solid ${t.border}` }}>
           <p
-            className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1.5"
+            className="text-[12px] font-bold uppercase tracking-[0.2em] mb-1.5"
             style={{ fontFamily: PRINT_SERIF, color: t.accent }}
           >
             Tomorrow at Mass
@@ -276,7 +276,7 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
 
           {sundayVerse && (
             <div className="mb-3">
-              <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
+              <p className="text-[12px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
                 Sunday&rsquo;s Gospel &middot; {sundayVerse.citation}
               </p>
               <p
@@ -290,7 +290,7 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
 
           <label
             htmlFor="mass-intention"
-            className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5"
+            className="block text-[12px] font-bold uppercase tracking-[0.15em] mb-1.5"
             style={{ color: t.textDim }}
           >
             Bring to Mass tomorrow:
@@ -310,7 +310,7 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
               <p className="text-[13px] font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
                 {massSection.title}
               </p>
-              <p className="text-[11px] mb-2" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+              <p className="text-[12px] mb-2" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
                 {massSection.tagline}
               </p>
               {onOpenHelp && (
@@ -324,7 +324,7 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
                     <span className="block text-[12px] font-bold" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
                       Real Help · Mass
                     </span>
-                    <span className="block text-[10px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+                    <span className="block text-[12px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                       Find a parish and its Mass times
                     </span>
                   </span>

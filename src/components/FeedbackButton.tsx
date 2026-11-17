@@ -24,7 +24,7 @@ export function FeedbackButton({ theme, page }: { theme: PersonaTheme; page?: st
           style={{ backgroundColor: t.bg, borderColor: t.border }}
         >
           <div className="px-3 py-2 border-b" style={{ borderColor: `${t.border}66` }}>
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: t.textDim }}>
+            <p className="text-[12px] font-bold uppercase tracking-[0.2em]" style={{ color: t.textDim }}>
               Talk to the builder
             </p>
           </div>
@@ -36,10 +36,10 @@ export function FeedbackButton({ theme, page }: { theme: PersonaTheme; page?: st
           >
             <Bug className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.accent }} />
             <div>
-              <p className="text-[11px] font-bold" style={{ color: t.textBright }}>
+              <p className="text-[12px] font-bold" style={{ color: t.textBright }}>
                 Something is broken
               </p>
-              <p className="text-[10px] leading-snug" style={{ color: t.textDim }}>
+              <p className="text-[12px] leading-snug" style={{ color: t.textDim }}>
                 Tell us what went wrong
               </p>
             </div>
@@ -53,10 +53,10 @@ export function FeedbackButton({ theme, page }: { theme: PersonaTheme; page?: st
           >
             <Lightbulb className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.accent }} />
             <div>
-              <p className="text-[11px] font-bold" style={{ color: t.textBright }}>
+              <p className="text-[12px] font-bold" style={{ color: t.textBright }}>
                 I have an idea
               </p>
-              <p className="text-[10px] leading-snug" style={{ color: t.textDim }}>
+              <p className="text-[12px] leading-snug" style={{ color: t.textDim }}>
                 Something that would help
               </p>
             </div>
@@ -80,7 +80,7 @@ export function FeedbackButton({ theme, page }: { theme: PersonaTheme; page?: st
       >
         {expanded ? <X className="w-4 h-4" /> : <MessageSquarePlus className="w-4 h-4" />}
         {expanded && (
-          <span className="text-[10px] font-bold uppercase tracking-wider">Feedback</span>
+          <span className="text-[12px] font-bold uppercase tracking-wider">Feedback</span>
         )}
       </button>
     </div>

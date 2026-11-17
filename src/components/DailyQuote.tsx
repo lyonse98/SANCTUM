@@ -289,14 +289,14 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
         style={{ borderBottom: `1px solid ${t.border}` }}
       >
         <span
-          className="text-[10px] font-bold uppercase tracking-[0.2em]"
+          className="text-[12px] font-bold uppercase tracking-[0.2em]"
           style={{ fontFamily: PRINT_SERIF, color: t.accent }}
         >
           Today&rsquo;s Gospel
         </span>
         <span className="flex items-center gap-2 min-w-0">
           {readings?.season && (
-            <span className="text-[8px] uppercase tracking-widest font-bold truncate" style={{ color: t.textDim }}>
+            <span className="text-[12px] uppercase tracking-widest font-bold truncate" style={{ color: t.textDim }}>
               {readings.season}
             </span>
           )}
@@ -306,7 +306,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
       {readings?.celebration && (
         <div className="flex items-baseline gap-2 mb-3">
           <span
-            className="text-[9px] uppercase tracking-widest font-bold flex-shrink-0"
+            className="text-[12px] uppercase tracking-widest font-bold flex-shrink-0"
             style={{ color: t.accent }}
           >
             {feast ? feastRankLabel(feast.rank) : 'Today'}
@@ -334,7 +334,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
       )}
 
       {!loading && staleDate && (
-        <p className="text-[10px] mb-3" style={{ color: t.textDim }}>
+        <p className="text-[13px] mb-3" style={{ color: t.textDim }}>
           Showing the readings for {new Date(`${staleDate}T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} — today&rsquo;s could not be loaded.
         </p>
       )}
@@ -342,7 +342,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
       {loading && (
         <div className="flex items-center gap-2" style={{ color: t.textDim }}>
           <Loader2 className="w-3 h-3 animate-spin" />
-          <span className="text-[10px]">Loading today&rsquo;s Gospel&hellip;</span>
+          <span className="text-[12px]">Loading today&rsquo;s Gospel&hellip;</span>
         </div>
       )}
 
@@ -353,7 +353,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           the expander directly beneath it (Erik's order, Nov 14, 2026). */}
       {!loading && readings && keyVerse && (
         <>
-          <p className="text-[9px] uppercase tracking-widest font-bold mb-1.5" style={{ color: t.textDim }}>
+          <p className="text-[12px] uppercase tracking-widest font-bold mb-1.5" style={{ color: t.textDim }}>
             The Gospel &middot; {keyVerse.citation}
           </p>
           <p
@@ -393,7 +393,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           loaded at all: a word for the day stands in, as it always has. */}
       {!loading && !readings && (
         <>
-          <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
+          <p className="text-[12px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
             A word for today
           </p>
           <p
@@ -402,7 +402,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           >
             &ldquo;{quote.text}&rdquo;
           </p>
-          <p className="text-[11px] mb-3 font-medium" style={{ color: t.textDim }}>
+          <p className="text-[12px] mb-3 font-medium" style={{ color: t.textDim }}>
             — {quote.author}
             {quote.source && <span className="opacity-70">, {quote.source}</span>}
           </p>
@@ -420,7 +420,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
         <button
           onClick={toggleExpanded}
           aria-expanded={expanded}
-          className="w-full flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest mt-3 transition-opacity hover:opacity-70"
+          className="w-full flex items-center justify-center gap-1 text-[12px] font-bold uppercase tracking-widest mt-3 transition-opacity hover:opacity-70"
           style={{ color: t.accent }}
         >
           {expanded ? 'Hide the full readings' : 'Read the full readings'}
@@ -436,7 +436,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           {loadingAll && !allTexts && (
             <div className="flex items-center gap-2" style={{ color: t.textDim }}>
               <Loader2 className="w-3 h-3 animate-spin" />
-              <span className="text-[10px]">Loading the day&rsquo;s readings&hellip;</span>
+              <span className="text-[12px]">Loading the day&rsquo;s readings&hellip;</span>
             </div>
           )}
 
@@ -444,7 +444,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
             .filter((row) => row.passage?.text)
             .map((row) => (
               <div key={row.label}>
-                <p className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: t.accent }}>
+                <p className="text-[12px] uppercase tracking-widest font-bold mb-1" style={{ color: t.accent }}>
                   {row.label} &middot; {row.passage!.citation}
                 </p>
                 <p
@@ -454,7 +454,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                   {row.passage!.text}
                 </p>
                 {row.label === 'Gospel' && (
-                  <p className="text-[9px] mt-1.5" style={{ color: t.textDim }}>
+                  <p className="text-[12px] mt-1.5" style={{ color: t.textDim }}>
                     Text: {row.passage!.translation === 'douayrheims' ? 'Douay-Rheims' : 'World English Bible'} (public domain).
                   </p>
                 )}
@@ -465,7 +465,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           {orderedReadings
             .filter((row) => !row.passage?.text)
             .map((row) => (
-              <p key={row.label} className="text-[10px]" style={{ color: t.textDim }}>
+              <p key={row.label} className="text-[12px]" style={{ color: t.textDim }}>
                 {row.label}: {row.citation}
                 {loadingAll ? ' — loading…' : ''}
               </p>
@@ -476,7 +476,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
               href={readings.usccbLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] font-bold transition-opacity hover:opacity-70"
+              className="inline-flex items-center gap-1 text-[12px] font-bold transition-opacity hover:opacity-70"
               style={{ color: t.accent }}
             >
               <BookOpen className="w-3 h-3" />
@@ -487,7 +487,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
 
           <button
             onClick={() => setExpanded(false)}
-            className="w-full flex items-center justify-center gap-1 text-[10px] transition-opacity hover:opacity-70"
+            className="w-full flex items-center justify-center gap-1 text-[12px] transition-opacity hover:opacity-70"
             style={{ color: t.textDim }}
           >
             <X className="w-3 h-3" />
@@ -507,7 +507,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           {shown.pending && !shown.value ? (
             <div className="flex items-center gap-2" style={{ color: t.textDim }}>
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span className="text-[10px]">Preparing today&rsquo;s reflection&hellip;</span>
+              <span className="text-[12px]">Preparing today&rsquo;s reflection&hellip;</span>
             </div>
           ) : shown.value ? (
             <>
@@ -571,7 +571,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                 style={{ borderBottom: `1px dotted ${t.textDim}` }}
               />
               <span
-                className="text-[10px] italic flex-shrink-0"
+                className="text-[12px] italic flex-shrink-0"
                 style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
               >
                 For your day
@@ -601,7 +601,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                 style={{ borderBottom: `1px dotted ${t.textDim}` }}
               />
               <span
-                className="text-[10px] italic flex-shrink-0"
+                className="text-[12px] italic flex-shrink-0"
                 style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
               >
                 {preparing ? 'Gathering the readings…' : 'With a companion'}
@@ -627,7 +627,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
             style={{ backgroundColor: `${t.border}33`, borderColor: `${t.border}99`, color: t.textMuted }}
           >
             <Share2 className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="text-[11px] font-bold uppercase tracking-wide">Share today&rsquo;s Gospel</span>
+            <span className="text-[12px] font-bold uppercase tracking-wide">Share today&rsquo;s Gospel</span>
           </button>
         </>
       )}
