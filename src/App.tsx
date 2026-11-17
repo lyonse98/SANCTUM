@@ -41,9 +41,13 @@ import { detectCrisisLevel } from '@/lib/crisis';
 import { track, trackNow, type EventProperty } from '@/lib/analytics';
 import { loadHistory, saveHistory, clearHistory, wipeAllSanctumData } from '@/lib/storage';
 import { savePersonaId } from '@/lib/personaStorage';
-import { getPersona } from '@/personas';
+import { getPersona, personaForAudience } from '@/personas';
 import { loadAudience, saveAudience } from '@/lib/audience';
-import { getRemainingMessages, incrementDailyMessageCount, isAtMessageCap, DAILY_MESSAGE_CAP } from '@/lib/messageCap';
+import { getRemainingMessages, incrementDailyMessageCount, isAtMessageCap, DAILY_MESSAGE_CAP, CAP_CLOSING_PRAYER, CAP_OUTWARD_LINE } from '@/lib/messageCap';
+import { recordCoreAct } from '@/lib/daysPrayed';
+import { loadLastSurface, saveLastSurface, shouldRestoreSurface } from '@/lib/lastSurface';
+import { loadScrollPosition, saveScrollPosition } from '@/lib/scrollMemory';
+import { PRINT_SERIF } from '@/lib/print';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
 import type { Audience, ChatMessage, Message, PresetChip, Persona, PersonaId, PersonaTheme, TabId, UtilityActions } from '@/types';
@@ -125,6 +129,14 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [remainingMessages, setRemainingMessages] = useState(() => getRemainingMessages());
   const [showCapModal, setShowCapModal] = useState(false);
   const [view, setView] = useState<TabId>('today');
+  // How this cold start arrived, captured on the first render — before the
+  // focus effect below cleans the URL. A reminder tap (?focus=…) or a deep
+  // link (#daily-gospel) names its own landing, and that landing must still
+  // be recognisable when the post-gate restore decision runs (Play 6).
+  const [arrival] = useState(() => ({
+    hasFocusParam: parseFocusParam(window.location.search) !== null,
+    hasDeepLinkHash: window.location.hash.length > 1,
+  }));
   const [churchTab, setChurchTab] = useState<ChurchTab | null>(null);
   const [churchPray, setChurchPray] = useState<PraySection | null>(null);
   const [forceExamen, setForceExamen] = useState(false);
@@ -286,6 +298,9 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       const newCount = incrementDailyMessageCount();
       setRemainingMessages(Math.max(0, DAILY_MESSAGE_CAP - newCount));
+      // A sent message is the day's companion act (Play 9c): the days-prayed
+      // tally counts the day once, however many messages follow.
+      recordCoreAct('companion');
 
       const recentMessages = newMessages.filter((m) => !m.kind).slice(-MAX_HISTORY_TURNS);
       const apiMessages: Message[] = recentMessages.map((m) => ({ role: m.role, content: m.content }));
@@ -453,6 +468,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     setAudience(loadAudience());
     setRemainingMessages(getRemainingMessages());
     setMessages([]);
+    setView('today');
     setPersonaId(null);
     setIncognito(false);
     setIsStreaming(false);
@@ -477,6 +493,49 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   useEffect(() => {
     void resyncPushTimezoneIfNeeded();
   }, []);
+
+  // One-tap return (Play 6, Nov 16, 2026). On a cold start, once the gate
+  // is passed, restore the surface (and companion) the user last stood on
+  // instead of always landing on Today. This effect is declared BEFORE the
+  // focus effect below and before the save effect, and it decides from the
+  // arrival captured on first render — so a reminder tap or deep link,
+  // whose routing the focus effect owns, always wins. It runs once: later
+  // navigation is the user's, never the memory's.
+  const restoreAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (!termsAccepted || restoreAttemptedRef.current) return;
+    restoreAttemptedRef.current = true;
+    if (!shouldRestoreSurface({ hasFocusParam: arrival.hasFocusParam, hasDeepLinkHash: arrival.hasDeepLinkHash, gatePassed: termsAccepted })) return;
+    const saved = loadLastSurface();
+    if (!saved) return;
+    if (saved.surface === 'chat' && saved.companionId) {
+      // Resume the conversation itself — the intro splash belongs to a
+      // fresh companion entry, not to a return. A companion from the other
+      // track can never be restored: the companions index stands instead.
+      const restored = personaForAudience(saved.companionId, audience);
+      if (restored) {
+        setPersonaId(restored.id);
+      } else {
+        setView('companions');
+      }
+      return;
+    }
+    if (saved.surface === 'companions' || saved.surface === 'church' || saved.surface === 'help') {
+      setView(saved.surface);
+    }
+  }, [termsAccepted, audience, arrival]);
+
+  // Keep the remembered surface current as the user moves. Nothing is
+  // saved before the gate (the wipe clears the key, and a fresh start must
+  // not resurrect a place) or while the panic screen stands.
+  useEffect(() => {
+    if (!termsAccepted || panicActive || !restoreAttemptedRef.current) return;
+    if (persona) {
+      saveLastSurface({ surface: 'chat', companionId: persona.id });
+    } else {
+      saveLastSurface({ surface: view });
+    }
+  }, [termsAccepted, panicActive, persona, view]);
 
   // A tap on the daily reminder lands here with ?focus=… — walk to the surface that
   // holds what the man chose to be reminded about, then clean the URL so a refresh
@@ -524,8 +583,12 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     // the only home, and it ends with the More of Sanctum block (the three
     // destinations) over the utilities line — Option B, "Foot of Today".
     // The same utilities line closes the three destination pages. Each
-    // sub-view carries its own "‹ Today" return in its page head
-    // (PrintPageHead) — the shell adds no return of its own.
+    // sub-view still carries its own "‹ Today" return in its page head
+    // (PrintPageHead); since Play 6c (Nov 16, 2026) the shell ALSO adds
+    // one slim persistent return strip above a sub-view's scroll area, so
+    // the way back to Today never scrolls away — and returning restores
+    // Today's saved scroll position (the scrollMemory map). On Today
+    // itself the shell adds no chrome: Option B's clean Today stays.
     const areaTheme = seasonTheme;
     let content: JSX.Element;
     if (view === 'companions') {
@@ -580,6 +643,8 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             onConsumeForceTonight={() => setForceExamen(false)}
             utilities={utilities}
             onNavigate={handleChangeView}
+            initialScrollTop={loadScrollPosition('today')}
+            onScrollTopChange={(top) => saveScrollPosition('today', top)}
           />
         </>
       );
@@ -587,6 +652,23 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
     return (
       <div className="fixed inset-0 flex flex-col" style={{ backgroundColor: areaTheme.bg }}>
+        {view !== 'today' && (
+          <div
+            data-return-strip
+            className="relative z-20 flex-shrink-0 border-b"
+            style={{ backgroundColor: areaTheme.bg, borderColor: `${areaTheme.border}99` }}
+          >
+            <div className="max-w-2xl mx-auto px-4 py-2">
+              <button
+                onClick={() => handleChangeView('today')}
+                className="text-[11px] font-bold uppercase tracking-[0.18em] transition-opacity hover:opacity-70 py-1"
+                style={{ fontFamily: PRINT_SERIF, color: areaTheme.textMuted }}
+              >
+                &lsaquo; Today
+              </button>
+            </div>
+          </div>
+        )}
         <div className="relative flex-1 overflow-hidden"><Suspense fallback={<TabFallback />}>{content}</Suspense></div>
 
         {showAbout && (
@@ -800,13 +882,21 @@ function MessageCapModal({ t, onClose, onOpenHelp }: { t: Persona['theme']; onCl
           </svg>
         </div>
         <h2 className="text-sm font-bold font-display uppercase tracking-wide mb-2" style={{ color: t.textBright }}>
-          Daily Limit Reached
+          The Companions Keep Hours
         </h2>
         <p className="text-xs leading-relaxed mb-4" style={{ color: t.textDim }}>
-          You've used all {DAILY_MESSAGE_CAP} of your daily conversations with this companion. The limit resets at midnight.
+          You've shared all {DAILY_MESSAGE_CAP} of today's messages. The hours return at midnight — and the examen, the prayers, and the catechism are always available, with no limits.
+        </p>
+        {/* At the cap, a closing prayer — the conversation ends the way it
+            should, in prayer — and then the outward pointer (Play 9b). */}
+        <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: t.textDim }}>
+          A closing prayer
+        </p>
+        <p className="text-xs italic leading-relaxed mb-4" style={{ color: t.textMuted }}>
+          {CAP_CLOSING_PRAYER}
         </p>
         <p className="text-xs leading-relaxed mb-5" style={{ color: t.textMuted }}>
-          The examen, the prayers, and the catechism are always available, with no limits — and Real Help is there when what you need is a person.
+          {CAP_OUTWARD_LINE}
         </p>
         <button
           onClick={onOpenHelp}

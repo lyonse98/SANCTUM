@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Square } from 'lucide-react';
 import type { Persona } from '@/types';
-import { DAILY_MESSAGE_CAP } from '@/lib/messageCap';
+import { capRemainingLine } from '@/lib/messageCap';
 import { audienceNoun } from '@/lib/audience';
 import { PRINT_SERIF } from '@/lib/print';
 
@@ -140,14 +140,13 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
       </div>
 
       <div className="flex justify-between items-center max-w-2xl mx-auto mt-1">
-        {remainingMessages <= 5 && remainingMessages > 0 && (
-          <span className="text-[10px] tabular-nums" style={{ color: remainingMessages <= 2 ? '#f59e0b' : t.textDim }}>
-            {remainingMessages} message{remainingMessages === 1 ? '' : 's'} left today
-          </span>
-        )}
-        {remainingMessages === 0 && (
-          <span className="text-[10px] tabular-nums" style={{ color: '#B91C1C' }}>
-            Daily limit reached — offline tools still available
+        {/* Cap as rhythm (Play 9b, Nov 16, 2026): the count is stated in
+            the companions' keeping-hours frame, in the theme's quiet ink
+            at every value — no amber, no red, no escalation as it runs
+            down, and at zero the same line, not a wall. */}
+        {remainingMessages <= 5 && (
+          <span className="text-[10px] tabular-nums" style={{ color: t.textDim }}>
+            {capRemainingLine(remainingMessages)}
           </span>
         )}
         <span
