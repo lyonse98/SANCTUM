@@ -570,6 +570,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             onConsumeForceTonight={() => setForceExamen(false)}
             utilities={utilities}
             onNavigate={handleChangeView}
+            onOpenNovenas={() => { setChurchTab('pray'); setChurchPray('novenas'); setView('church'); }}
           />
         </>
       );
