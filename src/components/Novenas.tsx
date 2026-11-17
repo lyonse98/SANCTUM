@@ -1,9 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Flame, ChevronRight, Check } from 'lucide-react';
 import { PRINT_CHOSEN_FILL_ALPHA, PRINT_PLATE_CLASS, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
+import { recordCoreAct } from '@/lib/daysPrayed';
+import { formatKeepsakeRange, listKeepsakes, recordKeepsake, type Keepsake } from '@/lib/keepsakes';
+import {
+  clearBridgeSeen,
+  loadBridgeSeen,
+  markBridgeSeen,
+  novenaBridgeState,
+  type NovenaBridgeState,
+} from '@/lib/novenaBridge';
 import type { Audience, PersonaTheme } from '@/types';
 import { PRAYERS } from '@/data/prayers';
 import {
+  NOVENAS,
   novenasForTrack,
   novenaDay,
   novenaComplete,
@@ -27,6 +37,15 @@ interface NovenasProps {
  * — both under the sanctum_ prefix, so the panic wipe takes them with
  * everything else. Beginning is the first mark: the day a man first taps
  * "Mark today as prayed" is day one, and its date stamps the record.
+ *
+ * Completion (Play 5(a), Nov 16, 2026): the ninth day is met once with a
+ * thanksgiving bridge (src/lib/novenaBridge.ts) that names the intention
+ * back and turns outward — another novena, this one again for someone
+ * else, or rest. The finished run is kept as a keepsake
+ * (src/lib/keepsakes.ts) on the quiet Completed shelf below, and after
+ * the bridge has been met the novena simply stands complete. Nothing
+ * here can be lost or expire, and a missed day still changes nothing:
+ * the count is the prayed dates, as it always was.
  */
 
 const stateKey = (id: NovenaId) => `sanctum_novena_${id}`;
@@ -86,6 +105,14 @@ function saveIntention(id: NovenaId, text: string) {
   }
 }
 
+function clearIntention(id: NovenaId) {
+  try {
+    localStorage.removeItem(intentionKey(id));
+  } catch {
+    // ignore
+  }
+}
+
 function statusLine(state: NovenaState, today: string): string {
   if (novenaComplete(state)) return 'Novena complete';
   if (state.prayedDates.length === 0) return 'Not begun';
@@ -102,6 +129,12 @@ export function Novenas({ t, audience }: NovenasProps) {
     'mary-undoer-of-knots': loadState('mary-undoer-of-knots'),
     'st-jude': loadState('st-jude'),
   }));
+  const [keepsakes, setKeepsakes] = useState<Keepsake[]>(() => listKeepsakes());
+  const [bridgeSeen, setBridgeSeen] = useState<Record<NovenaId, string | null>>(() => ({
+    'st-joseph': loadBridgeSeen('st-joseph'),
+    'mary-undoer-of-knots': loadBridgeSeen('mary-undoer-of-knots'),
+    'st-jude': loadBridgeSeen('st-jude'),
+  }));
 
   const markToday = useCallback(
     (id: NovenaId) => {
@@ -113,16 +146,54 @@ export function Novenas({ t, audience }: NovenasProps) {
           prayedDates: [...state.prayedDates, today],
         };
         saveState(id, next);
+        recordCoreAct('pray');
         return { ...prev, [id]: next };
       });
     },
     [today],
   );
 
+  // A completed run is kept exactly once (recordKeepsake is idempotent
+  // per run), whether it finished just now or before keepsakes existed.
+  useEffect(() => {
+    if (!selectedId) return;
+    const state = states[selectedId];
+    if (!novenaComplete(state)) return;
+    const novena = NOVENAS.find((n) => n.id === selectedId);
+    if (!novena) return;
+    const next = recordKeepsake({
+      arcId: selectedId,
+      arcName: novena.title,
+      intention: loadIntention(selectedId),
+      startedISO: state.startedISO,
+      completedISO: state.prayedDates[state.prayedDates.length - 1] ?? today,
+    });
+    setKeepsakes((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+  }, [selectedId, states, today]);
+
+  const dismissBridge = useCallback(
+    (id: NovenaId) => {
+      markBridgeSeen(id, states[id].startedISO);
+      setBridgeSeen((prev) => ({ ...prev, [id]: states[id].startedISO }));
+    },
+    [states],
+  );
+
   const beginAgain = useCallback((id: NovenaId) => {
     clearState(id);
+    clearBridgeSeen(id);
+    setBridgeSeen((prev) => ({ ...prev, [id]: null }));
     setStates((prev) => ({ ...prev, [id]: emptyNovenaState() }));
   }, []);
+
+  /** Pray this one again, for someone else: the run resets and the old intention goes with it — the keepsake already keeps it. */
+  const prayAgainForAnother = useCallback(
+    (id: NovenaId) => {
+      beginAgain(id);
+      clearIntention(id);
+    },
+    [beginAgain],
+  );
 
   const selected = novenas.find((n) => n.id === selectedId) ?? null;
 
@@ -159,6 +230,34 @@ export function Novenas({ t, audience }: NovenasProps) {
               <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
             </button>
           ))}
+
+          {/* The keepsake shelf — a quiet record of finished runs: the
+              arc, its dates, and the intention in the pray-er's own
+              words. A remembrance, not a tally. */}
+          {keepsakes.length > 0 && (
+            <div className="mt-6">
+              <p className={`${PRINT_STAMP_CLASS} mb-2`} style={{ color: t.accent }}>
+                Completed
+              </p>
+              <div className="space-y-3">
+                {keepsakes.map((keepsake) => (
+                  <div key={`${keepsake.arcId}-${keepsake.startedISO}`}>
+                    <p className="text-xs font-semibold" style={{ color: t.text }}>
+                      {keepsake.arcName}
+                    </p>
+                    <p className="text-[11px] mt-0.5" style={{ color: t.textDim }}>
+                      {formatKeepsakeRange(keepsake.startedISO, keepsake.completedISO)}
+                    </p>
+                    {keepsake.intention && (
+                      <p className="text-[11px] italic leading-relaxed mt-0.5" style={{ color: t.textMuted }}>
+                        For: {keepsake.intention}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <NovenaLeaf
@@ -167,9 +266,16 @@ export function Novenas({ t, audience }: NovenasProps) {
           state={states[selected.id]}
           today={today}
           t={t}
+          bridgeState={novenaBridgeState(states[selected.id], bridgeSeen[selected.id])}
           onBack={() => setSelectedId(null)}
           onMark={() => markToday(selected.id)}
           onBeginAgain={() => beginAgain(selected.id)}
+          onDismissBridge={() => dismissBridge(selected.id)}
+          onBeginAnother={() => {
+            dismissBridge(selected.id);
+            setSelectedId(null);
+          }}
+          onPrayAgainForAnother={() => prayAgainForAnother(selected.id)}
         />
       )}
     </div>
@@ -181,18 +287,43 @@ interface NovenaLeafProps {
   state: NovenaState;
   today: string;
   t: PersonaTheme;
+  bridgeState: NovenaBridgeState;
   onBack: () => void;
   onMark: () => void;
   onBeginAgain: () => void;
+  onDismissBridge: () => void;
+  onBeginAnother: () => void;
+  onPrayAgainForAnother: () => void;
 }
 
-function NovenaLeaf({ novena, state, today, t, onBack, onMark, onBeginAgain }: NovenaLeafProps) {
+function NovenaLeaf({
+  novena,
+  state,
+  today,
+  t,
+  bridgeState,
+  onBack,
+  onMark,
+  onBeginAgain,
+  onDismissBridge,
+  onBeginAnother,
+  onPrayAgainForAnother,
+}: NovenaLeafProps) {
   const [intention, setIntention] = useState<string>(() => loadIntention(novena.id));
   const [editingIntention, setEditingIntention] = useState(false);
   const [draft, setDraft] = useState('');
 
   const complete = novenaComplete(state);
+  const showBridge = bridgeState === 'bridge';
   const prayedToday = state.prayedDates.includes(today);
+
+  /** Again, for someone else: the parent resets the run; here the old intention clears and the new one is asked for. */
+  const prayAgainForAnother = () => {
+    onPrayAgainForAnother();
+    setIntention('');
+    setDraft('');
+    setEditingIntention(true);
+  };
 
   const startEditing = () => {
     setDraft(intention);
@@ -302,7 +433,55 @@ function NovenaLeaf({ novena, state, today, t, onBack, onMark, onBeginAgain }: N
         })}
       </div>
 
-      {complete ? (
+      {showBridge ? (
+        /* The Day-10 bridge: thanksgiving first — the intention named
+           back — then an outward turn. Three plain choices, nothing to
+           share, nothing that can be lost or expire. */
+        <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${t.border}` }}>
+          <p className={`${PRINT_STAMP_CLASS} mb-2`} style={{ color: t.accent }}>
+            In thanksgiving
+          </p>
+          <p className="text-xs leading-relaxed" style={{ color: t.text }}>
+            {intention ? (
+              <>
+                You prayed these nine days for {intention}. Thanks be to God — the novena is complete, and it is
+                kept on the Completed shelf.
+              </>
+            ) : (
+              <>These nine days are prayed, and brought to their end. Thanks be to God — the novena is complete, and it is kept on the Completed shelf.</>
+            )}
+          </p>
+          <div className="space-y-2 mt-4">
+            <button
+              onClick={onBeginAnother}
+              className={PRINT_PLATE_CLASS}
+              style={{ border: `1px solid ${t.accent}`, backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}` }}
+            >
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: t.accent }}>
+                Begin another novena
+              </span>
+            </button>
+            <button
+              onClick={prayAgainForAnother}
+              className={PRINT_PLATE_CLASS}
+              style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F` }}
+            >
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: t.text }}>
+                Pray this one again — for someone else
+              </span>
+            </button>
+            <button
+              onClick={onDismissBridge}
+              className={PRINT_PLATE_CLASS}
+              style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F` }}
+            >
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: t.text }}>
+                Rest — just Today for now
+              </span>
+            </button>
+          </div>
+        </div>
+      ) : complete ? (
         <button
           onClick={onBeginAgain}
           className={`${PRINT_PLATE_CLASS} justify-center mt-5`}
