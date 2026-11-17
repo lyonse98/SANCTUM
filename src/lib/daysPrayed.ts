@@ -3,8 +3,8 @@
  *
  * A quiet cumulative count of the distinct content days on which the user
  * did any one core act: listened, prayed, spoke with a companion, closed the
- * day with Tonight, or built a Tailor devotional. The design rails are the
- * feature:
+ * day with Tonight, built a Tailor devotional, or lived the day's challenge.
+ * The design rails are the feature:
  *
  * - The count is CUMULATIVE and NEVER resets. A gap changes nothing; there
  *   is nothing to lose and nothing to repair.
@@ -21,7 +21,7 @@ import { contentDateKey } from './dayBoundary';
 
 export const DAYS_PRAYED_KEY = 'sanctum_days_prayed';
 
-export type CoreAct = 'listen' | 'pray' | 'companion' | 'tonight' | 'tailor';
+export type CoreAct = 'listen' | 'pray' | 'companion' | 'tonight' | 'tailor' | 'challenge';
 
 interface DaysPrayedState {
   days: string[];
@@ -53,6 +53,15 @@ export interface DaysPrayed {
   totalDays: number;
   /** Whether the content day live at `now` already counts. */
   prayedToday: boolean;
+}
+
+/**
+ * The prayed days themselves, as sorted YYYY-MM-DD keys — the set the kept
+ * weeks are computed from (incentives build, Nov 16, 2026). Only the days
+ * that WERE prayed exist here; the days that were not are nowhere.
+ */
+export function loadDaysPrayedDates(): string[] {
+  return [...readState().days];
 }
 
 /** Read the tally without recording anything. */

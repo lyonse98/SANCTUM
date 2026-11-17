@@ -50,6 +50,14 @@ const KNOWN_KEYS = [
   'sanctum_tailor_share_2026-11-13_men',
   'sanctum_reminder_prompt_dismissed_at',
   'sanctum_listen_reminder_prompted',
+  'sanctum_days_prayed',
+  'sanctum_keepsakes',
+  'sanctum_kept_days',
+  'sanctum_month_examen_seen',
+  'sanctum_gift_slot',
+  'sanctum_companion_chat_days',
+  'sanctum_letters',
+  'sanctum_challenges_lived',
 ];
 
 beforeEach(() => {
