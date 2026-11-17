@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Moon, Check, RotateCcw, Flame, BookOpen } from 'lucide-react';
+import { Moon, Check, RotateCcw, BookOpen } from 'lucide-react';
 import type { Audience, PersonaTheme } from '@/types';
 import { quoteForDay } from '@/data/quotes';
-import { getExamenStreak, recordExamenComplete } from '@/lib/retention';
+import { markInstallValueMoment } from '@/lib/retention';
 
 interface ExamenChecklistProps {
   t: PersonaTheme;
@@ -15,7 +15,7 @@ interface ExamenChecklistProps {
   /**
    * Frameless: no card chrome and no title row of its own, because the host —
    * the expandable Evening Examen section on Today — already carries both.
-   * The streak and reset survive, on their own slim row.
+   * The reset survives, on its own slim row.
    */
   framed?: boolean;
 }
@@ -56,8 +56,6 @@ function saveState(checks: Record<string, boolean>) {
 
 export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenHelp, framed = true }: ExamenChecklistProps) {
   const [checks, setChecks] = useState<Record<string, boolean>>({});
-  const [streakRecorded, setStreakRecorded] = useState(false);
-  const streak = useMemo(() => getExamenStreak(), []);
   const todayQuote = useMemo(() => quoteForDay(new Date(), audience), [audience]);
 
   useEffect(() => {
@@ -81,39 +79,26 @@ export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenH
   const reset = useCallback(() => {
     setChecks({});
     saveState({});
-    setStreakRecorded(false);
   }, []);
 
   const completedCount = Object.values(checks).filter(Boolean).length;
   const allDone = completedCount === EXAMEN_STEPS.length;
 
   useEffect(() => {
-    if (allDone && !streakRecorded) {
-      const result = recordExamenComplete();
-      setStreakRecorded(true);
-      if (result.isNew && result.streak > 1) {
-        // Streak incremented — could show a toast but keeping it simple
-      }
+    if (allDone) {
+      // A finished examen is a moment of felt value — the install invitation
+      // may be asked now. Nothing is counted, chained, or carried forward.
+      markInstallValueMoment();
     }
-  }, [allDone, streakRecorded]);
+  }, [allDone]);
 
-  const currentStreak = streakRecorded ? Math.max(streak, 1) : streak;
-
-  const streakAndReset = (
+  const resetControl = completedCount > 0 ? (
     <div className="flex items-center gap-3">
-      {currentStreak > 0 && (
-        <span className="flex items-center gap-1 text-[11px] font-bold" style={{ color: t.accent }}>
-          <Flame className="w-3 h-3" />
-          {currentStreak} day{currentStreak !== 1 ? 's' : ''}
-        </span>
-      )}
-      {completedCount > 0 && (
-        <button onClick={reset} className="flex items-center gap-1 text-[11px] transition-colors" style={{ color: t.textDim }}>
-          <RotateCcw className="w-3 h-3" /> Reset
-        </button>
-      )}
+      <button onClick={reset} className="flex items-center gap-1 text-[11px] transition-colors" style={{ color: t.textDim }}>
+        <RotateCcw className="w-3 h-3" /> Reset
+      </button>
     </div>
-  );
+  ) : null;
 
   return (
     <div
@@ -126,11 +111,11 @@ export function ExamenChecklist({ t, audience = 'men', onOpenConfession, onOpenH
             <Moon className="w-4 h-4" style={{ color: t.accent }} />
             <h3 className="text-sm font-bold font-display uppercase tracking-wide" style={{ color: t.textBright }}>Evening Examen</h3>
           </div>
-          {streakAndReset}
+          {resetControl}
         </div>
       ) : (
-        (currentStreak > 0 || completedCount > 0) && (
-          <div className="flex items-center justify-end mb-3">{streakAndReset}</div>
+        completedCount > 0 && (
+          <div className="flex items-center justify-end mb-3">{resetControl}</div>
         )
       )}
 

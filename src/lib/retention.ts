@@ -5,8 +5,6 @@ const VISIT_COUNT_KEY = 'sanctum_visit_count';
 const INSTALL_PROMPTED_KEY = 'sanctum_install_prompted'; // legacy: meant "never ask again"
 const INSTALL_SNOOZE_KEY = 'sanctum_install_snooze_until';
 const INSTALL_VALUE_KEY = 'sanctum_install_value_moment';
-const EXAMEN_STREAK_KEY = 'sanctum_examen_streak';
-const EXAMEN_LAST_KEY = 'sanctum_examen_last_date';
 
 function todayKey(): string {
   const d = new Date();
@@ -90,42 +88,4 @@ export function clearInstallValueMoment(): void {
   try {
     localStorage.removeItem(INSTALL_VALUE_KEY);
   } catch { /* ignore */ }
-}
-
-export function recordExamenComplete(): { streak: number; isNew: boolean } {
-  const today = todayKey();
-  let streak = 0;
-  let lastDate = '';
-
-  try {
-    streak = parseInt(localStorage.getItem(EXAMEN_STREAK_KEY) ?? '0', 10) || 0;
-    lastDate = localStorage.getItem(EXAMEN_LAST_KEY) ?? '';
-  } catch { /* ignore */ }
-
-  if (lastDate === today) {
-    return { streak: Math.max(streak, 1), isNew: false };
-  }
-
-  const gap = lastDate ? daysBetween(lastDate, today) : 99;
-  if (gap === 1) {
-    streak += 1;
-  } else {
-    streak = 1;
-  }
-
-  try {
-    localStorage.setItem(EXAMEN_STREAK_KEY, String(streak));
-    localStorage.setItem(EXAMEN_LAST_KEY, today);
-  } catch { /* ignore */ }
-  markInstallValueMoment();
-
-  return { streak, isNew: true };
-}
-
-export function getExamenStreak(): number {
-  try {
-    return parseInt(localStorage.getItem(EXAMEN_STREAK_KEY) ?? '0', 10) || 0;
-  } catch {
-    return 0;
-  }
 }

@@ -4,6 +4,7 @@ import type { PersonaTheme } from '@/types';
 import { fetchDailyAudio, headForHour, sequenceSeekTarget, type DailyAudio } from '@/lib/dailyAudio';
 import { PERSONA_DISPLAY, personaHasBell } from '@/lib/narratorCore';
 import { narratorDisclosureLine } from '@/lib/privacyCopy';
+import { recordCoreAct } from '@/lib/daysPrayed';
 import { PRINT_SERIF } from '@/lib/print';
 import { loadPushReminder } from '@/lib/push';
 import {
@@ -359,6 +360,10 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
       // A first Listen actually heard: one of the two first-value moments
       // that let the reminder invitation appear on Today (audit W-7).
       markFirstValue();
+      // The day counts as prayed — the cumulative, guilt-free tally
+      // (Play 1 revised). Recorded only here, where a play has actually
+      // succeeded; a failed or blocked play counts nothing.
+      recordCoreAct('listen');
     } catch {
       setPlaying(false);
     }

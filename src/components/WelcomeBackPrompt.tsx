@@ -8,12 +8,10 @@ import { canNativeInstall, subscribeInstallChanges } from '@/lib/install';
 export function WelcomeBackPrompt() {
   const [welcomeBack, setWelcomeBack] = useState(false);
   const [showInstall, setShowInstall] = useState(false);
-  const [daysSince, setDaysSince] = useState(0);
   const t = PERSONAS[0].theme;
 
   useEffect(() => {
     const visit = recordVisit();
-    setDaysSince(visit.daysSinceLast);
     if (visit.isReturning) {
       setWelcomeBack(true);
     }
@@ -49,10 +47,10 @@ export function WelcomeBackPrompt() {
             <Heart className="w-5 h-5 flex-shrink-0" style={{ color: t.accent }} />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold font-display" style={{ color: t.textBright }}>
-                {daysSince === 1 ? 'Good to see you again.' : `Good to see you again — it's been ${daysSince} days.`}
+                Welcome back.
               </p>
               <p className="text-[11px] leading-relaxed" style={{ color: t.textDim }}>
-                Pick up where you left off.
+                Today is a new day. The Gospel is ready when you are.
               </p>
             </div>
             <button
