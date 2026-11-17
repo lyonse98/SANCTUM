@@ -5,6 +5,7 @@ import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getDailyVisual } from '@/lib/liturgicalVisuals';
 import { getFeastArt, getFeastEmblem } from '@/lib/feastArt';
 import { PRINT_SERIF } from '@/lib/print';
+import { contentDate } from '@/lib/dayBoundary';
 import type { Audience, PersonaTheme } from '@/types';
 
 interface TodayHeroProps {
@@ -37,15 +38,18 @@ function greetingForHour(hour: number): string {
  * photograph, its frame flattened to the page's hairline.
  */
 export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
-  const season = useMemo(() => getCurrentSeason(), []);
-  const visual = useMemo(() => getDailyVisual(), []);
+  // The masthead names the content day (Play 7): before the 04:00 flip the
+  // season, visual, feast and Sunday door are still yesterday's. The greeting
+  // below stays on the man's own clock — it speaks of his hour, not the day's.
+  const season = useMemo(() => getCurrentSeason(contentDate()), []);
+  const visual = useMemo(() => getDailyVisual(contentDate()), []);
   // The Illuminated Garden — non-null only on the women's track, and only on a
   // solemnity or one of Our Lady's days; null (nothing rendered) everywhere else.
-  const feastArt = useMemo(() => getFeastArt(new Date(), audience), [audience]);
+  const feastArt = useMemo(() => getFeastArt(contentDate(), audience), [audience]);
   // The men's counterpart — the day's emblem, large and spare, on feasts and
   // solemnities only; null on ordinary days and on the women's track.
-  const feastEmblem = useMemo(() => getFeastEmblem(new Date(), audience), [audience]);
-  const isSunday = useMemo(() => new Date().getDay() === 0, []);
+  const feastEmblem = useMemo(() => getFeastEmblem(contentDate(), audience), [audience]);
+  const isSunday = useMemo(() => contentDate().getDay() === 0, []);
   const [greeting, setGreeting] = useState(() => greetingForHour(new Date().getHours()));
 
   useEffect(() => {

@@ -10,6 +10,7 @@ import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
 import { PRINT_SERIF } from '@/lib/print';
 import { AUDIO_PM_START_HOUR } from '@/lib/narratorCore';
 import { morningResolve } from '@/lib/tonight';
+import { DAY_START_HOUR, contentDate, contentNow } from '@/lib/dayBoundary';
 import type { Audience, TabId, UtilityActions } from '@/types';
 import { PRIVACY_SHORT } from '@/lib/privacyCopy';
 
@@ -48,16 +49,20 @@ interface HomeScreenProps {
 export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
   const tonightRef = useRef<HTMLDivElement>(null);
-  const seasonTheme = getSeasonTheme(new Date(), audience);
-  const seasonAccent = getSeasonAccentColor();
+  const seasonTheme = getSeasonTheme(contentDate(), audience);
+  const seasonAccent = getSeasonAccentColor(contentDate());
 
-  const isEvening = new Date().getHours() >= AUDIO_PM_START_HOUR;
+  // The evening is the content day's evening (Play 7): from the PM hour, and
+  // still — in the small hours before the 04:00 flip — the night that belongs
+  // to the day on the page, so Tonight stays reachable until the day turns.
+  const nowHour = new Date().getHours();
+  const isEvening = nowHour >= AUDIO_PM_START_HOUR || nowHour < DAY_START_HOUR;
   const showTonight = isEvening || Boolean(forceTonight);
 
   // Last night's resolve, in small text over the morning — until midday, then gone.
   const [lastNightsResolve, setLastNightsResolve] = useState<string | null>(null);
   useEffect(() => {
-    setLastNightsResolve(morningResolve(new Date()));
+    setLastNightsResolve(morningResolve(contentNow()));
   }, []);
 
   useEffect(() => {

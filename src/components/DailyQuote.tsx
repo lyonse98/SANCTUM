@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import { quoteForDay } from '@/data/quotes';
 import { fetchDailyReadings, type DailyReadings } from '@/lib/readings';
-import { fetchReadingsBundle, isoDate } from '@/lib/readingsBundle';
+import { fetchReadingsBundle } from '@/lib/readingsBundle';
+import { contentDate, contentDateKey } from '@/lib/dayBoundary';
 import { getFeastForDate, type FeastRank } from '@/data/feastDays';
 import {
   fetchPassageVerses,
@@ -79,8 +80,8 @@ export function orderedReadingRows(readings: DailyReadings, texts: ReadingTexts 
 }
 
 export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder }: DailyQuoteProps) {
-  const quote = useMemo(() => quoteForDay(new Date(), audience), [audience]);
-  const feast = useMemo(() => getFeastForDate(), []);
+  const quote = useMemo(() => quoteForDay(contentDate(), audience), [audience]);
+  const feast = useMemo(() => getFeastForDate(contentDate()), []);
   // Rubrication (the printed-page re-skin, Erik, Nov 14, 2026): on feasts and
   // solemnities the day's name and the Gospel's drop cap take the calendar's
   // accent; memorials and ordinary days stay quiet. The calendar still owns
@@ -100,8 +101,9 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
   useEffect(() => {
     let active = true;
     (async () => {
-      // Primary path: the server-assembled, day-cached bundle.
-      const bundle = await fetchReadingsBundle();
+      // Primary path: the server-assembled, day-cached bundle — for the
+      // content day (Play 7), which before 04:00 is still yesterday.
+      const bundle = await fetchReadingsBundle(contentDate());
       if (!active) return;
       if (bundle) {
         setReadings(bundle.citations);
@@ -112,7 +114,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
         return;
       }
       // Fallback: the old direct path (client calls the lectionary + Bible APIs itself).
-      const citations = await fetchDailyReadings();
+      const citations = await fetchDailyReadings(contentDate());
       if (!active) return;
       setReadings(citations);
       if (citations?.gospel) {
@@ -137,10 +139,11 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     () => (gospelVerses ? pickKeyVerse(gospelVerses) : null),
     [gospelVerses],
   );
-  // The day's date key, computed locally at mount with the very helper the readings
-  // bundle keys its request by — so the reflection fetch below targets the same day
-  // the bundle will, without waiting for the bundle to say so.
-  const [localDateKey] = useState(() => isoDate(new Date()));
+  // The day's date key, computed locally at mount — the content day's key
+  // (Play 7), the same day the readings bundle keys its request by — so the
+  // reflection fetch below targets the same day the bundle will, without
+  // waiting for the bundle to say so.
+  const [localDateKey] = useState(() => contentDateKey());
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const [reflectionFor, setReflectionFor] = useState<string | null>(null);
   const [reflectionAudience, setReflectionAudience] = useState<Audience | null>(null);

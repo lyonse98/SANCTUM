@@ -319,6 +319,42 @@ export async function subscribeToPush(focus: string, localTime: string): Promise
   }
 }
 
+/**
+ * The timezone decision, pure: a stored timezone that differs from the
+ * device's current one means the phone has travelled (or its zone was
+ * corrected) since the reminder was set, and the server row — which the
+ * dispatcher reads in the stored zone — would fire at the wrong hour.
+ * An unreadable current zone never triggers a rewrite.
+ */
+export function shouldResyncTimezone(storedTz: string, currentTz: string): boolean {
+  return currentTz.length > 0 && storedTz !== currentTz;
+}
+
+/**
+ * Timezone re-sync (Play 3, retention build Nov 16, 2026). On app open, if
+ * this device has a live reminder whose stored timezone no longer matches
+ * the device's, silently re-upsert the subscription with the current zone
+ * through the same machinery a preference save uses — the focus and local
+ * time are carried over untouched, so only the zone changes. Best-effort
+ * by design: it never throws, never prompts (it only reads the existing
+ * browser subscription), and no-ops without a subscription or when the
+ * zones already agree. Returns whether a re-sync was saved.
+ */
+export async function resyncPushTimezoneIfNeeded(): Promise<boolean> {
+  try {
+    const local = loadPushReminder();
+    if (!local.enabled || !local.endpoint) return false;
+    if (!shouldResyncTimezone(local.tz, deviceTimeZone())) return false;
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return false;
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription) return false;
+    return await saveSubscriptionToServer(subscription, local.focus, local.localTime);
+  } catch {
+    return false;
+  }
+}
+
 /** Change what the reminder points at, or when it comes. Saves straight away, like the email form. */
 export async function updatePushPreferences(focus: string, localTime: string): Promise<PushActionResult> {
   try {

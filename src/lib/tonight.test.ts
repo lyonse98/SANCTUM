@@ -5,7 +5,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { TonightClosing } from '../components/TonightClosing';
 import { getSeasonTheme } from './seasonTheme';
-import { isoDate } from './readingsBundle';
+import { contentDateKey } from './dayBoundary';
 import { tailorMetaKey } from './tailor';
 import { FOCUS_ROUTES } from './pushCore';
 import { wipeAllSanctumData } from './storage';
@@ -60,7 +60,9 @@ describe('the Tonight closing on Today', () => {
   it('renders the shape: gratitude and one resolve — and no saint line (men)', () => {
     const html = render('men');
     expect(html).toContain('Tonight');
-    expect(html).toContain(gratitudeForDate(isoDate(new Date())));
+    // The closing's day is the content day (Play 7): before the 04:00 flip
+    // the gratitude on screen is still last night's.
+    expect(html).toContain(gratitudeForDate(contentDateKey()));
     // No saint line on any day (Erik, Nov 14, 2026): Saint of the Day was
     // demoted in the reconfiguration, so the closing names no saint.
     expect(html).not.toContain('You walked today with');
@@ -84,7 +86,7 @@ describe('the Tonight closing on Today', () => {
 
   it('echoes the tailored morning only when a tailor build exists today', () => {
     expect(render('men')).not.toContain('You said this morning was about');
-    const dateKey = isoDate(new Date());
+    const dateKey = contentDateKey();
     localStorage.setItem(
       tailorMetaKey(dateKey, 'men'),
       JSON.stringify({ hash: 'x', narratorName: 'Ben', at: Date.now(), focus: 'grief' }),

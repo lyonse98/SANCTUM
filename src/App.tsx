@@ -32,7 +32,8 @@ import { PersonaIntro } from '@/components/PersonaIntro';
 import type { ChurchTab, PraySection } from '@/components/PocketChurchPage';
 import { ReminderModal } from '@/components/ReminderModal';
 import { FOCUS_ROUTES, parseFocusParam } from '@/lib/pushCore';
-import { deactivatePushOnPanic } from '@/lib/push';
+import { deactivatePushOnPanic, resyncPushTimezoneIfNeeded } from '@/lib/push';
+import { contentDate } from '@/lib/dayBoundary';
 import { ShareInviteModal } from '@/components/ShareInviteModal';
 import { FeedbackProvider, useFeedback } from '@/components/FeedbackProvider';
 import { streamChat } from '@/lib/llm';
@@ -129,12 +130,13 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [forceExamen, setForceExamen] = useState(false);
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(null);
   const [pendingGospelContext, setPendingGospelContext] = useState<string | null>(null);
-  const [season] = useState(() => getCurrentSeason());
-  const seasonAccent = useMemo(() => getSeasonAccentColor(), []);
+  const [season] = useState(() => getCurrentSeason(contentDate()));
+  const seasonAccent = useMemo(() => getSeasonAccentColor(contentDate()), []);
   // The day's liturgical colour is the accent on both tracks; the audience picks
   // only the neutral ground beneath it. 'men' returns the theme Sanctum has
-  // always had, value for value.
-  const seasonTheme = useMemo(() => getSeasonTheme(new Date(), audience), [audience]);
+  // always had, value for value. The day is the content day (Play 7): the
+  // theme flips at 04:00 with the rest of the day's content, not at midnight.
+  const seasonTheme = useMemo(() => getSeasonTheme(contentDate(), audience), [audience]);
 
   // The track, marked on the document root so the women's display type (a serif
   // voice for headings, see index.css) can reach every screen and modal. The rule
@@ -467,6 +469,14 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   useEffect(() => {
     if (termsAccepted) trackNow('app_open', 'today');
   }, [termsAccepted]);
+
+  // Timezone re-sync (Play 3): if this device travelled since the reminder
+  // was set, quietly re-upsert the subscription in the device's current
+  // zone so the poke still lands at the chosen local time. Best-effort and
+  // silent — it no-ops without a subscription and never prompts.
+  useEffect(() => {
+    void resyncPushTimezoneIfNeeded();
+  }, []);
 
   // A tap on the daily reminder lands here with ?focus=… — walk to the surface that
   // holds what the man chose to be reminded about, then clean the URL so a refresh

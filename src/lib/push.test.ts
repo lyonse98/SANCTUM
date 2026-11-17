@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import {
   VAPID_PUBLIC_KEY,
   arrayBufferToBase64Url,
@@ -9,6 +9,8 @@ import {
   buildUpsertBody,
   loadPushReminder,
   resolvePushState,
+  resyncPushTimezoneIfNeeded,
+  shouldResyncTimezone,
   urlBase64ToUint8Array,
   type PushEnvironment,
 } from './push';
@@ -139,5 +141,141 @@ describe('RPC contract — the migration the bodies are sent to', () => {
 
   it('constrains the focus column to the four reminder focuses', () => {
     expect(sql).toContain("CHECK (focus IN ('gospel', 'examen', 'rosary', 'rule'))");
+  });
+});
+
+describe('timezone re-sync (Play 3 — the phone travelled)', () => {
+  it('the pure decision: differing zones resync, matching zones do not', () => {
+    expect(shouldResyncTimezone('America/Los_Angeles', 'America/New_York')).toBe(true);
+    expect(shouldResyncTimezone('America/New_York', 'America/New_York')).toBe(false);
+    // A legacy row with no zone recorded still earns the correction.
+    expect(shouldResyncTimezone('', 'America/New_York')).toBe(true);
+    // An unreadable current zone never triggers a rewrite.
+    expect(shouldResyncTimezone('America/Los_Angeles', '')).toBe(false);
+  });
+
+  it('App wires the re-sync on mount', () => {
+    const app = readFileSync(join(repoRoot, 'src/App.tsx'), 'utf8');
+    expect(app).toContain('void resyncPushTimezoneIfNeeded();');
+  });
+});
+
+describe('resyncPushTimezoneIfNeeded — silent, best-effort, upsert machinery only', () => {
+  const ENDPOINT = 'https://push.example/abc';
+  const currentTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const otherTz = currentTz === 'Pacific/Kiritimati' ? 'America/New_York' : 'Pacific/Kiritimati';
+
+  function makeStorage(): Storage {
+    const store: Record<string, string> = {};
+    Object.defineProperties(store, {
+      getItem: { value: (k: string) => (k in store ? store[k] : null) },
+      setItem: { value: (k: string, v: string) => { store[k] = String(v); } },
+      removeItem: { value: (k: string) => { delete store[k]; } },
+      clear: { value: () => { Object.keys(store).forEach((k) => delete store[k]); } },
+    });
+    return store as unknown as Storage;
+  }
+
+  const fakeSubscription = {
+    endpoint: ENDPOINT,
+    toJSON: () => ({ keys: { p256dh: 'B'.repeat(87), auth: 'a'.repeat(22) } }),
+  };
+
+  let fetchCalls: { url: string; body: Record<string, unknown> }[];
+
+  function stubBrowser(getSubscription: () => Promise<unknown>) {
+    Object.defineProperty(globalThis, 'navigator', {
+      value: {
+        serviceWorker: {
+          ready: Promise.resolve({ pushManager: { getSubscription } }),
+        },
+      },
+      configurable: true,
+    });
+    fetchCalls = [];
+    vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+      fetchCalls.push({ url, body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown> });
+      return { ok: true, json: async () => true };
+    });
+  }
+
+  function seedReminder(tz: string) {
+    localStorage.setItem(
+      'sanctum_push_reminder',
+      JSON.stringify({ enabled: true, endpoint: ENDPOINT, focus: 'gospel', localTime: '07:00', tz, audience: 'men' }),
+    );
+  }
+
+  beforeEach(() => {
+    Object.defineProperty(globalThis, 'localStorage', { value: makeStorage(), configurable: true });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('re-upserts with the current zone when the stored zone differs — focus and time untouched', async () => {
+    seedReminder(otherTz);
+    stubBrowser(async () => fakeSubscription);
+    await expect(resyncPushTimezoneIfNeeded()).resolves.toBe(true);
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].url).toContain('upsert_push_subscription');
+    expect(fetchCalls[0].body.p_tz).toBe(currentTz);
+    expect(fetchCalls[0].body.p_local_time).toBe('07:00');
+    expect(fetchCalls[0].body.p_focus).toBe('gospel');
+    expect(fetchCalls[0].body.p_endpoint).toBe(ENDPOINT);
+    // The local record now carries the zone the server was just given.
+    expect(loadPushReminder().tz).toBe(currentTz);
+  });
+
+  it('no-ops when the zones already agree', async () => {
+    seedReminder(currentTz);
+    stubBrowser(async () => fakeSubscription);
+    await expect(resyncPushTimezoneIfNeeded()).resolves.toBe(false);
+    expect(fetchCalls).toHaveLength(0);
+  });
+
+  it('no-ops without an active subscription on the device', async () => {
+    stubBrowser(async () => fakeSubscription);
+    await expect(resyncPushTimezoneIfNeeded()).resolves.toBe(false);
+    expect(fetchCalls).toHaveLength(0);
+  });
+
+  it('no-ops when the browser holds no live subscription to re-upsert', async () => {
+    seedReminder(otherTz);
+    stubBrowser(async () => null);
+    await expect(resyncPushTimezoneIfNeeded()).resolves.toBe(false);
+    expect(fetchCalls).toHaveLength(0);
+  });
+
+  it('never throws: a failing subscription lookup resolves to false', async () => {
+    seedReminder(otherTz);
+    stubBrowser(async () => {
+      throw new Error('service worker unavailable');
+    });
+    await expect(resyncPushTimezoneIfNeeded()).resolves.toBe(false);
+  });
+});
+
+describe('iOS install smoothing (Play 3) — the steps stand earlier in the reminder flow', () => {
+  const card = readFileSync(join(repoRoot, 'src/components/ReminderCard.tsx'), 'utf8');
+  const form = readFileSync(join(repoRoot, 'src/components/ReminderForm.tsx'), 'utf8');
+
+  it('the reminder card itself carries the shared install steps when iOS needs them', () => {
+    expect(card).toContain("getPushState() === 'not-installed'");
+    expect(card).toContain('<InstallInstructions');
+    expect(card).toContain('data-reminder-install-steps');
+    // The card's gating is untouched — it still reads the same state machine.
+    expect(card).toContain('reminderCardState(reminder, dismissedAt, Date.now(), readFirstValue())');
+  });
+
+  it('the form leads with the steps, in plain words, before the why', () => {
+    expect(form).toContain('First, put Sanctum on your Home Screen');
+    expect(form.indexOf('First, put Sanctum on your Home Screen')).toBeLessThan(
+      form.indexOf('tab cannot receive notifications'),
+    );
+    expect(form.indexOf('<InstallInstructions')).toBeLessThan(
+      form.indexOf('tab cannot receive notifications'),
+    );
   });
 });

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Sparkles } from 'lucide-react';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import { getDailyVisual } from '@/lib/liturgicalVisuals';
+import { contentDate } from '@/lib/dayBoundary';
 import type { FeastRank } from '@/data/feastDays';
 
 const RANK_LABEL: Record<FeastRank, string> = {
@@ -12,8 +13,8 @@ const RANK_LABEL: Record<FeastRank, string> = {
 };
 
 export function SeasonBadge() {
-  const season = useMemo(() => getCurrentSeason(), []);
-  const visual = getDailyVisual();
+  const season = useMemo(() => getCurrentSeason(contentDate()), []);
+  const visual = getDailyVisual(contentDate());
 
   return (
     <div

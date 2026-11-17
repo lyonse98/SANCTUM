@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Bell, Pencil, X } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
 import { PRINT_SERIF } from '@/lib/print';
-import { loadPushReminder } from '@/lib/push';
+import { getPushState, loadPushReminder } from '@/lib/push';
+import { InstallInstructions } from '@/components/InstallInstructions';
 import {
   dismissReminderPrompt,
   readFirstValue,
@@ -70,37 +71,64 @@ export function ReminderCard({ t, onOpenReminder }: ReminderCardProps) {
     );
   }
 
+  // On an iPhone in a browser tab, the reminder cannot be set at all until
+  // Sanctum is on the Home Screen — so the install steps stand here, in the
+  // flow itself, instead of waiting behind the Set tap (Play 3). The card's
+  // gating is untouched: this shows only in the prompt state the card
+  // already earned, and the steps are the shared InstallInstructions.
+  const iosNeedsInstall = getPushState() === 'not-installed';
+
   return (
-    <div
-      className="w-full flex items-center gap-3 px-1 py-3 animate-fade-in"
-      style={ruleStyle}
-      data-reminder-card="prompt"
-    >
-      <Bell className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
-      <span
-        className="flex-1 text-[11px] font-medium leading-snug"
-        style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
-      >
-        Get a morning reminder — a notification with today&rsquo;s Gospel
-      </span>
-      <button
-        onClick={onOpenReminder}
-        className="px-3 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wide transition-all active:scale-95 flex-shrink-0"
-        style={{ backgroundColor: t.accentRgba(0.14), borderColor: t.accent, color: t.accent }}
-      >
-        Set
-      </button>
-      <button
-        onClick={() => {
-          dismissReminderPrompt();
-          setDismissedAt(Date.now());
-        }}
-        aria-label="Not now — ask again in two weeks"
-        className="flex-shrink-0 transition-opacity hover:opacity-70"
-        style={{ color: t.textDim }}
-      >
-        <X className="w-3.5 h-3.5" />
-      </button>
+    <div className="w-full px-1 py-3 animate-fade-in" style={ruleStyle} data-reminder-card="prompt">
+      <div className="flex items-center gap-3">
+        <Bell className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
+        <span
+          className="flex-1 text-[11px] font-medium leading-snug"
+          style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
+        >
+          Get a morning reminder — a notification with today&rsquo;s Gospel
+        </span>
+        <button
+          onClick={onOpenReminder}
+          className="px-3 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wide transition-all active:scale-95 flex-shrink-0"
+          style={{ backgroundColor: t.accentRgba(0.14), borderColor: t.accent, color: t.accent }}
+        >
+          Set
+        </button>
+        <button
+          onClick={() => {
+            dismissReminderPrompt();
+            setDismissedAt(Date.now());
+          }}
+          aria-label="Not now — ask again in two weeks"
+          className="flex-shrink-0 transition-opacity hover:opacity-70"
+          style={{ color: t.textDim }}
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      {iosNeedsInstall && (
+        <div className="mt-3" data-reminder-install-steps>
+          <p
+            className="text-[11px] font-medium leading-snug mb-3"
+            style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
+          >
+            On an iPhone, a reminder can only reach an app that lives on the Home
+            Screen — so put Sanctum there first:
+          </p>
+          <InstallInstructions
+            tokens={{
+              accent: t.accent,
+              accentSoft: t.accentRgba(0.15),
+              border: t.border,
+              textBright: t.textBright,
+              text: t.text,
+              textMuted: t.textMuted,
+              textDim: t.textDim,
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
