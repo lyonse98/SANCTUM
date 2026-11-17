@@ -90,7 +90,7 @@ describe('Pocket Church — three doors', () => {
       }
     });
 
-    it(`the Confession door carries the words and the marker (${audience})`, () => {
+    it(`the Confession door carries the words, and the marker is gone (${audience})`, () => {
       const html = render(audience, 'confession');
       // The Real Help script, rendered in the door from the shared data.
       expect(html).toContain('What to do');
@@ -98,9 +98,12 @@ describe('Pocket Church — three doors', () => {
       // The Act of Contrition, from the shared shelf.
       expect(html).toContain('Act of Contrition');
       expect(html).toContain('heartily sorry for having offended You');
-      // The last-confession marker, unset on a fresh device: a fact and a button.
-      expect(html).toContain('No confession marked yet.');
-      expect(html).toContain('I went to confession');
+      // The last-confession marker was removed entirely (Erik's ruling,
+      // Nov 16, 2026): the prep tool can be used without going, so the
+      // marker tracked tool use, not the sacrament.
+      expect(html).not.toContain('Last confession');
+      expect(html).not.toContain('I went to confession');
+      expect(html).not.toContain('marked yet');
     });
 
     it(`the Ask door opens the Catechism question surface by default (${audience})`, () => {

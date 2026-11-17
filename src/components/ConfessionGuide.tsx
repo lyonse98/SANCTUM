@@ -19,62 +19,12 @@ interface ConfessionGuideProps {
 }
 
 const STORAGE_KEY = 'sanctum_confession_notes';
-const LAST_CONFESSION_KEY = 'sanctum_last_confession';
 
 /** The Confession entry of Real Help — the same shared object FindHelpPage
  *  renders, so the words a man reads here are the words there, by construction. */
 const CONFESSION_SECTION = HELP_SECTIONS.find((s) => s.id === 'confession');
 /** The Act of Contrition, from the one shared shelf of prayer texts. */
 const ACT_OF_CONTRITION = PRAYERS.find((p) => p.title === 'Act of Contrition');
-
-function localISODate(date: Date = new Date()): string {
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${m}-${d}`;
-}
-
-function loadLastConfession(): string | null {
-  try {
-    return localStorage.getItem(LAST_CONFESSION_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function saveLastConfession(iso: string) {
-  try {
-    localStorage.setItem(LAST_CONFESSION_KEY, iso);
-  } catch {
-    // ignore
-  }
-}
-
-function readableDate(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-/** A plain statement of distance — "3 weeks ago" — with no comment on it. */
-function relativeDay(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const then = new Date(y, m - 1, d);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const days = Math.round((today.getTime() - then.getTime()) / 86400000);
-  if (days <= 0) return 'today';
-  if (days === 1) return 'yesterday';
-  if (days < 7) return `${days} days ago`;
-  if (days < 30) {
-    const weeks = Math.round(days / 7);
-    return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
-  }
-  if (days < 365) {
-    const months = Math.round(days / 30.44);
-    return months === 1 ? '1 month ago' : `${months} months ago`;
-  }
-  const years = Math.round(days / 365.25);
-  return years === 1 ? '1 year ago' : `${years} years ago`;
-}
 
 function loadNotes(): Record<string, boolean> {
   try {
@@ -100,13 +50,6 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
   const [notes, setNotes] = useState<Record<string, boolean>>(() => loadNotes());
   const [expanded, setExpanded] = useState<string | null>(null);
   const [lens, setLens] = useState<ExaminationLens>(() => loadExaminationLens());
-  const [lastConfession, setLastConfession] = useState<string | null>(() => loadLastConfession());
-
-  const markWent = useCallback(() => {
-    const iso = localISODate();
-    saveLastConfession(iso);
-    setLastConfession(iso);
-  }, []);
 
   const chooseLens = useCallback((next: ExaminationLens) => {
     setLens(next);
@@ -154,31 +97,6 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
           Conscience to help you prepare for the Sacrament of Reconciliation with a validly ordained priest.
           Sanctum cannot hear confessions, offer counsel as clergy, or grant absolution.
         </p>
-      </div>
-
-      {/* The last-confession marker — a fact, kept on this device only, stated
-          without comment: no exhortation, no streak, no pressure. A man marks
-          that he went; the door remembers the date and nothing more. */}
-      <div
-        className="flex items-center justify-between gap-2 flex-wrap mb-4 px-3 py-2.5 border"
-        style={{ backgroundColor: `${t.border}14`, borderColor: t.border }}
-      >
-        <p className="text-[13px] leading-relaxed" style={{ color: t.textMuted }}>
-          {lastConfession ? (
-            <>
-              Last confession: <span style={{ color: t.text }}>{readableDate(lastConfession)}</span> ({relativeDay(lastConfession)})
-            </>
-          ) : (
-            'No confession marked yet.'
-          )}
-        </p>
-        <button
-          onClick={markWent}
-          className="min-h-[40px] px-3 py-2 text-[12px] font-bold uppercase tracking-widest transition-opacity hover:opacity-80 active:opacity-60"
-          style={{ border: `1px solid ${t.accent}`, backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, color: t.accent }}
-        >
-          {lastConfession ? 'I went today' : 'I went to confession'}
-        </button>
       </div>
 
       {/* The lens choice — the law, or the blessings. Two options only; the rest

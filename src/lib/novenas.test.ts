@@ -9,10 +9,10 @@ const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 
 /**
  * The Pocket Church build (Erik's approval, Nov 14, 2026): the Confession
- * door finished (the words and the Act of Contrition in the door, a quiet
- * last-confession marker), Ask reduced to one action with starter
- * questions, and three novenas in Pray — all of it from shared sources,
- * all state on the device under the sanctum_ prefix.
+ * door finished (the words and the Act of Contrition in the door), Ask
+ * reduced to one action with starter questions, and three novenas in
+ * Pray — all of it from shared sources, all state on the device under
+ * the sanctum_ prefix.
  */
 describe('the novenas — data', () => {
   it('carries exactly the three novenas, each with its patronage line', () => {
@@ -106,7 +106,7 @@ describe('the build’s single-source discipline', () => {
 
   it('the new keys live under the sanctum_ prefix, inside the panic wipe’s sweep', () => {
     const guide = read('components/ConfessionGuide.tsx');
-    expect(guide).toContain("'sanctum_last_confession'");
+    expect(guide).toContain("'sanctum_confession_notes'");
     const novenas = read('components/Novenas.tsx');
     expect(novenas).toContain('sanctum_novena_${id}');
     expect(novenas).toContain('sanctum_novena_${id}_intention');
