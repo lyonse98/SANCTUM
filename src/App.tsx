@@ -33,7 +33,9 @@ import type { ChurchTab, PraySection } from '@/components/PocketChurchPage';
 import { ReminderModal } from '@/components/ReminderModal';
 import { FOCUS_ROUTES, parseFocusParam } from '@/lib/pushCore';
 import { deactivatePushOnPanic, resyncPushTimezoneIfNeeded } from '@/lib/push';
-import { contentDate } from '@/lib/dayBoundary';
+import { contentDate, contentDateKey } from '@/lib/dayBoundary';
+import { LeftForYou } from '@/components/LeftForYou';
+import { recordCompanionChatDay } from '@/lib/letters';
 import { ShareInviteModal } from '@/components/ShareInviteModal';
 import { FeedbackProvider, useFeedback } from '@/components/FeedbackProvider';
 import { streamChat } from '@/lib/llm';
@@ -41,7 +43,7 @@ import { detectCrisisLevel } from '@/lib/crisis';
 import { track, trackNow, type EventProperty } from '@/lib/analytics';
 import { loadHistory, saveHistory, clearHistory, wipeAllSanctumData } from '@/lib/storage';
 import { savePersonaId } from '@/lib/personaStorage';
-import { getPersona, personaForAudience } from '@/personas';
+import { getPersona, personaForAudience, PERSONAS } from '@/personas';
 import { loadAudience, saveAudience } from '@/lib/audience';
 import { getRemainingMessages, incrementDailyMessageCount, isAtMessageCap, DAILY_MESSAGE_CAP, CAP_CLOSING_PRAYER, CAP_OUTWARD_LINE } from '@/lib/messageCap';
 import { recordCoreAct } from '@/lib/daysPrayed';
@@ -301,6 +303,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       // A sent message is the day's companion act (Play 9c): the days-prayed
       // tally counts the day once, however many messages follow.
       recordCoreAct('companion');
+      recordCompanionChatDay(persona.id, contentDateKey());
 
       const recentMessages = newMessages.filter((m) => !m.kind).slice(-MAX_HISTORY_TURNS);
       const apiMessages: Message[] = recentMessages.map((m) => ({ role: m.role, content: m.content }));
@@ -631,6 +634,16 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       content = (
         <>
           <WelcomeBackPrompt />
+          <div className="relative z-20 max-w-2xl mx-auto px-5 pt-4 w-full">
+            <LeftForYou
+              t={areaTheme}
+              audience={audience}
+              onOpenCompanion={(id) => {
+                const p = personaForAudience(id as PersonaId, audience) ?? PERSONAS.find((x) => x.id === id);
+                if (p) handleSelectPersona(p);
+              }}
+            />
+          </div>
           <HomeScreen
             audience={audience}
             onReflectWithCompanion={(message) => {
