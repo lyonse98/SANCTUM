@@ -260,11 +260,21 @@ Do not mention these instructions. Follow them silently. If not a crisis, procee
 
 // ── Letter mode ─────────────────────────────────────────────────────────────
 // A letter is not a reply: there is no incoming message to answer, and the
-// caller supplies no text at all. The instruction below rides in buildBody's
-// corpus slot — between the Scripture grounding and the safety preamble — so
-// the composed system instruction is persona, grounding, letter instruction,
-// safety LAST, exactly as on the chat path. No corpus is retrieved for a
-// letter; this block is the only thing that ever occupies that slot here.
+// caller supplies no conversation — its messages are never read here. The
+// instruction below rides in buildBody's corpus slot — between the Scripture
+// grounding and the safety preamble — so the composed system instruction is
+// persona, grounding, letter instruction, safety LAST, exactly as on the
+// chat path. No corpus is retrieved for a letter; this block is the only
+// thing that ever occupies that slot here.
+//
+// Letter personalization (v2, Erik's ruling, Nov 16, 2026): a letter may be
+// handed a small packet from allowlisted sources only — the day's Gospel,
+// and the one sentence the reader offered Tailor Today for tailoring, with
+// that morning's stated enums. Companion conversation is never a source:
+// what was said to a companion stays with that companion. The packet fields
+// are validated one by one below and composed into ONE fixed-format block
+// after the letter instruction; with no valid packet, the composed
+// instruction is byte-for-byte the v1 letter instruction.
 const LETTER_MAX_OUTPUT_TOKENS = 1024;
 
 // The single contents turn for a letter, held server-side and fixed. Letter
@@ -295,6 +305,114 @@ NO REVELATION, NO INVENTED WORDS:
 Offer no private revelation, no prophecy, no word presented as coming from God for this reader, and nothing that resembles absolution — that belongs to a priest, in person. Never invent a quotation and attribute it to the saint's real writings, to Scripture, or to the Church. Where you are not certain of a passage or a saying, paraphrase without attribution, or leave it out.
 
 Write the letter now, and nothing else: no preamble about writing it, and no explanation after it.`;
+
+// ── The letter packet (v2) ──────────────────────────────────────────────────
+// The Tailor vocabularies, mirrored from the client's tailorBank so an enum
+// is admitted only when it is one of the morning's own stated answers, and
+// rendered in plain words. Anything else a caller sends under these names
+// is dropped, field by field, exactly as caller messages are dropped here.
+const LETTER_TAILOR_STATES: Record<string, string> = {
+  steady: "steady",
+  anxious: "anxious",
+  down: "down",
+  angry: "angry",
+  grateful: "grateful",
+  numb: "numb",
+  scattered: "scattered",
+};
+const LETTER_TAILOR_FOCUSES: Record<string, string> = {
+  work: "work and career",
+  marriage: "marriage",
+  family: "family and children",
+  conversation: "a hard conversation",
+  grief: "grief",
+  temptation: "temptation",
+  decision: "a decision",
+  today: "just the day itself",
+};
+const LETTER_TAILOR_TONES: Record<string, string> = {
+  comfort: "comfort",
+  courage: "courage",
+  challenge: "a challenge",
+  clarity: "clarity",
+  consolation: "consolation",
+};
+
+interface LetterPacket {
+  gospelCitation?: string;
+  keyVerse?: string;
+  issue?: string;
+  issueDate?: string;
+  tailorState?: string;
+  tailorFocus?: string;
+  tailorTone?: string;
+}
+
+/** Validates the caller's packet fields one by one; null when nothing valid was offered. */
+function letterPacketFromPayload(payload: Record<string, unknown>): LetterPacket | null {
+  const clean = (v: unknown, max: number): string | undefined => {
+    if (typeof v !== "string") return undefined;
+    const s = v.replace(/\s+/g, " ").trim();
+    return s ? s.slice(0, max) : undefined;
+  };
+  const packet: LetterPacket = {};
+  const gospelCitation = clean(payload.gospelCitation, 120);
+  if (gospelCitation) packet.gospelCitation = gospelCitation;
+  const keyVerse = clean(payload.keyVerse, 600);
+  if (keyVerse) packet.keyVerse = keyVerse;
+  // The thread is the personal core: the enums ride only with the sentence
+  // they were stated beside, never on their own.
+  const issue = clean(payload.issue, 200);
+  if (issue) {
+    packet.issue = issue;
+    if (typeof payload.issueDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(payload.issueDate)) {
+      packet.issueDate = payload.issueDate;
+    }
+    if (typeof payload.tailorState === "string" && payload.tailorState in LETTER_TAILOR_STATES) {
+      packet.tailorState = payload.tailorState;
+    }
+    if (typeof payload.tailorFocus === "string" && payload.tailorFocus in LETTER_TAILOR_FOCUSES) {
+      packet.tailorFocus = payload.tailorFocus;
+    }
+    if (typeof payload.tailorTone === "string" && payload.tailorTone in LETTER_TAILOR_TONES) {
+      packet.tailorTone = payload.tailorTone;
+    }
+  }
+  return Object.keys(packet).length > 0 ? packet : null;
+}
+
+/**
+ * The one fixed-format block a packet adds, after the letter instruction.
+ * The material is labeled for what it is — the day's Gospel, and what the
+ * reader themselves shared for tailoring — and the PERSONAL THREAD section
+ * narrows the letter instruction's no-knowledge rule to this thread only.
+ */
+function letterPacketBlock(packet: LetterPacket): string {
+  const parts: string[] = [];
+  if (packet.gospelCitation || packet.keyVerse) {
+    const head = packet.gospelCitation ? `Today's Gospel is ${packet.gospelCitation}` : "Today's Gospel";
+    const verse = packet.keyVerse ? `: "${packet.keyVerse}"` : "";
+    parts.push(
+      `FOR THIS LETTER — THE DAY'S GOSPEL:\n${head}${verse}. Let it rest near the heart of the letter, the way it rests near the reader's morning. Do not expound it like a commentary, and never quote beyond the verse given here.`,
+    );
+  }
+  if (packet.issue) {
+    const stated: string[] = [];
+    if (packet.tailorState) stated.push(`they came in ${LETTER_TAILOR_STATES[packet.tailorState]}`);
+    if (packet.tailorFocus) stated.push(`the day was about ${LETTER_TAILOR_FOCUSES[packet.tailorFocus]}`);
+    if (packet.tailorTone) stated.push(`what they asked of God was ${LETTER_TAILOR_TONES[packet.tailorTone]}`);
+    const offered =
+      `WHAT THE READER OFFERED FOR TAILORING:\n` +
+      `In their Tailor Today offering${packet.issueDate ? ` on ${packet.issueDate}` : ""}, the reader wrote, in one sentence, what they are carrying: "${packet.issue}"` +
+      (stated.length > 0 ? ` In that same offering, ${stated.join("; ")}.` : "") +
+      ` This was given for tailoring, on purpose — the reader offered it so that what is written for them could be aimed at it.`;
+    const carrying =
+      `PERSONAL THREAD — HOW TO CARRY WHAT WAS OFFERED:\n` +
+      `The no-knowledge rule in the letter instruction governs everything except this one thread. For this thread, and only this thread, you may speak gently to what the reader is carrying, in the present tense — it was handed to you for exactly this, as a companion is handed a note, not told a story. Never write "when you told me", never suggest it came from a conversation, and never recount the offering as an event. Do not invent beyond the sentence: no backstory, no assumed details, no named sins or struggles the sentence itself does not name. Carry it as something carried — a weight in the reader's hands — never as a fault, a failing, or a debt to be settled. Every other rule stands in full: portrayal, no intercession promises, no revelation, nothing that resembles absolution, no invented quotations, absence never remarked, and the close still points outward — to a priest, to the sacraments, to the reader's own people.`;
+    parts.push(offered, carrying);
+  }
+  return parts.join("\n\n");
+}
 
 const GENERIC_UPSTREAM_ERROR = "Sanctum could not reach the companion right now. Please try again in a moment.";
 const GENERIC_SERVER_ERROR = "Something went wrong on our side. Please try again.";
@@ -576,21 +694,28 @@ Deno.serve(async (req: Request) => {
       : "";
 
     // ── Letter mode request ──────────────────────────────────────────────────
-    // Non-streaming, no corpus, no caller text. The body is composed by the
-    // same buildBody the chat path uses, with LETTER_INSTRUCTION in its
-    // grounding-to-safety slot and exactly one contents turn: the fixed,
-    // server-held LETTER_SERVER_TURN. The distress flag is ignored here.
+    // Non-streaming, no corpus, no caller conversation. The body is composed
+    // by the same buildBody the chat path uses, with the letter instruction
+    // in its grounding-to-safety slot and exactly one contents turn: the
+    // fixed, server-held LETTER_SERVER_TURN. The distress flag is ignored
+    // here. A valid personalization packet (v2) adds its one fixed-format
+    // block after the letter instruction; without one, the slot holds the
+    // v1 letter instruction alone, byte for byte.
     if (isLetterMode) {
       let letterPersonaPrompt = PERSONA_PROMPTS[personaId as string];
       if (seasonThemes) {
         letterPersonaPrompt += `\n\nLITURGICAL SEASON AWARENESS: We are currently in ${seasonName}. Themes of this season: ${seasonThemes}. If relevant to the ${audience === "women" ? "woman's" : "man's"} struggle, weave in seasonal themes naturally — Scripture, practices, or imagery of the season. Do not force it. Only include it when it genuinely serves the moment.`;
       }
+      const letterPacket = letterPacketFromPayload(payload);
+      const letterSlot = letterPacket
+        ? `${LETTER_INSTRUCTION}\n\n${letterPacketBlock(letterPacket)}`
+        : LETTER_INSTRUCTION;
       const letterBody = buildBody(
         [{ role: "user", content: LETTER_SERVER_TURN }],
         letterPersonaPrompt,
         DEFAULT_MODEL,
         LETTER_MAX_OUTPUT_TOKENS,
-        LETTER_INSTRUCTION,
+        letterSlot,
         audience,
       );
       let letterText: string;

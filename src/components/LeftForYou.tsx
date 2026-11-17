@@ -12,6 +12,7 @@ import { PERSONAS, personasForAudience } from '@/personas';
 import {
   eligibleLetterPersona,
   fetchCompanionLetter,
+  letterFramingLine,
   markLetterShown,
   pendingLetter,
   storeLetter,
@@ -129,16 +130,18 @@ export function LeftForYou({ t, audience, onOpenCompanion }: LeftForYouProps) {
       }
 
       if (first.kind === 'letter-new') {
-        const text = await fetchCompanionLetter(first.personaId, audience);
+        const result = await fetchCompanionLetter(first.personaId, audience);
         if (!live) return;
-        if (text) {
+        if (result) {
           const letter: StoredLetter = {
             personaId: first.personaId,
             personaName: personaNameFor(first.personaId),
             dateKey,
             seasonKey: seasonInstanceKey(cDate),
-            text,
+            text: result.text,
             shown: false,
+            withGospel: result.withGospel,
+            withTailor: result.withTailor,
           };
           storeLetter(letter);
           setGift({ kind: 'letter-new', letter });
@@ -226,6 +229,11 @@ export function LeftForYou({ t, audience, onOpenCompanion }: LeftForYouProps) {
           <p className="text-[14px] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
             {gift.letter.text}
           </p>
+          {letterFramingLine(gift.letter) && (
+            <p className="text-[12px] mt-2" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+              {letterFramingLine(gift.letter)}
+            </p>
+          )}
         </div>
       ) : gift.kind === 'anticipation' ? (
         <p className="text-[15px] leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.text }}>

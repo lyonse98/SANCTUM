@@ -623,9 +623,10 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
             <ChoiceRow t={t} options={TAILOR_TONES} value={tone} onChoose={setTone} label="What do you want from God today?" />
           </div>
 
-          <label className="block mb-3.5">
+          <label className="block mb-1.5">
             <span className={formLabel} style={formLabelStyle}>
-              In your own words <span className="normal-case tracking-normal font-medium">(optional)</span>
+              In one sentence — what are you carrying into today?{' '}
+              <span className="normal-case tracking-normal font-medium">(optional)</span>
             </span>
             <input
               value={freeText}
@@ -642,6 +643,13 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               }}
             />
           </label>
+          {/* The sentence's second life, named at the field itself (Erik's
+              ruling, Nov 16, 2026): it is kept on this device as a letter
+              thread, and a companion's letter may one day draw on it. Said
+              openly here, where the sentence is given — never silently. */}
+          <p className="text-[12px] leading-relaxed mb-3.5" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+            This sentence is kept only on this phone — and a companion&rsquo;s letter may one day draw on it.
+          </p>
 
           {/* The standing profile — collapsed until wanted; it leans every
               morning without being asked again, and it lives here, on the

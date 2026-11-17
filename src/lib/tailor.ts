@@ -10,6 +10,7 @@ import {
   type TailorTone,
 } from '@/data/tailorBank';
 import { profileSignature, type TailorRequestProfile } from '@/lib/tailorProfile';
+import { appendLetterThread } from '@/lib/letterThreads';
 
 /**
  * Tailor Today, client side (Nov 12, 2026). One build per user per day: the
@@ -393,6 +394,16 @@ export async function getOrBuildTailored(
       tone: intake.tone,
       freeText: intake.freeText.replace(/\s+/g, ' ').trim().slice(0, 200),
     },
+  });
+  // The morning's one sentence is also kept as a letter thread (Erik's
+  // ruling, Nov 16, 2026): what was given for tailoring may tailor — a
+  // companion's letter may one day be handed it, as the field's own
+  // disclosure says. On this device only, like the morning record itself.
+  appendLetterThread(dateKey, {
+    sentence: intake.freeText,
+    state: intake.state,
+    focus: intake.focus,
+    tone: intake.tone,
   });
   return { devotional: built, fromCache: false };
 }

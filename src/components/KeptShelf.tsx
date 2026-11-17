@@ -11,7 +11,7 @@ import {
 } from '@/lib/keptDays';
 import { keptWeeks, weekIsKept, weekRangeOf, type KeptWeek } from '@/lib/keptWeeks';
 import { loadDaysPrayedDates } from '@/lib/daysPrayed';
-import { listLetters } from '@/lib/letters';
+import { letterFramingLine, listLetters } from '@/lib/letters';
 import { listChallengesLived } from '@/lib/challengesLived';
 import { fetchDailyReadings } from '@/lib/readings';
 import { sundayCelebrationName } from '@/components/TonightClosing';
@@ -373,12 +373,22 @@ export function KeptShelf({ t, dateKey }: KeptShelfProps) {
                     </span>
                   </button>
                   {open && (
-                    <p
-                      className="text-[13px] leading-relaxed mt-2.5 whitespace-pre-wrap"
-                      style={{ fontFamily: PRINT_SERIF, color: t.text }}
-                    >
-                      {letter.text}
-                    </p>
+                    <>
+                      <p
+                        className="text-[13px] leading-relaxed mt-2.5 whitespace-pre-wrap"
+                        style={{ fontFamily: PRINT_SERIF, color: t.text }}
+                      >
+                        {letter.text}
+                      </p>
+                      {letterFramingLine(letter) && (
+                        <p
+                          className="text-[12px] mt-2"
+                          style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+                        >
+                          {letterFramingLine(letter)}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               );

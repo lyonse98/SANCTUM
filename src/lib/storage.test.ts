@@ -57,6 +57,7 @@ const KNOWN_KEYS = [
   'sanctum_gift_slot',
   'sanctum_companion_chat_days',
   'sanctum_letters',
+  'sanctum_letter_threads',
   'sanctum_challenges_lived',
 ];
 

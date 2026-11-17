@@ -1,5 +1,10 @@
 import { seasonInstanceKey } from './seasonTurns';
 import { contentDate } from './dayBoundary';
+import { fetchDailyReadings } from './readings';
+import { fetchPassageVerses } from './bible';
+import { pickKeyVerse } from './keyVerse';
+import { latestLetterThread } from './letterThreads';
+import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import type { Audience } from '@/types';
 
 export const CHAT_DAYS_KEY = 'sanctum_companion_chat_days';
@@ -12,6 +17,22 @@ export interface StoredLetter {
   seasonKey: string;
   text: string;
   shown: boolean;
+  /** The letter was handed the day's Gospel (named under the letter where it is read). */
+  withGospel?: boolean;
+  /** The letter was handed the reader's Tailor thread (named under the letter, openly). */
+  withTailor?: boolean;
+}
+
+/**
+ * The framing line under a personalized letter, naming its sources in plain
+ * words (Erik's ruling, Nov 16, 2026: the personalization is OPEN, never
+ * silent). An impersonal letter — no packet was handed over — gets no line.
+ */
+export function letterFramingLine(letter: Pick<StoredLetter, 'withGospel' | 'withTailor'>): string | null {
+  if (letter.withGospel && letter.withTailor) return 'Written with today’s Gospel and what you shared in Tailor.';
+  if (letter.withTailor) return 'Written with what you shared in Tailor.';
+  if (letter.withGospel) return 'Written with today’s Gospel.';
+  return null;
 }
 
 function readChatDays(): Record<string, string[]> {
@@ -142,8 +163,63 @@ export function eligibleLetterPersona(
   }
 }
 
-export async function fetchCompanionLetter(personaId: string, audience: Audience): Promise<string | null> {
+/**
+ * The personalization packet a letter may be handed (Erik's ruling,
+ * Nov 16, 2026). Sources are allowlisted by kind: the user profile (the
+ * track, sent as `audience`; the season), the daily Gospel, and Tailor.
+ * Companion conversation is NEVER a source — this module reads no chat
+ * history and no message state; what was said to a companion stays with
+ * that companion. When no Tailor thread exists, no tailor fields are sent
+ * and the letter falls back to its impersonal form.
+ */
+export interface LetterPacket {
+  gospelCitation?: string;
+  keyVerse?: string;
+  issue?: string;
+  issueDate?: string;
+  tailorState?: string;
+  tailorFocus?: string;
+  tailorTone?: string;
+}
+
+export async function buildLetterPacket(): Promise<LetterPacket> {
+  const packet: LetterPacket = {};
   try {
+    const readings = await fetchDailyReadings(contentDate());
+    if (readings?.gospel) {
+      packet.gospelCitation = readings.gospel;
+      const passage = await fetchPassageVerses(readings.gospel);
+      const verse = passage ? pickKeyVerse(passage) : null;
+      if (verse?.text) packet.keyVerse = verse.text;
+    }
+  } catch {
+    // No Gospel at hand — the packet simply goes without it.
+  }
+  const thread = latestLetterThread();
+  if (thread) {
+    packet.issue = thread.sentence;
+    packet.issueDate = thread.date;
+    if (thread.state) packet.tailorState = thread.state;
+    if (thread.focus) packet.tailorFocus = thread.focus;
+    if (thread.tone) packet.tailorTone = thread.tone;
+  }
+  return packet;
+}
+
+export interface CompanionLetterResult {
+  text: string;
+  /** The packet handed over carried the day's Gospel. */
+  withGospel: boolean;
+  /** The packet handed over carried the reader's Tailor thread. */
+  withTailor: boolean;
+}
+
+export async function fetchCompanionLetter(
+  personaId: string,
+  audience: Audience,
+): Promise<CompanionLetterResult | null> {
+  try {
+    const packet = await buildLetterPacket();
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-proxy`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 60000);
@@ -154,7 +230,13 @@ export async function fetchCompanionLetter(personaId: string, audience: Audience
           'Content-Type': 'application/json',
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ mode: 'letter', personaId, audience }),
+        body: JSON.stringify({
+          mode: 'letter',
+          personaId,
+          season: getCurrentSeason(contentDate()).name,
+          audience,
+          ...packet,
+        }),
         signal: controller.signal,
       });
       if (!res.ok) return null;
@@ -162,7 +244,11 @@ export async function fetchCompanionLetter(personaId: string, audience: Audience
       if (!data || typeof data !== 'object') return null;
       const rec = data as { ok?: unknown; letter?: unknown };
       if (rec.ok !== true || typeof rec.letter !== 'string' || !rec.letter.trim()) return null;
-      return rec.letter;
+      return {
+        text: rec.letter,
+        withGospel: Boolean(packet.gospelCitation),
+        withTailor: Boolean(packet.issue),
+      };
     } finally {
       clearTimeout(timer);
     }
