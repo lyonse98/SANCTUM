@@ -28,6 +28,12 @@ import {
   type Reflection,
 } from '@/lib/reflection';
 import { PRINT_PLATE_CLASS, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
+import { recordCoreAct } from '@/lib/daysPrayed';
+import {
+  isChallengeLived,
+  markChallengeLived,
+  unmarkChallengeLived,
+} from '@/lib/challengesLived';
 import { ListenBar } from '@/components/ListenBar';
 import { TailorToday } from '@/components/TailorToday';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
@@ -204,6 +210,28 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     readings?.date ?? null,
     audience,
   );
+
+  // The challenge, lived: a quiet testimony line under the challenge, not
+  // a badge. The mark is read from the on-device journal once the day's
+  // reflection stands; marking also counts the day in the cumulative
+  // tally (a challenge act), and setting the mark aside removes only the
+  // journal entry — the day itself is never un-recorded.
+  const [challengeLived, setChallengeLived] = useState(false);
+  useEffect(() => {
+    if (shown.value) setChallengeLived(isChallengeLived(localDateKey, 'daily'));
+  }, [shown.value, localDateKey]);
+
+  const markDailyChallengeLived = () => {
+    if (!shown.value) return;
+    markChallengeLived({ dateKey: localDateKey, source: 'daily', text: shown.value.challenge });
+    recordCoreAct('challenge');
+    setChallengeLived(true);
+  };
+
+  const unmarkDailyChallengeLived = () => {
+    unmarkChallengeLived(localDateKey, 'daily');
+    setChallengeLived(false);
+  };
 
   const loadAllTexts = async (): Promise<ReadingTexts | null> => {
     if (allTexts) return allTexts;
@@ -532,6 +560,26 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                 <p className="text-[13px] leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
                   {shown.value.challenge}
                 </p>
+                {challengeLived ? (
+                  <p className="text-[12px] mt-1.5" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+                    This one was lived.{' '}
+                    <button
+                      onClick={unmarkDailyChallengeLived}
+                      className="underline underline-offset-2 transition-opacity hover:opacity-70"
+                      style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+                    >
+                      undo
+                    </button>
+                  </p>
+                ) : (
+                  <button
+                    onClick={markDailyChallengeLived}
+                    className="block text-[12px] mt-1.5 transition-opacity hover:opacity-70"
+                    style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+                  >
+                    I did this
+                  </button>
+                )}
               </div>
             </>
           ) : null}
