@@ -107,7 +107,7 @@ export function FindHelpPage({ t, audience, accent, onBack, onPrayNow, utilities
           </button>
         )}
 
-        <p className="text-[10px] text-center mt-6 leading-relaxed max-w-xs" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+        <p className="text-[13px] text-center mt-6 leading-relaxed max-w-xs" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
           In crisis right now? Call or text 988 (US), or findahelpline.com outside the US.
         </p>
 
@@ -207,7 +207,7 @@ function HelpSectionCard({ section, t, accent, index }: HelpSectionCardProps) {
               <p className="text-xs font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
                 {link.label}
               </p>
-              <p className="text-[11px] leading-tight" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+              <p className="text-[12px] leading-tight" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                 {link.detail}
               </p>
             </div>

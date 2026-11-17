@@ -18,7 +18,7 @@ export function SeasonBadge() {
 
   return (
     <div
-      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest"
+      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[12px] font-bold uppercase tracking-widest"
       style={{
         backgroundColor: `${visual.accent}${visual.feastName ? '1F' : '15'}`,
         borderColor: `${visual.accent}${visual.feastName ? '60' : '40'}`,

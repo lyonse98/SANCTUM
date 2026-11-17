@@ -39,12 +39,12 @@ function AnswerSources({ sources, t }: { sources: ChatSource[]; t: PersonaTheme 
                 className="w-3 h-3 flex-shrink-0 transition-transform"
                 style={{ color: t.accent, transform: openLabel === s.label ? 'rotate(90deg)' : undefined }}
               />
-              <span className="text-[11px] font-medium" style={{ color: t.accent }}>
+              <span className="text-[12px] font-medium" style={{ color: t.accent }}>
                 {s.label}
               </span>
             </button>
             {openLabel === s.label && (
-              <p className="text-[11px] leading-relaxed mt-1 ml-4 whitespace-pre-wrap" style={{ color: t.textMuted }}>
+              <p className="text-[13px] leading-relaxed mt-1 ml-4 whitespace-pre-wrap" style={{ color: t.textMuted }}>
                 {s.excerpt}
               </p>
             )}
@@ -145,7 +145,7 @@ export function CatechismQA({ t, audience }: CatechismQAProps) {
           <h3 className={PRINT_STAMP_CLASS} style={{ color: t.accent }}>
             Ask Aquinas
           </h3>
-          <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
+          <p className="text-[13px] leading-relaxed" style={{ color: t.textDim }}>
             St. Thomas Aquinas — AI portrayal. Type your question about the faith.
           </p>
         </div>
@@ -201,7 +201,7 @@ export function CatechismQA({ t, audience }: CatechismQAProps) {
             {isLoading && messages[messages.length - 1]?.role === 'user' && (
               <div className="flex items-center gap-2 px-3 py-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: t.accent }} />
-                <span className="text-[11px]" style={{ color: t.textDim }}>St. Thomas is considering...</span>
+                <span className="text-[12px]" style={{ color: t.textDim }}>St. Thomas is considering...</span>
               </div>
             )}
           </div>
@@ -238,7 +238,7 @@ export function CatechismQA({ t, audience }: CatechismQAProps) {
             <Send className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-[10px] mt-2 text-center" style={{ color: t.textDim }}>
+        <p className="text-[12px] mt-2 text-center" style={{ color: t.textDim }}>
           Answers grounded in the Catechism. Requires connection. Not stored.
         </p>
       </div>

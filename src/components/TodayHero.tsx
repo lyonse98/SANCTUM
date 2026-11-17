@@ -80,7 +80,7 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
             />
             <figcaption className="absolute inset-x-0 bottom-0 p-4">
               <span
-                className="inline-block text-[9px] font-bold uppercase tracking-[0.22em] px-2 py-0.5 border mb-1.5"
+                className="inline-block text-[12px] font-bold uppercase tracking-[0.22em] px-2 py-0.5 border mb-1.5"
                 style={{ color: '#FFF6E8', borderColor: 'rgba(255,246,232,0.55)', backgroundColor: 'rgba(24,14,10,0.35)' }}
               >
                 {feastArt.feast.rank}
@@ -91,7 +91,7 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
               >
                 {feastArt.feast.name}
               </p>
-              <p className="text-[10px] uppercase tracking-[0.18em] mt-0.5" style={{ color: 'rgba(255,246,232,0.85)' }}>
+              <p className="text-[12px] uppercase tracking-[0.18em] mt-0.5" style={{ color: 'rgba(255,246,232,0.85)' }}>
                 {feastArt.feast.motif}
               </p>
             </figcaption>
@@ -103,7 +103,7 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
             <div className="flex items-center justify-center gap-3 mb-3" aria-hidden="true">
               <span className="h-px w-10" style={{ backgroundColor: t.accentRgba(0.45) }} />
               <span
-                className="text-[9px] font-bold uppercase tracking-[0.22em]"
+                className="text-[12px] font-bold uppercase tracking-[0.22em]"
                 style={{ color: t.accent }}
               >
                 {feastEmblem.rank}
@@ -120,7 +120,7 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
               >
                 {feastEmblem.name}
               </p>
-              <p className="text-[10px] uppercase tracking-[0.18em] mt-0.5" style={{ color: t.textDim }}>
+              <p className="text-[12px] uppercase tracking-[0.18em] mt-0.5" style={{ color: t.textDim }}>
                 {feastEmblem.motif}
               </p>
             </figcaption>
@@ -152,13 +152,13 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
         >
           Sanctum
         </h1>
-        <p className="text-[11px] text-forge-text-muted stamped mb-1" style={{ color: accent }}>
+        <p className="text-[12px] text-forge-text-muted stamped mb-1" style={{ color: accent }}>
           {greeting}
         </p>
 
         <div className="flex flex-col items-center gap-1.5">
           <SeasonBadge />
-          <p className="text-[10px] text-forge-text-dim text-center max-w-xs leading-relaxed">
+          <p className="text-[13px] text-forge-text-dim text-center max-w-xs leading-relaxed">
             {visual.feastNote ?? season.description}
           </p>
         </div>
@@ -166,7 +166,7 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
         {isSunday && onOpenHelp && (
           <button
             onClick={onOpenHelp}
-            className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-opacity hover:opacity-70"
+            className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider transition-opacity hover:opacity-70"
             style={{ color: t.accent }}
           >
             <Church className="w-3.5 h-3.5" />

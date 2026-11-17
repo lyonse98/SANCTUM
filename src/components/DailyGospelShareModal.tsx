@@ -285,7 +285,7 @@ export function DailyGospelShareModal({
         <div className="p-5">
           {/* The choice that matters comes first: WHICH piece of today to send. */}
           <p
-            className="text-[10px] uppercase tracking-widest font-bold mb-2"
+            className="text-[12px] uppercase tracking-widest font-bold mb-2"
             style={{ color: t.textDim }}
           >
             What would you like to share?
@@ -307,7 +307,7 @@ export function DailyGospelShareModal({
                   }
                 >
                   <span
-                    className="block text-[10px] uppercase tracking-widest font-bold mb-1"
+                    className="block text-[12px] uppercase tracking-widest font-bold mb-1"
                     style={{ color: isSelected ? t.accent : t.textDim }}
                   >
                     {piece.pickerLabel}
@@ -339,7 +339,7 @@ export function DailyGospelShareModal({
                   <button
                     key={s}
                     onClick={() => setStyle(s)}
-                    className="flex-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all border"
+                    className="flex-1 px-2 py-1.5 rounded-lg text-[12px] font-medium transition-all border"
                     style={
                       style === s
                         ? { backgroundColor: t.accentRgba(0.12), color: t.accent, borderColor: t.accentRgba(0.3) }
@@ -351,7 +351,7 @@ export function DailyGospelShareModal({
                 ))}
               </div>
 
-              <p className="text-[11px] mt-3 text-center leading-relaxed" style={{ color: t.textDim }}>
+              <p className="text-[13px] mt-3 text-center leading-relaxed" style={{ color: t.textDim }}>
                 {FOOTNOTES[selected.id]}
               </p>
 

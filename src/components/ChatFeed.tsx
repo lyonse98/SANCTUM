@@ -145,12 +145,12 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
         <p className="text-sm max-w-xs leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
           {persona.description}
         </p>
-        <div className="mt-5 flex items-center gap-2 text-[10px] stamped" style={{ color: t.textDim }}>
+        <div className="mt-5 flex items-center gap-2 text-[12px] stamped" style={{ color: t.textDim }}>
           <div className="w-8 h-px" style={{ backgroundColor: `${t.borderLight}66` }} />
           <span>{persona.tagline}</span>
           <div className="w-8 h-px" style={{ backgroundColor: `${t.borderLight}66` }} />
         </div>
-        <p className="mt-4 text-[11px] leading-relaxed max-w-[260px]" style={{ color: t.textDim }}>
+        <p className="mt-4 text-[13px] leading-relaxed max-w-[260px]" style={{ color: t.textDim }}>
           {COMPANION_PORTRAYAL_LINE}
         </p>
         <p className="mt-6 text-sm italic" style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
@@ -252,7 +252,7 @@ function MessageBlock({
       <div className="flex mt-2">
         <button
           onClick={() => onShare(message.content)}
-          className="flex items-center gap-1 text-[10px] font-medium transition-opacity hover:opacity-70"
+          className="flex items-center gap-1 text-[12px] font-medium transition-opacity hover:opacity-70"
           style={{ color: t.textDim }}
         >
           <Share2 className="w-3 h-3" />
@@ -298,7 +298,7 @@ function GospelContextCard({
       {message.reflected ? (
         <div className="flex items-center gap-1.5 mt-3" style={{ color: t.textDim }}>
           <Check className="w-3.5 h-3.5" />
-          <span className="text-[10px] font-bold uppercase tracking-wide">Reflected with {persona.name}</span>
+          <span className="text-[12px] font-bold uppercase tracking-wide">Reflected with {persona.name}</span>
         </div>
       ) : (
         <button
@@ -307,7 +307,7 @@ function GospelContextCard({
           style={{ backgroundColor: t.accentRgba(0.14), border: `1px solid ${t.accent}`, color: t.accent }}
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span className="text-[11px] font-bold uppercase tracking-wide" style={{ fontFamily: PRINT_SERIF }}>
+          <span className="text-[12px] font-bold uppercase tracking-wide" style={{ fontFamily: PRINT_SERIF }}>
             Reflect with {persona.name}
           </span>
         </button>

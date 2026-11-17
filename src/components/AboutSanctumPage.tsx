@@ -105,11 +105,11 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
               : 'A private sanctuary for men seeking counsel, stillness, and strength'}
           </p>
           <div className="flex items-center justify-center gap-2 flex-wrap mt-3">
-            <span className="text-[10px] stamped flex items-center gap-1" style={{ color: t.textDim }}>
+            <span className="text-[12px] stamped flex items-center gap-1" style={{ color: t.textDim }}>
               <Lock className="w-3 h-3" /> Nothing You Write Is Stored on a Server
             </span>
-            <span className="text-[10px]" style={{ color: t.textDim }}>•</span>
-            <span className="text-[10px] stamped flex items-center gap-1" style={{ color: t.textDim }}>
+            <span className="text-[12px]" style={{ color: t.textDim }}>•</span>
+            <span className="text-[12px] stamped flex items-center gap-1" style={{ color: t.textDim }}>
               <Zap className="w-3 h-3" /> No Account Needed
             </span>
           </div>
@@ -218,7 +218,7 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
           </p>
         </div>
 
-        <p className="text-[10px] text-center mt-6 leading-relaxed max-w-sm" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+        <p className="text-[13px] text-center mt-6 leading-relaxed max-w-sm" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
           Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US),
           or findahelpline.com outside the US.
         </p>

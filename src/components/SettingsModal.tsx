@@ -68,10 +68,10 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
             <div className="flex items-start gap-2">
               <Users className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
               <div className="flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
                   Your Track
                 </p>
-                <p className="text-[11px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
                   Sanctum is kept for men and for women — different companions, reflections, and
                   examinations for the life being lived. Switching closes your current companion and
                   returns to Today; every companion&rsquo;s conversation stays saved separately on this device.
@@ -87,7 +87,7 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
                         key={opt.id}
                         onClick={() => { if (!selected) onAudienceChange(opt.id); }}
                         aria-pressed={selected}
-                        className="py-2 px-2 rounded-lg border text-[11px] font-bold uppercase tracking-wide transition-all"
+                        className="py-2 px-2 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
                         style={{
                           backgroundColor: selected ? accent : 'transparent',
                           borderColor: accent,
@@ -109,10 +109,10 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
               <div className="flex items-start gap-2">
                 <BarChart3 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
                 <div className="flex-1">
-                  <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                  <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
                     Usage Analytics
                   </p>
-                  <p className="text-[11px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                  <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
 {analyticsCopy(audience)}
                   </p>
                   <button
@@ -124,10 +124,10 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
                     className="w-full flex items-center justify-between px-3 py-2 rounded-lg border transition-all"
                     style={{ backgroundColor: analyticsOn ? accent : 'transparent', borderColor: accent, color: analyticsOn ? '#fff' : textMuted }}
                   >
-                    <span className="text-[11px] font-bold uppercase tracking-wide">
+                    <span className="text-[12px] font-bold uppercase tracking-wide">
                       {analyticsOn ? 'Analytics On' : 'Analytics Off'}
                     </span>
-                    <span className="text-[10px]">{analyticsOn ? 'Tap to turn off' : 'Tap to turn on'}</span>
+                    <span className="text-[12px]">{analyticsOn ? 'Tap to turn off' : 'Tap to turn on'}</span>
                   </button>
                 </div>
               </div>
@@ -137,10 +137,10 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
               <div className="flex items-start gap-2">
                 <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                  <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
                     Not a Therapy Service
                   </p>
-                  <p className="text-[11px] leading-relaxed" style={{ color: textMuted }}>
+                  <p className="text-[13px] leading-relaxed" style={{ color: textMuted }}>
                     This is a spiritual companion, not a licensed therapist or medical professional. If you are in
                     crisis, call or text <span className="font-bold">988</span> (US). For domestic violence, call{' '}
                     <span className="font-bold">1-800-799-7233</span>. If outside the US, visit findahelpline.com.
@@ -153,10 +153,10 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
               <div className="flex items-start gap-2">
                 <Lock className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                  <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
                     Your Privacy
                   </p>
-                  <p className="text-[11px] leading-relaxed" style={{ color: textMuted }}>
+                  <p className="text-[13px] leading-relaxed" style={{ color: textMuted }}>
 {PRIVACY_PARAGRAPH}
                   </p>
                 </div>
@@ -168,10 +168,10 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
                 <div className="flex items-start gap-2">
                   <Eraser className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
                   <div className="flex-1">
-                    <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                    <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
                       Tailor Profile
                     </p>
-                    <p className="text-[11px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                    <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
                       Your standing Tailor Today profile — your season of life, the battles you
                       named, your goal — is kept on this device only. Erase it here whenever you
                       like; Tailor Today will simply ask each morning afresh.
@@ -185,7 +185,7 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
                       style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
                     >
                       <Eraser className="w-3.5 h-3.5" />
-                      <span className="text-[11px] font-bold uppercase tracking-wide">Erase Tailor profile</span>
+                      <span className="text-[12px] font-bold uppercase tracking-wide">Erase Tailor profile</span>
                     </button>
                   </div>
                 </div>

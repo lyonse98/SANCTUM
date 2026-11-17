@@ -85,7 +85,7 @@ export function EmailReminderForm({ t }: EmailReminderFormProps) {
     <div>
       <label
         htmlFor={focusFieldId}
-        className="block text-[10px] uppercase tracking-widest font-bold mb-2"
+        className="block text-[12px] uppercase tracking-widest font-bold mb-2"
         style={{ color: t.textDim }}
       >
         Remind me to
@@ -104,7 +104,7 @@ export function EmailReminderForm({ t }: EmailReminderFormProps) {
           </option>
         ))}
       </select>
-      <p className="text-[10px] leading-relaxed mt-1.5" style={{ color: t.textDim }}>
+      <p className="text-[13px] leading-relaxed mt-1.5" style={{ color: t.textDim }}>
         {REMINDER_FOCUS_OPTIONS.find((o) => o.key === draftFocus)?.detail ?? ''}
       </p>
     </div>
@@ -112,7 +112,7 @@ export function EmailReminderForm({ t }: EmailReminderFormProps) {
 
   return (
     <div>
-      <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
+      <p className="text-[13px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
         A phone only runs an app&rsquo;s reminders when it chooses to, so a push notification cannot be
         promised. Email can. Each morning you get a short note and one link straight back into the
         app, at the part you chose.
@@ -133,7 +133,7 @@ export function EmailReminderForm({ t }: EmailReminderFormProps) {
           <button
             onClick={() => void handleUnsubscribe()}
             disabled={busy}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-[11px] font-bold transition-all active:scale-[0.98] disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-[12px] font-bold transition-all active:scale-[0.98] disabled:opacity-60"
             style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}99`, color: t.textMuted }}
           >
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
@@ -145,7 +145,7 @@ export function EmailReminderForm({ t }: EmailReminderFormProps) {
           <div>
             <label
               htmlFor={emailFieldId}
-              className="block text-[10px] uppercase tracking-widest font-bold mb-2"
+              className="block text-[12px] uppercase tracking-widest font-bold mb-2"
               style={{ color: t.textDim }}
             >
               Your email
@@ -186,7 +186,7 @@ export function EmailReminderForm({ t }: EmailReminderFormProps) {
         style={{ backgroundColor: `${t.border}26`, borderColor: `${t.border}66` }}
       >
         <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.textDim }} />
-        <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
+        <p className="text-[13px] leading-relaxed" style={{ color: t.textDim }}>
           This is the one thing Sanctum keeps on a server, and it is only your address and this one
           choice — no name, no account, nothing you have written to a companion. The sending side is
           not connected yet, so nothing is emailed today.
@@ -208,7 +208,7 @@ export function EmailReminderForm({ t }: EmailReminderFormProps) {
             <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#991B1B' }} />
           )}
           <p
-            className="text-[10px] leading-relaxed"
+            className="text-[13px] leading-relaxed"
             style={{ color: message.ok ? t.textMuted : '#991B1B' }}
           >
             {message.text}

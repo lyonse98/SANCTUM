@@ -53,7 +53,7 @@ export function UtilitiesRow({ t, utilities, className = '' }: UtilitiesRowProps
               style={{ backgroundColor: t.card, borderColor: `${t.border}99`, color: t.textMuted }}
             >
               <Icon className="w-4 h-4" strokeWidth={1.9} />
-              <span className="text-[8px] font-bold uppercase tracking-wide">{item.label}</span>
+              <span className="text-[12px] font-bold uppercase tracking-wide">{item.label}</span>
             </button>
           );
         })}

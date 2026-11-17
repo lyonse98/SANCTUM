@@ -91,7 +91,7 @@ export function Header({
               </h1>
               <div className="flex items-center gap-1">
                 <span
-                  className="text-[9px] uppercase tracking-[0.2em] font-medium stamped"
+                  className="text-[12px] uppercase tracking-[0.2em] font-medium stamped"
                   style={{ color: t.textDim }}
                 >
                   {persona.title} {'\u00B7'} {COMPANION_PORTRAYAL_SHORT}
@@ -110,7 +110,7 @@ export function Header({
               style={{ backgroundColor: t.bg, borderColor: t.border }}
             >
               <div className="px-3 py-2 border-b" style={{ borderColor: `${t.border}66` }}>
-                <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: t.textDim }}>
+                <p className="text-[12px] font-bold uppercase tracking-[0.2em]" style={{ color: t.textDim }}>
                   Switch Companion
                 </p>
               </div>
@@ -135,7 +135,7 @@ export function Header({
                       <p className="text-xs font-bold tracking-wide" style={{ fontFamily: PRINT_SERIF, color: p.theme.textBright }}>
                         {p.name}
                       </p>
-                      <p className="text-[10px] truncate" style={{ fontFamily: PRINT_SERIF, color: p.theme.textDim }}>
+                      <p className="text-[12px] truncate" style={{ fontFamily: PRINT_SERIF, color: p.theme.textDim }}>
                         {p.tagline}
                       </p>
                     </div>
@@ -149,7 +149,7 @@ export function Header({
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                 >
                   <Home className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-medium">Back to home</span>
+                  <span className="text-[12px] font-medium">Back to home</span>
                 </button>
               </div>
             </div>
@@ -242,7 +242,7 @@ export function Header({
         className="px-4 py-1 border-t text-center"
         style={{ borderColor: `${t.border}66`, backgroundColor: `${t.bg}80` }}
       >
-        <p className="text-[9px] leading-relaxed" style={{ color: t.textDim }}>
+        <p className="text-[13px] leading-relaxed" style={{ color: t.textDim }}>
           For historical, philosophical, and personal reflection only. Not licensed therapy, spiritual direction, or Sacramental Absolution.
         </p>
       </div>

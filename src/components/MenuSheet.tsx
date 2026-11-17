@@ -91,7 +91,7 @@ export function MenuSheet({ open, t, onClose, onNavigate, utilities }: MenuSheet
           </button>
         </div>
 
-        <p className="text-[9px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: t.textDim }}>
+        <p className="text-[12px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: t.textDim }}>
           Go
         </p>
         <div className="space-y-2 mb-5" data-menu-group="go">
@@ -113,7 +113,7 @@ export function MenuSheet({ open, t, onClose, onNavigate, utilities }: MenuSheet
                   <span className="block text-sm font-bold" style={{ color: t.textBright }}>
                     {entry.label}
                   </span>
-                  <span className="block text-[11px]" style={{ color: t.textDim }}>
+                  <span className="block text-[12px]" style={{ color: t.textDim }}>
                     {entry.hint}
                   </span>
                 </span>
@@ -122,7 +122,7 @@ export function MenuSheet({ open, t, onClose, onNavigate, utilities }: MenuSheet
           })}
         </div>
 
-        <p className="text-[9px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: t.textDim }}>
+        <p className="text-[12px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: t.textDim }}>
           App
         </p>
         <div className="space-y-2" data-menu-group="app">

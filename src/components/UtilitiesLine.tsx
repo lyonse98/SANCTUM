@@ -38,14 +38,14 @@ export function UtilitiesLine({ t, utilities, className = '' }: UtilitiesLinePro
       {ENTRIES.map((entry, i) => (
         <span key={entry.key} className="inline-flex items-center gap-2">
           {i > 0 && (
-            <span aria-hidden="true" className="text-[11px]" style={{ color: t.textDim }}>
+            <span aria-hidden="true" className="text-[12px]" style={{ color: t.textDim }}>
               ·
             </span>
           )}
           <button
             data-utilities-entry={entry.key}
             onClick={entry.action(utilities)}
-            className="text-[11px] font-medium transition-opacity hover:opacity-70"
+            className="text-[12px] font-medium transition-opacity hover:opacity-70"
             style={{ fontFamily: PRINT_SERIF, letterSpacing: '0.06em', color: t.textMuted }}
           >
             {entry.label}

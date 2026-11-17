@@ -27,7 +27,7 @@ export function PocketCatechism({ t, audience }: PocketCatechismProps) {
         </h3>
       </div>
 
-      <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textDim }}>
+      <p className="text-[12px] leading-relaxed mb-3" style={{ color: t.textDim }}>
         The Catechism as a question surface — ask, and the answer is grounded in the text itself.
       </p>
 

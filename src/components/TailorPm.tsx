@@ -70,7 +70,7 @@ export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
           >
             Close the day
           </span>
-          <span className="block text-[11px] mt-0.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+          <span className="block text-[12px] mt-0.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             {built
               ? 'Tonight\u2019s closing is written — read it back.'
               : 'This morning\u2019s devotional, reckoned against the day it became.'}
@@ -150,7 +150,7 @@ export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
           </div>
           {building && (
             <p
-              className="text-[11px] italic mt-2.5"
+              className="text-[12px] italic mt-2.5"
               style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
             >
               Writing tonight&rsquo;s close&hellip;
@@ -158,7 +158,7 @@ export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
           )}
           {failed && (
             <p
-              className="text-[11px] italic mt-2.5"
+              className="text-[13px] italic mt-2.5"
               style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
             >
               Tonight&rsquo;s closing could not be written just now. The day is still

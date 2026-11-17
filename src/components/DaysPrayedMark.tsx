@@ -22,7 +22,7 @@ export function DaysPrayedMark({ t }: DaysPrayedMarkProps) {
   return (
     <p
       data-days-prayed-mark
-      className="flex items-center justify-center gap-1.5 text-[11px]"
+      className="flex items-center justify-center gap-1.5 text-[12px]"
       style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
     >
       <svg

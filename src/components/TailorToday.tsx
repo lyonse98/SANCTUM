@@ -102,7 +102,7 @@ function ChipRow({
             key={opt.id}
             onClick={() => onToggle(opt.id)}
             aria-pressed={on}
-            className="px-3 py-2 text-[11px] transition-all active:scale-95"
+            className="px-3 py-2 text-[12px] transition-all active:scale-95"
             style={{
               fontFamily: PRINT_SERIF,
               backgroundColor: on ? t.accentRgba(0.14) : `${t.border}1F`,
@@ -263,7 +263,7 @@ function TailorProfileEditor({
             setSavedNote(true);
             setConfirmingErase(false);
           }}
-          className="flex-1 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all active:scale-[0.98]"
+          className="flex-1 px-3 py-2 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all active:scale-[0.98]"
           style={{ backgroundColor: t.accentRgba(0.14), borderColor: t.accent, color: t.accent }}
         >
           {savedNote ? 'Saved — kept on this device' : 'Save profile'}
@@ -281,7 +281,7 @@ function TailorProfileEditor({
               setConfirmingErase(false);
               setSavedNote(false);
             }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all active:scale-[0.98]"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all active:scale-[0.98]"
             style={{
               backgroundColor: `${t.border}33`,
               borderColor: confirmingErase ? t.accent : `${t.border}99`,
@@ -293,7 +293,7 @@ function TailorProfileEditor({
           </button>
         )}
       </div>
-      <p className="text-[10px] leading-relaxed" style={{ color: t.textDim }}>
+      <p className="text-[13px] leading-relaxed" style={{ color: t.textDim }}>
         Kept on this device only — never on a server. It stays until you change it, erase it,
         or clear the app&rsquo;s data.
       </p>
@@ -535,7 +535,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
           style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F`, color: t.textMuted }}
         >
           <SlidersHorizontal className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="text-[11px] font-bold uppercase tracking-wide" style={{ fontFamily: PRINT_SERIF }}>Tailor today</span>
+          <span className="text-[12px] font-bold uppercase tracking-wide" style={{ fontFamily: PRINT_SERIF }}>Tailor today</span>
         </button>
       )}
 
@@ -568,7 +568,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               audit P-9/UX #8, Nov 16, 2026): what happens to what is typed
               here, said once, in plain words, directly above the first
               question. The fuller disclosure stands in the paragraph above. */}
-          <p className="text-[11px] leading-relaxed mb-3.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+          <p className="text-[13px] leading-relaxed mb-3.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
             What you type here stays on this phone. It is sent once, to write your devotional,
             and it is never stored on a server.
           </p>
@@ -627,7 +627,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               <span className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
                 Your standing profile
               </span>
-              <span className="text-[10px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+              <span className="text-[12px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                 {profileOpen ? 'Close' : profileForRequest(audience, profile) ? 'Set — edit' : 'Not set'}
               </span>
             </button>
@@ -639,7 +639,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
           </div>
 
           {view === 'error' && error && (
-            <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>{error}</p>
+            <p className="text-[13px] leading-relaxed mb-3" style={{ color: t.textMuted }}>{error}</p>
           )}
 
           <button
@@ -656,7 +656,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
       {view === 'building' && (
         <div className="flex items-center justify-center gap-2 py-4" style={{ color: t.textDim }}>
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-[11px]">{tailorProgressLines(focus)[progressIdx]}</span>
+          <span className="text-[12px]">{tailorProgressLines(focus)[progressIdx]}</span>
         </div>
       )}
 
@@ -665,7 +665,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
           <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
             Your tailored devotional
           </p>
-          <p className="text-[11px] font-medium mb-3 mt-1" style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+          <p className="text-[12px] font-medium mb-3 mt-1" style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
             {tailorCreditLine(devotional)}
           </p>
 
@@ -686,7 +686,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               >
                 <Loader2 className="w-5 h-5 animate-spin" />
               </div>
-              <p className="text-[11px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+              <p className="text-[12px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                 Preparing the narration…
               </p>
             </div>
@@ -728,7 +728,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
                   />
                 </div>
               )}
-              <p className="text-[10px] mt-1" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+              <p className="text-[12px] mt-1" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                 {fmt(displayElapsed)} / {fmt(duration || devotional.audioSeconds)}
               </p>
             </div>
@@ -805,11 +805,11 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               <span className="block text-xs font-medium truncate" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
                 {devotional.media.title}
               </span>
-              <span className="block text-[10px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+              <span className="block text-[12px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                 {MEDIA_KIND_LABELS[devotional.media.kind]} · {devotional.media.creator} · {mediaActionLabel(devotional.media)}
               </span>
               {devotional.media.why && (
-                <span className="block text-[10px] italic" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+                <span className="block text-[12px] italic" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
                   {devotional.media.why}
                 </span>
               )}
@@ -818,7 +818,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
 
           <button
             onClick={() => setView('form')}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-opacity hover:opacity-70"
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[12px] font-bold uppercase tracking-widest transition-opacity hover:opacity-70"
             style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
           >
             <RefreshCw className="w-3 h-3" />

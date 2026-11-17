@@ -207,7 +207,7 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
         <div className="p-5">
           {submittedNeed !== null ? (
             <div className="animate-fade-in">
-              <p className="text-[10px] uppercase tracking-widest font-bold mb-2" style={{ color: t.accent }}>
+              <p className="text-[12px] uppercase tracking-widest font-bold mb-2" style={{ color: t.accent }}>
                 In your words
               </p>
               <p className="text-sm italic leading-relaxed mb-5" style={{ color: t.textMuted }}>
@@ -236,7 +236,7 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                           <span className="block text-sm font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
                             {p.name}
                           </span>
-                          <span className="block text-[11px] leading-snug mt-0.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+                          <span className="block text-[12px] leading-snug mt-0.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
                             {why}
                           </span>
                         </span>
@@ -244,7 +244,7 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11px] leading-relaxed text-center mb-4" style={{ color: t.textDim }}>
+                  <p className="text-[13px] leading-relaxed text-center mb-4" style={{ color: t.textDim }}>
                     Matched on this device, from the words you used — nothing was sent anywhere.
                   </p>
                 </>
@@ -280,7 +280,7 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-2">
                     <PenLine className="w-3.5 h-3.5" style={{ color: t.accent }} />
-                    <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: t.accent }}>
+                    <p className="text-[12px] uppercase tracking-widest font-bold" style={{ color: t.accent }}>
                       Or say it in your own words
                     </p>
                   </div>
@@ -304,7 +304,7 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                   </button>
                   <div className="flex items-center gap-3 mt-5">
                     <span className="flex-1 h-px" style={{ backgroundColor: `${t.border}66` }} />
-                    <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: t.textDim }}>
+                    <span className="text-[12px] uppercase tracking-widest font-bold" style={{ color: t.textDim }}>
                       or answer three questions
                     </span>
                     <span className="flex-1 h-px" style={{ backgroundColor: `${t.border}66` }} />
@@ -319,7 +319,7 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
                 ))}
               </div>
 
-              <p className="text-[10px] uppercase tracking-widest font-bold mb-2" style={{ color: t.accent }}>
+              <p className="text-[12px] uppercase tracking-widest font-bold mb-2" style={{ color: t.accent }}>
                 Question {step + 1} of {QUESTIONS.length}
               </p>
               <h4 className="text-base font-bold mb-4" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
@@ -346,7 +346,7 @@ export function CompanionRouter({ t, audience, open, onClose, onSelect }: Compan
             </div>
           ) : (
             <div className="text-center animate-fade-in">
-              <p className="text-[10px] uppercase tracking-widest font-bold mb-2" style={{ color: t.accent }}>
+              <p className="text-[12px] uppercase tracking-widest font-bold mb-2" style={{ color: t.accent }}>
                 Your Companion
               </p>
               <div className="flex justify-center mb-4">

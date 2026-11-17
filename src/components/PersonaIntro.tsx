@@ -90,7 +90,7 @@ export function PersonaIntro({ persona, onDone, onOpenHelp, onOpenPray }: Person
 
         <div className={`text-center transition-all duration-700 ease-out ${textShift}`}>
           <p
-            className="text-[10px] uppercase tracking-[0.3em] font-semibold mb-2"
+            className="text-[12px] uppercase tracking-[0.3em] font-semibold mb-2"
             style={{ color: t.textDim }}
           >
             {persona.era}
@@ -114,7 +114,7 @@ export function PersonaIntro({ persona, onDone, onOpenHelp, onOpenPray }: Person
           e.stopPropagation();
           finish();
         }}
-        className="absolute bottom-16 inset-x-0 mx-auto w-fit text-[11px] font-bold uppercase tracking-[0.2em] underline decoration-dotted underline-offset-4 transition-opacity hover:opacity-70"
+        className="absolute bottom-16 inset-x-0 mx-auto w-fit text-[12px] font-bold uppercase tracking-[0.2em] underline decoration-dotted underline-offset-4 transition-opacity hover:opacity-70"
         style={{ color: t.textDim }}
       >
         Begin
@@ -130,7 +130,7 @@ export function PersonaIntro({ persona, onDone, onOpenHelp, onOpenPray }: Person
                 e.stopPropagation();
                 onOpenHelp();
               }}
-              className="text-[10px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
+              className="text-[12px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
               style={{ color: t.textDim }}
             >
               Find a priest · Real Help
@@ -142,7 +142,7 @@ export function PersonaIntro({ persona, onDone, onOpenHelp, onOpenPray }: Person
                 e.stopPropagation();
                 onOpenPray();
               }}
-              className="text-[10px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
+              className="text-[12px] font-bold uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-opacity hover:opacity-70"
               style={{ color: t.textDim }}
             >
               Pray

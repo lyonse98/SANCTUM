@@ -62,7 +62,7 @@ export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }
           Each one has walked the road you're on. Answer three quick questions to find your fit, or pick a voice yourself.
         </p>
 
-        <p className="text-[11px] leading-relaxed text-center max-w-sm mx-auto -mt-3 mb-5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
+        <p className="text-[13px] leading-relaxed text-center max-w-sm mx-auto -mt-3 mb-5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
           {COMPANION_PORTRAYAL_LINE}
         </p>
 
@@ -77,7 +77,7 @@ export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }
             <span className="block text-[15px] font-semibold" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textBright }}>
               Not sure who to talk to?
             </span>
-            <span className="block text-[11px] leading-relaxed mt-0.5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
+            <span className="block text-[13px] leading-relaxed mt-0.5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
               Answer three quick questions and we'll point you to the right companion.
             </span>
           </span>
@@ -109,20 +109,20 @@ export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }
                     {persona.name}
                   </span>
                   <span
-                    className="text-[9px] uppercase tracking-widest font-bold"
+                    className="text-[12px] uppercase tracking-widest font-bold"
                     style={{ color: defaultTheme.textDim }}
                   >
                     {persona.title}
                   </span>
                 </span>
                 <span
-                  className="block text-[11px] leading-snug mt-0.5"
+                  className="block text-[13px] leading-snug mt-0.5"
                   style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textMuted }}
                 >
                   {persona.description}
                 </span>
                 <span
-                  className="block text-[10px] italic mt-1"
+                  className="block text-[12px] italic mt-1"
                   style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}
                 >
                   {needsOf(persona).join(' · ')}
@@ -133,7 +133,7 @@ export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }
           ))}
         </div>
 
-        <p className="text-[11px] text-center mt-6 leading-relaxed max-w-xs" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
+        <p className="text-[13px] text-center mt-6 leading-relaxed max-w-xs" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
           You can switch companions anytime. Each one brings a different voice, different tools, and a different light.
         </p>
 

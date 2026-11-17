@@ -56,12 +56,12 @@ export function ReminderCard({ t, onOpenReminder }: ReminderCardProps) {
         data-reminder-card="set"
       >
         <Bell className="w-3.5 h-3.5 flex-shrink-0" style={{ color: t.accent }} />
-        <span className="text-[11px] font-medium" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+        <span className="text-[12px] font-medium" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
           {reminderSummaryLine(reminder)}
         </span>
         <button
           onClick={onOpenReminder}
-          className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
+          className="flex items-center gap-1 text-[12px] font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
           style={{ color: t.accent }}
         >
           <Pencil className="w-3 h-3" />
@@ -83,14 +83,14 @@ export function ReminderCard({ t, onOpenReminder }: ReminderCardProps) {
       <div className="flex items-center gap-3">
         <Bell className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
         <span
-          className="flex-1 text-[11px] font-medium leading-snug"
+          className="flex-1 text-[12px] font-medium leading-snug"
           style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
         >
           Get a morning reminder — a notification with today&rsquo;s Gospel
         </span>
         <button
           onClick={onOpenReminder}
-          className="px-3 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-wide transition-all active:scale-95 flex-shrink-0"
+          className="px-3 py-1.5 rounded-md border text-[12px] font-bold uppercase tracking-wide transition-all active:scale-95 flex-shrink-0"
           style={{ backgroundColor: t.accentRgba(0.14), borderColor: t.accent, color: t.accent }}
         >
           Set
@@ -110,7 +110,7 @@ export function ReminderCard({ t, onOpenReminder }: ReminderCardProps) {
       {iosNeedsInstall && (
         <div className="mt-3" data-reminder-install-steps>
           <p
-            className="text-[11px] font-medium leading-snug mb-3"
+            className="text-[12px] font-medium leading-snug mb-3"
             style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
           >
             On an iPhone, a reminder can only reach an app that lives on the Home

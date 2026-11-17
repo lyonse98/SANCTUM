@@ -120,7 +120,7 @@ export function ShareInviteModal({ open, audience, t, onClose }: ShareInviteModa
             </p>
           </div>
 
-          <p className="text-[9px] uppercase tracking-widest font-bold mb-1.5" style={{ color: t.textDim }}>
+          <p className="text-[12px] uppercase tracking-widest font-bold mb-1.5" style={{ color: t.textDim }}>
             The link
           </p>
           <div className="flex items-center gap-2">
@@ -145,7 +145,7 @@ export function ShareInviteModal({ open, audience, t, onClose }: ShareInviteModa
               aria-label="Copy link"
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
-              <span className="text-[11px] font-bold uppercase tracking-wide">
+              <span className="text-[12px] font-bold uppercase tracking-wide">
                 {copied ? 'Copied' : 'Copy'}
               </span>
             </button>
@@ -163,13 +163,13 @@ export function ShareInviteModal({ open, audience, t, onClose }: ShareInviteModa
           </div>
 
           <p
-            className="flex items-start justify-center gap-1.5 text-[11px] mt-3 text-center leading-relaxed"
+            className="flex items-start justify-center gap-1.5 text-[13px] mt-3 text-center leading-relaxed"
             style={{ color: t.textDim }}
           >
             <Lock className="w-3 h-3 flex-shrink-0 mt-0.5" />
             <span>{privacyShare(audience)}</span>
           </p>
-          <p className="text-[11px] mt-2 text-center leading-relaxed" style={{ color: t.textDim }}>
+          <p className="text-[13px] mt-2 text-center leading-relaxed" style={{ color: t.textDim }}>
             {audience === 'women' ? (
               <>
                 Sending it to a phone? Tell her: open the link, tap Share &rarr; &ldquo;Add to Home Screen&rdquo;,

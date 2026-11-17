@@ -81,7 +81,7 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
           className="mb-2 rounded-lg px-3 py-2 border text-center animate-fade-in"
           style={{ backgroundColor: 'rgba(153,27,27,0.12)', borderColor: 'rgba(185,28,28,0.35)' }}
         >
-          <p className="text-[11px] font-medium leading-relaxed" style={{ color: '#991B1B' }}>
+          <p className="text-[13px] font-medium leading-relaxed" style={{ color: '#991B1B' }}>
             Take a breath {kin}. Spend 2 minutes in reflection before sending your next message.
           </p>
         </div>
@@ -145,12 +145,12 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
             at every value — no amber, no red, no escalation as it runs
             down, and at zero the same line, not a wall. */}
         {remainingMessages <= 5 && (
-          <span className="text-[10px] tabular-nums" style={{ color: t.textDim }}>
+          <span className="text-[12px] tabular-nums" style={{ color: t.textDim }}>
             {capRemainingLine(remainingMessages)}
           </span>
         )}
         <span
-          className="text-[10px] tabular-nums ml-auto"
+          className="text-[12px] tabular-nums ml-auto"
           style={{ color: overLimit ? '#B91C1C' : t.textDim }}
         >
           {charCount}/{MAX_CHARS}

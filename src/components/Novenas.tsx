@@ -206,7 +206,7 @@ export function Novenas({ t, audience }: NovenasProps) {
 
       {selected === null ? (
         <div className="space-y-2">
-          <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textDim }}>
+          <p className="text-[13px] leading-relaxed mb-3" style={{ color: t.textDim }}>
             Nine days of the same prayer, for one intention. Your days and your intention stay on this device.
           </p>
           {novenas.map((novena) => (
@@ -220,10 +220,10 @@ export function Novenas({ t, audience }: NovenasProps) {
                 <span className="block text-xs font-semibold" style={{ color: t.text }}>
                   {novena.title}
                 </span>
-                <span className="block text-[11px] leading-snug mt-0.5" style={{ color: t.textMuted }}>
+                <span className="block text-[12px] leading-snug mt-0.5" style={{ color: t.textMuted }}>
                   {novena.patronage}
                 </span>
-                <span className="block text-[10px] mt-1" style={{ color: t.textDim }}>
+                <span className="block text-[12px] mt-1" style={{ color: t.textDim }}>
                   {statusLine(states[novena.id], today)}
                 </span>
               </span>
@@ -245,11 +245,11 @@ export function Novenas({ t, audience }: NovenasProps) {
                     <p className="text-xs font-semibold" style={{ color: t.text }}>
                       {keepsake.arcName}
                     </p>
-                    <p className="text-[11px] mt-0.5" style={{ color: t.textDim }}>
+                    <p className="text-[12px] mt-0.5" style={{ color: t.textDim }}>
                       {formatKeepsakeRange(keepsake.startedISO, keepsake.completedISO)}
                     </p>
                     {keepsake.intention && (
-                      <p className="text-[11px] italic leading-relaxed mt-0.5" style={{ color: t.textMuted }}>
+                      <p className="text-[12px] italic leading-relaxed mt-0.5" style={{ color: t.textMuted }}>
                         For: {keepsake.intention}
                       </p>
                     )}
@@ -340,7 +340,7 @@ function NovenaLeaf({
     <div className="animate-fade-in">
       <button
         onClick={onBack}
-        className="text-[11px] font-bold uppercase tracking-widest mb-3 transition-opacity hover:opacity-70"
+        className="text-[12px] font-bold uppercase tracking-widest mb-3 transition-opacity hover:opacity-70"
         style={{ color: t.textDim }}
       >
         &lsaquo; All novenas
@@ -349,7 +349,7 @@ function NovenaLeaf({
       <h4 className="text-base font-semibold leading-snug" style={{ color: t.textBright }}>
         {novena.title}
       </h4>
-      <p className="text-[11px] leading-relaxed mt-0.5 mb-3" style={{ color: t.textMuted }}>
+      <p className="text-[13px] leading-relaxed mt-0.5 mb-3" style={{ color: t.textMuted }}>
         {novena.patronage}
       </p>
 
@@ -372,7 +372,7 @@ function NovenaLeaf({
           />
           <button
             onClick={saveDraft}
-            className="mt-2 min-h-[44px] px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-opacity hover:opacity-80 active:opacity-60"
+            className="mt-2 min-h-[44px] px-4 py-2 text-[12px] font-bold uppercase tracking-widest transition-opacity hover:opacity-80 active:opacity-60"
             style={{ border: `1px solid ${t.accent}`, backgroundColor: `${t.accent}${PRINT_CHOSEN_FILL_ALPHA}`, color: t.accent }}
           >
             Save intention
@@ -385,7 +385,7 @@ function NovenaLeaf({
           </p>
           <button
             onClick={startEditing}
-            className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0 transition-opacity hover:opacity-70"
+            className="text-[12px] font-bold uppercase tracking-widest flex-shrink-0 transition-opacity hover:opacity-70"
             style={{ color: t.textDim }}
           >
             Edit
@@ -394,7 +394,7 @@ function NovenaLeaf({
       ) : (
         <button
           onClick={startEditing}
-          className="text-[11px] font-bold uppercase tracking-widest mb-4 transition-opacity hover:opacity-70"
+          className="text-[12px] font-bold uppercase tracking-widest mb-4 transition-opacity hover:opacity-70"
           style={{ color: t.textDim }}
         >
           + Add your intention
@@ -406,7 +406,7 @@ function NovenaLeaf({
       </p>
 
       {novena.note && (
-        <p className="text-[11px] italic leading-relaxed mb-3" style={{ color: t.textDim }}>
+        <p className="text-[13px] italic leading-relaxed mb-3" style={{ color: t.textDim }}>
           {novena.note}
         </p>
       )}

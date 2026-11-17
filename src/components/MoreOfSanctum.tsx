@@ -41,7 +41,7 @@ export function MoreOfSanctum({ t, onNavigate }: MoreOfSanctumProps) {
   return (
     <section aria-label="More of Sanctum" data-more-of-sanctum className="w-full">
       <p
-        className="text-[9px] font-bold uppercase tracking-[0.2em] mb-2 text-center"
+        className="text-[12px] font-bold uppercase tracking-[0.2em] mb-2 text-center"
         style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
       >
         More of Sanctum
@@ -67,7 +67,7 @@ export function MoreOfSanctum({ t, onNavigate }: MoreOfSanctumProps) {
               style={{ borderBottom: `1px dotted ${t.textDim}` }}
             />
             <span
-              className="text-[11px] italic flex-shrink-0"
+              className="text-[12px] italic flex-shrink-0"
               style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
             >
               {entry.hint}
