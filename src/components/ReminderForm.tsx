@@ -134,10 +134,11 @@ export function ReminderForm({ t }: ReminderFormProps) {
   if (pushState === 'not-installed') {
     body = (
       <div>
+        {/* The steps come first, in plain words (Play 3): a man who opened
+            this sheet to set a reminder should meet the one thing he has to
+            do, not a paragraph about it. The why follows the steps. */}
         <p className="text-[11px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
-          On an iPhone, notifications only reach apps that live on the Home Screen — a browser
-          tab cannot receive notifications. Put Sanctum there first, open it from the icon, and
-          this sheet will let you turn the reminder on.
+          First, put Sanctum on your Home Screen — three taps, about ten seconds:
         </p>
         <InstallInstructions
           tokens={{
@@ -150,6 +151,11 @@ export function ReminderForm({ t }: ReminderFormProps) {
             textDim: t.textDim,
           }}
         />
+        <p className="text-[11px] leading-relaxed mt-3" style={{ color: t.textMuted }}>
+          Why: on an iPhone, notifications only reach apps that live on the Home Screen — a
+          browser tab cannot receive notifications. Once Sanctum is there, open it from the
+          icon, and this sheet will let you turn the reminder on.
+        </p>
       </div>
     );
   } else if (pushState === 'unsupported') {

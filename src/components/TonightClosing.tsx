@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Moon } from 'lucide-react';
 import { PRINT_SERIF } from '@/lib/print';
 import { fetchReflection } from '@/lib/reflection';
-import { isoDate } from '@/lib/readingsBundle';
+import { contentDateKey, contentNow } from '@/lib/dayBoundary';
 import { readTailorMeta } from '@/lib/tailor';
 import { TailorPm } from '@/components/TailorPm';
 import {
@@ -33,7 +33,9 @@ interface TonightClosingProps {
  */
 export function TonightClosing({ t, audience }: TonightClosingProps) {
   const [now] = useState(() => new Date());
-  const dateKey = isoDate(now);
+  // The closing belongs to the content day (Play 7): before the 04:00 flip
+  // it is still last night's closing, keyed to yesterday's date.
+  const dateKey = contentDateKey(now);
   const [challenge, setChallenge] = useState<string | null>(null);
   const [resolve, setResolve] = useState<string>(() => {
     const stored = loadTonightResolve();
@@ -56,7 +58,9 @@ export function TonightClosing({ t, audience }: TonightClosingProps) {
 
   const onResolveChange = (value: string) => {
     setResolve(value);
-    saveTonightResolve(value, now);
+    // Dated by the content day it was written in, so a resolve typed at
+    // 01:30 is last night's — and surfaces the morning that follows it.
+    saveTonightResolve(value, contentNow(now));
   };
 
   return (

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pause, Play, RotateCcw } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
 import { fetchDailyAudio, headForHour, sequenceSeekTarget, type DailyAudio } from '@/lib/dailyAudio';
+import { DAY_START_HOUR } from '@/lib/dayBoundary';
 import { PERSONA_DISPLAY, personaHasBell } from '@/lib/narratorCore';
 import { narratorDisclosureLine } from '@/lib/privacyCopy';
 import { recordCoreAct } from '@/lib/daysPrayed';
@@ -24,6 +25,17 @@ interface ListenBarProps {
   audience: Audience;
   /** Opens the reminder form — for the one-time line after a first completed listen. */
   onOpenReminder?: () => void;
+}
+
+/**
+ * The hour the content day hears (Play 7): before the 04:00 flip it is still
+ * the content day's evening, so the small hours count past midnight and the
+ * day's PM head is the head that plays — the AM head belongs to a morning
+ * that, in the content day's terms, has not happened yet.
+ */
+function contentHeadHour(date: Date): number {
+  const hour = date.getHours();
+  return hour < DAY_START_HOUR ? hour + 24 : hour;
 }
 
 /** The first-listen disclosure is per track: her first listen shows her line. */
@@ -118,7 +130,7 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
       // prepareAndPlay locks in at the first tap. Once playback is
       // prepared, the true stitched (or sequenced) duration replaces it.
       if (row && row.status === 'ready') {
-        const head = headForHour(new Date().getHours());
+        const head = headForHour(contentHeadHour(new Date()));
         const headSeconds = head === 'am' ? row.headAmSeconds : row.headPmSeconds;
         if (headSeconds && row.mainSeconds) {
           totalRef.current = headSeconds + row.mainSeconds;
@@ -326,8 +338,9 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
   const prepareAndPlay = async () => {
     const el = element();
     // The head is chosen once, at the first tap, by the device's own hour (§11.2),
-    // and locked for the session.
-    const head = headForHour(new Date().getHours());
+    // and locked for the session — read on the content day's clock (Play 7),
+    // so a listen in the small hours takes the day's evening head.
+    const head = headForHour(contentHeadHour(new Date()));
     const headUrl = head === 'am' ? audio.headAmUrl : audio.headPmUrl;
     const headSeconds = head === 'am' ? audio.headAmSeconds : audio.headPmSeconds;
     if (!headUrl || !audio.mainUrl) {

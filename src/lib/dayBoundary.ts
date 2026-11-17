@@ -39,6 +39,20 @@ export function contentDateKey(now: Date = new Date()): string {
   return dateKeyOf(contentDate(now));
 }
 
+/**
+ * `now` re-dated to the content day, keeping the wall-clock time of day.
+ * For callers whose hour still matters (the Tonight resolve's midday
+ * cutoff, the morning showing) but whose DATE is the content day: at
+ * 01:30 the moment is still last night, at 08:00 it is this morning.
+ */
+export function contentNow(now: Date = new Date()): Date {
+  const shifted = new Date(now.getTime());
+  if (now.getHours() < DAY_START_HOUR) {
+    shifted.setDate(shifted.getDate() - 1);
+  }
+  return shifted;
+}
+
 /** Shift a YYYY-MM-DD key by whole days (month/year safe). */
 export function shiftDateKey(dateKey: string, days: number): string {
   const [y, m, d] = dateKey.split('-').map((part) => Number(part));
