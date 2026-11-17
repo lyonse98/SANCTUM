@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, Church, Moon } from 'lucide-react';
 import { PRINT_PLATE_CLASS, PRINT_SERIF } from '@/lib/print';
 import { fetchReflection } from '@/lib/reflection';
-import { contentDateKey, contentNow } from '@/lib/dayBoundary';
+import { contentDate, contentDateKey, contentNow, shiftDateKey } from '@/lib/dayBoundary';
 import { readTailorMeta } from '@/lib/tailor';
 import { loadTonightsClose } from '@/lib/tailorPm';
 import { TailorPm } from '@/components/TailorPm';
@@ -13,7 +13,6 @@ import {
   saveTonightResolve,
   tailorEchoLine,
 } from '@/lib/tonight';
-import { contentDate, contentDateKey, shiftDateKey } from '@/lib/dayBoundary';
 import { recordCoreAct } from '@/lib/daysPrayed';
 import { fetchDailyReadings } from '@/lib/readings';
 import { fetchPassageVerses } from '@/lib/bible';
