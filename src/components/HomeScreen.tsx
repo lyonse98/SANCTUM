@@ -15,6 +15,7 @@ import { AUDIO_PM_START_HOUR } from '@/lib/narratorCore';
 import { morningResolve } from '@/lib/tonight';
 import { DAY_START_HOUR, contentDate, contentDateKey, contentNow } from '@/lib/dayBoundary';
 import { currentNovenaArc } from '@/lib/novenaProgress';
+import { todaysIntercession } from '@/lib/todaysIntercession';
 import { adventProgress } from '@/lib/seasonArcs';
 import type { Audience, TabId, UtilityActions } from '@/types';
 import { PRIVACY_SHORT } from '@/lib/privacyCopy';
@@ -80,6 +81,7 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
   // and Advent's own arc when the season is Advent — each read once,
   // from what the day already carries; nothing new is fetched for them.
   const [contentKey] = useState(() => contentDateKey());
+  const [intercession] = useState(() => todaysIntercession(contentKey));
   const [novenaArc] = useState(() => currentNovenaArc());
   const [advent] = useState(() => adventProgress(contentDate()));
   const [tailorOpen, setTailorOpen] = useState(false);
@@ -189,6 +191,27 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
         <div className="w-full mb-5">
           <ReminderCard t={seasonTheme} onOpenReminder={onOpenReminder} />
         </div>
+
+        {/* Today's intercession — one intention from a novena under way
+            on this device, named for the day. Its own quiet block, just
+            above the arcs: it is not an arc, and it renders whenever an
+            active intention exists, whether or not any arc line shows. */}
+        {intercession && (
+          <div className="w-full mb-5 text-center" data-todays-intercession>
+            <p
+              className="text-[12px] font-bold uppercase tracking-[0.2em] mb-1.5"
+              style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textDim }}
+            >
+              Today, lift up
+            </p>
+            <p
+              className="text-[13px] italic"
+              style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textMuted }}
+            >
+              {intercession.intention}
+            </p>
+          </div>
+        )}
 
         {/* In progress — the arcs the day already carries (Plays 5b/5c):
             a novena under way on this device, and Advent itself in its
