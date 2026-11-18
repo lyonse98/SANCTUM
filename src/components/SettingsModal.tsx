@@ -7,6 +7,7 @@ import { eraseTailorProfile, hasTailorProfile } from '@/lib/tailorProfile';
 import { READING_SIZES, loadReadingSize, saveReadingSize, type ReadingSize } from '@/lib/readingSize';
 import { READER_NAME_MAX, loadReaderName, saveReaderName } from '@/lib/readerName';
 import { loadPatronSaint, patronFeastLabel, savePatronSaint } from '@/lib/patronSaint';
+import { loadParishPatron, saveParishPatron } from '@/lib/parishPatron';
 import { USUAL_MASS_PARISH_MAX, formatMassTime, loadUsualMass, saveUsualMass, type UsualMassDay } from '@/lib/usualMass';
 import { SAINTS, type SaintOfDay } from '@/data/saints';
 import { PatronPlate } from '@/components/PatronPlate';
@@ -42,6 +43,9 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
   const [patron, setPatron] = useState<SaintOfDay | null>(null);
   const [patronPickerOpen, setPatronPickerOpen] = useState(false);
   const [patronQuery, setPatronQuery] = useState('');
+  const [parishPatron, setParishPatron] = useState<SaintOfDay | null>(null);
+  const [parishPatronPickerOpen, setParishPatronPickerOpen] = useState(false);
+  const [parishPatronQuery, setParishPatronQuery] = useState('');
   const [massParish, setMassParish] = useState('');
   const [massTime, setMassTime] = useState('');
   const [massDay, setMassDay] = useState<UsualMassDay>('sunday');
@@ -56,6 +60,9 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
       setPatron(loadPatronSaint());
       setPatronPickerOpen(false);
       setPatronQuery('');
+      setParishPatron(loadParishPatron());
+      setParishPatronPickerOpen(false);
+      setParishPatronQuery('');
       const mass = loadUsualMass();
       setMassParish(mass?.parish ?? '');
       setMassTime(mass?.time ?? '');
@@ -279,6 +286,96 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
                       {patron && (
                         <button
                           onClick={() => { setPatron(null); savePatronSaint(null); }}
+                          className="py-2 px-3 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
+                          style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
+              <div className="flex items-start gap-2">
+                <Church className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
+                <div className="flex-1">
+                  <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                    Your Parish&rsquo;s Patron
+                  </p>
+                  <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                    The patron saint of your parish. When their feast comes, Sanctum keeps it on
+                    your Today — your parish&rsquo;s day, marked quietly as yours. Kept on this
+                    device only.
+                    {massParish.trim() && (
+                      <> Your parish, from My Usual Mass below: <span style={{ color: textBright }}>{massParish.trim()}</span>.</>
+                    )}
+                  </p>
+                  {parishPatron && !parishPatronPickerOpen && (
+                    <div className="mb-2">
+                      <PatronPlate
+                        patron={parishPatron}
+                        audience={audience}
+                        eyebrow="Your parish's patron"
+                        colors={{
+                          border,
+                          fill: 'transparent',
+                          card,
+                          textBright,
+                          textMuted,
+                          textDim,
+                          accent,
+                        }}
+                        onOpenCompanion={onOpenCompanion ? (p) => { onClose(); onOpenCompanion(p); } : undefined}
+                      />
+                    </div>
+                  )}
+                  {parishPatronPickerOpen ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={parishPatronQuery}
+                        onChange={(e) => setParishPatronQuery(e.target.value)}
+                        placeholder="Search the saints"
+                        aria-label="Search the saints for your parish's patron"
+                        className="w-full bg-transparent border rounded-lg px-3 py-2 text-[13px] leading-relaxed outline-none mb-2"
+                        style={{ borderColor: accent, color: textBright }}
+                      />
+                      <div className="max-h-56 overflow-y-auto chat-scroll space-y-1">
+                        {SAINTS.filter((s) => s.name.toLowerCase().includes(parishPatronQuery.trim().toLowerCase())).map((saint, i) => (
+                          <button
+                            key={`${saint.name}-${saint.feastDate}-${i}`}
+                            onClick={() => { setParishPatron(saint); saveParishPatron(saint); setParishPatronPickerOpen(false); }}
+                            className="w-full flex items-baseline justify-between gap-2 px-2.5 py-2 rounded-lg text-left transition-opacity hover:opacity-70"
+                            style={{ backgroundColor: borderRgba50 }}
+                          >
+                            <span className="text-[13px] font-semibold" style={{ color: textBright }}>{saint.name}</span>
+                            <span className="text-[12px] flex-shrink-0" style={{ color: textDim }}>{patronFeastLabel(saint)}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setParishPatronPickerOpen(false)}
+                        className="w-full mt-2 py-2 rounded-lg text-[12px] font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
+                        style={{ color: textMuted }}
+                      >
+                        Close the list
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setParishPatronPickerOpen(true)}
+                        className="flex-1 py-2 px-2 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
+                        style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
+                      >
+                        {parishPatron ? 'Choose another' : 'Choose the patron'}
+                      </button>
+                      {parishPatron && (
+                        <button
+                          onClick={() => { setParishPatron(null); saveParishPatron(null); }}
                           className="py-2 px-3 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
                           style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
                         >

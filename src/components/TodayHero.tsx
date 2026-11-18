@@ -7,6 +7,7 @@ import { getFeastArt, getFeastEmblem } from '@/lib/feastArt';
 import { PRINT_SERIF } from '@/lib/print';
 import { contentDate } from '@/lib/dayBoundary';
 import { patronFeastOn } from '@/lib/patronSaint';
+import { parishPatronFeastOn } from '@/lib/parishPatron';
 import type { Audience, PersonaTheme } from '@/types';
 
 interface TodayHeroProps {
@@ -54,6 +55,10 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
   // The year's patron, on their feast (Erik, Nov 18, 2026): the masthead
   // gains one quiet marker line. Any other day, nothing stands here.
   const patronToday = useMemo(() => patronFeastOn(contentDate()), []);
+  // The parish's patron, on their feast (Erik, Nov 18, 2026): one more
+  // quiet marker line under the same rule — a personal observance only;
+  // the calendar above it is untouched.
+  const parishPatronToday = useMemo(() => parishPatronFeastOn(contentDate()), []);
   const [greeting, setGreeting] = useState(() => greetingForHour(new Date().getHours()));
 
   useEffect(() => {
@@ -172,6 +177,15 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
               style={{ fontFamily: PRINT_SERIF, color: t.accent }}
             >
               Your patron&rsquo;s feast
+            </p>
+          )}
+          {parishPatronToday && (
+            <p
+              data-parish-patron-feast
+              className="text-[12px] font-bold uppercase tracking-[0.18em]"
+              style={{ fontFamily: PRINT_SERIF, color: t.accent }}
+            >
+              Your parish&rsquo;s patron
             </p>
           )}
         </div>

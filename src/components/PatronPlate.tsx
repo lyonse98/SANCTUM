@@ -24,6 +24,12 @@ interface PatronPlateProps {
   /** Opens the companion chat when the patron is one of the track's companions. */
   onOpenCompanion?: (persona: Persona) => void;
   className?: string;
+  /**
+   * The plate's eyebrow line. The year's patron wears "Your patron"; the
+   * parish's patron (Erik, Nov 18, 2026) wears "Your parish's patron" —
+   * the same plate, a different keeping.
+   */
+  eyebrow?: string;
 }
 
 /**
@@ -34,7 +40,7 @@ interface PatronPlateProps {
  * otherwise it opens a small sheet with the shelf's own line for them —
  * there is no saints-library surface behind it, by design.
  */
-export function PatronPlate({ patron, audience, colors, onOpenCompanion, className }: PatronPlateProps) {
+export function PatronPlate({ patron, audience, colors, onOpenCompanion, className, eyebrow = 'Your patron' }: PatronPlateProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const companion = companionForSaint(patron.name, audience);
 
@@ -58,7 +64,7 @@ export function PatronPlate({ patron, audience, colors, onOpenCompanion, classNa
             className="block text-[12px] font-bold uppercase tracking-[0.2em]"
             style={{ fontFamily: PRINT_SERIF, color: colors.accent }}
           >
-            Your patron
+            {eyebrow}
           </span>
           <span className="block text-[15px] font-semibold mt-0.5" style={{ fontFamily: PRINT_SERIF, color: colors.textBright }}>
             {patron.name}
