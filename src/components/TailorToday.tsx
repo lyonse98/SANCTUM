@@ -1001,8 +1001,14 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
               ) : (
                 <button
                   onClick={markTailorChallengeLived}
-                  className="block text-[12px] mt-1.5 transition-opacity hover:opacity-70"
-                  style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+                  data-challenge-lived-button
+                  className="inline-flex items-center px-3 py-1.5 mt-2 text-[12px] font-bold uppercase tracking-wide transition-opacity hover:opacity-80 active:opacity-60"
+                  style={{
+                    fontFamily: PRINT_SERIF,
+                    color: t.textMuted,
+                    border: `1px solid ${t.border}`,
+                    backgroundColor: `${t.border}1F`,
+                  }}
                 >
                   I did this
                 </button>
