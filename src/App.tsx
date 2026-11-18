@@ -23,6 +23,8 @@ function TabFallback() {
   );
 }
 import { WelcomeBackPrompt } from '@/components/WelcomeBackPrompt';
+import { ComeHomePage } from '@/components/ComeHomePage';
+import { isComeHomeArrival } from '@/lib/comeHome';
 import { TermsModal, hasAcceptedTerms } from '@/components/TermsModal';
 import { TermsPage } from '@/components/TermsPage';
 import { CrisisModal } from '@/components/CrisisCard';
@@ -139,6 +141,11 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     hasFocusParam: parseFocusParam(window.location.search) !== null,
     hasDeepLinkHash: window.location.hash.length > 1,
   }));
+  // The come-home door (Erik, Nov 18, 2026): an arrival through the bare
+  // ?comehome=1 link opens its own surface BEFORE the welcome gate —
+  // no track choice is asked at that door. Leaving it walks the ordinary
+  // road in, through the gate like everyone else.
+  const [comeHomeActive, setComeHomeActive] = useState(() => isComeHomeArrival(window.location.search));
   const [churchTab, setChurchTab] = useState<ChurchTab | null>(null);
   const [churchPray, setChurchPray] = useState<PraySection | null>(null);
   const [forceExamen, setForceExamen] = useState(false);
@@ -554,6 +561,19 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     setView(route.tab);
     window.history.replaceState(null, '', window.location.pathname + window.location.hash);
   }, []);
+
+  if (comeHomeActive) {
+    return (
+      <ComeHomePage
+        t={seasonTheme}
+        accent={seasonAccent}
+        onEnterApp={() => {
+          setComeHomeActive(false);
+          window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+        }}
+      />
+    );
+  }
 
   if (!termsAccepted) {
     return <TermsModal onAccept={handleAcceptTerms} />;

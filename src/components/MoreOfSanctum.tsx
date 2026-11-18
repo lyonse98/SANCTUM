@@ -6,6 +6,12 @@ interface MoreOfSanctumProps {
   t: PersonaTheme;
   /** The three destinations — Today is home, never a row here. */
   onNavigate: (view: TabId) => void;
+  /**
+   * The come-home door's sender entry (Erik, Nov 18, 2026): a quiet line
+   * under the three destinations, opening the share sheet. Optional —
+   * the block stands complete without it.
+   */
+  onBringSomeoneHome?: () => void;
 }
 
 interface MoreEntry {
@@ -37,7 +43,7 @@ const ENTRIES: MoreEntry[] = [
  */
 const ROW_CLASS = PRINT_PLATE_CLASS;
 
-export function MoreOfSanctum({ t, onNavigate }: MoreOfSanctumProps) {
+export function MoreOfSanctum({ t, onNavigate, onBringSomeoneHome }: MoreOfSanctumProps) {
   return (
     <section aria-label="More of Sanctum" data-more-of-sanctum className="w-full">
       <p
@@ -76,6 +82,21 @@ export function MoreOfSanctum({ t, onNavigate }: MoreOfSanctumProps) {
           </button>
         ))}
       </div>
+      {/* The outward line — quieter than the destinations, on purpose:
+          it is an invitation to hand on, not a room of the house. */}
+      {onBringSomeoneHome && (
+        <button
+          data-bring-someone-home
+          onClick={onBringSomeoneHome}
+          className="block w-full text-center mt-3 py-1 transition-opacity hover:opacity-70"
+          style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
+        >
+          <span className="text-[13px] font-semibold">Bring someone home</span>
+          <span className="text-[12px] italic" style={{ color: t.textDim }}>
+            {' '}· for a friend who has been away
+          </span>
+        </button>
+      )}
     </section>
   );
 }
