@@ -34,7 +34,7 @@ describe('confession privacy — llm.ts never sends confession state', () => {
     expect(llm.toLowerCase()).not.toContain('confession');
   });
 
-  it('builds its chat-proxy payload with exactly the six allowed fields', () => {
+  it('builds its chat-proxy payload with exactly the seven allowed fields', () => {
     const match = llm.match(/JSON\.stringify\(\{([\s\S]*?)\}\)/);
     expect(match, 'llm.ts should build the chat-proxy body with JSON.stringify').not.toBeNull();
     const block = match![1]
@@ -43,8 +43,10 @@ describe('confession privacy — llm.ts never sends confession state', () => {
     const fields = [...block.matchAll(/^\s*([A-Za-z]+)\s*(?::|,)/gm)].map((m) => m[1]);
     // northStar joined the set on Erik's ruling (Nov 18, 2026): the reader's
     // chosen compass from the standing profile — a profile label, never
-    // anything about confession, and never conversation content.
-    expect([...fields].sort()).toEqual(['audience', 'distress', 'messages', 'northStar', 'personaId', 'season']);
+    // anything about confession, and never conversation content. name
+    // joined it the same day: the name the reader gave in Settings, kept
+    // in its own store, riding as the name itself and nothing more.
+    expect([...fields].sort()).toEqual(['audience', 'distress', 'messages', 'name', 'northStar', 'personaId', 'season']);
   });
 
   it('the one profile field llm.ts reads is the North Star — nothing else from the store', () => {
@@ -53,6 +55,11 @@ describe('confession privacy — llm.ts never sends confession state', () => {
     for (const other of ['seasonOfLife', 'ongoingBattles', 'standingGoal', 'mediaPrefs', 'defaultTone']) {
       expect(llm).not.toContain(other);
     }
+  });
+
+  it('the name llm.ts sends comes from its own dedicated store — and nothing else rides with it', () => {
+    expect(llm).toContain("from '@/lib/readerName'");
+    expect(llm).toContain('loadReaderName()');
   });
 });
 

@@ -349,6 +349,7 @@ interface LetterPacket {
   tailorFocus?: string;
   tailorTone?: string;
   northStar?: string;
+  name?: string;
 }
 
 /**
@@ -362,6 +363,20 @@ function cleanNorthStar(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const s = value.replace(/\s+/g, " ").trim();
   return s ? s.slice(0, 160) : null;
+}
+
+/**
+ * The reader's name cleaner, shared by the chat path and the letter
+ * packet (Erik, Nov 18, 2026): the name the reader gave in Settings,
+ * whitespace-normalized and capped at the field's own forty characters
+ * — the name itself, never an instruction channel. Anything else
+ * validates to null and the request proceeds exactly as it did before
+ * the field existed.
+ */
+function cleanReaderName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const s = value.replace(/\s+/g, " ").trim();
+  return s ? s.slice(0, 40) : null;
 }
 
 /** Validates the caller's packet fields one by one; null when nothing valid was offered. */
@@ -381,6 +396,11 @@ function letterPacketFromPayload(payload: Record<string, unknown>): LetterPacket
   // way the stated enums do — it is admitted on its own.
   const northStar = cleanNorthStar(payload.northStar);
   if (northStar) packet.northStar = northStar;
+  // The reader's name is likewise a standalone field: it was given to
+  // be used — in a chat, in a letter — not offered for one morning, so
+  // it too is admitted on its own, as the name itself and nothing more.
+  const readerName = cleanReaderName(payload.name);
+  if (readerName) packet.name = readerName;
   // The thread is the personal core: the enums ride only with the sentence
   // they were stated beside, never on their own.
   const issue = clean(payload.issue, 200);
@@ -439,6 +459,12 @@ function letterPacketBlock(packet: LetterPacket): string {
     parts.push(
       `THE READER'S NORTH STAR:\n` +
         `The reader has chosen a North Star — the scripture or idea they steer by: ${packet.northStar}. Let it guide the letter the way it guides the reader — quietly, where it genuinely fits. You may quote it exactly as given; it is provided verbatim. Never present it as revelation or as a message from God to this reader, and add no invented commentary about it.`,
+    );
+  }
+  if (packet.name) {
+    parts.push(
+      `THE READER'S NAME:\n` +
+        `The reader's name is ${packet.name}. You may address them by it in the letter's opening, the way a letter to a known reader opens — there, and not sprinkled through the letter. It is the name itself that was given, and nothing about the reader travels with it.`,
     );
   }
   return parts.join("\n\n");
@@ -811,6 +837,20 @@ Deno.serve(async (req: Request) => {
         `The reader has chosen a North Star — the scripture or idea they steer by: ${northStar}. ` +
         `Let it quietly color your counsel when it genuinely fits. It is provided verbatim, and you may quote it exactly as given. ` +
         `Never present it as revelation or as a message from God to this reader, and do not recite it back in every reply — let it surface only occasionally and naturally, the way a shared compass would.`;
+    }
+
+    // The reader's name (Erik, Nov 18, 2026): one optional field, the
+    // name itself, validated to forty characters. When it is present,
+    // ONE block joins the persona instruction — for companions and for
+    // Aquinas alike. When it is absent, nothing is appended and the
+    // composed instruction is byte-for-byte what it was before the
+    // field existed. (Letter mode returned above and never reaches
+    // this: letters are handed the name through the packet instead.)
+    const readerName = cleanReaderName(payload.name);
+    if (readerName) {
+      personaPrompt +=
+        `\n\nTHE READER'S NAME:\n` +
+        `The reader's name is ${readerName}. You may use it sparingly and naturally, where a name genuinely belongs in what you are saying — never in every reply, and never as a performance of familiarity. The name is all you have been given; claim no other knowledge of the reader from it.`;
     }
 
     // The corpus block (usage rules + the retrieved passages themselves) rides

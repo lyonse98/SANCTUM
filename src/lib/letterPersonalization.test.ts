@@ -109,13 +109,30 @@ describe('letter mode v2 — the function packet', () => {
     expect(letterBranch).toContain(': LETTER_INSTRUCTION;');
   });
 
-  it('the packet reads only the eight allowlisted fields', () => {
-    for (const field of ['gospelCitation', 'keyVerse', 'issue', 'issueDate', 'tailorState', 'tailorFocus', 'tailorTone', 'northStar']) {
+  it('the packet reads only the nine allowlisted fields', () => {
+    for (const field of ['gospelCitation', 'keyVerse', 'issue', 'issueDate', 'tailorState', 'tailorFocus', 'tailorTone', 'northStar', 'name']) {
       expect(packetFn).toContain(`payload.${field}`);
     }
     expect(packetFn).not.toContain('payload.messages');
     expect(packetFn).not.toContain('payload.freeText');
     expect(packetFn).not.toContain('payload.profile');
+  });
+
+  it('the reader’s name is the ninth field — standalone, capped at forty, opening-only (Nov 18, 2026)', () => {
+    // Admitted on its own, like the star — it was given to be used, not
+    // offered for one morning — and cleaned by the shared name cleaner.
+    expect(packetFn).toContain('cleanReaderName(payload.name)');
+    expect(source).toContain('s.slice(0, 40)');
+    // The block hands the letter the name for its opening, and fences it
+    // there: the name itself, and nothing about the reader with it.
+    expect(source).toContain("THE READER'S NAME");
+    expect(source).toContain("address them by it in the letter's opening");
+    expect(source).toContain('nothing about the reader travels with it');
+    // The client packet reads the name from its own store.
+    const letters = readSrc('lib/letters.ts');
+    expect(letters).toContain("from './readerName'");
+    expect(letters).toContain('loadReaderName()');
+    expect(letters).toContain('packet.name = readerName');
   });
 
   it('the North Star is a standalone field — admitted without the Tailor issue', () => {
