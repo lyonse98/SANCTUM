@@ -357,6 +357,16 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
       'akin',
       'horn',
       'kreeft',
+      'riccardo',
+      'guy-in-the-pew',
+      'schadt',
+      'larry-richards',
+      'bobby-angel',
+      'matthew-kelly',
+      'exodus-90',
+      'paul-kim',
+      'catholic-gentleman',
+      'pints',
       'huberman',
       'peterson',
       'williamson',
@@ -374,6 +384,8 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
       'newport',
       'brooks',
       'haidt',
+      'dungy',
+      'tebow',
     ]);
     expect(voicesForAudience('women').map((v) => v.id)).toEqual([
       'sr-miriam',
@@ -393,6 +405,21 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
       'kendra-tierney',
       'she-reads-truth',
       'risen-motherhood',
+      'jackie-angel',
+      'benzinger',
+      'josephine-garrett',
+      'hendey',
+      'bean',
+      'lenaburg',
+      'shirer',
+      'terkeurst',
+      'uebbing',
+      'balducci',
+      'engstrom',
+      'beth-moore',
+      'her-true-worth',
+      'girls-gone-bible',
+      'simcha-fisher',
       'daigle',
       'annie-downs',
       'brene-brown',
@@ -416,9 +443,9 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
         expect(voiceById(audience, voice.id)).toEqual(voice);
       }
     }
-    expect(voicesForAudience('men').filter((v) => v.group === 'faith')).toHaveLength(15);
-    expect(voicesForAudience('men').filter((v) => v.group === 'culture')).toHaveLength(17);
-    expect(voicesForAudience('women').filter((v) => v.group === 'faith')).toHaveLength(17);
+    expect(voicesForAudience('men').filter((v) => v.group === 'faith')).toHaveLength(25);
+    expect(voicesForAudience('men').filter((v) => v.group === 'culture')).toHaveLength(19);
+    expect(voicesForAudience('women').filter((v) => v.group === 'faith')).toHaveLength(32);
     expect(voicesForAudience('women').filter((v) => v.group === 'culture')).toHaveLength(13);
   });
 
@@ -431,6 +458,12 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
     expect(voiceLabel('women', 'brene-brown')).toBe('Brené Brown');
     expect(voiceLabel('women', 'cameron-fradd')).toBe('Cameron Fradd (Among the Lilies)');
     expect(voiceLabel('women', 'lazy-genius')).toBe('The Lazy Genius (Kendra Adachi)');
+    expect(voiceLabel('men', 'guy-in-the-pew')).toBe('Just a Guy in the Pew');
+    expect(voiceLabel('men', 'catholic-gentleman')).toBe('The Catholic Gentleman');
+    expect(voiceLabel('men', 'pints')).toBe('Pints with Aquinas');
+    expect(voiceLabel('men', 'exodus-90')).toBe('Exodus 90');
+    expect(voiceLabel('women', 'her-true-worth')).toBe('Her True Worth');
+    expect(voiceLabel('women', 'girls-gone-bible')).toBe('Girls Gone Bible');
     expect(voiceLabel('men', 'not-a-voice')).toBeNull();
   });
 
@@ -439,8 +472,8 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
     const shared = voicesForAudience('women').filter((v) => menIds.has(v.id));
     expect(shared).toEqual([]);
     // And the registry itself is exactly the two lists.
-    expect(VOICES.men).toHaveLength(32);
-    expect(VOICES.women).toHaveLength(30);
+    expect(VOICES.men).toHaveLength(44);
+    expect(VOICES.women).toHaveLength(45);
   });
 
   it('a stored voice validates against its own track’s list — the other track’s voices do not cross', () => {

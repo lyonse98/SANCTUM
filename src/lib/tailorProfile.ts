@@ -172,7 +172,8 @@ export const VOICES_MAX = 5;
 
 /**
  * The voices lists (Erik's FINAL lists, Nov 18, 2026, expanded the same
- * day with his approved additions): per track, two
+ * day with his approved additions, then a wave-2 of IG-native voices he
+ * approved the same evening): per track, two
  * shelves — the faith voices and the culture & self-help voices a reader
  * plausibly already trusts. Their whole job is vibe, message, interests,
  * and trust FOR MEDIA SELECTION: a Tailor build may surface a real work
@@ -199,6 +200,16 @@ export const VOICES: Record<Audience, VoiceOption[]> = {
     { id: 'akin', label: 'Jimmy Akin', group: 'faith' },
     { id: 'horn', label: 'Trent Horn', group: 'faith' },
     { id: 'kreeft', label: 'Peter Kreeft', group: 'faith' },
+    { id: 'riccardo', label: 'Fr. John Riccardo', group: 'faith' },
+    { id: 'guy-in-the-pew', label: 'Just a Guy in the Pew', group: 'faith' },
+    { id: 'schadt', label: 'Devin Schadt', group: 'faith' },
+    { id: 'larry-richards', label: 'Fr. Larry Richards', group: 'faith' },
+    { id: 'bobby-angel', label: 'Bobby Angel', group: 'faith' },
+    { id: 'matthew-kelly', label: 'Matthew Kelly', group: 'faith' },
+    { id: 'exodus-90', label: 'Exodus 90', group: 'faith' },
+    { id: 'paul-kim', label: 'Paul Kim', group: 'faith' },
+    { id: 'catholic-gentleman', label: 'The Catholic Gentleman', group: 'faith' },
+    { id: 'pints', label: 'Pints with Aquinas', group: 'faith' },
     { id: 'huberman', label: 'Andrew Huberman', group: 'culture' },
     { id: 'peterson', label: 'Jordan Peterson', group: 'culture' },
     { id: 'williamson', label: 'Chris Williamson (Modern Wisdom)', group: 'culture' },
@@ -216,6 +227,8 @@ export const VOICES: Record<Audience, VoiceOption[]> = {
     { id: 'newport', label: 'Cal Newport', group: 'culture' },
     { id: 'brooks', label: 'Arthur Brooks', group: 'culture' },
     { id: 'haidt', label: 'Jonathan Haidt', group: 'culture' },
+    { id: 'dungy', label: 'Tony Dungy', group: 'culture' },
+    { id: 'tebow', label: 'Tim Tebow', group: 'culture' },
   ],
   women: [
     { id: 'sr-miriam', label: 'Sr. Miriam James', group: 'faith' },
@@ -235,6 +248,21 @@ export const VOICES: Record<Audience, VoiceOption[]> = {
     { id: 'kendra-tierney', label: 'Kendra Tierney', group: 'faith' },
     { id: 'she-reads-truth', label: 'She Reads Truth', group: 'faith' },
     { id: 'risen-motherhood', label: 'Risen Motherhood', group: 'faith' },
+    { id: 'jackie-angel', label: 'Jackie Angel', group: 'faith' },
+    { id: 'benzinger', label: 'Michelle Benzinger', group: 'faith' },
+    { id: 'josephine-garrett', label: 'Sr. Josephine Garrett', group: 'faith' },
+    { id: 'hendey', label: 'Lisa Hendey', group: 'faith' },
+    { id: 'bean', label: 'Danielle Bean', group: 'faith' },
+    { id: 'lenaburg', label: 'Mary Lenaburg', group: 'faith' },
+    { id: 'shirer', label: 'Priscilla Shirer', group: 'faith' },
+    { id: 'terkeurst', label: 'Lysa TerKeurst', group: 'faith' },
+    { id: 'uebbing', label: 'Jenny Uebbing', group: 'faith' },
+    { id: 'balducci', label: 'Rachel Balducci', group: 'faith' },
+    { id: 'engstrom', label: 'Bonnie Engstrom', group: 'faith' },
+    { id: 'beth-moore', label: 'Beth Moore', group: 'faith' },
+    { id: 'her-true-worth', label: 'Her True Worth', group: 'faith' },
+    { id: 'girls-gone-bible', label: 'Girls Gone Bible', group: 'faith' },
+    { id: 'simcha-fisher', label: 'Simcha Fisher', group: 'faith' },
     { id: 'daigle', label: 'Lauren Daigle', group: 'culture' },
     { id: 'annie-downs', label: 'Annie F. Downs', group: 'culture' },
     { id: 'brene-brown', label: 'Brené Brown', group: 'culture' },
