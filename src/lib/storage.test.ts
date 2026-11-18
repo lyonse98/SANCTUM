@@ -66,6 +66,8 @@ const KNOWN_KEYS = [
   'sanctum_patron_saint',
   'sanctum_reader_name',
   'sanctum_usual_mass',
+  'sanctum_parish_patron',
+  'sanctum_come_home',
 ];
 
 beforeEach(() => {
