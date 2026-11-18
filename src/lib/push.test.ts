@@ -462,6 +462,43 @@ describe('resyncPushTimezoneIfNeeded — silent, best-effort, upsert machinery o
   });
 });
 
+describe('the evening reminder in the form (Nov 17, 2026) — source pins', () => {
+  const form = readFileSync(join(repoRoot, 'src/components/ReminderForm.tsx'), 'utf8');
+
+  it('offers the evening slot as an opt-in toggle with its own time field', () => {
+    expect(form).toContain('Add an evening reminder');
+    expect(form).toContain('Evening time');
+    expect(form).toContain('DEFAULT_EVENING_TIME');
+    expect(form).toContain('type="checkbox"');
+  });
+
+  it('both saves carry the evening draft — enabling and editing alike', () => {
+    expect(form).toContain('subscribeToPush(DEFAULT_FOCUS, draftTime, draftEvening)');
+    expect(form).toContain('updatePushPreferences(saved.focus, draftTime, draftEvening)');
+  });
+
+  it('the subscribed face names the evening hour when one is set', () => {
+    expect(form).toContain('· Evening ${formatTime(saved.eveningTime)}');
+  });
+
+  it('one save button covers either time, and says times when both changed', () => {
+    expect(form).toContain('draftTime !== saved.localTime || draftEvening !== saved.eveningTime');
+    expect(form).toContain("'Save the new times'");
+    expect(form).toContain("'Save the new time'");
+  });
+
+  it('the privacy note covers one time or two', () => {
+    expect(form).toContain('the reminder time, or times, you chose');
+    expect(form).not.toContain('and the time you chose');
+  });
+
+  it('the canonical server list speaks of the reminder time or times', () => {
+    const copy = readFileSync(join(repoRoot, 'src/lib/privacyCopy.ts'), 'utf8');
+    expect(copy).toContain('the reminder time or times you chose');
+    expect(copy).not.toContain('a time of day');
+  });
+});
+
 describe('iOS install smoothing (Play 3) — the steps stand earlier in the reminder flow', () => {
   const card = readFileSync(join(repoRoot, 'src/components/ReminderCard.tsx'), 'utf8');
   const form = readFileSync(join(repoRoot, 'src/components/ReminderForm.tsx'), 'utf8');

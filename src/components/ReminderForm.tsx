@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { Bell, BellOff, Check, Loader2, AlertCircle, ShieldCheck, Send } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
 import {
+  DEFAULT_EVENING_TIME,
   getPushState,
   loadPushReminder,
   sendTestPoke,
@@ -38,23 +39,31 @@ function formatTime(localTime: string): string {
 export function ReminderForm({ t }: ReminderFormProps) {
   const initial = loadPushReminder();
   const timeFieldId = useId();
+  const eveningTimeFieldId = useId();
   const [pushState, setPushState] = useState<PushState>(() => getPushState());
   const [saved, setSaved] = useState(initial);
   const [draftTime, setDraftTime] = useState(initial.localTime);
+  const [draftEveningEnabled, setDraftEveningEnabled] = useState(initial.eveningTime !== null);
+  const [draftEveningTime, setDraftEveningTime] = useState(initial.eveningTime ?? DEFAULT_EVENING_TIME);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  /** The evening hour the drafts currently describe: a time, or none. */
+  const draftEvening = draftEveningEnabled ? draftEveningTime : null;
 
   const refresh = () => {
     const next = loadPushReminder();
     setSaved(next);
     setDraftTime(next.localTime);
+    setDraftEveningEnabled(next.eveningTime !== null);
+    setDraftEveningTime(next.eveningTime ?? DEFAULT_EVENING_TIME);
     setPushState(getPushState());
   };
 
   const handleEnable = async () => {
     setBusy(true);
     setMessage(null);
-    const result = await subscribeToPush(DEFAULT_FOCUS, draftTime);
+    const result = await subscribeToPush(DEFAULT_FOCUS, draftTime, draftEvening);
     setBusy(false);
     setMessage({ ok: result.ok, text: result.message });
     if (result.ok) refresh();
@@ -62,19 +71,23 @@ export function ReminderForm({ t }: ReminderFormProps) {
   };
 
   /**
-   * The time saves from its own button, because a time picker is fiddled with on the way
+   * The times save from their own button, because a time picker is fiddled with on the way
    * to a decision and the server should only hear the decision. If a save fails the form
    * snaps back to what is actually stored. (The landing needs no control at all: since
    * Nov 16, 2026 the reminder opens the day's Gospel, always.)
    */
-  const handleSaveTime = async () => {
+  const handleSaveTimes = async () => {
     setBusy(true);
     setMessage(null);
-    const result = await updatePushPreferences(saved.focus, draftTime);
+    const result = await updatePushPreferences(saved.focus, draftTime, draftEvening);
     setBusy(false);
     setMessage({ ok: result.ok, text: result.message });
     if (result.ok) refresh();
-    else setDraftTime(saved.localTime);
+    else {
+      setDraftTime(saved.localTime);
+      setDraftEveningEnabled(saved.eveningTime !== null);
+      setDraftEveningTime(saved.eveningTime ?? DEFAULT_EVENING_TIME);
+    }
   };
 
   const handleOff = async () => {
@@ -115,6 +128,49 @@ export function ReminderForm({ t }: ReminderFormProps) {
     </div>
   );
 
+  /**
+   * The optional second poke (Nov 17, 2026): the same reminder, the same
+   * Gospel landing, at an evening hour. Off unless he asks for it — the
+   * toggle is the whole ask, and unticking it is the whole removal.
+   */
+  const eveningSection = (
+    <div>
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={draftEveningEnabled}
+          onChange={(e) => setDraftEveningEnabled(e.target.checked)}
+          disabled={busy}
+          className="w-4 h-4 flex-shrink-0"
+          style={{ accentColor: t.accent }}
+        />
+        <span className="text-[13px] font-bold" style={{ color: t.text }}>
+          Add an evening reminder
+        </span>
+      </label>
+      {draftEveningEnabled && (
+        <div className="mt-2">
+          <label
+            htmlFor={eveningTimeFieldId}
+            className="block text-[12px] uppercase tracking-widest font-bold mb-2"
+            style={{ color: t.textDim }}
+          >
+            Evening time
+          </label>
+          <input
+            id={eveningTimeFieldId}
+            type="time"
+            value={draftEveningTime}
+            onChange={(e) => setDraftEveningTime(e.target.value)}
+            disabled={busy}
+            className="w-full text-sm rounded-lg px-3 py-2.5 border focus:outline-none transition-colors disabled:opacity-60"
+            style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
+          />
+        </div>
+      )}
+    </div>
+  );
+
   const privacyNote = (
     <div
       className="flex items-start gap-2 mt-3 rounded-lg border px-3 py-2.5"
@@ -123,8 +179,8 @@ export function ReminderForm({ t }: ReminderFormProps) {
       <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: t.textDim }} />
       <p className="text-[13px] leading-relaxed" style={{ color: t.textDim }}>
         This is the one thing Sanctum keeps on a server: an anonymous notification address for
-        this device, and the time you chose — no name, no account, nothing you have written to a
-        companion.
+        this device, and the reminder time, or times, you chose — no name, no account, nothing
+        you have written to a companion.
       </p>
     </div>
   );
@@ -188,22 +244,29 @@ export function ReminderForm({ t }: ReminderFormProps) {
           style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80` }}
         >
           <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: t.accent }} />
-          <p className="text-xs truncate" style={{ color: t.text }}>
+          <p className="text-xs" style={{ color: t.text }}>
             On — {formatTime(saved.localTime)} · {focusLabel(saved.focus)}
+            {saved.eveningTime ? ` · Evening ${formatTime(saved.eveningTime)}` : ''}
           </p>
         </div>
 
         {timeField}
 
-        {draftTime !== saved.localTime && (
+        {eveningSection}
+
+        {(draftTime !== saved.localTime || draftEvening !== saved.eveningTime) && (
           <button
-            onClick={() => void handleSaveTime()}
+            onClick={() => void handleSaveTimes()}
             disabled={busy}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-all active:scale-[0.98] disabled:opacity-50"
             style={{ backgroundColor: t.accentRgba(0.14), borderColor: t.accentRgba(0.4), color: t.accent }}
           >
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-            <span className="text-xs font-bold uppercase tracking-wide">Save the new time</span>
+            <span className="text-xs font-bold uppercase tracking-wide">
+              {draftTime !== saved.localTime && draftEvening !== saved.eveningTime
+                ? 'Save the new times'
+                : 'Save the new time'}
+            </span>
           </button>
         )}
 
@@ -241,6 +304,8 @@ export function ReminderForm({ t }: ReminderFormProps) {
         </p>
 
         {timeField}
+
+        {eveningSection}
 
         {/* One sentence of warning before the phone's own ask appears
             (audit W-7, Nov 16, 2026): the permission prompt is never the
