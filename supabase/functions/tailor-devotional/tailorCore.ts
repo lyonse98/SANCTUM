@@ -123,6 +123,8 @@ export interface TailorProfileInput {
   ongoingBattles: string[];
   standingGoal: string;
   mediaPrefs: TailorSearchKind[];
+  /** The North Star's phrasing (client-resolved label), or null when unset. */
+  northStar: string | null;
 }
 
 export function validateProfile(payload: Record<string, unknown>): TailorProfileInput | null {
@@ -139,10 +141,19 @@ export function validateProfile(payload: Record<string, unknown>): TailorProfile
   const mediaPrefs = Array.isArray(p.mediaPrefs)
     ? [...new Set(p.mediaPrefs.filter(isTailorSearchKind))]
     : [];
-  if (!seasonOfLife && ongoingBattles.length === 0 && !standingGoal && mediaPrefs.length === 0) {
+  // The North Star rides as one short phrasing string, cleaned like the
+  // other labels — phrasing for the prompt, never an instruction channel.
+  const northStar = clean(p.northStar, 160);
+  if (!seasonOfLife && ongoingBattles.length === 0 && !standingGoal && mediaPrefs.length === 0 && !northStar) {
     return null;
   }
-  return { seasonOfLife: seasonOfLife || null, ongoingBattles, standingGoal, mediaPrefs };
+  return {
+    seasonOfLife: seasonOfLife || null,
+    ongoingBattles,
+    standingGoal,
+    mediaPrefs,
+    northStar: northStar || null,
+  };
 }
 
 /** The day's canonical bundle, as read from the day's own rows. */
@@ -200,6 +211,13 @@ export function buildTailorUserPrompt(
   }
   if (profile?.standingGoal) {
     lines.push(`${she ? "Her" : "His"} standing goal, in ${poss} own words: "${profile.standingGoal}"`);
+  }
+  if (profile?.northStar) {
+    lines.push(
+      `${she ? "Her" : "His"} North Star — the scripture or idea ${she ? "she" : "he"} has chosen to steer by: ${profile.northStar}. ` +
+        `Let it quietly steer the aim of the reflection and the challenge when it genuinely fits. ` +
+        `Never force it in, never quote it back at the reader verbatim as a performance, and add no commentary about it.`,
+    );
   }
   if (intake.freeText) lines.push(`In their own words: "${intake.freeText}"`);
   lines.push(

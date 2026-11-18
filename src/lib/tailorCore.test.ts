@@ -550,6 +550,7 @@ const PROFILE = {
   ongoingBattles: ['Work pressure', 'Grief'],
   standingGoal: 'SENTINEL-GOAL-be-a-patient-father',
   mediaPrefs: ['song', 'video'] as const,
+  northStar: '"Be still, and know that I am God." — Psalm 46:10',
 };
 
 describe('v2 — the standing profile validates to labels and caps', () => {
@@ -566,6 +567,28 @@ describe('v2 — the standing profile validates to labels and caps', () => {
     expect(validateProfile({})).toBeNull();
     expect(validateProfile({ profile: null })).toBeNull();
     expect(validateProfile({ profile: { seasonOfLife: '  ', ongoingBattles: [], standingGoal: '', mediaPrefs: [] } })).toBeNull();
+  });
+
+  it('the North Star validates as one cleaned short string — and alone it makes a profile', () => {
+    const only = validateProfile({ profile: { northStar: '  "Be still,   and know that I am God." — Psalm 46:10  ' } });
+    expect(only?.northStar).toBe('"Be still, and know that I am God." — Psalm 46:10');
+    expect(only?.seasonOfLife).toBeNull();
+    // Capped at 160, like the chat and letter fields that carry the same phrasing.
+    const long = validateProfile({ profile: { northStar: 'x'.repeat(300) } });
+    expect(long?.northStar).toHaveLength(160);
+    // Blank or absent is simply unset — never an error, never a profile.
+    expect(validateProfile({ profile: { northStar: '   ' } })).toBeNull();
+    expect(validateProfile({ profile: { northStar: 42 } })).toBeNull();
+  });
+
+  it('the user prompt phrases the North Star with its quiet guidance — and omits it when unset', () => {
+    const withStar = buildTailorUserPrompt(BUNDLE, INTAKE, pickPassage('work', 'anxious', '2026-11-12'), { ...PROFILE, mediaPrefs: [...PROFILE.mediaPrefs] }, 'men');
+    expect(withStar).toContain('His North Star — the scripture or idea he has chosen to steer by: "Be still, and know that I am God." — Psalm 46:10.');
+    expect(withStar).toContain('quietly steer the aim of the reflection and the challenge when it genuinely fits');
+    expect(withStar).toContain('Never force it in');
+    expect(withStar).toContain('no commentary about it');
+    const without = buildTailorUserPrompt(BUNDLE, INTAKE, pickPassage('work', 'anxious', '2026-11-12'), { ...PROFILE, mediaPrefs: [...PROFILE.mediaPrefs], northStar: null }, 'men');
+    expect(without).not.toContain('North Star');
   });
 
   it('the user prompt carries the profile phrased for the track — his facet and hers', () => {
@@ -783,7 +806,7 @@ describe('v2 — grounded media: the address must come from the search’s own s
       audience: 'women',
       intake: { ...INTAKE, focus: 'grief' },
       bundle: { ...BUNDLE, facet: 'As a woman' },
-      profile: { seasonOfLife: null, ongoingBattles: [], standingGoal: '', mediaPrefs: ['article'] },
+      profile: { seasonOfLife: null, ongoingBattles: [], standingGoal: '', mediaPrefs: ['article'], northStar: null },
       generateTailored: async () => ({ reflect: 'A tailored reflection here.', challenge: 'One act.' }),
       findMedia: async (query: string) => {
         queries.push(query);

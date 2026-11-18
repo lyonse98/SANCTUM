@@ -97,7 +97,7 @@ describe('the intake shape', () => {
     expect(intakeHash(INTAKE)).not.toBe(intakeHash({ ...INTAKE, tone: 'comfort' }));
     const withProfile = {
       ...INTAKE,
-      profile: { seasonOfLife: 'Married', ongoingBattles: ['Work pressure'], standingGoal: '', mediaPrefs: [] as never[] },
+      profile: { seasonOfLife: 'Married', ongoingBattles: ['Work pressure'], standingGoal: '', mediaPrefs: [] as never[], northStar: null },
     };
     expect(intakeHash(withProfile)).not.toBe(intakeHash(INTAKE));
     expect(intakeHash(withProfile)).not.toBe(

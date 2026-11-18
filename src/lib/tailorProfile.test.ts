@@ -4,11 +4,14 @@ import { join } from 'node:path';
 import { tailorProgressLines } from './tailor';
 import {
   EMPTY_TAILOR_PROFILE,
+  NORTH_STARS,
   SEASONS_OF_LIFE,
   battlesForAudience,
   eraseTailorProfile,
   hasTailorProfile,
   loadTailorProfile,
+  northStarById,
+  northStarLabel,
   profileDefaults,
   profileForRequest,
   profileSignature,
@@ -34,6 +37,7 @@ const PROFILE: TailorProfile = {
   standingGoal: 'Be a patient father.',
   mediaPrefs: ['song', 'video'],
   defaultTone: 'courage',
+  northStar: 'be-still',
 };
 
 /** Minimal Storage whose keys are own enumerable properties, like the browser's. */
@@ -95,6 +99,7 @@ describe('the standing profile — storage', () => {
         standingGoal: 'x'.repeat(300),
         mediaPrefs: ['song', 'hologram'],
         defaultTone: 'wired',
+        northStar: 'not-a-star',
       }),
     );
     const loaded = loadTailorProfile('men');
@@ -103,6 +108,7 @@ describe('the standing profile — storage', () => {
     expect(loaded.standingGoal).toHaveLength(120);
     expect(loaded.mediaPrefs).toEqual(['song']);
     expect(loaded.defaultTone).toBeNull();
+    expect(loaded.northStar).toBeNull();
   });
 
   it('the request shape carries labels, not ids — and is null for an empty profile', () => {
@@ -112,7 +118,88 @@ describe('the standing profile — storage', () => {
     expect(req?.ongoingBattles).toEqual(['Work pressure', 'Burnout']);
     expect(req?.standingGoal).toBe('Be a patient father.');
     expect(req?.mediaPrefs).toEqual(['song', 'video']);
+    // The North Star rides as its resolved phrasing — never the raw id.
+    expect(req?.northStar).toBe('"Be still, and know that I am God." — Psalm 46:10');
+    expect(req?.northStar).not.toContain('be-still');
     expect(profileSignature(req)).not.toBe(profileSignature(null));
+  });
+
+  it('a North Star change busts the day-cache signature like any other profile edit', () => {
+    const base = profileForRequest('men', PROFILE);
+    const starred = profileForRequest('men', { ...PROFILE, northStar: 'micah' });
+    const unstarred = profileForRequest('men', { ...PROFILE, northStar: null });
+    expect(profileSignature(starred)).not.toBe(profileSignature(base));
+    expect(profileSignature(unstarred)).not.toBe(profileSignature(base));
+  });
+});
+
+describe('the North Star — one chosen compass, optional by design (Nov 18, 2026)', () => {
+  const originalStorage = globalThis.localStorage;
+  const originalSession = globalThis.sessionStorage;
+  beforeEach(() => {
+    Object.defineProperty(globalThis, 'localStorage', { value: makeStorage(), configurable: true });
+    Object.defineProperty(globalThis, 'sessionStorage', { value: makeStorage(), configurable: true });
+  });
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'localStorage', { value: originalStorage, configurable: true });
+    Object.defineProperty(globalThis, 'sessionStorage', { value: originalSession, configurable: true });
+    vi.restoreAllMocks();
+  });
+
+  it('the list is whole: unique ids, every entry carrying a label and its words', () => {
+    expect(NORTH_STARS).toHaveLength(18);
+    expect(new Set(NORTH_STARS.map((s) => s.id)).size).toBe(NORTH_STARS.length);
+    for (const star of NORTH_STARS) {
+      expect(star.label.length).toBeGreaterThan(0);
+      expect(star.text.length).toBeGreaterThan(0);
+    }
+    // The entries Erik has confirmed by name are on the list as given.
+    for (const id of ['be-still', 'thy-will', 'micah', 'love-one-another', 'little-way', 'become-a-saint', 'golden-rule', 'press-on']) {
+      expect(northStarById(id), id).not.toBeNull();
+    }
+    expect(northStarById('golden-rule')?.citation).toBe('Matthew 7:12');
+    expect(northStarById('press-on')?.text).toBe('Forgetting what lies behind, I press on toward the goal.');
+    expect(northStarById('press-on')?.citation).toBe('Philippians 3:13–14');
+  });
+
+  it('the label is the words plus their source — and radical love stands without one', () => {
+    expect(northStarLabel('be-still')).toBe('"Be still, and know that I am God." — Psalm 46:10');
+    expect(northStarLabel('little-way')).toBe(
+      '"The little way — small things done with great love." — after St. Thérèse of Lisieux',
+    );
+    expect(northStarLabel('radical-love')).toBe('"Radical loving in every moment."');
+    expect(northStarLabel(null)).toBeNull();
+    expect(northStarLabel('not-a-star')).toBeNull();
+    expect(northStarById(null)).toBeNull();
+  });
+
+  it('unset is the ordinary state: a profile with no star behaves exactly as before', () => {
+    // A stored profile written before the field existed loads with no star.
+    localStorage.setItem(
+      tailorProfileKey('men'),
+      JSON.stringify({
+        seasonOfLife: 'father-young',
+        ongoingBattles: ['Work pressure'],
+        standingGoal: 'Be a patient father.',
+        mediaPrefs: ['song'],
+        defaultTone: 'courage',
+      }),
+    );
+    const loaded = loadTailorProfile('men');
+    expect(loaded.northStar).toBeNull();
+    const req = profileForRequest('men', loaded);
+    expect(req?.northStar).toBeNull();
+    // And the empty profile is still simply empty — no request profile at all.
+    expect(profileForRequest('men', EMPTY_TAILOR_PROFILE)).toBeNull();
+    expect(hasTailorProfile('women')).toBe(false);
+  });
+
+  it('a star alone makes a profile — and the whole-profile erase takes it too', () => {
+    saveTailorProfile('men', { ...EMPTY_TAILOR_PROFILE, northStar: 'thy-will' });
+    expect(hasTailorProfile('men')).toBe(true);
+    expect(loadTailorProfile('men').northStar).toBe('thy-will');
+    eraseTailorProfile('men');
+    expect(loadTailorProfile('men')).toEqual(EMPTY_TAILOR_PROFILE);
   });
 });
 
@@ -150,6 +237,25 @@ describe('the surfaces — editor in the panel, erase in Settings, honest progre
     expect(panel).toContain('Erase profile');
     expect(panel).toContain('Tap again to erase');
     expect(panel).toContain('Kept on this device only');
+  });
+
+  it('the North Star sits at the bottom of the editor, optional and disclosed', () => {
+    const panel = read('components/TailorToday.tsx');
+    // After the last standing selection (the tone row), before the save row.
+    const toneAt = panel.indexOf('Usually, from God you want');
+    const starAt = panel.indexOf('Your North Star — only if you want one');
+    const saveAt = panel.indexOf('Save profile');
+    expect(toneAt).toBeGreaterThanOrEqual(0);
+    expect(starAt).toBeGreaterThan(toneAt);
+    expect(saveAt).toBeGreaterThan(starAt);
+    // A swipe-through pager (scroll-snap), one star at a time, None included.
+    expect(panel).toContain('snap-x snap-mandatory');
+    expect(panel).toContain('NORTH_STARS');
+    expect(panel).toContain('Swipe to look through them; tap one to choose it.');
+    // Optional, plainly — and the disclosure names all three things it guides.
+    expect(panel).toContain('A North Star is optional.');
+    expect(panel).toContain('quietly guides Tailor, the');
+    expect(panel).toContain('kept only on this phone');
   });
 
   it('the progress lines are the build’s real stages, focus named, assembly last', () => {

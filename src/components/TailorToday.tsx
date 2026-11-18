@@ -52,6 +52,7 @@ import {
 import { shareEntryFromDevotional, writeTailorShare } from '@/lib/tailorShare';
 import {
   EMPTY_TAILOR_PROFILE,
+  NORTH_STARS,
   SEASONS_OF_LIFE,
   battlesForAudience,
   eraseTailorProfile,
@@ -179,10 +180,23 @@ function TailorProfileEditor({
     draft.ongoingBattles.length > 0 ||
     draft.standingGoal.trim().length > 0 ||
     draft.mediaPrefs.length > 0 ||
-    draft.defaultTone !== null;
+    draft.defaultTone !== null ||
+    draft.northStar !== null;
 
   const labelStyle: React.CSSProperties = { fontFamily: PRINT_SERIF, color: t.accent };
   const fieldLabel = `block ${PRINT_STAMP_CLASS} mb-2`;
+
+  // The North Star pager opens on the chosen star (or on None) — the swipe
+  // is for looking, so arriving somewhere else would misread as a choice.
+  const northStarPagerRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const container = northStarPagerRef.current;
+    if (!container) return;
+    const chosen = loadTailorProfile(audience).northStar;
+    const idx = chosen ? NORTH_STARS.findIndex((s) => s.id === chosen) + 1 : 0;
+    const plate = container.children[idx] as HTMLElement | undefined;
+    if (plate) container.scrollLeft = plate.offsetLeft - container.offsetLeft - 4;
+  }, [audience]);
 
   return (
     <div className="space-y-3">
@@ -258,6 +272,60 @@ function TailorProfileEditor({
             setDraft((d) => ({ ...d, defaultTone: d.defaultTone === id ? null : (id as TailorTone) }))
           }
         />
+      </div>
+
+      <div>
+        <span className={fieldLabel} style={labelStyle}>Your North Star — only if you want one</span>
+        {/* One star at a time, swipe-through (Erik, Nov 18, 2026): the list
+            is long and the choice is weighty, so it gets a pager, not a
+            wall of chips. None rides first — unset is the ordinary state,
+            and nothing here presses anyone to choose. */}
+        <div
+          ref={northStarPagerRef}
+          className="flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {[
+            { id: '', label: 'None', text: 'No North Star. Sanctum aims each day without one, as it always has.', citation: '' },
+            ...NORTH_STARS,
+          ].map((star) => {
+            const on = (draft.northStar ?? '') === star.id;
+            return (
+              <button
+                key={star.id || 'none'}
+                onClick={() => setDraft((d) => ({ ...d, northStar: star.id === '' ? null : star.id }))}
+                aria-pressed={on}
+                className="snap-center shrink-0 w-[86%] px-3 py-3 text-left transition-all active:scale-[0.99]"
+                style={{
+                  fontFamily: PRINT_SERIF,
+                  backgroundColor: on ? t.accentRgba(0.14) : `${t.border}1F`,
+                  border: `1px solid ${on ? t.accent : `${t.border}99`}`,
+                  color: on ? t.accent : t.textMuted,
+                }}
+              >
+                <span className={`flex items-center justify-between ${PRINT_STAMP_CLASS}`}>
+                  <span>{star.label}</span>
+                  {on && <span>Chosen</span>}
+                </span>
+                <span className="block text-[13px] leading-relaxed mt-2" style={{ color: t.text }}>
+                  {star.text}
+                </span>
+                {star.citation && (
+                  <span className="block text-[12px] mt-1" style={{ color: t.textDim }}>
+                    {star.citation}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[12px] mt-1" style={{ color: t.textDim }}>
+          Swipe to look through them; tap one to choose it.
+        </p>
+        <p className="text-[13px] leading-relaxed mt-2" style={{ color: t.textDim }}>
+          A North Star is optional. If you choose one, it quietly guides Tailor, the
+          companions, and a companion&rsquo;s letter. It is kept only on this phone, and
+          it rides only as the words themselves — never as a note about you.
+        </p>
       </div>
 
       <div className="flex items-center gap-2 pt-1">
