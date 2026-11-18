@@ -52,11 +52,11 @@ import {
 import { shareEntryFromDevotional, writeTailorShare } from '@/lib/tailorShare';
 import {
   EMPTY_TAILOR_PROFILE,
-  NORTH_STARS,
   SEASONS_OF_LIFE,
   battlesForAudience,
   eraseTailorProfile,
   loadTailorProfile,
+  northStarsForAudience,
   profileDefaults,
   profileForRequest,
   saveTailorProfile,
@@ -193,7 +193,7 @@ function TailorProfileEditor({
     const container = northStarPagerRef.current;
     if (!container) return;
     const chosen = loadTailorProfile(audience).northStar;
-    const idx = chosen ? NORTH_STARS.findIndex((s) => s.id === chosen) + 1 : 0;
+    const idx = chosen ? northStarsForAudience(audience).findIndex((s) => s.id === chosen) + 1 : 0;
     const plate = container.children[idx] as HTMLElement | undefined;
     if (plate) container.scrollLeft = plate.offsetLeft - container.offsetLeft - 4;
   }, [audience]);
@@ -286,7 +286,7 @@ function TailorProfileEditor({
         >
           {[
             { id: '', label: 'None', text: 'No North Star. Sanctum aims each day without one, as it always has.', citation: '' },
-            ...NORTH_STARS,
+            ...northStarsForAudience(audience),
           ].map((star) => {
             const on = (draft.northStar ?? '') === star.id;
             return (

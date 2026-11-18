@@ -59,40 +59,83 @@ export interface NorthStarOption {
 }
 
 /**
- * The North Star list (Erik, Nov 18, 2026) — the same list on both tracks:
- * short, famous verses, and ideas the Church has long steered by. Verse
- * texts are brief excerpts, exact as given. A chosen star rides with
- * requests only as its resolved phrasing (see northStarLabel) — labels, not
- * ids, exactly like the season of life — and is stored nowhere but here.
- *
- * DRAFT: Erik vets this menu before it ships. Striking or rewording an
- * entry is a change to this one constant (plus its test pins) — nothing
- * else in the app hardcodes a star.
+ * The North Star registry (Erik's FINAL lists, Nov 18, 2026): every star
+ * either track may steer by, one entry per id. The menus themselves are
+ * per-track (NORTH_STAR_IDS below) — his list and hers differ, curated by
+ * Erik star by star; the one shared star, Be still, appears in both with
+ * identical words. Verse texts are brief excerpts, exact as given. A
+ * chosen star rides with requests only as its resolved phrasing (see
+ * northStarLabel) — labels, not ids, exactly like the season of life —
+ * and is stored nowhere but here.
  */
 export const NORTH_STARS: NorthStarOption[] = [
   { id: 'be-still', label: 'Be still', text: 'Be still, and know that I am God.', citation: 'Psalm 46:10' },
-  { id: 'fear-not', label: 'Fear not', text: 'Fear not, for I am with you.', citation: 'Isaiah 41:10' },
-  { id: 'thy-will', label: 'Thy will be done', text: 'Not my will, but yours, be done.', citation: 'Luke 22:42' },
-  { id: 'help-unbelief', label: 'Help my unbelief', text: 'I believe; help my unbelief.', citation: 'Mark 9:24' },
-  { id: 'micah', label: 'Justice, kindness, humility', text: 'Do justice, love kindness, walk humbly with your God.', citation: 'Micah 6:8' },
-  { id: 'seek-first', label: 'Seek first the kingdom', text: 'Seek first the kingdom of God.', citation: 'Matthew 6:33' },
-  { id: 'grace-sufficient', label: 'Grace sufficient', text: 'My grace is sufficient for you.', citation: '2 Corinthians 12:9' },
-  { id: 'nothing-separates', label: 'Nothing separates', text: 'Nothing will be able to separate us from the love of God.', citation: 'Romans 8:39' },
-  { id: 'lamp', label: 'A lamp to my feet', text: 'Your word is a lamp to my feet, a light to my path.', citation: 'Psalm 119:105' },
-  { id: 'love-one-another', label: 'Love one another', text: 'Love one another, as I have loved you.', citation: 'John 13:34' },
-  { id: 'not-anxious', label: 'Not anxious', text: 'Do not be anxious about tomorrow.', citation: 'Matthew 6:34' },
-  { id: 'well-done', label: 'Well done', text: 'Well done, good and faithful servant.', citation: 'Matthew 25:21' },
-  { id: 'golden-rule', label: 'The Golden Rule', text: 'Do to others as you would have them do to you.', citation: 'Matthew 7:12' },
-  { id: 'press-on', label: 'Forward, not back', text: 'Forgetting what lies behind, I press on toward the goal.', citation: 'Philippians 3:13–14' },
-  { id: 'become-a-saint', label: 'Become a saint', text: 'The only real tragedy is not to become a saint.', citation: 'after Léon Bloy' },
+  { id: 'thy-will', label: 'Not my will', text: 'Not my will, but yours, be done.', citation: 'Luke 22:42' },
+  { id: 'press-on', label: 'Press on', text: 'Forgetting what lies behind, I press on toward the goal.', citation: 'Philippians 3:13–14' },
+  { id: 'stand-firm', label: 'Stand firm', text: 'Be watchful, stand firm in the faith, act like men, be strong.', citation: '1 Corinthians 16:13' },
+  { id: 'talents', label: 'Don\'t bury the talent', text: 'Well done, good and faithful servant.', citation: 'Matthew 25:21' },
+  { id: 'narrow-gate', label: 'The narrow gate', text: 'Enter by the narrow gate.', citation: 'Matthew 7:13' },
+  { id: 'micah', label: 'Act justly', text: 'Act justly, love mercy, walk humbly with your God.', citation: 'Micah 6:8' },
+  { id: 'radical-love', label: 'Radical love', text: 'Father, forgive them.', citation: 'Luke 23:34' },
+  { id: 'small-things', label: 'Small things, great love', text: 'Do small things with great love.', citation: 'St. Teresa of Calcutta' },
+  { id: 'breastplate', label: 'The Breastplate', text: 'Christ beside me, Christ before me, Christ behind me, Christ within me.', citation: "St. Patrick's Breastplate" },
+  { id: 'fiat', label: 'The Fiat', text: 'Let it be to me according to your word.', citation: 'Luke 1:38' },
   { id: 'little-way', label: 'The little way', text: 'The little way — small things done with great love.', citation: 'after St. Thérèse of Lisieux' },
-  { id: 'memento-mori', label: 'Memento mori', text: 'Memento mori — remember your death, and live today accordingly.', citation: "the Church's old counsel" },
-  { id: 'radical-love', label: 'Radical love', text: 'Radical loving in every moment.', citation: '' },
+  { id: 'catherine-fire', label: 'Be who God meant you to be', text: 'Be who God meant you to be, and you will set the world on fire.', citation: 'St. Catherine of Siena' },
+  { id: 'come-and-rest', label: 'Come and rest', text: 'Come to me, all who labor, and I will give you rest.', citation: 'Matthew 11:28' },
+  { id: 'god-is-within-her', label: 'God is within her', text: 'God is within her, she will not fall.', citation: 'Psalm 46:5' },
+  { id: 'love-is-patient', label: 'Love is patient', text: 'Love is patient and kind. Love never fails.', citation: '1 Corinthians 13' },
+  { id: 'totus-tuus', label: 'Totus Tuus', text: 'Totus tuus — totally yours.', citation: 'St. John Paul II, to Mary' },
+  { id: 'bahala-na', label: 'Bahala na', text: 'Bahala na — leave it to God.', citation: 'the Filipino trust' },
 ];
 
 export function northStarById(id: string | null): NorthStarOption | null {
   if (!id) return null;
   return NORTH_STARS.find((s) => s.id === id) ?? null;
+}
+
+/**
+ * The tracks' menus: ordered ids into the registry above — the order the
+ * picker shows them, Erik's order. A stored id counts only when it sits
+ * on the OWNING track's menu (see loadTailorProfile): a star from the
+ * other track's list is not this track's star, shared ids excepted.
+ */
+const NORTH_STAR_IDS: Record<Audience, string[]> = {
+  men: [
+    'be-still',
+    'thy-will',
+    'press-on',
+    'stand-firm',
+    'talents',
+    'narrow-gate',
+    'micah',
+    'radical-love',
+    'small-things',
+    'breastplate',
+  ],
+  women: [
+    'fiat',
+    'be-still',
+    'little-way',
+    'catherine-fire',
+    'come-and-rest',
+    'god-is-within-her',
+    'love-is-patient',
+    'totus-tuus',
+    'bahala-na',
+  ],
+};
+
+/** The stars this track may choose from, in the order the picker shows them. */
+export function northStarsForAudience(audience: Audience): NorthStarOption[] {
+  return NORTH_STAR_IDS[audience]
+    .map((id) => northStarById(id))
+    .filter((s): s is NorthStarOption => s !== null);
+}
+
+/** Whether an id is on this track's own list — the load-time gate. */
+export function isNorthStarForAudience(audience: Audience, id: string | null): boolean {
+  return id !== null && NORTH_STAR_IDS[audience].includes(id);
 }
 
 /** The one phrasing a chosen star travels as: its words, then its source. */
@@ -206,8 +249,13 @@ export function loadTailorProfile(audience: Audience): TailorProfile {
         typeof parsed.defaultTone === 'string' && (TONES as string[]).includes(parsed.defaultTone)
           ? (parsed.defaultTone as TailorTone)
           : null,
+      // A star validates against the OWNING track's menu, not the whole
+      // registry: her Fiat stored under his key (or a retired draft id)
+      // reads as no star at all.
       northStar:
-        typeof parsed.northStar === 'string' && northStarById(parsed.northStar) ? parsed.northStar : null,
+        typeof parsed.northStar === 'string' && isNorthStarForAudience(audience, parsed.northStar)
+          ? parsed.northStar
+          : null,
     };
   } catch {
     return { ...EMPTY_TAILOR_PROFILE };

@@ -12,6 +12,7 @@ import {
   loadTailorProfile,
   northStarById,
   northStarLabel,
+  northStarsForAudience,
   profileDefaults,
   profileForRequest,
   profileSignature,
@@ -146,31 +147,146 @@ describe('the North Star — one chosen compass, optional by design (Nov 18, 202
     vi.restoreAllMocks();
   });
 
-  it('the list is whole: unique ids, every entry carrying a label and its words', () => {
+  it('the registry is whole: unique ids, every entry carrying a label and its words', () => {
     expect(NORTH_STARS).toHaveLength(18);
     expect(new Set(NORTH_STARS.map((s) => s.id)).size).toBe(NORTH_STARS.length);
     for (const star of NORTH_STARS) {
       expect(star.label.length).toBeGreaterThan(0);
       expect(star.text.length).toBeGreaterThan(0);
+      expect(star.citation.length).toBeGreaterThan(0);
     }
-    // The entries Erik has confirmed by name are on the list as given.
-    for (const id of ['be-still', 'thy-will', 'micah', 'love-one-another', 'little-way', 'become-a-saint', 'golden-rule', 'press-on']) {
-      expect(northStarById(id), id).not.toBeNull();
-    }
-    expect(northStarById('golden-rule')?.citation).toBe('Matthew 7:12');
-    expect(northStarById('press-on')?.text).toBe('Forgetting what lies behind, I press on toward the goal.');
-    expect(northStarById('press-on')?.citation).toBe('Philippians 3:13–14');
   });
 
-  it('the label is the words plus their source — and radical love stands without one', () => {
+  it("each track sees its own final list, in Erik's order — and no other stars", () => {
+    expect(northStarsForAudience('men').map((s) => s.id)).toEqual([
+      'be-still',
+      'thy-will',
+      'press-on',
+      'stand-firm',
+      'talents',
+      'narrow-gate',
+      'micah',
+      'radical-love',
+      'small-things',
+      'breastplate',
+    ]);
+    expect(northStarsForAudience('women').map((s) => s.id)).toEqual([
+      'fiat',
+      'be-still',
+      'little-way',
+      'catherine-fire',
+      'come-and-rest',
+      'god-is-within-her',
+      'love-is-patient',
+      'totus-tuus',
+      'bahala-na',
+    ]);
+    // Every menu entry resolves through the registry — no orphan ids.
+    for (const audience of ['men', 'women'] as const) {
+      for (const star of northStarsForAudience(audience)) {
+        expect(northStarById(star.id)).toEqual(star);
+      }
+    }
+  });
+
+  it('the one shared star is the same star on both tracks', () => {
+    const his = northStarsForAudience('men').find((s) => s.id === 'be-still');
+    const hers = northStarsForAudience('women').find((s) => s.id === 'be-still');
+    expect(his).toBeDefined();
+    expect(hers).toEqual(his);
+    // And Be still is the ONLY overlap between the two menus.
+    const menIds = new Set(northStarsForAudience('men').map((s) => s.id));
+    const shared = northStarsForAudience('women')
+      .filter((s) => menIds.has(s.id))
+      .map((s) => s.id);
+    expect(shared).toEqual(['be-still']);
+  });
+
+  it("the final wordings are Erik's, exactly as ruled", () => {
+    expect(northStarById('thy-will')).toMatchObject({
+      label: 'Not my will',
+      text: 'Not my will, but yours, be done.',
+      citation: 'Luke 22:42',
+    });
+    expect(northStarById('press-on')).toMatchObject({
+      label: 'Press on',
+      text: 'Forgetting what lies behind, I press on toward the goal.',
+      citation: 'Philippians 3:13–14',
+    });
+    expect(northStarById('micah')).toMatchObject({
+      label: 'Act justly',
+      text: 'Act justly, love mercy, walk humbly with your God.',
+      citation: 'Micah 6:8',
+    });
+    expect(northStarById('radical-love')).toMatchObject({
+      label: 'Radical love',
+      text: 'Father, forgive them.',
+      citation: 'Luke 23:34',
+    });
+    expect(northStarById('stand-firm')?.text).toBe(
+      'Be watchful, stand firm in the faith, act like men, be strong.',
+    );
+    expect(northStarById('fiat')).toMatchObject({
+      label: 'The Fiat',
+      text: 'Let it be to me according to your word.',
+      citation: 'Luke 1:38',
+    });
+    expect(northStarById('breastplate')?.text).toBe(
+      'Christ beside me, Christ before me, Christ behind me, Christ within me.',
+    );
+    expect(northStarById('bahala-na')?.citation).toBe('the Filipino trust');
+  });
+
+  it('the draft menu is gone: retired ids no longer resolve', () => {
+    for (const id of [
+      'fear-not',
+      'help-unbelief',
+      'seek-first',
+      'grace-sufficient',
+      'nothing-separates',
+      'lamp',
+      'love-one-another',
+      'not-anxious',
+      'well-done',
+      'golden-rule',
+      'become-a-saint',
+      'memento-mori',
+    ]) {
+      expect(northStarById(id), id).toBeNull();
+      expect(northStarLabel(id), id).toBeNull();
+    }
+  });
+
+  it('the label is the words plus their source', () => {
     expect(northStarLabel('be-still')).toBe('"Be still, and know that I am God." — Psalm 46:10');
     expect(northStarLabel('little-way')).toBe(
       '"The little way — small things done with great love." — after St. Thérèse of Lisieux',
     );
-    expect(northStarLabel('radical-love')).toBe('"Radical loving in every moment."');
+    expect(northStarLabel('radical-love')).toBe('"Father, forgive them." — Luke 23:34');
     expect(northStarLabel(null)).toBeNull();
     expect(northStarLabel('not-a-star')).toBeNull();
     expect(northStarById(null)).toBeNull();
+  });
+
+  it("a stored star validates against its own track's list on load — the other track's stars do not cross", () => {
+    // Her Fiat written under his key reads as no star at all.
+    localStorage.setItem(tailorProfileKey('men'), JSON.stringify({ northStar: 'fiat' }));
+    expect(loadTailorProfile('men').northStar).toBeNull();
+    // His Stand firm written under her key, likewise.
+    localStorage.setItem(tailorProfileKey('women'), JSON.stringify({ northStar: 'stand-firm' }));
+    expect(loadTailorProfile('women').northStar).toBeNull();
+    // A retired draft id is dead on load too, on either track.
+    localStorage.setItem(tailorProfileKey('men'), JSON.stringify({ northStar: 'golden-rule' }));
+    expect(loadTailorProfile('men').northStar).toBeNull();
+    // The shared star loads on both tracks; each track's own stars load at home.
+    saveTailorProfile('men', { ...EMPTY_TAILOR_PROFILE, northStar: 'be-still' });
+    expect(loadTailorProfile('men').northStar).toBe('be-still');
+    saveTailorProfile('women', { ...EMPTY_TAILOR_PROFILE, northStar: 'be-still' });
+    expect(loadTailorProfile('women').northStar).toBe('be-still');
+    saveTailorProfile('women', { ...EMPTY_TAILOR_PROFILE, northStar: 'fiat' });
+    expect(loadTailorProfile('women').northStar).toBe('fiat');
+    saveTailorProfile('men', { ...EMPTY_TAILOR_PROFILE, northStar: 'breastplate' });
+    expect(loadTailorProfile('men').northStar).toBe('breastplate');
   });
 
   it('unset is the ordinary state: a profile with no star behaves exactly as before', () => {
@@ -248,9 +364,10 @@ describe('the surfaces — editor in the panel, erase in Settings, honest progre
     expect(toneAt).toBeGreaterThanOrEqual(0);
     expect(starAt).toBeGreaterThan(toneAt);
     expect(saveAt).toBeGreaterThan(starAt);
-    // A swipe-through pager (scroll-snap), one star at a time, None included.
+    // A swipe-through pager (scroll-snap), one star at a time, None included —
+    // and it pages through the reader's OWN track's list, never the registry.
     expect(panel).toContain('snap-x snap-mandatory');
-    expect(panel).toContain('NORTH_STARS');
+    expect(panel).toContain('northStarsForAudience(audience)');
     expect(panel).toContain('Swipe to look through them; tap one to choose it.');
     // Optional, plainly — and the disclosure names all three things it guides.
     expect(panel).toContain('A North Star is optional.');
