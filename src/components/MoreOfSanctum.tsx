@@ -7,9 +7,9 @@ interface MoreOfSanctumProps {
   /** The three destinations — Today is home, never a row here. */
   onNavigate: (view: TabId) => void;
   /**
-   * The come-home door's sender entry (Erik, Nov 18, 2026): a quiet line
-   * under the three destinations, opening the share sheet. Optional —
-   * the block stands complete without it.
+   * The come-home door's sender entry (Erik, Nov 18, 2026): a fourth
+   * plate under the three destinations, opening the share sheet.
+   * Optional — the block stands complete without it.
    */
   onBringSomeoneHome?: () => void;
 }
@@ -81,22 +81,40 @@ export function MoreOfSanctum({ t, onNavigate, onBringSomeoneHome }: MoreOfSanct
             <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} aria-hidden="true" />
           </button>
         ))}
+        {/* The outward door (Erik, Nov 18, 2026): an invitation to hand
+            on, not a room of the house — but a door all the same. It
+            first stood here as a quiet text line and did not read as
+            tappable (Erik's word, same day), so it now wears the same
+            ruled plate as the destinations above: frame, paper-shade
+            fill, the dotted leader, and the accent chevron. */}
+        {onBringSomeoneHome && (
+          <button
+            data-bring-someone-home
+            onClick={onBringSomeoneHome}
+            className={ROW_CLASS}
+            style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F` }}
+          >
+            <span
+              className="text-[15px] font-semibold flex-shrink-0"
+              style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
+            >
+              Bring someone home
+            </span>
+            <span
+              aria-hidden="true"
+              className="flex-1"
+              style={{ borderBottom: `1px dotted ${t.textDim}` }}
+            />
+            <span
+              className="text-[12px] italic flex-shrink-0"
+              style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+            >
+              For a friend who has been away
+            </span>
+            <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} aria-hidden="true" />
+          </button>
+        )}
       </div>
-      {/* The outward line — quieter than the destinations, on purpose:
-          it is an invitation to hand on, not a room of the house. */}
-      {onBringSomeoneHome && (
-        <button
-          data-bring-someone-home
-          onClick={onBringSomeoneHome}
-          className="block w-full text-center mt-3 py-1 transition-opacity hover:opacity-70"
-          style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
-        >
-          <span className="text-[13px] font-semibold">Bring someone home</span>
-          <span className="text-[12px] italic" style={{ color: t.textDim }}>
-            {' '}· for a friend who has been away
-          </span>
-        </button>
-      )}
     </section>
   );
 }
