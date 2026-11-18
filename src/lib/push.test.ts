@@ -3,10 +3,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import {
+  DEFAULT_EVENING_TIME,
   VAPID_PUBLIC_KEY,
   arrayBufferToBase64Url,
   buildDeactivateBody,
   buildUpsertBody,
+  buildUpsertBodyWithAudience,
+  buildUpsertBodyWithEvening,
   loadPushReminder,
   resolvePushState,
   resyncPushTimezoneIfNeeded,
@@ -77,6 +80,57 @@ describe('local reminder state', () => {
     expect(state.enabled).toBe(false);
     expect(state.focus).toBe('gospel');
     expect(state.localTime).toBe('07:00');
+    expect(state.eveningTime).toBeNull();
+  });
+
+  it('the form’s offered evening default is a real time', () => {
+    expect(DEFAULT_EVENING_TIME).toBe('20:00');
+  });
+});
+
+describe('local reminder state — the evening hour (Nov 17, 2026)', () => {
+  function makeStorage(): Storage {
+    const store: Record<string, string> = {};
+    Object.defineProperties(store, {
+      getItem: { value: (k: string) => (k in store ? store[k] : null) },
+      setItem: { value: (k: string, v: string) => { store[k] = String(v); } },
+      removeItem: { value: (k: string) => { delete store[k]; } },
+      clear: { value: () => { Object.keys(store).forEach((k) => delete store[k]); } },
+    });
+    return store as unknown as Storage;
+  }
+
+  beforeEach(() => {
+    Object.defineProperty(globalThis, 'localStorage', { value: makeStorage(), configurable: true });
+  });
+
+  function seed(patch: Record<string, unknown>) {
+    localStorage.setItem(
+      'sanctum_push_reminder',
+      JSON.stringify({
+        enabled: true,
+        endpoint: 'https://push.example/abc',
+        focus: 'gospel',
+        localTime: '07:00',
+        tz: 'America/Los_Angeles',
+        audience: 'men',
+        ...patch,
+      }),
+    );
+  }
+
+  it('a stored valid evening hour is read back', () => {
+    seed({ eveningTime: '20:30' });
+    expect(loadPushReminder().eveningTime).toBe('20:30');
+  });
+
+  it('a malformed or absent evening hour reads back as none set', () => {
+    seed({ eveningTime: '8pm' });
+    expect(loadPushReminder().eveningTime).toBeNull();
+    seed({ eveningTime: '24:00' });
+    expect(loadPushReminder().eveningTime).toBeNull();
+    seed({});
+    expect(loadPushReminder().eveningTime).toBeNull();
   });
 });
 
@@ -115,6 +169,53 @@ describe('RPC contract — the client bodies', () => {
   it('deactivate sends only the endpoint', () => {
     expect(buildDeactivateBody('https://push.example/abc')).toEqual({ p_endpoint: 'https://push.example/abc' });
   });
+
+  it('the audience body is the six named parameters plus p_audience', () => {
+    const body = buildUpsertBodyWithAudience({
+      endpoint: 'https://push.example/abc',
+      p256dh: 'B'.repeat(87),
+      auth: 'a'.repeat(22),
+      focus: 'gospel',
+      localTime: '07:00',
+      tz: 'America/Los_Angeles',
+      audience: 'women',
+    });
+    expect(Object.keys(body).sort()).toEqual(
+      ['p_audience', 'p_auth', 'p_endpoint', 'p_focus', 'p_local_time', 'p_p256dh', 'p_tz'].sort(),
+    );
+    expect(body.p_audience).toBe('women');
+  });
+
+  it('the evening body is the audience body plus p_evening_time — a valid hour goes as-is', () => {
+    const body = buildUpsertBodyWithEvening({
+      endpoint: 'https://push.example/abc',
+      p256dh: 'B'.repeat(87),
+      auth: 'a'.repeat(22),
+      focus: 'gospel',
+      localTime: '07:00',
+      tz: 'America/Los_Angeles',
+      audience: 'men',
+      eveningTime: '20:00',
+    });
+    expect(Object.keys(body).sort()).toEqual(
+      ['p_audience', 'p_auth', 'p_endpoint', 'p_evening_time', 'p_focus', 'p_local_time', 'p_p256dh', 'p_tz'].sort(),
+    );
+    expect(body.p_evening_time).toBe('20:00');
+  });
+
+  it('no evening reminder sends p_evening_time as null — never as some other hour', () => {
+    const base = {
+      endpoint: 'https://push.example/abc',
+      p256dh: 'B'.repeat(87),
+      auth: 'a'.repeat(22),
+      focus: 'gospel',
+      localTime: '07:00',
+      tz: 'America/Los_Angeles',
+      audience: 'men' as const,
+    };
+    expect(buildUpsertBodyWithEvening({ ...base, eveningTime: null }).p_evening_time).toBeNull();
+    expect(buildUpsertBodyWithEvening({ ...base, eveningTime: '8pm' }).p_evening_time).toBeNull();
+  });
 });
 
 describe('RPC contract — the migration the bodies are sent to', () => {
@@ -141,6 +242,39 @@ describe('RPC contract — the migration the bodies are sent to', () => {
 
   it('constrains the focus column to the four reminder focuses', () => {
     expect(sql).toContain("CHECK (focus IN ('gospel', 'examen', 'rosary', 'rule'))");
+  });
+});
+
+describe('RPC contract — the evening migration (Nov 17, 2026)', () => {
+  const sql = readFileSync(
+    join(repoRoot, 'supabase/migrations/20261117120000_push_evening_reminder.sql'),
+    'utf8',
+  );
+
+  it('adds the evening hour and its own sent marker, both nullable', () => {
+    expect(sql).toContain('ADD COLUMN IF NOT EXISTS evening_time time NULL');
+    expect(sql).toContain('ADD COLUMN IF NOT EXISTS last_evening_sent_on date NULL');
+  });
+
+  it('adds an eight-argument overload and leaves the older overloads alone', () => {
+    expect(sql).toContain('p_audience text');
+    expect(sql).toContain('p_evening_time text');
+    expect(sql).toContain(
+      'GRANT EXECUTE ON FUNCTION public.upsert_push_subscription(text, text, text, text, text, text, text, text) TO anon, authenticated',
+    );
+    // The six- and seven-argument functions are never redefined here.
+    expect(sql).not.toMatch(/CREATE OR REPLACE FUNCTION public\.upsert_push_subscription\(\s*p_endpoint text,\s*p_p256dh text,\s*p_auth text,\s*p_focus text,\s*p_local_time text,\s*p_tz text\s*\)/);
+  });
+
+  it('validates the evening hour only when one is given, and refuses a malformed one', () => {
+    expect(sql).toContain("IF v_evening_text <> '' THEN");
+    expect(sql).toContain("RAISE EXCEPTION 'invalid_evening_time' USING ERRCODE = '22023'");
+  });
+
+  it('the conflict update writes the evening hour and never touches its sent marker', () => {
+    expect(sql).toContain('evening_time = EXCLUDED.evening_time');
+    expect(sql).not.toContain('last_evening_sent_on = EXCLUDED');
+    expect(sql).not.toContain('last_evening_sent_on = now');
   });
 });
 
@@ -199,11 +333,40 @@ describe('resyncPushTimezoneIfNeeded — silent, best-effort, upsert machinery o
     });
   }
 
-  function seedReminder(tz: string) {
+  function seedReminder(tz: string, eveningTime: string | null = null) {
     localStorage.setItem(
       'sanctum_push_reminder',
-      JSON.stringify({ enabled: true, endpoint: ENDPOINT, focus: 'gospel', localTime: '07:00', tz, audience: 'men' }),
+      JSON.stringify({
+        enabled: true,
+        endpoint: ENDPOINT,
+        focus: 'gospel',
+        localTime: '07:00',
+        eveningTime,
+        tz,
+        audience: 'men',
+      }),
     );
+  }
+
+  /** Like stubBrowser, but the first `failures` RPC calls answer not-ok — a migration not yet pasted. */
+  function stubBrowserFlaky(getSubscription: () => Promise<unknown>, failures: number) {
+    Object.defineProperty(globalThis, 'navigator', {
+      value: {
+        serviceWorker: {
+          ready: Promise.resolve({ pushManager: { getSubscription } }),
+        },
+      },
+      configurable: true,
+    });
+    fetchCalls = [];
+    let calls = 0;
+    vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+      fetchCalls.push({ url, body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown> });
+      calls += 1;
+      if (calls <= failures) return { ok: false, status: 404, json: async () => null };
+      return { ok: true, json: async () => true };
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   }
 
   beforeEach(() => {
@@ -254,6 +417,48 @@ describe('resyncPushTimezoneIfNeeded — silent, best-effort, upsert machinery o
       throw new Error('service worker unavailable');
     });
     await expect(resyncPushTimezoneIfNeeded()).resolves.toBe(false);
+  });
+
+  it('the re-sync carries the stored evening hour in the eight-argument body', async () => {
+    seedReminder(otherTz, '20:00');
+    stubBrowser(async () => fakeSubscription);
+    await expect(resyncPushTimezoneIfNeeded()).resolves.toBe(true);
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].body.p_evening_time).toBe('20:00');
+    expect(loadPushReminder().eveningTime).toBe('20:00');
+  });
+
+  it('fallback chain order: eight arguments, then seven, then six — the save lands at the tier that answers', async () => {
+    seedReminder(otherTz, '20:00');
+    stubBrowserFlaky(async () => fakeSubscription, 1);
+    await expect(resyncPushTimezoneIfNeeded()).resolves.toBe(true);
+    expect(fetchCalls).toHaveLength(2);
+    // First attempt carries the evening hour; the fallback drops exactly that field.
+    expect(fetchCalls[0].body.p_evening_time).toBe('20:00');
+    expect(fetchCalls[1].body).not.toHaveProperty('p_evening_time');
+    expect(fetchCalls[1].body.p_audience).toBe('men');
+    // The evening hour was not stored server-side, so local state keeps its
+    // previous value rather than claiming a fresh save.
+    expect(loadPushReminder().eveningTime).toBe('20:00');
+  });
+
+  it('fallback chain reaches the legacy six-argument body when both newer tiers refuse', async () => {
+    seedReminder(otherTz, '20:00');
+    stubBrowserFlaky(async () => fakeSubscription, 2);
+    await expect(resyncPushTimezoneIfNeeded()).resolves.toBe(true);
+    expect(fetchCalls).toHaveLength(3);
+    expect(Object.keys(fetchCalls[2].body).sort()).toEqual(
+      ['p_auth', 'p_endpoint', 'p_focus', 'p_local_time', 'p_p256dh', 'p_tz'].sort(),
+    );
+  });
+
+  it('when every tier refuses, nothing is saved and the re-sync reports false', async () => {
+    seedReminder(otherTz, '20:00');
+    stubBrowserFlaky(async () => fakeSubscription, 3);
+    await expect(resyncPushTimezoneIfNeeded()).resolves.toBe(false);
+    expect(fetchCalls).toHaveLength(3);
+    // The stored zone is untouched — the server was never given a new one.
+    expect(loadPushReminder().tz).toBe(otherTz);
   });
 });
 

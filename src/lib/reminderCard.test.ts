@@ -21,6 +21,7 @@ const UNSET: PushReminderState = {
   endpoint: '',
   focus: 'gospel',
   localTime: '07:00',
+  eveningTime: null,
   tz: 'America/Los_Angeles',
   audience: 'men',
 };

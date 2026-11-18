@@ -20,6 +20,8 @@ export const VAPID_PUBLIC_KEY: string =
 
 const PUSH_KEY = 'sanctum_push_reminder';
 export const DEFAULT_LOCAL_TIME = '07:00';
+/** The hour the form offers when a man first adds the evening reminder. */
+export const DEFAULT_EVENING_TIME = '20:00';
 
 export interface PushReminderState {
   enabled: boolean;
@@ -28,6 +30,8 @@ export interface PushReminderState {
   focus: string;
   /** 'HH:MM', the chosen local time of day. */
   localTime: string;
+  /** 'HH:MM' for the optional evening reminder (Nov 17, 2026), or null when none is set. */
+  eveningTime: string | null;
   /** IANA timezone captured from the device when the reminder was set. */
   tz: string;
   /** The track active when the reminder was set — recorded with the subscription. */
@@ -39,6 +43,7 @@ const DEFAULT_STATE: PushReminderState = {
   endpoint: '',
   focus: DEFAULT_FOCUS,
   localTime: DEFAULT_LOCAL_TIME,
+  eveningTime: null,
   tz: '',
   audience: 'men',
 };
@@ -53,6 +58,7 @@ export function loadPushReminder(): PushReminderState {
       endpoint: typeof parsed.endpoint === 'string' ? parsed.endpoint : '',
       focus: typeof parsed.focus === 'string' && isReminderFocus(parsed.focus) ? parsed.focus : DEFAULT_FOCUS,
       localTime: isValidLocalTime(parsed.localTime) ? parsed.localTime : DEFAULT_LOCAL_TIME,
+      eveningTime: isValidLocalTime(parsed.eveningTime) ? parsed.eveningTime : null,
       tz: typeof parsed.tz === 'string' ? parsed.tz : '',
       audience: isAudience(parsed.audience) ? parsed.audience : 'men',
     };
@@ -180,6 +186,31 @@ export function buildUpsertBodyWithAudience(input: {
   };
 }
 
+/**
+ * The upsert body that also carries the evening hour — sent to the
+ * eight-argument overload of `upsert_push_subscription` added by the evening
+ * reminder migration (Nov 17, 2026). A valid 'HH:MM' goes as-is; anything
+ * else (including null) goes as null, which the SQL reads as "no evening
+ * reminder" — never as some other hour. Kept separate from the older
+ * builders on purpose: their shapes are the fallbacks and must stay
+ * byte-for-byte what the deployed RPCs (and their tests) already know.
+ */
+export function buildUpsertBodyWithEvening(input: {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  focus: string;
+  localTime: string;
+  tz: string;
+  audience: Audience;
+  eveningTime: string | null;
+}): Record<string, unknown> {
+  return {
+    ...buildUpsertBodyWithAudience(input),
+    p_evening_time: isValidLocalTime(input.eveningTime) ? input.eveningTime : null,
+  };
+}
+
 export function buildDeactivateBody(endpoint: string): Record<string, unknown> {
   return { p_endpoint: endpoint };
 }
@@ -250,37 +281,75 @@ async function currentBrowserSubscription(): Promise<PushSubscription | null> {
   return subscription;
 }
 
+export interface SaveSubscriptionResult {
+  /** The subscription itself saved, at whichever tier answered. */
+  saved: boolean;
+  /**
+   * The evening slot was stored server-side too — or there was no evening
+   * slot to store. False only when an evening hour was asked for and every
+   * tier that could carry it refused: the morning save still stands, but the
+   * evening poke cannot start until the evening migration is pasted.
+   */
+  eveningSaved: boolean;
+}
+
 async function saveSubscriptionToServer(
   subscription: PushSubscription,
   focus: string,
   localTime: string,
-): Promise<boolean> {
+  eveningTime: string | null = null,
+): Promise<SaveSubscriptionResult> {
   const json = subscription.toJSON();
   const p256dh = json.keys?.p256dh ?? '';
   const auth = json.keys?.auth ?? '';
-  if (!p256dh || !auth) return false;
+  if (!p256dh || !auth) return { saved: false, eveningSaved: false };
   const tz = deviceTimeZone();
   const audience = loadAudience();
   const base = { endpoint: subscription.endpoint, p256dh, auth, focus, localTime, tz };
-  // Prefer the audience-carrying overload; if the Women's Mode migration has
-  // not been pasted yet, PostgREST answers 404 for the seven-argument shape
-  // and we fall straight back to the legacy body — the subscription must save
-  // either way. Push never breaks because a column is missing.
-  let ok = await callRpc('upsert_push_subscription', buildUpsertBodyWithAudience({ ...base, audience }));
+  const wantedEvening = isValidLocalTime(eveningTime) ? eveningTime : null;
+  // Prefer the evening-carrying overload; if that migration has not been
+  // pasted yet, PostgREST answers 404 for the eight-argument shape and we
+  // fall back to the audience overload, then to the legacy body — the
+  // subscription must save either way. Push never breaks because a column
+  // is missing.
+  let eveningStored = await callRpc(
+    'upsert_push_subscription',
+    buildUpsertBodyWithEvening({ ...base, audience, eveningTime: wantedEvening }),
+  );
+  let ok = eveningStored;
+  if (!ok) {
+    ok = await callRpc('upsert_push_subscription', buildUpsertBodyWithAudience({ ...base, audience }));
+  }
   if (!ok) {
     ok = await callRpc('upsert_push_subscription', buildUpsertBody(base));
   }
-  if (ok) {
-    savePushReminder({
-      enabled: true,
-      endpoint: subscription.endpoint,
-      focus: isReminderFocus(focus) ? focus : DEFAULT_FOCUS,
-      localTime: isValidLocalTime(localTime) ? localTime : DEFAULT_LOCAL_TIME,
-      tz,
-      audience,
-    });
-  }
-  return ok;
+  if (!ok) return { saved: false, eveningSaved: false };
+
+  // Local state may only claim an evening hour the server actually holds.
+  // When the fallback tiers saved the morning subscription, an asked-for
+  // evening hour keeps its previous local value rather than pretending it
+  // was stored. Turning the evening reminder OFF (eveningTime = null) is
+  // truthful at every tier — the older tiers never had an evening slot —
+  // with one pre-migration edge, accepted and documented: if the
+  // eight-argument call failed, the fallback tiers cannot clear an evening
+  // hour the server already holds, so a stored evening poke may still come
+  // until the migration lands and the off is saved again. The dispatcher's
+  // guard is the database value; this window exists only before the paste.
+  const localEvening = eveningStored
+    ? wantedEvening
+    : wantedEvening === null
+      ? null
+      : loadPushReminder().eveningTime;
+  savePushReminder({
+    enabled: true,
+    endpoint: subscription.endpoint,
+    focus: isReminderFocus(focus) ? focus : DEFAULT_FOCUS,
+    localTime: isValidLocalTime(localTime) ? localTime : DEFAULT_LOCAL_TIME,
+    eveningTime: localEvening,
+    tz,
+    audience,
+  });
+  return { saved: true, eveningSaved: eveningStored || wantedEvening === null };
 }
 
 /**
@@ -289,7 +358,11 @@ async function saveSubscriptionToServer(
  * to a gesture — and because there is exactly one ask, it must not be spent on a man who
  * has not yet chosen his focus and time.
  */
-export async function subscribeToPush(focus: string, localTime: string): Promise<PushActionResult> {
+export async function subscribeToPush(
+  focus: string,
+  localTime: string,
+  eveningTime: string | null = null,
+): Promise<PushActionResult> {
   if (typeof Notification === 'undefined') {
     return result(false, 'This browser cannot receive notifications.');
   }
@@ -310,8 +383,14 @@ export async function subscribeToPush(focus: string, localTime: string): Promise
   try {
     const subscription = await currentBrowserSubscription();
     if (!subscription) return result(false, "We couldn't set that up just now. Try again in a moment.");
-    const saved = await saveSubscriptionToServer(subscription, focus, localTime);
+    const { saved, eveningSaved } = await saveSubscriptionToServer(subscription, focus, localTime, eveningTime);
     if (!saved) return result(false, "We couldn't save that just now. Try again in a moment.");
+    if (!eveningSaved) {
+      return result(
+        true,
+        'Saved — your morning reminder is set. The evening reminder needs a server update before it can start; the morning one will come as usual.',
+      );
+    }
     return result(true, 'Saved. The reminder will come at the time you chose.');
   } catch (err) {
     console.error('subscribeToPush failed:', err);
@@ -349,20 +428,38 @@ export async function resyncPushTimezoneIfNeeded(): Promise<boolean> {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     if (!subscription) return false;
-    return await saveSubscriptionToServer(subscription, local.focus, local.localTime);
+    // The stored evening hour rides along untouched, so a timezone re-sync
+    // can never silently drop the evening slot it was not asked about.
+    const { saved } = await saveSubscriptionToServer(
+      subscription,
+      local.focus,
+      local.localTime,
+      local.eveningTime,
+    );
+    return saved;
   } catch {
     return false;
   }
 }
 
 /** Change what the reminder points at, or when it comes. Saves straight away, like the email form. */
-export async function updatePushPreferences(focus: string, localTime: string): Promise<PushActionResult> {
+export async function updatePushPreferences(
+  focus: string,
+  localTime: string,
+  eveningTime: string | null = null,
+): Promise<PushActionResult> {
   try {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
-    if (!subscription) return subscribeToPush(focus, localTime);
-    const saved = await saveSubscriptionToServer(subscription, focus, localTime);
+    if (!subscription) return subscribeToPush(focus, localTime, eveningTime);
+    const { saved, eveningSaved } = await saveSubscriptionToServer(subscription, focus, localTime, eveningTime);
     if (!saved) return result(false, "We couldn't save that just now. Try again in a moment.");
+    if (!eveningSaved) {
+      return result(
+        true,
+        'Saved — your morning reminder is set. The evening reminder needs a server update before it can start; the morning one will come as usual.',
+      );
+    }
     return result(true, 'Saved. That is when, and what, we will remind you about.');
   } catch (err) {
     console.error('updatePushPreferences failed:', err);
