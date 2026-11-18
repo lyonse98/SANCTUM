@@ -40,9 +40,21 @@
   with no row shows nothing.
 
   Request shapes (spec §8.1):
-  - { "date": "YYYY-MM-DD" }                       the schedule's call (date optional)
+  - { "date": "YYYY-MM-DD" }                       the schedule's call (date optional) —
+                                                   since Nov 18, 2026 (P-1) a call that
+                                                   would START work must be authorized:
+                                                   the schedule sends x-render-cron (a
+                                                   token held only in the database, see
+                                                   startGate.ts), a manual kick sends
+                                                   x-render-key. An unauthorized start
+                                                   is refused 401; a call that only meets
+                                                   a ready or in-flight day spends nothing
+                                                   and is answered without a credential.
   - { "date": …, "dryRun": true }                  assemble + return the script JSON;
-                                                   no speech, no uploads, no row writes
+                                                   no speech, no uploads, no row writes —
+                                                   but assembly can generate the day's
+                                                   reflection, so the start gate covers
+                                                   this shape too (P-1)
   - { "date": …, "force": true } + x-render-key    re-render a day; the header must match
                                                    the AUDIO_RENDER_KEY secret, else
                                                    `force` is ignored
@@ -66,6 +78,11 @@
 
   verify_jwt is false, like the other no-auth functions: the schedule calls with the
   public anon key, and every table/bucket write here goes through the service role.
+  The anon key routes the request; it does not authorize a start — the start gate
+  (startGate.ts) does, with the deploy-order guard described there: while the cron
+  token store is unreadable (the hardening migration still to land) starts are let
+  through with an error log rather than silencing a morning, and the moment the
+  store answers, the gate is hard.
 
   Logs are counts and stage codes only — never script text, never payloads.
 */
@@ -110,6 +127,7 @@ import {
   splitMainScript,
   type PieceSpec,
 } from "./renderPlan.ts";
+import { evaluateStartGate, type StartGateDecision } from "./startGate.ts";
 
 // The edge runtime's background-task hook: a chained step call is dispatched
 // with fetch and registered here so the isolate stays alive until the request
@@ -119,7 +137,7 @@ declare const EdgeRuntime: { waitUntil: (promise: Promise<unknown>) => void } | 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, X-Render-Key",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, X-Render-Key, X-Render-Cron",
 };
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
@@ -223,6 +241,28 @@ async function patchRows(table: string, query: string, patch: Record<string, unk
   if (!res.ok) return 0;
   const rows = await res.json();
   return Array.isArray(rows) ? rows.length : 0;
+}
+
+/**
+ * The schedule's cron token, read from the deny-all table the hardening
+ * migration created (see startGate.ts). Null on ANY failure — a missing
+ * table, an empty one, a failed read — and the gate treats every null
+ * the same way: unconfigured, the deploy-order guard. A token that reads
+ * back is a hard credential from that moment on.
+ */
+async function fetchStoredCronToken(): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${supabaseUrl()}/rest/v1/audio_render_cron_token?select=token&id=eq.1`,
+      { headers: serviceHeaders() },
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    const token = Array.isArray(rows) ? rows[0]?.token : null;
+    return typeof token === "string" && token.length > 0 ? token : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── The day's inputs (spec §8.2 step 4) ───────────────────────────────────────
@@ -638,6 +678,7 @@ async function runRender(
   force: boolean,
   dryRun: boolean,
   viaStep: boolean,
+  startGate: StartGateDecision,
 ): Promise<Response> {
   const rows = await restSelect(
     "daily_audio",
@@ -665,6 +706,25 @@ async function runRender(
     ) {
       return jsonResponse({ ok: true, skipped: "in-flight" });
     }
+  }
+
+  // The start gate (P-1, Nov 18, 2026): everything above this line is a
+  // no-spend answer — a ready day, a live render left alone. Everything
+  // below can spend: the bundle may generate the day's reflection, and a
+  // fresh start chains a full render. So a start must be authorized by
+  // here — the render key, or the schedule's cron token (startGate.ts).
+  // The one softness is the deploy-order guard: an unconfigured gate
+  // (the token store not yet readable — the hardening migration still to
+  // land) lets the start through with an error log, because the
+  // alternative is a deploy silencing a morning. Once the store answers,
+  // a missing or wrong credential is a refusal, full stop.
+  if (!startGate.allowed) {
+    return jsonResponse({ ok: false, error: "unauthorized" }, 401);
+  }
+  if (startGate.via === "unconfigured") {
+    console.error(
+      `audio-render start gate unconfigured: date=${dateISO} audience=${audience} — start allowed; the hardening migration closes P-1 when it lands`,
+    );
   }
 
   let persona: NarratorId = row?.persona && typeof row.persona === "string"
@@ -1059,7 +1119,18 @@ Deno.serve(async (req: Request) => {
       return await runAudition(payload);
     }
 
-    return await runRender(dateISO, audience, force, payload.dryRun === true, viaStep);
+    // The start gate (P-1, Nov 18, 2026; see startGate.ts): the render
+    // key authorizes outright — manual kicks and this render's own chain
+    // never pay the store read. Otherwise the presented cron token is
+    // checked against the value held in the database.
+    const storedCronToken = keyMatches ? null : await fetchStoredCronToken();
+    const startGate = evaluateStartGate({
+      keyMatches,
+      presentedCronToken: req.headers.get("x-render-cron"),
+      storedCronToken,
+    });
+
+    return await runRender(dateISO, audience, force, payload.dryRun === true, viaStep, startGate);
   } catch (err) {
     console.error("audio-render failed:", err instanceof Error ? err.message : String(err));
     return jsonResponse({ ok: false, stage: "error" });

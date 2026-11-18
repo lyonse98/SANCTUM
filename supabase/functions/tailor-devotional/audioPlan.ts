@@ -18,12 +18,32 @@
 
   AUTHORIZATION: pieces are fetched after the build, outside the build's
   quota — the plan entry itself is the capability. Each entry carries a
-  token: HMAC-SHA256 over `date|audience|index|sha256hex(text)`, keyed with
-  the AUDIO_RENDER_KEY secret. The endpoint recomputes it before rendering
-  a single sample, so a caller can only ever render the exact pieces a real
-  build issued, for that date and that track — never arbitrary text, never
-  another day. If the key is unset, the build omits the plan entirely and
-  the text package stands alone, exactly as the interim builds did.
+  token: `<expires>.<signature>`, the signature HMAC-SHA256 over
+  `date|audience|index|sha256hex(text)|expires`, keyed with the
+  AUDIO_RENDER_KEY secret, and `expires` the unix second the token dies —
+  the plan's own date plus seven days (P-3, Nov 18, 2026: tokens used to
+  carry no expiry and lived forever, so one captured plan was a permanent
+  TTS faucet). The endpoint recomputes the signature before rendering a
+  single sample and refuses an expired token, so a caller can only ever
+  render the exact pieces a real build issued, for that date and that
+  track, inside that week — never arbitrary text, never another day,
+  never an old capture. A week is generous on purpose: the device
+  stitches a plan within minutes of the build and caches the joined audio
+  on-device, so the expiry only ever meets a plan that sat unlistened —
+  and the owner's silent renewal is the ordinary one, a fresh build
+  minting fresh tokens in the normal flow. Piece fetches also carry rate
+  ceilings now (per caller and per token, on the companions' durable
+  quota RPC — index.ts), so even a live capture replays at a trickle.
+  If the key is unset, the build omits the plan entirely and the text
+  package stands alone, exactly as the interim builds did.
+
+  DEPLOY BRIDGE: plans issued before the expiry landed carry the old
+  bare-signature tokens (no expiry segment). Verification still honors
+  those when the caller (index.ts) allows it for a plan dated today or
+  yesterday, so a deploy can never strand a plan mid-stitch; every plan
+  issued after the deploy carries an expiry, and the bridge empties
+  itself within a day. The legacy path comes out once no pre-expiry
+  plan can still be live.
 
   This module is pure (crypto.subtle aside): index.ts wires it to the
   request, and vitest pins the splitting and the token discipline here.
@@ -48,7 +68,7 @@ export interface TailorAudioPlanEntry {
   index: number;
   /** The spoken text ("" for the produced-silence piece). */
   text: string;
-  /** HMAC-SHA256 over date|audience|index|sha256hex(text) — see the header. */
+  /** `<expires>.<HMAC-SHA256>` over date|audience|index|sha256hex(text)|expires — see the header. */
   token: string;
 }
 
@@ -97,7 +117,33 @@ async function hmacKey(secret: string): Promise<CryptoKey> {
   );
 }
 
-/** The token a plan entry carries: the build's signature over its own piece. */
+/**
+ * How long a plan's tokens live past the plan's own date (P-3). The
+ * device stitches within minutes and caches the joined audio, so a week
+ * is all headroom for the owner — retries, a later open, a slow week —
+ * while a captured plan rots on a schedule instead of living forever.
+ */
+export const PIECE_TOKEN_TTL_DAYS = 7;
+
+/**
+ * The unix second a plan's tokens die: the end of the plan's own date
+ * plus PIECE_TOKEN_TTL_DAYS full days, derived from the date alone so
+ * signing and verification always agree on it. An unparseable date
+ * (never issued by the build, which validates first) falls back to a
+ * week from the call — the token is still bounded, never open-ended.
+ */
+export function pieceTokenExpiry(dateISO: string): number {
+  const midnightUtcMs = Date.parse(`${dateISO}T00:00:00.000Z`);
+  const baseMs = Number.isFinite(midnightUtcMs) ? midnightUtcMs : Date.now();
+  return Math.floor(baseMs / 1000) + (PIECE_TOKEN_TTL_DAYS + 1) * 86400;
+}
+
+async function signPayload(secret: string, payload: string): Promise<string> {
+  const signature = await crypto.subtle.sign("HMAC", await hmacKey(secret), encoder.encode(payload));
+  return bytesToHex(new Uint8Array(signature));
+}
+
+/** The token a plan entry carries: the build's signature over its own piece, expiry included. */
 export async function signPieceToken(
   secret: string,
   dateISO: string,
@@ -105,9 +151,26 @@ export async function signPieceToken(
   index: number,
   text: string,
 ): Promise<string> {
+  const expires = pieceTokenExpiry(dateISO);
+  const payload = `${dateISO}|${audience}|${index}|${await sha256Hex(text)}|${expires}`;
+  return `${expires}.${await signPayload(secret, payload)}`;
+}
+
+/**
+ * The pre-expiry token shape (bare signature, no expiry segment), kept
+ * only so verification can honor the deploy bridge described in the
+ * header — and so the tests can mint the old plans the bridge exists for.
+ * Nothing in the build path signs this way anymore.
+ */
+export async function signPieceTokenLegacy(
+  secret: string,
+  dateISO: string,
+  audience: NarratorAudience,
+  index: number,
+  text: string,
+): Promise<string> {
   const payload = `${dateISO}|${audience}|${index}|${await sha256Hex(text)}`;
-  const signature = await crypto.subtle.sign("HMAC", await hmacKey(secret), encoder.encode(payload));
-  return bytesToHex(new Uint8Array(signature));
+  return signPayload(secret, payload);
 }
 
 /** Constant-time string equality — token comparison must not leak by timing. */
@@ -120,11 +183,24 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+export interface PieceTokenVerifyOptions {
+  /** The clock, unix seconds — injectable so the tests can pin time. */
+  nowSeconds?: number;
+  /**
+   * Honor a pre-expiry (bare-signature) token — the deploy bridge in the
+   * header. The caller decides the window (index.ts: a plan dated today
+   * or yesterday); this module only checks the old signature.
+   */
+  allowLegacy?: boolean;
+}
+
 /**
  * The piece endpoint's gate: the token presented must be the signature over
- * EXACTLY the (date, audience, index, text) presented. Any tampering — other
- * words, another index, another day, another track — fails, and so does a
- * token minted under a different key.
+ * EXACTLY the (date, audience, index, text, expiry) presented, and the
+ * expiry must still be ahead of the clock. Any tampering — other words,
+ * another index, another day, another track, a later expiry scribbled
+ * over the real one — fails, and so does a token minted under a different
+ * key, and so does a plan whose week has run out.
  */
 export async function verifyPieceToken(
   secret: string,
@@ -133,10 +209,22 @@ export async function verifyPieceToken(
   index: number,
   text: string,
   token: string,
+  options: PieceTokenVerifyOptions = {},
 ): Promise<boolean> {
-  if (!/^[0-9a-f]{64}$/.test(token)) return false;
-  const expected = await signPieceToken(secret, dateISO, audience, index, text);
-  return timingSafeEqual(expected, token);
+  const match = /^(\d{1,12})\.([0-9a-f]{64})$/.exec(token);
+  if (match) {
+    const expires = Number(match[1]);
+    const nowSeconds = options.nowSeconds ?? Math.floor(Date.now() / 1000);
+    if (!(expires > nowSeconds)) return false;
+    const payload = `${dateISO}|${audience}|${index}|${await sha256Hex(text)}|${expires}`;
+    const expected = `${expires}.${await signPayload(secret, payload)}`;
+    return timingSafeEqual(expected, token);
+  }
+  if (options.allowLegacy && /^[0-9a-f]{64}$/.test(token)) {
+    const expected = await signPieceTokenLegacy(secret, dateISO, audience, index, text);
+    return timingSafeEqual(expected, token);
+  }
+  return false;
 }
 
 /** The build's audio plan: the script's pieces, each signed for its own render call. */

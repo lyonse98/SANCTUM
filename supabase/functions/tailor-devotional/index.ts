@@ -71,15 +71,20 @@
   uncatchable, so an in-invocation render loses even the finished TEXT.
   The live route is the audio plan (TAILOR_AUDIO_PLAN, audioPlan.ts): the
   build returns the complete text package at once, plus the assembled
-  script cut into ≤200-char pieces, each signed with an HMAC token. The
-  device then fetches each piece through this function's piece mode — one
-  TTS + decode + stretch + encode per call, the daily render's proven
-  envelope — and concatenates the MP3 bytes on-device. The token is the
-  only authorization a piece fetch needs (no build quota is consumed);
-  a bad token is a 403. If AUDIO_RENDER_KEY is unset, the build omits the
-  plan and returns the text-only package, exactly as the interim builds
-  did. The in-function render code below stays in place behind its flag;
-  nothing about composition, quota, or privacy changes.
+  script cut into ≤200-char pieces, each signed with an expiring HMAC
+  token. The device then fetches each piece through this function's piece
+  mode — one TTS + decode + stretch + encode per call, the daily render's
+  proven envelope — and concatenates the MP3 bytes on-device. The token
+  is the authorization a piece fetch needs; a bad or expired token is a
+  403. Piece fetches also draw on this function's quota discipline
+  (P-3, Nov 18, 2026): per-caller and per-token ceilings on the same
+  durable RPC the builds use, sized so the legitimate stitch — every
+  piece once, minutes after the build, the joined audio cached on-device
+  after — never meets them, while a captured plan replayed as a faucet
+  meets both. If AUDIO_RENDER_KEY is unset, the build omits the plan and
+  returns the text-only package, exactly as the interim builds did. The
+  in-function render code below stays in place behind its flag; nothing
+  about composition, quota, or privacy changes.
 
   Entitlement: tailorAccess() (mirrored from src/lib/tailorAccess.ts) is the
   premium seam. Today it allows everyone — Tailor Today is free for the
@@ -268,6 +273,101 @@ async function withinQuota(req: Request): Promise<boolean> {
   } catch {
     return withinFallbackQuota(clientKey);
   }
+}
+
+// ── The piece ceilings (P-3, Nov 18, 2026) ───────────────────────────────────
+//
+// A piece fetch is not a build, so it never draws on the build quota —
+// but since the token expiry landed it no longer rides free either. Two
+// ceilings on the same durable RPC, both checked before a single sample
+// renders: per CALLER (30 a minute, 300 a day — a stitch is ~25 pieces,
+// a generous day is a few stitches) and per TOKEN (12 a minute, 12 a
+// day — a piece is fetched once, twice with its retry; twelve is all
+// headroom). A captured plan replayed in a loop meets the token ceiling
+// within twelve renders and the caller ceiling within the hour; the
+// legitimate flow, which fetches each piece once and then plays the
+// cached stitch from the device, meets neither. The token is hashed
+// before it keys a bucket, exactly like the caller's address: the quota
+// store never holds a usable credential. RPC trouble falls back to the
+// same in-memory discipline as the build quota's fallback — best-effort
+// buckets, never a hard failure against the owner.
+const PIECE_WINDOW_LIMIT = 30;
+const PIECE_DAY_LIMIT = 300;
+const PIECE_TOKEN_WINDOW_LIMIT = 12;
+const PIECE_TOKEN_DAY_LIMIT = 12;
+
+async function hashPieceKey(namespace: string, value: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`${namespace}:${value}`),
+  );
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+const pieceFallbackBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function withinPieceFallback(bucketKey: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  if (pieceFallbackBuckets.size > 5000) pieceFallbackBuckets.clear();
+  const bucket = pieceFallbackBuckets.get(bucketKey);
+  if (!bucket || bucket.resetAt <= now) {
+    pieceFallbackBuckets.set(bucketKey, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  bucket.count += 1;
+  return bucket.count <= limit;
+}
+
+/** One bucket on the durable RPC, or its in-memory fallback when the RPC cannot answer. */
+async function consumePieceQuota(
+  clientKey: string,
+  windowLimit: number,
+  dayLimit: number,
+): Promise<boolean> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (supabaseUrl && serviceKey) {
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_chat_quota`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          p_client_key: clientKey,
+          p_window_limit: windowLimit,
+          p_day_limit: dayLimit,
+          p_window_seconds: RATE_WINDOW_SECONDS,
+        }),
+      });
+      if (res.ok) {
+        const allowed = await res.json();
+        return allowed !== false;
+      }
+      console.error("tailor-devotional: piece limiter RPC failed with status", res.status);
+    } catch {
+      // Fall through to the in-memory buckets, as the build quota does.
+    }
+  } else {
+    console.error("tailor-devotional: piece limiter misconfigured");
+  }
+  return (
+    withinPieceFallback(`${clientKey}:w`, windowLimit, RATE_WINDOW_SECONDS * 1000) &&
+    withinPieceFallback(`${clientKey}:d`, dayLimit, 24 * 60 * 60 * 1000)
+  );
+}
+
+async function withinPieceQuota(req: Request, token: string): Promise<boolean> {
+  const callerKey = await hashPieceKey("tailor-piece", clientIdentifier(req));
+  if (!(await consumePieceQuota(callerKey, PIECE_WINDOW_LIMIT, PIECE_DAY_LIMIT))) {
+    return false;
+  }
+  const tokenKey = await hashPieceKey("tailor-piece-token", token);
+  return consumePieceQuota(tokenKey, PIECE_TOKEN_WINDOW_LIMIT, PIECE_TOKEN_DAY_LIMIT);
 }
 
 // ── The PM quota (Close the day's own allowance) ─────────────────────────────
@@ -748,8 +848,10 @@ function validatePieceRequest(raw: unknown): PieceRequest | null {
 }
 
 /**
- * Renders ONE plan piece: the token is verified first (it is the whole
- * authorization — no build quota is consumed, no bundle is read), then the
+ * Renders ONE plan piece: the token is verified first (it is the
+ * authorization — no build quota is consumed, no bundle is read), then
+ * the piece ceilings are taken (per caller, per token — the faucet
+ * closure that rides with the token expiry, P-3), then the
  * piece goes through the identical production the in-function render used:
  * lexicon, the day narrator's voice, decode, tempo stretch, the same MP3
  * encoding — with the engine's seam guards around the speech (see the
@@ -758,17 +860,31 @@ function validatePieceRequest(raw: unknown): PieceRequest | null {
  * encoded the same way. Logs are stage codes and timings only, as everywhere
  * in this function — the piece's words never reach a log.
  */
-async function handlePieceRequest(raw: unknown): Promise<Response> {
+async function handlePieceRequest(req: Request, raw: unknown): Promise<Response> {
   const piece = validatePieceRequest(raw);
   if (!piece) {
     return jsonResponse({ ok: false, error: "That audio piece could not be read." }, 400);
   }
   const secret = Deno.env.get("AUDIO_RENDER_KEY") ?? "";
+  // The deploy bridge (audioPlan.ts): a bare-signature token from before
+  // the expiry is honored only for a plan dated today or yesterday, so a
+  // plan mid-stitch at deploy time finishes — and no older capture gains
+  // a day from it.
+  const today = losAngelesToday();
+  const allowLegacy = piece.dateISO <= today && piece.dateISO >= addDaysISO(today, -1);
   const authorized =
     secret.length > 0 &&
-    (await verifyPieceToken(secret, piece.dateISO, piece.audience, piece.index, piece.text, piece.token));
+    (await verifyPieceToken(secret, piece.dateISO, piece.audience, piece.index, piece.text, piece.token, {
+      allowLegacy,
+    }));
   if (!authorized) {
     return jsonResponse({ ok: false, error: "That audio piece is not authorized." }, 403);
+  }
+  if (!(await withinPieceQuota(req, piece.token))) {
+    return jsonResponse(
+      { ok: false, error: "Too many audio pieces just now — give it a moment and try again." },
+      429,
+    );
   }
 
   const started = Date.now();
@@ -911,10 +1027,11 @@ Deno.serve(async (req: Request) => {
   }
 
   // The piece mode: a device fetching one signed plan piece. The token is
-  // the authorization — the build quota below is for builds, and a piece
-  // fetch is not one — so this branch stands ahead of the intake and quota.
+  // the authorization and the piece ceilings live inside the handler —
+  // the build quota below is for builds, and a piece fetch is not one —
+  // so this branch stands ahead of the intake and the build quota.
   if (payload.piece !== undefined) {
-    return handlePieceRequest(payload.piece);
+    return handlePieceRequest(req, payload.piece);
   }
 
   // The PM mode (Close the day): the evening twin. Its payload is a
