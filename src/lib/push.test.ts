@@ -7,12 +7,16 @@ import {
   VAPID_PUBLIC_KEY,
   arrayBufferToBase64Url,
   buildDeactivateBody,
+  buildParishSyncBody,
   buildUpsertBody,
   buildUpsertBodyWithAudience,
   buildUpsertBodyWithEvening,
   loadPushReminder,
+  loadTailorReadyPing,
   resolvePushState,
   resyncPushTimezoneIfNeeded,
+  saveTailorReadyPing,
+  shouldPingTailorReady,
   shouldResyncTimezone,
   urlBase64ToUint8Array,
   type PushEnvironment,
@@ -496,6 +500,183 @@ describe('the evening reminder in the form (Nov 17, 2026) — source pins', () =
     const copy = readFileSync(join(repoRoot, 'src/lib/privacyCopy.ts'), 'utf8');
     expect(copy).toContain('the reminder time or times you chose');
     expect(copy).not.toContain('a time of day');
+  });
+});
+
+describe('RPC contract — the parish sync body (Nov 18, 2026)', () => {
+  const mass = { parish: 'St. Brigid', time: '09:30', day: 'sunday' as const };
+  const reminders = {
+    confessionDay: 6,
+    confessionTime: '15:30',
+    massReminderLead: 60 as const,
+    confessionReminderLead: 30 as const,
+    driveTime: '17:30',
+  };
+
+  it('sends exactly the eight named parameters the SQL function declares', () => {
+    const body = buildParishSyncBody({ endpoint: 'https://push.example/abc', mass, reminders });
+    expect(Object.keys(body).sort()).toEqual(
+      ['p_conf_day', 'p_conf_lead', 'p_conf_time', 'p_drive_time', 'p_endpoint', 'p_mass_day', 'p_mass_lead', 'p_mass_time'].sort(),
+    );
+    expect(body).toEqual({
+      p_endpoint: 'https://push.example/abc',
+      p_mass_day: 0, // Sunday, in the server's numbering
+      p_mass_time: '09:30',
+      p_mass_lead: 60,
+      p_conf_day: 6,
+      p_conf_time: '15:30',
+      p_conf_lead: 30,
+      p_drive_time: '17:30',
+    });
+  });
+
+  it('the parish name is never in the body — not as a key, not as a value', () => {
+    const body = buildParishSyncBody({ endpoint: 'https://push.example/abc', mass, reminders });
+    expect(JSON.stringify(body)).not.toContain('Brigid');
+    expect(Object.keys(body).join(' ')).not.toMatch(/parish_name|p_parish/);
+  });
+
+  it('a Saturday vigil maps to day 6; an unset Mass sends nulls', () => {
+    const vigil = buildParishSyncBody({
+      endpoint: 'https://push.example/abc',
+      mass: { parish: 'St. Brigid', time: '17:30', day: 'saturday' },
+      reminders,
+    });
+    expect(vigil.p_mass_day).toBe(6);
+    expect(vigil.p_mass_time).toBe('17:30');
+    const none = buildParishSyncBody({ endpoint: 'https://push.example/abc', mass: null, reminders });
+    expect(none.p_mass_day).toBeNull();
+    expect(none.p_mass_time).toBeNull();
+  });
+
+  it('malformed pieces go as null — never as some other day, hour, or lead', () => {
+    const body = buildParishSyncBody({
+      endpoint: 'https://push.example/abc',
+      mass,
+      reminders: {
+        confessionDay: 7,
+        confessionTime: '3:30pm',
+        massReminderLead: 45 as never,
+        confessionReminderLead: null,
+        driveTime: '25:00',
+      },
+    });
+    expect(body.p_conf_day).toBeNull();
+    expect(body.p_conf_time).toBeNull();
+    expect(body.p_mass_lead).toBeNull();
+    expect(body.p_conf_lead).toBeNull();
+    expect(body.p_drive_time).toBeNull();
+  });
+});
+
+describe('RPC contract — the parish reminders migration (Nov 18, 2026)', () => {
+  const sql = readFileSync(
+    join(repoRoot, 'supabase/migrations/20261118140000_parish_reminders.sql'),
+    'utf8',
+  );
+
+  it('adds the ten slot columns, all nullable', () => {
+    for (const column of [
+      'mass_day smallint', 'mass_time time', 'mass_lead_min int', 'mass_last_sent_on date',
+      'conf_day smallint', 'conf_time time', 'conf_lead_min int', 'conf_last_sent_on date',
+      'drive_time time', 'drive_last_sent_on date',
+    ]) {
+      expect(sql).toContain(`ADD COLUMN IF NOT EXISTS ${column} NULL`);
+    }
+  });
+
+  it('declares the sync function with the parameter names the client sends', () => {
+    expect(sql).toContain('FUNCTION public.upsert_parish_reminders(');
+    for (const param of [
+      'p_endpoint text', 'p_mass_day int', 'p_mass_time text', 'p_mass_lead int',
+      'p_conf_day int', 'p_conf_time text', 'p_conf_lead int', 'p_drive_time text',
+    ]) {
+      expect(sql).toContain(param);
+    }
+    expect(sql).toContain(
+      'GRANT EXECUTE ON FUNCTION public.upsert_parish_reminders(text, int, text, int, int, text, int, text) TO anon, authenticated',
+    );
+  });
+
+  it('validates days, leads, and times with stable error strings', () => {
+    for (const error of [
+      'invalid_endpoint', 'invalid_mass_day', 'invalid_conf_day', 'invalid_mass_lead',
+      'invalid_conf_lead', 'invalid_mass_time', 'invalid_conf_time', 'invalid_drive_time',
+    ]) {
+      expect(sql).toContain(`RAISE EXCEPTION '${error}' USING ERRCODE = '22023'`);
+    }
+    expect(sql).toContain('p_mass_lead NOT IN (30, 60, 120)');
+    expect(sql).toContain('p_conf_lead NOT IN (30, 60, 120)');
+  });
+
+  it('the sync update writes the slots and never a sent marker', () => {
+    const updateAt = sql.indexOf('UPDATE public.push_subscriptions');
+    const update = sql.slice(updateAt, sql.indexOf('WHERE endpoint', updateAt));
+    expect(update).toContain('mass_day = p_mass_day');
+    expect(update).toContain('drive_time = v_drive_time');
+    expect(update).not.toContain('last_sent_on');
+  });
+
+  it('leaves the existing upsert overloads alone', () => {
+    expect(sql).not.toContain('FUNCTION public.upsert_push_subscription(');
+  });
+});
+
+describe('the tailor-ready ping (Nov 18, 2026)', () => {
+  function makeStorage(): Storage {
+    const store: Record<string, string> = {};
+    Object.defineProperties(store, {
+      getItem: { value: (k: string) => (k in store ? store[k] : null) },
+      setItem: { value: (k: string, v: string) => { store[k] = String(v); } },
+      removeItem: { value: (k: string) => { delete store[k]; } },
+      clear: { value: () => { Object.keys(store).forEach((k) => delete store[k]); } },
+    });
+    return store as unknown as Storage;
+  }
+
+  beforeEach(() => {
+    Object.defineProperty(globalThis, 'localStorage', { value: makeStorage(), configurable: true });
+  });
+
+  it('the opt-in is off by default and round-trips', () => {
+    expect(loadTailorReadyPing()).toBe(false);
+    saveTailorReadyPing(true);
+    expect(loadTailorReadyPing()).toBe(true);
+    saveTailorReadyPing(false);
+    expect(loadTailorReadyPing()).toBe(false);
+  });
+
+  it('the decision needs all three: opt-in, a subscription, and a backgrounded app', () => {
+    expect(shouldPingTailorReady({ optedIn: true, endpoint: 'https://push.example/abc', hidden: true })).toBe(true);
+    expect(shouldPingTailorReady({ optedIn: false, endpoint: 'https://push.example/abc', hidden: true })).toBe(false);
+    expect(shouldPingTailorReady({ optedIn: true, endpoint: '', hidden: true })).toBe(false);
+    expect(shouldPingTailorReady({ optedIn: true, endpoint: 'https://push.example/abc', hidden: false })).toBe(false);
+  });
+
+  it('the dispatcher answers the action with one fixed poke and stores nothing', () => {
+    const fn = readFileSync(join(repoRoot, 'supabase/functions/push-dispatch/index.ts'), 'utf8');
+    expect(fn).toContain('body.action === "tailor-ready"');
+    expect(fn).toContain('buildPushPayload("tailor")');
+    expect(fn).toContain('consume_chat_quota');
+    expect(fn).toContain('TAILOR_READY_DAILY_CAP = 3');
+    // The tailor-ready branch itself writes no marker and no row: between
+    // the action check and the cron dispatch below it, no sent-marker
+    // column is ever named.
+    const branch = fn.slice(fn.indexOf('body.action === "tailor-ready"'), fn.indexOf('const now = new Date();'));
+    expect(branch).not.toContain('last_sent_on');
+    expect(branch).not.toContain('INSERT');
+  });
+
+  it('the form offers the opt-in beside the other reminder choices', () => {
+    const form = readFileSync(join(repoRoot, 'src/components/ReminderForm.tsx'), 'utf8');
+    expect(form).toContain('Tell me when my tailored audio is ready');
+    expect(form).toContain('saveTailorReadyPing');
+  });
+
+  it('the form offers the drive-home slot with its own copy', () => {
+    const form = readFileSync(join(repoRoot, 'src/components/ReminderForm.tsx'), 'utf8');
+    expect(form).toContain('Drive-home reminder');
+    expect(form).toContain('For the ride home — opens Tonight, to close the day.');
   });
 });
 

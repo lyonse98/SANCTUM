@@ -3,6 +3,14 @@ import { isAudience, loadAudience } from '@/lib/audience';
 import type { Audience } from '@/types';
 import { isValidLocalTime } from '@/lib/pushCore';
 import { detectPlatform, isStandaloneDisplay } from '@/lib/install';
+import {
+  isReminderLead,
+  loadParishReminders,
+  loadUsualMass,
+  massDayOfWeek,
+  type ParishReminders,
+  type UsualMass,
+} from '@/lib/usualMass';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -215,6 +223,35 @@ export function buildDeactivateBody(endpoint: string): Record<string, unknown> {
   return { p_endpoint: endpoint };
 }
 
+/**
+ * The exact body sent to `upsert_parish_reminders` (Nov 18, 2026) — one
+ * shape, pinned by tests against the SQL. It carries days, times, and
+ * leads ONLY: the parish's name is never in it, because the server has
+ * never been told the name and never will be. Pieces that are unset or
+ * malformed go as null, which the SQL reads as "no such slot" — never as
+ * some other day or hour.
+ */
+export function buildParishSyncBody(input: {
+  endpoint: string;
+  mass: UsualMass | null;
+  reminders: ParishReminders;
+}): Record<string, unknown> {
+  const day = (value: number | null): number | null =>
+    typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 6 ? value : null;
+  const time = (value: string | null): string | null => (isValidLocalTime(value) ? value : null);
+  const lead = (value: number | null): number | null => (isReminderLead(value) ? value : null);
+  return {
+    p_endpoint: input.endpoint,
+    p_mass_day: input.mass ? massDayOfWeek(input.mass) : null,
+    p_mass_time: input.mass ? time(input.mass.time) : null,
+    p_mass_lead: lead(input.reminders.massReminderLead),
+    p_conf_day: day(input.reminders.confessionDay),
+    p_conf_time: time(input.reminders.confessionTime),
+    p_conf_lead: lead(input.reminders.confessionReminderLead),
+    p_drive_time: time(input.reminders.driveTime),
+  };
+}
+
 function rpcHeaders(): Record<string, string> {
   return {
     apikey: SUPABASE_ANON_KEY,
@@ -235,6 +272,33 @@ async function callRpc(fn: string, body: Record<string, unknown>): Promise<boole
   }
   const data: unknown = await res.json().catch(() => null);
   return data === true;
+}
+
+/**
+ * Hands the server this device's parish reminder times (Nov 18, 2026):
+ * the usual Mass's day and hour, the Confession day and hour, the leads,
+ * and the drive-home hour — read fresh from the on-device stores, so
+ * whichever surface changed them last is the one that counts. Silent by
+ * design: before the parish migration is pasted (or the new dispatcher
+ * deployed) the call simply fails, the settings stay on the phone, and
+ * the reminders have not started yet. Returns whether the server took
+ * them.
+ */
+export async function syncParishReminders(): Promise<boolean> {
+  try {
+    const local = loadPushReminder();
+    if (!local.enabled || !local.endpoint) return false;
+    return await callRpc(
+      'upsert_parish_reminders',
+      buildParishSyncBody({
+        endpoint: local.endpoint,
+        mass: loadUsualMass(),
+        reminders: loadParishReminders(),
+      }),
+    );
+  } catch {
+    return false;
+  }
 }
 
 function deviceTimeZone(): string {
@@ -385,6 +449,9 @@ export async function subscribeToPush(
     if (!subscription) return result(false, "We couldn't set that up just now. Try again in a moment.");
     const { saved, eveningSaved } = await saveSubscriptionToServer(subscription, focus, localTime, eveningTime);
     if (!saved) return result(false, "We couldn't save that just now. Try again in a moment.");
+    // The parish times ride along on the save (Nov 18, 2026): the server's
+    // copy of the reader's days and hours refreshes from the phone's stores.
+    void syncParishReminders();
     if (!eveningSaved) {
       return result(
         true,
@@ -454,6 +521,7 @@ export async function updatePushPreferences(
     if (!subscription) return subscribeToPush(focus, localTime, eveningTime);
     const { saved, eveningSaved } = await saveSubscriptionToServer(subscription, focus, localTime, eveningTime);
     if (!saved) return result(false, "We couldn't save that just now. Try again in a moment.");
+    void syncParishReminders();
     if (!eveningSaved) {
       return result(
         true,
@@ -514,6 +582,68 @@ export function deactivatePushOnPanic(): void {
       await callRpc('deactivate_push_subscription', buildDeactivateBody(endpoint)).catch(() => false);
     }
   })();
+}
+
+const TAILOR_READY_PING_KEY = 'sanctum_tailor_ready_ping';
+
+/** The tailor-ready ping's opt-in (Nov 18, 2026): off unless the reader asked for it. */
+export function loadTailorReadyPing(): boolean {
+  try {
+    return localStorage.getItem(TAILOR_READY_PING_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function saveTailorReadyPing(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(TAILOR_READY_PING_KEY, '1');
+    else localStorage.removeItem(TAILOR_READY_PING_KEY);
+  } catch {
+    // Storage unavailable — the ping simply stays as it was.
+  }
+}
+
+/**
+ * The ping's whole decision, pure: it goes out only when the reader opted
+ * in, a live subscription exists to receive it, and the app is in the
+ * background — a man still looking at the screen can see the play bar
+ * fill in himself, and a poke about it would be noise.
+ */
+export function shouldPingTailorReady(input: { optedIn: boolean; endpoint: string; hidden: boolean }): boolean {
+  return input.optedIn && input.endpoint.length > 0 && input.hidden;
+}
+
+/**
+ * Asks the dispatcher for the one fixed tailor-ready poke. Fire-and-
+ * forget in spirit: it resolves to whether the dispatcher accepted, and
+ * every failure — no opt-in, no subscription, the app in front, no
+ * connection — is a quiet false. The server stores nothing for this; the
+ * endpoint it already holds is the whole request.
+ */
+export async function requestTailorReadyPing(): Promise<boolean> {
+  try {
+    const local = loadPushReminder();
+    const hidden =
+      typeof document !== 'undefined' && (document.hidden || document.visibilityState === 'hidden');
+    if (
+      !shouldPingTailorReady({
+        optedIn: loadTailorReadyPing(),
+        endpoint: local.enabled ? local.endpoint : '',
+        hidden,
+      })
+    ) {
+      return false;
+    }
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/push-dispatch`, {
+      method: 'POST',
+      headers: rpcHeaders(),
+      body: JSON.stringify({ action: 'tailor-ready', endpoint: local.endpoint }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 /** Poke this device once, now — the deploy-day proof, and a way to feel what subscribers feel. */
