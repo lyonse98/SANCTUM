@@ -279,6 +279,31 @@ export const VOICES: Record<Audience, VoiceOption[]> = {
   ],
 };
 
+/**
+ * The featured ten (Erik, Nov 18, 2026): the full shelves run to forty-
+ * something names, and a wall of chips reads like a form to complete —
+ * so the picker OPENS on the ten most recognizable voices per track,
+ * with a "Show all voices" expansion for the rest. Presentation only:
+ * the registry above is untouched, and a voice already chosen is never
+ * hidden by the collapse (see voicesShownInPicker). Ids are the
+ * registry's own — Fr. Mike Schmitz is 'fr-mike', Sr. Miriam James is
+ * 'sr-miriam'.
+ */
+export const FEATURED_VOICES: Record<Audience, string[]> = {
+  men: ['fr-mike', 'barron', 'fradd', 'roumie', 'peterson', 'huberman', 'goggins', 'rogan', 'robbins', 'tebow'],
+  women: ['sr-miriam', 'jackie-hill-perry', 'sadie', 'jackie-angel', 'beth-moore', 'terkeurst', 'daigle', 'brene-brown', 'mel-robbins', 'parton'],
+};
+
+/**
+ * What the collapsed picker shows: the featured ten, in registry order,
+ * PLUS any voice already chosen — a selection the reader made from the
+ * full list must never vanish when the list folds back up.
+ */
+export function voicesShownInPicker(audience: Audience, selected: readonly string[]): VoiceOption[] {
+  const featured = FEATURED_VOICES[audience];
+  return VOICES[audience].filter((v) => featured.includes(v.id) || selected.includes(v.id));
+}
+
 /** The voices this track may choose from, faith shelf first, Erik's order. */
 export function voicesForAudience(audience: Audience): VoiceOption[] {
   return VOICES[audience];

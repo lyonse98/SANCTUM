@@ -63,6 +63,7 @@ import {
   profileForRequest,
   saveTailorProfile,
   voicesForAudience,
+  voicesShownInPicker,
   type TailorProfile,
 } from '@/lib/tailorProfile';
 
@@ -178,10 +179,14 @@ function TailorProfileEditor({
   const [draft, setDraft] = useState<TailorProfile>(() => loadTailorProfile(audience));
   const [confirmingErase, setConfirmingErase] = useState(false);
   const [savedNote, setSavedNote] = useState(false);
+  // The voices picker opens folded to the featured ten (Erik, Nov 18,
+  // 2026) — a local, unpersisted expansion; a new editor opens folded.
+  const [showAllVoices, setShowAllVoices] = useState(false);
 
   useEffect(() => {
     setDraft(loadTailorProfile(audience));
     setConfirmingErase(false);
+    setShowAllVoices(false);
   }, [audience]);
 
   const hasAnything =
@@ -280,7 +285,10 @@ function TailorProfileEditor({
             and for nothing else. They sit beside the media kinds because
             media is the only thing they touch; the North Star below is
             the one that steers. Five at most: a handful of real
-            influences, not a fan list — at five the rest go quiet. */}
+            influences, not a fan list — at five the rest go quiet.
+            The shelves run long, so the picker opens folded to the
+            featured ten (plus anything already chosen, which is never
+            hidden) and unfolds on "Show all voices" (Erik, Nov 18). */}
         {(
           [
             ['faith', 'Faith'],
@@ -293,7 +301,10 @@ function TailorProfileEditor({
             </span>
             <ChipRow
               t={t}
-              options={voicesForAudience(audience).filter((v) => v.group === group)}
+              options={(showAllVoices
+                ? voicesForAudience(audience)
+                : voicesShownInPicker(audience, draft.voices)
+              ).filter((v) => v.group === group)}
               isOn={(id) => draft.voices.includes(id)}
               isDisabled={(id) => !draft.voices.includes(id) && draft.voices.length >= VOICES_MAX}
               onToggle={(id) =>
@@ -309,6 +320,15 @@ function TailorProfileEditor({
             />
           </div>
         ))}
+        <button
+          type="button"
+          onClick={() => setShowAllVoices((v) => !v)}
+          aria-expanded={showAllVoices}
+          className="text-[12px] font-bold uppercase tracking-wide mt-1 mb-2 transition-opacity hover:opacity-80 active:opacity-60"
+          style={{ fontFamily: PRINT_SERIF, color: t.accent }}
+        >
+          {showAllVoices ? 'Show fewer' : 'Show all voices'}
+        </button>
         <label className="block mt-1">
           <span className={`block ${PRINT_STAMP_CLASS} mb-1`} style={{ color: t.textDim }}>
             Someone else

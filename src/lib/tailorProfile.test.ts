@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { tailorProgressLines } from './tailor';
 import {
   EMPTY_TAILOR_PROFILE,
+  FEATURED_VOICES,
   NORTH_STARS,
   SEASONS_OF_LIFE,
   VOICES,
@@ -24,6 +25,7 @@ import {
   voiceById,
   voiceLabel,
   voicesForAudience,
+  voicesShownInPicker,
   type TailorProfile,
 } from './tailorProfile';
 import { personasForAudience } from '@/personas';
@@ -572,6 +574,63 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
     expect(panel).toContain('Someone else');
     // The disclosure, word for word: media only, this phone only.
     expect(panel).toContain('Used only to choose the day&rsquo;s media pick. Kept only on this phone.');
+  });
+});
+
+describe('the featured ten — the picker opens folded (Erik, Nov 18, 2026)', () => {
+  it('exactly ten featured voices per track, Erik’s picks', () => {
+    expect(FEATURED_VOICES.men).toEqual([
+      'fr-mike', 'barron', 'fradd', 'roumie', 'peterson',
+      'huberman', 'goggins', 'rogan', 'robbins', 'tebow',
+    ]);
+    expect(FEATURED_VOICES.women).toEqual([
+      'sr-miriam', 'jackie-hill-perry', 'sadie', 'jackie-angel', 'beth-moore',
+      'terkeurst', 'daigle', 'brene-brown', 'mel-robbins', 'parton',
+    ]);
+  });
+
+  it('every featured id resolves on its own track — and the featured sets share nobody', () => {
+    for (const audience of ['men', 'women'] as const) {
+      for (const id of FEATURED_VOICES[audience]) {
+        expect(isVoiceForAudience(audience, id), `${audience}:${id}`).toBe(true);
+      }
+    }
+    const womenFeatured = new Set(FEATURED_VOICES.women);
+    expect(FEATURED_VOICES.men.filter((id) => womenFeatured.has(id))).toEqual([]);
+  });
+
+  it('folded, the picker shows the featured ten in registry order — no more', () => {
+    for (const audience of ['men', 'women'] as const) {
+      const shown = voicesShownInPicker(audience, []);
+      expect(shown).toHaveLength(10);
+      expect(new Set(shown.map((v) => v.id))).toEqual(new Set(FEATURED_VOICES[audience]));
+      // Registry order, not featured-list order: the shelves keep their sequence.
+      const registryOrder = voicesForAudience(audience).filter((v) =>
+        FEATURED_VOICES[audience].includes(v.id),
+      );
+      expect(shown).toEqual(registryOrder);
+    }
+  });
+
+  it('a chosen voice is never hidden by the fold, even when it is not featured', () => {
+    // 'kreeft' sits on the men's full shelf but outside the featured ten.
+    expect(FEATURED_VOICES.men).not.toContain('kreeft');
+    const shown = voicesShownInPicker('men', ['kreeft']);
+    expect(shown.map((v) => v.id)).toContain('kreeft');
+    expect(shown).toHaveLength(11);
+    // A featured selection adds nothing — it was already showing.
+    expect(voicesShownInPicker('men', ['fradd'])).toHaveLength(10);
+    // And the full shelves stand untouched behind the fold.
+    expect(voicesForAudience('men')).toHaveLength(44);
+    expect(voicesForAudience('women')).toHaveLength(45);
+  });
+
+  it('the editor folds the picker behind a Show all voices toggle', () => {
+    const panel = readFileSync(join(__dirname, '..', 'components/TailorToday.tsx'), 'utf8');
+    expect(panel).toContain('Show all voices');
+    expect(panel).toContain('Show fewer');
+    expect(panel).toContain('voicesShownInPicker(audience, draft.voices)');
+    expect(panel).toContain('showAllVoices');
   });
 });
 
