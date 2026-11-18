@@ -18,6 +18,17 @@
   already be an active subscriber (the endpoint is the capability), the payload is the
   same fixed copy, and a test send never marks the day as sent.
 
+  The notifications batch (Nov 18, 2026) adds three more slots per subscription,
+  each with its own hour and sent marker, evaluated independently like the evening
+  slot: a weekly poke before the reader's usual Mass and before his parish's
+  Confession time (the server holds only a day, a time, and a lead — never a
+  parish name), and a daily drive-home poke opening Tonight. It also accepts
+  { "action": "tailor-ready", "endpoint": "…" } from the app when a Tailor
+  build's audio finishes rendering in the background: one fixed poke ("Your
+  tailored devotional is ready to listen to."), rate-limited to three a day
+  per endpoint through the chat quota table under a hashed, prefixed key,
+  and writing nothing — no marker, no row, no record of the build.
+
   verify_jwt is false, like the other no-auth functions: the cron calls with the public
   anon key, and the table is unreachable except through the service role used here.
 
@@ -29,7 +40,14 @@ import {
   importVapidKeys,
   PushMessageError,
 } from "jsr:@negrel/webpush@0.5.0";
-import { buildPushPayload, evaluateDue, evaluateEveningDue } from "./pushCore.ts";
+import {
+  buildPushPayload,
+  evaluateDriveDue,
+  evaluateDue,
+  evaluateEveningDue,
+  evaluateWeeklyDue,
+  type PushPayload,
+} from "./pushCore.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,6 +70,18 @@ interface SubscriptionRow {
   /** The optional second poke (Nov 17, 2026); null on rows written before the evening migration. */
   evening_time: string | null;
   last_evening_sent_on: string | null;
+  /** The parish slots (Nov 18, 2026); null on rows written before the parish migration. */
+  mass_day: number | null;
+  mass_time: string | null;
+  mass_lead_min: number | null;
+  mass_last_sent_on: string | null;
+  conf_day: number | null;
+  conf_time: string | null;
+  conf_lead_min: number | null;
+  conf_last_sent_on: string | null;
+  /** The drive-home slot (Nov 18, 2026); null on rows written before the parish migration. */
+  drive_time: string | null;
+  drive_last_sent_on: string | null;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -130,27 +160,49 @@ function rest(path: string, init: RequestInit): Promise<Response> {
   });
 }
 
+const FULL_SELECT =
+  "endpoint,p256dh,auth,focus,local_time,tz,last_sent_on,evening_time,last_evening_sent_on," +
+  "mass_day,mass_time,mass_lead_min,mass_last_sent_on,conf_day,conf_time,conf_lead_min,conf_last_sent_on," +
+  "drive_time,drive_last_sent_on";
 const SELECT = "endpoint,p256dh,auth,focus,local_time,tz,last_sent_on,evening_time,last_evening_sent_on";
 const LEGACY_SELECT = "endpoint,p256dh,auth,focus,local_time,tz,last_sent_on";
 
+/** Every slot field a narrower select could not read, at its unset value. */
+const UNSET_SLOTS = {
+  evening_time: null,
+  last_evening_sent_on: null,
+  mass_day: null,
+  mass_time: null,
+  mass_lead_min: null,
+  mass_last_sent_on: null,
+  conf_day: null,
+  conf_time: null,
+  conf_lead_min: null,
+  conf_last_sent_on: null,
+  drive_time: null,
+  drive_last_sent_on: null,
+} as const;
+
 /**
- * Reads subscription rows with the evening columns when the database has
- * them. Until the evening migration is pasted, PostgREST refuses the wider
- * select — so the read falls back to the legacy columns and every row reads
- * as having no evening slot. Push never breaks because a column is missing:
- * the morning dispatch runs exactly as before, and the evening slot simply
- * waits for its migration.
+ * Reads subscription rows with as many slot columns as the database has.
+ * Until a migration is pasted, PostgREST refuses the wider select — so the
+ * read falls back through the narrower selects and every unread column
+ * reads as unset. Push never breaks because a column is missing: the
+ * morning dispatch runs exactly as before, and the newer slots simply
+ * wait for their migration.
  */
 async function querySubscriptions(endpoint: string | null): Promise<SubscriptionRow[]> {
   const filter = endpoint === null
     ? "active=eq.true"
     : `endpoint=eq.${encodeURIComponent(endpoint)}&active=eq.true`;
-  const res = await rest(`push_subscriptions?${filter}&select=${SELECT}`, { method: "GET" });
-  if (res.ok) return (await res.json()) as SubscriptionRow[];
-  const legacy = await rest(`push_subscriptions?${filter}&select=${LEGACY_SELECT}`, { method: "GET" });
-  if (!legacy.ok) throw new Error(`subscription read failed with status ${legacy.status}`);
-  const rows = (await legacy.json()) as Omit<SubscriptionRow, "evening_time" | "last_evening_sent_on">[];
-  return rows.map((row) => ({ ...row, evening_time: null, last_evening_sent_on: null }));
+  for (const select of [FULL_SELECT, SELECT, LEGACY_SELECT]) {
+    const res = await rest(`push_subscriptions?${filter}&select=${select}`, { method: "GET" });
+    if (res.ok) {
+      const rows = (await res.json()) as Partial<SubscriptionRow>[];
+      return rows.map((row) => ({ ...UNSET_SLOTS, ...row }) as SubscriptionRow);
+    }
+  }
+  throw new Error("subscription read failed at every select width");
 }
 
 async function listActiveSubscriptions(): Promise<SubscriptionRow[]> {
@@ -173,13 +225,13 @@ async function patchSubscription(endpoint: string, patch: Record<string, unknown
 
 type SendOutcome = "sent" | "gone" | "failed";
 
-async function sendPoke(server: ApplicationServer, sub: SubscriptionRow): Promise<SendOutcome> {
+async function sendPoke(server: ApplicationServer, sub: SubscriptionRow, payload: PushPayload): Promise<SendOutcome> {
   try {
     const subscriber = server.subscribe({
       endpoint: sub.endpoint,
       keys: { auth: sub.auth, p256dh: sub.p256dh },
     });
-    await subscriber.pushTextMessage(JSON.stringify(buildPushPayload(sub.focus)), {
+    await subscriber.pushTextMessage(JSON.stringify(payload), {
       ttl: POKE_TTL_SECONDS,
     });
     return "sent";
@@ -194,6 +246,49 @@ async function sendPoke(server: ApplicationServer, sub: SubscriptionRow): Promis
     }
     console.error("push send failed:", err instanceof Error ? err.message : String(err));
     return "failed";
+  }
+}
+
+/** SHA-256 of a value, as lowercase hex — the shape the quota table's keys take. */
+async function hashToHex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/** The tailor-ready ping's ceiling: three a day per endpoint, and no more. */
+const TAILOR_READY_DAILY_CAP = 3;
+
+/**
+ * Consumes one unit of an endpoint's tailor-ready quota. The durable
+ * limiter is the chat quota table — a generic hashed-key counter — read
+ * under a prefixed key hashed from the endpoint, so an endpoint is never
+ * stored in the clear and the ping's bucket can never collide with a chat
+ * caller's. Fails closed: if the limiter cannot be reached, the ping does
+ * not go out. A best-effort convenience does not get to become an
+ * unguarded send endpoint.
+ */
+async function consumeTailorReadyQuota(endpoint: string): Promise<boolean> {
+  try {
+    const clientKey = `tailor-ready:${await hashToHex(endpoint)}`;
+    const res = await rest("rpc/consume_chat_quota", {
+      method: "POST",
+      body: JSON.stringify({
+        p_client_key: clientKey,
+        p_window_limit: TAILOR_READY_DAILY_CAP,
+        p_day_limit: TAILOR_READY_DAILY_CAP,
+        p_window_seconds: 86_400,
+      }),
+    });
+    if (!res.ok) {
+      console.error(`tailor-ready quota check failed with status ${res.status}`);
+      return false;
+    }
+    return (await res.json()) === true;
+  } catch (err) {
+    console.error("tailor-ready quota check failed:", err instanceof Error ? err.message : String(err));
+    return false;
   }
 }
 
@@ -228,12 +323,34 @@ Deno.serve(async (req: Request) => {
     if (body.test === true && typeof body.endpoint === "string") {
       const sub = await findSubscription(body.endpoint);
       if (!sub) return jsonResponse({ error: "No active subscription for that endpoint." }, 404);
-      const outcome = await sendPoke(server, sub);
+      const outcome = await sendPoke(server, sub, buildPushPayload(sub.focus));
       if (outcome === "gone") {
         await patchSubscription(sub.endpoint, { active: false });
         return jsonResponse({ ok: false, mode: "test", outcome });
       }
       return jsonResponse({ ok: outcome === "sent", mode: "test", outcome }, outcome === "sent" ? 200 : 502);
+    }
+
+    // The tailor-ready ping (Nov 18, 2026): the app asks for one fixed poke
+    // when a Tailor build's audio finishes rendering in the background.
+    // The endpoint must already be an active subscriber (it is the
+    // capability), the quota is consumed before the send, and nothing is
+    // written back — no marker, no row, no record of the build.
+    if (body.action === "tailor-ready" && typeof body.endpoint === "string") {
+      const sub = await findSubscription(body.endpoint);
+      if (!sub) return jsonResponse({ error: "No active subscription for that endpoint." }, 404);
+      if (!(await consumeTailorReadyQuota(sub.endpoint))) {
+        return jsonResponse({ ok: false, mode: "tailor-ready", outcome: "rate-limited" }, 429);
+      }
+      const outcome = await sendPoke(server, sub, buildPushPayload("tailor"));
+      if (outcome === "gone") {
+        await patchSubscription(sub.endpoint, { active: false });
+        return jsonResponse({ ok: false, mode: "tailor-ready", outcome });
+      }
+      return jsonResponse(
+        { ok: outcome === "sent", mode: "tailor-ready", outcome },
+        outcome === "sent" ? 200 : 502,
+      );
     }
 
     const now = new Date();
@@ -253,7 +370,7 @@ Deno.serve(async (req: Request) => {
       );
       if (evaluation.due) {
         counts.due += 1;
-        const outcome = await sendPoke(server, sub);
+        const outcome = await sendPoke(server, sub, buildPushPayload(sub.focus));
         if (outcome === "sent") {
           counts.sent += 1;
           await patchSubscription(sub.endpoint, { last_sent_on: evaluation.localDateKey });
@@ -266,7 +383,7 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // A row the push service has forgotten is gone for both slots at once.
+      // A row the push service has forgotten is gone for every slot at once.
       if (deactivated) continue;
 
       const eveningEvaluation = evaluateEveningDue(
@@ -281,17 +398,76 @@ Deno.serve(async (req: Request) => {
       );
       if (eveningEvaluation.due) {
         counts.due += 1;
-        const outcome = await sendPoke(server, sub);
+        const outcome = await sendPoke(server, sub, buildPushPayload(sub.focus));
         if (outcome === "sent") {
           counts.sent += 1;
           await patchSubscription(sub.endpoint, { last_evening_sent_on: eveningEvaluation.localDateKey });
         } else if (outcome === "gone") {
           counts.gone += 1;
+          deactivated = true;
           await patchSubscription(sub.endpoint, { active: false });
         } else {
           counts.failed += 1;
         }
       }
+
+      if (deactivated) continue;
+
+      // The newer slots (Nov 18, 2026) share one shape: an evaluation, a
+      // fixed payload of their own, and a marker written only on delivery.
+      // Each is independent — any subset of them may be due on one tick.
+      const deliverSlot = async (
+        slotDue: boolean,
+        focus: string,
+        marker: Record<string, unknown>,
+      ): Promise<void> => {
+        if (!slotDue || deactivated) return;
+        counts.due += 1;
+        const outcome = await sendPoke(server, sub, buildPushPayload(focus));
+        if (outcome === "sent") {
+          counts.sent += 1;
+          await patchSubscription(sub.endpoint, marker);
+        } else if (outcome === "gone") {
+          counts.gone += 1;
+          deactivated = true;
+          await patchSubscription(sub.endpoint, { active: false });
+        } else {
+          counts.failed += 1;
+        }
+      };
+
+      // The weekly parish pokes: a day, an hour, and a lead the reader
+      // chose, with the event's own date as the marker. Any piece unset
+      // (or unreadable, pre-migration) means the slot simply never fires.
+      const massEvaluation = sub.mass_day !== null && sub.mass_time && sub.mass_lead_min !== null
+        ? evaluateWeeklyDue(now, sub.tz, sub.mass_day, sub.mass_time.slice(0, 5), sub.mass_lead_min, sub.mass_last_sent_on)
+        : null;
+      await deliverSlot(massEvaluation?.due ?? false, "mass", {
+        mass_last_sent_on: massEvaluation?.localDateKey,
+      });
+
+      const confEvaluation = sub.conf_day !== null && sub.conf_time && sub.conf_lead_min !== null
+        ? evaluateWeeklyDue(now, sub.tz, sub.conf_day, sub.conf_time.slice(0, 5), sub.conf_lead_min, sub.conf_last_sent_on)
+        : null;
+      await deliverSlot(confEvaluation?.due ?? false, "confession", {
+        conf_last_sent_on: confEvaluation?.localDateKey,
+      });
+
+      // The drive-home poke: a daily slot with its own marker, and no
+      // same-time guard against the other slots — its purpose differs.
+      const driveEvaluation = evaluateDriveDue(
+        {
+          tz: sub.tz,
+          localTime: sub.local_time.slice(0, 5),
+          lastSentOn: sub.last_sent_on,
+          driveTime: sub.drive_time ? sub.drive_time.slice(0, 5) : null,
+          driveLastSentOn: sub.drive_last_sent_on,
+        },
+        now,
+      );
+      await deliverSlot(driveEvaluation.due, "drivehome", {
+        drive_last_sent_on: driveEvaluation.localDateKey,
+      });
     }
 
     console.log(`push-dispatch ${JSON.stringify(counts)}`);
