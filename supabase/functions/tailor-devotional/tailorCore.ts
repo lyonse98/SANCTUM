@@ -969,8 +969,9 @@ export interface ComposeDeps {
  * The whole composition, end to end, minus I/O: select the passage, hunt the
  * media (live search, bank behind it), settle the tradition quote (corpus,
  * dataset behind it), run the one generation, and assemble the narrator's
- * script around the day's readings ENTIRE — every part asserted byte-for-byte
- * verbatim in the tests.
+ * script around the day's readings — every SPOKEN part asserted byte-for-byte
+ * verbatim in the tests; the psalm stays in the text package, unspoken
+ * (Erik, Nov 18, 2026).
  */
 export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailored> {
   const { dateISO, audience, intake, bundle } = deps;

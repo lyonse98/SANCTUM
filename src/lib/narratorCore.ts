@@ -1580,6 +1580,8 @@ export const COMMEMORATION_FRAME =
 export const GOSPEL_INTRO = 'A reading from the holy Gospel according to {evangelist}.';
 export const GOSPEL_CLOSE = 'The Gospel of the Lord.';
 export const ACCLAMATION = 'Praise to you, Lord Jesus Christ.';
+/** The landing after a non-Gospel reading in the tailored program (Nov 18, 2026). */
+export const READING_CLOSE = 'The Word of the Lord.';
 
 // ── The draft registry — every line written for this build (§5.3) ─────
 //
@@ -2088,10 +2090,12 @@ export interface TailoredReadingPart {
 
 /**
  * The personalized devotional's script. The narrator is the day's own — same
- * company, same framing banks, same head — and the body is the day's READINGS
- * ENTIRE, verbatim from the bundle exactly as the free devotional carries
- * them (first reading, psalm, second reading, Gospel — never regenerated,
- * never replaced). What is tailored is what follows: one need-matched passage
+ * company, same framing banks, same head — and the body is the day's readings
+ * verbatim from the bundle exactly as the free devotional carries them
+ * (first reading, second reading, Gospel — never regenerated, never
+ * replaced). The responsorial psalm stays in the TEXT readings but is not
+ * spoken (Erik, Nov 18, 2026: a psalm that isn't sung doesn't land). What is
+ * tailored is what follows: one need-matched passage
  * from the curated bank, offered AFTER the readings as a supplement and
  * introduced as one ("And for what you're carrying today —"), then the
  * reflection and challenge re-aimed at one user's stated morning, uniting
@@ -2167,9 +2171,19 @@ export function assembleTailoredScript(inputs: TailoredAssembleInputs): Tailored
 
   const readingParagraphs: string[] = [];
   for (const part of inputs.readings) {
+    // The psalm is read on the page, not aloud (Erik, Nov 18, 2026) — it
+    // remains in the Tailor text package and may still shape the reflection
+    // and challenge; only the spoken program skips it.
+    if (part.kind === 'psalm') continue;
     readingParagraphs.push(`${readingIntro(part)}\n${part.text}`);
     if (part.kind === 'gospel') {
       readingParagraphs.push(GOSPEL_CLOSE, ACCLAMATION);
+    } else {
+      // Each reading lands before the next begins (Erik, Nov 18, 2026):
+      // its own close line as its own paragraph, so the piece split keeps
+      // the produced separation — intro, reading, close, next intro — and
+      // the program never jump-cuts from one reading into another.
+      readingParagraphs.push(READING_CLOSE);
     }
   }
   const readings = readingParagraphs.join('\n\n');

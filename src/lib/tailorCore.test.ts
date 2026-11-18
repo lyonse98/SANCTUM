@@ -367,7 +367,7 @@ describe('composition with the model layer mocked', () => {
     challenge: 'TAILORED CHALLENGE — one concrete act.',
   });
 
-  it('carries every reading byte-for-byte, the passage as supplement, one challenge', async () => {
+  it('carries every SPOKEN reading byte-for-byte, the passage as supplement, one challenge', async () => {
     const composed = await composeTailored({
       dateISO: '2026-11-12',
       audience: 'men',
@@ -376,10 +376,16 @@ describe('composition with the model layer mocked', () => {
       generateTailored,
       hour: 7,
     });
-    // Every reading part appears in the spoken script exactly as the bundle held it.
+    // Every spoken reading part appears in the script exactly as the bundle
+    // held it. The psalm is the one exception (Erik, Nov 18, 2026): it stays
+    // in the text readings but is never spoken — neither its intro nor its
+    // text may appear in the program.
     for (const part of BUNDLE.readings) {
+      if (part.kind === 'psalm') continue;
       expect(composed.script.spokenText).toContain(part.text);
     }
+    expect(composed.script.spokenText).not.toContain('responsorial psalm');
+    expect(composed.script.spokenText).not.toContain('PSALM VERBATIM TEXT.');
     // The passage is introduced as a supplement, after the readings.
     expect(composed.script.passage).toContain("And for what you're carrying today —");
     expect(composed.script.spokenText.indexOf(composed.script.passage)).toBeGreaterThan(
@@ -396,6 +402,50 @@ describe('composition with the model layer mocked', () => {
     // The media pick rides along with its own page address.
     expect(composed.media.url.length).toBeGreaterThan(0);
     expect(composed.media.url).toMatch(/^https:\/\/www\.youtube\.com\/watch\?v=/);
+  });
+
+  it('the spoken program skips the psalm and keeps first, second, Gospel in order', async () => {
+    const bundle: TailorBundle = {
+      ...BUNDLE,
+      readings: [
+        { kind: 'first', citation: '1 Kings 19:11-13', text: 'FIRST READING VERBATIM TEXT.' },
+        { kind: 'psalm', citation: 'Psalm 27', text: 'PSALM VERBATIM TEXT.' },
+        { kind: 'second', citation: 'Romans 8:35-39', text: 'SECOND READING VERBATIM TEXT.' },
+        {
+          kind: 'gospel',
+          citation: 'John 6:37-40',
+          text: 'GOSPEL TEXT VERBATIM — All that the Father giveth to me shall come to me.',
+        },
+      ],
+    };
+    const composed = await composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'men',
+      intake: INTAKE,
+      bundle,
+      generateTailored,
+      hour: 7,
+    });
+    const st = composed.script.spokenText;
+    expect(st).not.toContain('responsorial psalm');
+    expect(st).not.toContain('PSALM VERBATIM TEXT.');
+    const firstAt = st.indexOf('FIRST READING VERBATIM TEXT.');
+    const secondAt = st.indexOf('SECOND READING VERBATIM TEXT.');
+    const gospelAt = st.indexOf('GOSPEL TEXT VERBATIM');
+    expect(firstAt).toBeGreaterThanOrEqual(0);
+    expect(firstAt).toBeLessThan(secondAt);
+    expect(secondAt).toBeLessThan(gospelAt);
+    // Each non-Gospel reading lands with its close before the next intro
+    // (Nov 18, 2026): first(+close) → second(+close) → Gospel(+close).
+    const closes = [...st.matchAll(/The Word of the Lord\./g)].map((m) => m.index ?? -1);
+    expect(closes).toHaveLength(2);
+    expect(closes[0]).toBeGreaterThan(firstAt);
+    expect(closes[0]).toBeLessThan(secondAt);
+    expect(closes[1]).toBeGreaterThan(secondAt);
+    expect(closes[1]).toBeLessThan(gospelAt);
+    // The Gospel close and acclamation still follow the Gospel.
+    expect(st.indexOf('The Gospel of the Lord.')).toBeGreaterThan(gospelAt);
+    expect(st.indexOf('Praise to you, Lord Jesus Christ.')).toBeGreaterThan(gospelAt);
   });
 
   it('the narrator is the weekday narrator for the track — Thursday: Martin / Marta', async () => {
