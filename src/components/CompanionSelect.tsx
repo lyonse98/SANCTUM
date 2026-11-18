@@ -4,6 +4,7 @@ import { personasForAudience } from '@/personas';
 import { CompanionAvatar } from '@/components/CompanionAvatar';
 import { CompanionRouter } from '@/components/CompanionRouter';
 import { PrintPageHead } from '@/components/PrintPageHead';
+import { CrisisLine } from '@/components/CrisisLine';
 import { UtilitiesLine } from '@/components/UtilitiesLine';
 import { PRINT_PLATE_CLASS, PRINT_SERIF } from '@/lib/print';
 import { COMPANION_PORTRAYAL_LINE } from '@/lib/privacyCopy';
@@ -57,6 +58,11 @@ export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }
         }}
       >
         <PrintPageHead t={defaultTheme} title="Companions" onBack={onBack} />
+
+        {/* The crisis line stands at the head of the room (Erik, Nov 18,
+            2026) — the first thing on the surface, above the quiz and the
+            list, for the visitor who came here in trouble. */}
+        <CrisisLine muted={defaultTheme.textMuted} bright={defaultTheme.textBright} className="w-full mb-5" />
 
         <p className="text-sm leading-relaxed text-center max-w-sm mx-auto mb-5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textMuted }}>
           Each one has walked the road you're on. Answer three quick questions to find your fit, or pick a voice yourself.

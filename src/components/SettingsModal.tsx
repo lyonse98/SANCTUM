@@ -6,6 +6,7 @@ import { PRIVACY_PARAGRAPH, analyticsCopy } from '@/lib/privacyCopy';
 import { eraseTailorProfile, hasTailorProfile } from '@/lib/tailorProfile';
 import type { Audience } from '@/types';
 import { InstallModal } from '@/components/InstallInstructions';
+import { CrisisLine } from '@/components/CrisisLine';
 
 interface SettingsModalProps {
   open: boolean;
@@ -61,6 +62,10 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
         </div>
 
         <div className="px-5 py-5 space-y-5">
+
+          {/* The crisis line at the head of the sheet (Erik, Nov 18, 2026) —
+              above every setting, the same canonical line as everywhere. */}
+          <CrisisLine muted={textMuted} bright={textBright} />
 
           {/* The track switch. Switching closes any open companion and returns to
               Today; each companion's conversation is kept separately on-device. */}

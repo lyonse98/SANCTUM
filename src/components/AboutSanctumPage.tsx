@@ -3,6 +3,7 @@ import type { Audience, PersonaTheme } from '@/types';
 import { MISSION_LINE, MISSION_ATTRIBUTION, MISSION_SENTENCE } from '@/lib/mission';
 import { NARRATOR_DISCLOSURE_LINE, NARRATOR_DISCLOSURE_LINE_WOMEN } from '@/lib/privacyCopy';
 import { PrintPageHead } from '@/components/PrintPageHead';
+import { CrisisLine } from '@/components/CrisisLine';
 import { PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 
 interface AboutSanctumPageProps {
@@ -81,6 +82,11 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
         }}
       >
         <PrintPageHead t={t} title="About Sanctum" onBack={onClose} onClose={onClose} />
+
+        {/* The crisis line at the head of the page (Erik, Nov 18, 2026),
+            above the colophon — even the page that explains the app opens
+            by handing a person in crisis to real help. */}
+        <CrisisLine muted={t.textMuted} bright={t.textBright} className="w-full mb-6" />
 
         {/* Why Sanctum exists — the thesis at the head of the colophon. */}
         <div className="w-full text-center px-4 mb-6 animate-fade-in">

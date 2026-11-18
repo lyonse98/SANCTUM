@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { DailyQuote } from '@/components/DailyQuote';
+import { CrisisLine } from '@/components/CrisisLine';
 import { ReminderCard } from '@/components/ReminderCard';
 import { MoreOfSanctum } from '@/components/MoreOfSanctum';
 import { UtilitiesLine } from '@/components/UtilitiesLine';
@@ -157,24 +158,6 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           <DaysPrayedMark t={seasonTheme} />
         </div>
 
-        {/* The crisis line stands at the head of Today (audit W-1, Nov 16,
-            2026): one tappable line under the masthead, reachable without a
-            scroll — the footer's line stays, and is a link now too. */}
-        <p
-          className="w-full text-center text-[13px] mb-5"
-          style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textMuted }}
-        >
-          In crisis? Call or text{' '}
-          <a
-            href="tel:988"
-            className="font-bold underline underline-offset-2"
-            style={{ color: seasonTheme.textBright }}
-          >
-            988
-          </a>{' '}
-          — free, day or night.
-        </p>
-
         {/* Daily Gospel — the day's anchor */}
         <div ref={gospelRef} className="w-full mb-5">
           <DailyQuote
@@ -247,10 +230,11 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           </div>
         )}
 
-        {/* Tailor Today, on Today itself (Play 4): the Gospel card's door
-            stays where it is; this quiet plate is a second door into the
-            same flow, so the morning's tailoring can be found from the
-            page's own stack. The panel is the existing intake, whole. */}
+        {/* Tailor Today, on Today itself (Play 4): the page's one door
+            into the flow — the Gospel card's own Tailor door was retired
+            (Erik, Nov 18, 2026) so the morning's tailoring is found in
+            exactly one place, the page's own stack. The panel is the
+            existing intake, whole. */}
         <div className="w-full mb-5">
           <button
             data-tailor-entry
@@ -303,12 +287,17 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           className="text-[13px] text-forge-text-dim text-center leading-relaxed max-w-xs mb-5"
           style={{ fontFamily: PRINT_SERIF }}
         >
-          Sanctum is a spiritual companion, not a licensed therapist. In crisis? Call or text{' '}
-          <a href="tel:988" className="font-bold underline underline-offset-2">
-            988
-          </a>{' '}
-          (US). {PRIVACY_SHORT}
+          Sanctum is a spiritual companion, not a licensed therapist. {PRIVACY_SHORT}
         </p>
+
+        {/* The foot of Today carries the crisis line (Erik, Nov 18, 2026):
+            the canonical tappable line standing on its own — no longer a
+            number buried in the disclaimer's sentence, and the only one on
+            Today: the under-masthead line the Wednesday batch stood here
+            was retired the same day, at Erik's word — "only bottom; not
+            needed for a devotional." The gate keeps its own, and the other
+            rooms carry theirs at their heads. */}
+        <CrisisLine muted={seasonTheme.textMuted} bright={seasonTheme.textBright} className="mb-5" />
 
         {/* The utilities line closes the page — Settings · Reminders ·
             Feedback · About · Share, footer text, nothing more. */}

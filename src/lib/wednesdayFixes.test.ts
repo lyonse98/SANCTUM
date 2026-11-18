@@ -18,6 +18,7 @@ const readRoot = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 
 const gate = readSrc('components/TermsModal.tsx');
 const home = readSrc('components/HomeScreen.tsx');
+const crisisLine = readSrc('components/CrisisLine.tsx');
 const about = readSrc('components/AboutSanctumPage.tsx');
 const listenBar = readSrc('components/ListenBar.tsx');
 const app = readSrc('App.tsx');
@@ -30,10 +31,22 @@ describe('W-1 — crisis help is a tap, not a treasure hunt', () => {
     expect(gate).toContain('href="tel:988"');
   });
 
-  it('Today carries a tappable 988 line at its head and in its footer', () => {
-    const links = home.match(/href="tel:988"/g) ?? [];
-    expect(links.length).toBeGreaterThanOrEqual(2);
-    expect(home).toContain('In crisis? Call or text');
+  // Deliberate change (Erik, Nov 18, 2026): the canonical line became one
+  // shared component, and Today carries it at its foot ONLY — the
+  // under-masthead line this pin once required was retired at his word
+  // ("only bottom; not needed for a devotional"). The gate's 988 above is
+  // untouched, and the other rooms carry the line at their heads.
+  it('the canonical line lives in one shared component, a tel: link', () => {
+    expect(crisisLine).toContain('In crisis? Call or text');
+    expect(crisisLine).toContain('href="tel:988"');
+    expect(crisisLine).toContain('— free, day or night.');
+  });
+
+  it('Today carries the line once, at its foot — not under the masthead', () => {
+    const mounts = home.match(/<CrisisLine/g) ?? [];
+    expect(mounts).toHaveLength(1);
+    expect(home.indexOf('<CrisisLine')).toBeGreaterThan(home.indexOf('<MoreOfSanctum'));
+    expect(home).not.toContain('href="tel:988"');
   });
 });
 

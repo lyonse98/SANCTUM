@@ -47,8 +47,11 @@ describe('Play 4 — the AM→PM loop is findable, and both halves count the day
     expect(home).toContain('Tailor today&rsquo;s devotional');
     expect(home).toContain('<TailorToday t={seasonTheme} audience={audience} dateKey={contentKey} startOpen />');
     expect(home).toContain('contentDateKey()');
-    // The Gospel card's own Tailor door is untouched.
-    expect(read('components/DailyQuote.tsx')).toContain("panel === 'tailor'");
+    // Deliberate change (Erik, Nov 18, 2026): the Gospel card's own Tailor
+    // door was retired — this plate is now Tailor's ONE entry on Today,
+    // not the second of two. It was "untouched" when Play 4 was pinned.
+    expect(read('components/DailyQuote.tsx')).not.toContain("panel === 'tailor'");
+    expect(read('components/DailyQuote.tsx')).not.toContain('data-tile="tailor"');
   });
 
   it('a completed Tailor build records the tailor act; a completed close records tonight', () => {

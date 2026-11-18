@@ -3,6 +3,7 @@ import type { Audience, PersonaTheme, UtilityActions } from '@/types';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { UtilitiesLine } from '@/components/UtilitiesLine';
 import { PrintPageHead } from '@/components/PrintPageHead';
+import { CrisisLine } from '@/components/CrisisLine';
 import { PRINT_CHOSEN_FILL_ALPHA, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import { PrayerLibrary } from '@/components/PrayerLibrary';
 import { ConfessionGuide } from '@/components/ConfessionGuide';
@@ -95,6 +96,10 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
         }}
       >
         <PrintPageHead t={t} title="Pocket Church" onBack={onBack} />
+
+        {/* The crisis line at the head of the hub (Erik, Nov 18, 2026),
+            above the three doors. */}
+        <CrisisLine muted={t.textMuted} bright={t.textBright} className="w-full mb-5" />
 
         {/* Intro */}
         <div className="w-full text-center mb-6">

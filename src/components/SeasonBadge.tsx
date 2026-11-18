@@ -28,7 +28,14 @@ export function SeasonBadge() {
       {visual.feastName ? (
         <>
           <Sparkles className="w-3 h-3" />
-          <span>{visual.feastName}</span>
+          {/* The chip no longer names the day (Erik, Nov 18, 2026): the
+              celebration's name is carried once, by the masthead's emblem
+              line above and the Gospel card's header line — the badge
+              saying it too had the name standing twice in one glance. The
+              chip keeps the season, the rank label, and its feast-day
+              colour behaviour (the deeper tint above keys off the feast
+              exactly as before). */}
+          <span>{season.name}</span>
           {visual.feastRank && (
             <span style={{ opacity: 0.7 }}>· {RANK_LABEL[visual.feastRank]}</span>
           )}
