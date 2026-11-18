@@ -23,9 +23,15 @@ interface SettingsModalProps {
   onOpenTerms?: () => void;
   /** Opens a companion's chat — the patron plate's way onward when the patron is a companion. */
   onOpenCompanion?: (persona: Persona) => void;
+  /**
+   * Opens Today at the Gospel card's Tailor panel with the standing-
+   * profile editor open (Erik, Nov 18, 2026) — the same editor the
+   * Tailor intake carries, one tap from here.
+   */
+  onEditTailorProfile?: () => void;
 }
 
-export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpenTerms, onOpenCompanion }: SettingsModalProps) {
+export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpenTerms, onOpenCompanion, onEditTailorProfile }: SettingsModalProps) {
   const feedback = useFeedback();
   const [analyticsOn, setAnalyticsOn] = useState(() => isAnalyticsEnabled());
   const [installOpen, setInstallOpen] = useState(false);
@@ -529,19 +535,35 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
               </div>
             </div>
 
-            {tailorProfileExists && (
-              <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
-                <div className="flex items-start gap-2">
-                  <Eraser className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
-                  <div className="flex-1">
-                    <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
-                      Tailor Profile
-                    </p>
-                    <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
-                      Your standing Tailor Today profile — your season of life, the battles you
-                      named, your goal — is kept on this device only. Erase it here whenever you
-                      like; Tailor Today will simply ask each morning afresh.
-                    </p>
+            {/* The Tailor profile, editable from here (Erik, Nov 18,
+                2026): the entry opens Today at the Tailor panel with
+                the standing-profile editor open — the same editor,
+                bound to the same on-device store, not a second one.
+                The erase stands under it, behind its has-profile
+                guard, exactly as before. */}
+            <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
+              <div className="flex items-start gap-2">
+                <Eraser className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
+                <div className="flex-1">
+                  <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                    Your Tailor Profile
+                  </p>
+                  <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                    Your standing Tailor Today profile — your season of life, the battles you
+                    named, your goal, the voices you listen to, your North Star — is kept on
+                    this device only. Edit it here whenever you like; it is the same profile
+                    Tailor Today keeps, in the same place.
+                  </p>
+                  <button
+                    data-edit-tailor-profile
+                    onClick={() => { onClose(); onEditTailorProfile?.(); }}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-all mb-2"
+                    style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
+                  >
+                    <PenLine className="w-3.5 h-3.5" />
+                    <span className="text-[12px] font-bold uppercase tracking-wide">Edit Tailor profile</span>
+                  </button>
+                  {tailorProfileExists && (
                     <button
                       onClick={() => {
                         eraseTailorProfile(audience);
@@ -553,10 +575,10 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
                       <Eraser className="w-3.5 h-3.5" />
                       <span className="text-[12px] font-bold uppercase tracking-wide">Erase Tailor profile</span>
                     </button>
-                  </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="pt-1 space-y-2">

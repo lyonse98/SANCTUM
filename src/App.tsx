@@ -126,6 +126,11 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [incognito, setIncognito] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Settings' "Edit Tailor profile" (Erik, Nov 18, 2026): a one-shot
+  // request that Today opens the Gospel card's Tailor panel with the
+  // standing-profile editor open — the same editor, one tap from
+  // Settings. The card consumes it on arrival.
+  const [tailorProfileOpen, setTailorProfileOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const [shareInviteOpen, setShareInviteOpen] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -680,6 +685,8 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             onScrollTopChange={(top) => saveScrollPosition('today', top)}
             onOpenNovenas={() => { setChurchTab('pray'); setChurchPray('novenas'); setView('church'); }}
             onOpenCompanion={(p) => handleSelectPersona(p)}
+            tailorProfileOpen={tailorProfileOpen}
+            onConsumeTailorProfileOpen={() => setTailorProfileOpen(false)}
           />
         </>
       );
@@ -720,6 +727,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           onClose={() => setSettingsOpen(false)}
           onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
           onOpenCompanion={(p) => { setSettingsOpen(false); handleSelectPersona(p); }}
+          onEditTailorProfile={() => { setSettingsOpen(false); setView('today'); setTailorProfileOpen(true); }}
         />
         <ShareInviteModal
           open={shareInviteOpen}
@@ -877,6 +885,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         onClose={() => setSettingsOpen(false)}
         onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
         onOpenCompanion={(p) => { setSettingsOpen(false); handleSelectPersona(p); }}
+        onEditTailorProfile={() => { setSettingsOpen(false); handleChangeView('today'); setTailorProfileOpen(true); }}
       />
 
       {showCapModal && (

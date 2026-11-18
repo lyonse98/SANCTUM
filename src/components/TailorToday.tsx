@@ -78,6 +78,13 @@ interface TailorTodayProps {
    * rendering a second "Tailor today" button of its own.
    */
   startOpen?: boolean;
+  /**
+   * A request from outside the panel (Settings' "Edit Tailor profile",
+   * Erik, Nov 18, 2026) to stand with the standing-profile editor open.
+   * A nonce, not a flag: each new value asks again. The editor it opens
+   * is the same one the intake carries — same component, same store.
+   */
+  profileOpenSignal?: number;
 }
 
 function fmt(seconds: number): string {
@@ -482,7 +489,7 @@ function TailorProfileEditor({
  * does the morning's own intake, kept there for tonight's Close the day
  * (the PM twin, Nov 14, 2026), which re-sends it transiently the same way.
  */
-export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorTodayProps) {
+export function TailorToday({ t, audience, dateKey, startOpen = false, profileOpenSignal = 0 }: TailorTodayProps) {
   const offered = tailorOffered();
 
   const [view, setView] = useState<'idle' | 'form' | 'building' | 'done' | 'error'>(startOpen ? 'form' : 'idle');
@@ -499,6 +506,12 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
   // prefill happens once — the morning's own taps are never overridden.
   const [profile, setProfile] = useState<TailorProfile>(() => loadTailorProfile(audience));
   const [profileOpen, setProfileOpen] = useState(false);
+  // Settings' way in (Erik, Nov 18, 2026): a fresh signal opens the
+  // standing-profile editor over the intake, exactly as its own toggle
+  // would — one editor, reached from two doors.
+  useEffect(() => {
+    if (profileOpenSignal > 0) setProfileOpen(true);
+  }, [profileOpenSignal]);
   const prefilledFor = useRef<Audience | null>(null);
   useEffect(() => {
     const loaded = loadTailorProfile(audience);
