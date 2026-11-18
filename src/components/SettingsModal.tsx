@@ -8,12 +8,24 @@ import { READING_SIZES, loadReadingSize, saveReadingSize, type ReadingSize } fro
 import { READER_NAME_MAX, loadReaderName, saveReaderName } from '@/lib/readerName';
 import { loadPatronSaint, patronFeastLabel, savePatronSaint } from '@/lib/patronSaint';
 import { loadParishPatron, saveParishPatron } from '@/lib/parishPatron';
-import { USUAL_MASS_PARISH_MAX, formatMassTime, loadUsualMass, saveUsualMass, type UsualMassDay } from '@/lib/usualMass';
+import { USUAL_MASS_PARISH_MAX, formatMassTime, loadParishReminders, loadUsualMass, saveParishReminders, saveUsualMass, type ReminderLead, type UsualMassDay } from '@/lib/usualMass';
+import { loadPushReminder, syncParishReminders } from '@/lib/push';
 import { SAINTS, type SaintOfDay } from '@/data/saints';
 import { PatronPlate } from '@/components/PatronPlate';
 import type { Audience, Persona } from '@/types';
 import { InstallModal } from '@/components/InstallInstructions';
 import { CrisisLine } from '@/components/CrisisLine';
+
+/** Day-of-week names in the server's numbering: index 0 is Sunday. */
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** The reminder-lead choices, as the reader sees them: off, or minutes ahead. */
+const LEAD_OPTIONS: { value: ReminderLead | null; label: string }[] = [
+  { value: null, label: 'Off' },
+  { value: 30, label: '30 min' },
+  { value: 60, label: '1 hr' },
+  { value: 120, label: '2 hrs' },
+];
 
 interface SettingsModalProps {
   open: boolean;
@@ -56,6 +68,15 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
   const [massTime, setMassTime] = useState('');
   const [massDay, setMassDay] = useState<UsualMassDay>('sunday');
   const [massSaved, setMassSaved] = useState(false);
+  // The parish reminder settings (Nov 18, 2026): the parish's Confession
+  // day and hour, and how far ahead of Mass and Confession a poke may
+  // come. They live beside the usual Mass, on this device only.
+  const [confDay, setConfDay] = useState<number | null>(null);
+  const [confTime, setConfTime] = useState('');
+  const [massLead, setMassLead] = useState<ReminderLead | null>(null);
+  const [confLead, setConfLead] = useState<ReminderLead | null>(null);
+  const [parishSaved, setParishSaved] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -74,6 +95,13 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
       setMassTime(mass?.time ?? '');
       setMassDay(mass?.day ?? 'sunday');
       setMassSaved(Boolean(mass));
+      const reminders = loadParishReminders();
+      setConfDay(reminders.confessionDay);
+      setConfTime(reminders.confessionTime ?? '');
+      setMassLead(reminders.massReminderLead);
+      setConfLead(reminders.confessionReminderLead);
+      setParishSaved(false);
+      setPushEnabled(loadPushReminder().enabled);
     }
   }, [open, audience]);
 
@@ -448,13 +476,92 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
                       })}
                     </div>
                   </div>
+                  {/* The parish's Confession hour and the reminder leads
+                      (Nov 18, 2026). Days and times only — what reaches
+                      the server is never the parish's name. */}
+                  <p className="text-[12px] font-bold uppercase tracking-wide mt-3 mb-1" style={{ color: textBright }}>
+                    Parish Confession
+                  </p>
+                  <div className="flex gap-2 mb-2">
+                    <select
+                      value={confDay === null ? '' : String(confDay)}
+                      onChange={(e) => { setConfDay(e.target.value === '' ? null : Number(e.target.value)); setParishSaved(false); }}
+                      aria-label="Confession day"
+                      className="bg-transparent border rounded-lg px-3 py-2 text-[13px] leading-relaxed outline-none flex-1"
+                      style={{ borderColor: accent, color: textBright }}
+                    >
+                      <option value="">No set day</option>
+                      {WEEKDAY_NAMES.map((name, i) => (
+                        <option key={name} value={i}>{name}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="time"
+                      value={confTime}
+                      onChange={(e) => { setConfTime(e.target.value); setParishSaved(false); }}
+                      aria-label="Confession time"
+                      className="bg-transparent border rounded-lg px-3 py-2 text-[13px] leading-relaxed outline-none"
+                      style={{ borderColor: accent, color: textBright }}
+                    />
+                  </div>
+                  {([
+                    { label: 'Mass reminder', value: massLead, set: setMassLead },
+                    { label: 'Confession reminder', value: confLead, set: setConfLead },
+                  ] as const).map((row) => (
+                    <div key={row.label} className="mb-2">
+                      <p className="text-[12px] uppercase tracking-widest font-bold mb-1" style={{ color: textMuted }}>
+                        {row.label}
+                      </p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {LEAD_OPTIONS.map((opt) => {
+                          const selected = row.value === opt.value;
+                          return (
+                            <button
+                              key={opt.label}
+                              onClick={() => { row.set(opt.value); setParishSaved(false); }}
+                              aria-pressed={selected}
+                              className="py-2 px-1 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
+                              style={{
+                                backgroundColor: selected ? accent : 'transparent',
+                                borderColor: accent,
+                                color: selected ? '#fff' : textMuted,
+                              }}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  {(massLead !== null || confLead !== null) && (
+                    <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                      {pushEnabled
+                        ? 'Rides your Sanctum notifications — the parish name never leaves this phone.'
+                        : 'Reminders begin once notifications are on. They ride your Sanctum notifications — the parish name never leaves this phone.'}
+                    </p>
+                  )}
+                  {parishSaved && (
+                    <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                      Reminder settings kept on this device.
+                    </p>
+                  )}
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
+                        saveParishReminders({
+                          confessionDay: confDay,
+                          confessionTime: confTime || null,
+                          massReminderLead: massLead,
+                          confessionReminderLead: confLead,
+                          driveTime: loadParishReminders().driveTime,
+                        });
+                        setParishSaved(true);
                         if (massParish.trim() && massTime) {
                           saveUsualMass({ parish: massParish, time: massTime, day: massDay });
                           setMassSaved(true);
                         }
+                        void syncParishReminders();
                       }}
                       className="flex-1 py-2 px-2 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
                       style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
@@ -463,7 +570,7 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
                     </button>
                     {massSaved && (
                       <button
-                        onClick={() => { saveUsualMass(null); setMassParish(''); setMassTime(''); setMassDay('sunday'); setMassSaved(false); }}
+                        onClick={() => { saveUsualMass(null); setMassParish(''); setMassTime(''); setMassDay('sunday'); setMassSaved(false); void syncParishReminders(); }}
                         className="py-2 px-3 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
                         style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
                       >

@@ -5,14 +5,21 @@ import {
   DEFAULT_EVENING_TIME,
   getPushState,
   loadPushReminder,
+  loadTailorReadyPing,
+  saveTailorReadyPing,
   sendTestPoke,
   subscribeToPush,
+  syncParishReminders,
   unsubscribeFromPush,
   updatePushPreferences,
   type PushState,
 } from '@/lib/push';
+import { loadParishReminders, saveParishReminders } from '@/lib/usualMass';
 import { DEFAULT_FOCUS, focusLabel } from '@/lib/reminderFocus';
 import { InstallInstructions } from '@/components/InstallInstructions';
+
+/** The hour the form offers when a man first adds the drive-home reminder. */
+const DEFAULT_DRIVE_TIME = '17:30';
 
 interface ReminderFormProps {
   t: PersonaTheme;
@@ -38,18 +45,33 @@ function formatTime(localTime: string): string {
  */
 export function ReminderForm({ t }: ReminderFormProps) {
   const initial = loadPushReminder();
+  const initialParish = loadParishReminders();
   const timeFieldId = useId();
   const eveningTimeFieldId = useId();
+  const driveTimeFieldId = useId();
   const [pushState, setPushState] = useState<PushState>(() => getPushState());
   const [saved, setSaved] = useState(initial);
   const [draftTime, setDraftTime] = useState(initial.localTime);
   const [draftEveningEnabled, setDraftEveningEnabled] = useState(initial.eveningTime !== null);
   const [draftEveningTime, setDraftEveningTime] = useState(initial.eveningTime ?? DEFAULT_EVENING_TIME);
+  const [savedDriveTime, setSavedDriveTime] = useState(initialParish.driveTime);
+  const [draftDriveEnabled, setDraftDriveEnabled] = useState(initialParish.driveTime !== null);
+  const [draftDriveTime, setDraftDriveTime] = useState(initialParish.driveTime ?? DEFAULT_DRIVE_TIME);
+  const [tailorReady, setTailorReady] = useState(() => loadTailorReadyPing());
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   /** The evening hour the drafts currently describe: a time, or none. */
   const draftEvening = draftEveningEnabled ? draftEveningTime : null;
+
+  /** The drive-home hour the drafts currently describe: a time, or none. */
+  const draftDrive = draftDriveEnabled ? draftDriveTime : null;
+
+  /** Keeps the drive-home hour in the parish store, beside the other parish times. */
+  const persistDriveDraft = () => {
+    saveParishReminders({ ...loadParishReminders(), driveTime: draftDrive });
+    setSavedDriveTime(draftDrive);
+  };
 
   const refresh = () => {
     const next = loadPushReminder();
@@ -57,12 +79,20 @@ export function ReminderForm({ t }: ReminderFormProps) {
     setDraftTime(next.localTime);
     setDraftEveningEnabled(next.eveningTime !== null);
     setDraftEveningTime(next.eveningTime ?? DEFAULT_EVENING_TIME);
+    const parish = loadParishReminders();
+    setSavedDriveTime(parish.driveTime);
+    setDraftDriveEnabled(parish.driveTime !== null);
+    setDraftDriveTime(parish.driveTime ?? DEFAULT_DRIVE_TIME);
+    setTailorReady(loadTailorReadyPing());
     setPushState(getPushState());
   };
 
   const handleEnable = async () => {
     setBusy(true);
     setMessage(null);
+    // The drive draft goes to its store first, so the subscription save's
+    // own parish sync carries it to the server in the same motion.
+    persistDriveDraft();
     const result = await subscribeToPush(DEFAULT_FOCUS, draftTime, draftEvening);
     setBusy(false);
     setMessage({ ok: result.ok, text: result.message });
@@ -82,11 +112,16 @@ export function ReminderForm({ t }: ReminderFormProps) {
     const result = await updatePushPreferences(saved.focus, draftTime, draftEvening);
     setBusy(false);
     setMessage({ ok: result.ok, text: result.message });
-    if (result.ok) refresh();
-    else {
+    if (result.ok) {
+      persistDriveDraft();
+      void syncParishReminders();
+      refresh();
+    } else {
       setDraftTime(saved.localTime);
       setDraftEveningEnabled(saved.eveningTime !== null);
       setDraftEveningTime(saved.eveningTime ?? DEFAULT_EVENING_TIME);
+      setDraftDriveEnabled(savedDriveTime !== null);
+      setDraftDriveTime(savedDriveTime ?? DEFAULT_DRIVE_TIME);
     }
   };
 
@@ -171,6 +206,77 @@ export function ReminderForm({ t }: ReminderFormProps) {
     </div>
   );
 
+  /**
+   * The optional drive-home poke (Nov 18, 2026): its own hour, its own
+   * landing — Tonight, to close the day on the ride home. Independent of
+   * the other slots by design: it may share an hour with the evening
+   * reminder and still fire for its own purpose.
+   */
+  const driveSection = (
+    <div>
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={draftDriveEnabled}
+          onChange={(e) => setDraftDriveEnabled(e.target.checked)}
+          disabled={busy}
+          className="w-4 h-4 flex-shrink-0"
+          style={{ accentColor: t.accent }}
+        />
+        <span className="text-[13px] font-bold" style={{ color: t.text }}>
+          Drive-home reminder
+        </span>
+      </label>
+      {draftDriveEnabled && (
+        <div className="mt-2">
+          <label
+            htmlFor={driveTimeFieldId}
+            className="block text-[12px] uppercase tracking-widest font-bold mb-2"
+            style={{ color: t.textDim }}
+          >
+            Drive-home time
+          </label>
+          <input
+            id={driveTimeFieldId}
+            type="time"
+            value={draftDriveTime}
+            onChange={(e) => setDraftDriveTime(e.target.value)}
+            disabled={busy}
+            className="w-full text-sm rounded-lg px-3 py-2.5 border focus:outline-none transition-colors disabled:opacity-60"
+            style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
+          />
+          <p className="text-[13px] leading-relaxed mt-2" style={{ color: t.textMuted }}>
+            For the ride home — opens Tonight, to close the day.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  /**
+   * The tailor-ready opt-in (Nov 18, 2026): one poke when a Tailor
+   * build's audio finishes rendering after he has put the phone down.
+   * A local choice — it saves the moment it is tapped.
+   */
+  const tailorReadySection = (
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={tailorReady}
+        onChange={(e) => {
+          setTailorReady(e.target.checked);
+          saveTailorReadyPing(e.target.checked);
+        }}
+        disabled={busy}
+        className="w-4 h-4 flex-shrink-0"
+        style={{ accentColor: t.accent }}
+      />
+      <span className="text-[13px] font-bold" style={{ color: t.text }}>
+        Tell me when my tailored audio is ready
+      </span>
+    </label>
+  );
+
   const privacyNote = (
     <div
       className="flex items-start gap-2 mt-3 rounded-lg border px-3 py-2.5"
@@ -247,6 +353,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
           <p className="text-xs" style={{ color: t.text }}>
             On — {formatTime(saved.localTime)} · {focusLabel(saved.focus)}
             {saved.eveningTime ? ` · Evening ${formatTime(saved.eveningTime)}` : ''}
+            {savedDriveTime ? ` · Drive home ${formatTime(savedDriveTime)}` : ''}
           </p>
         </div>
 
@@ -254,7 +361,11 @@ export function ReminderForm({ t }: ReminderFormProps) {
 
         {eveningSection}
 
-        {(draftTime !== saved.localTime || draftEvening !== saved.eveningTime) && (
+        {driveSection}
+
+        {tailorReadySection}
+
+        {(draftTime !== saved.localTime || draftEvening !== saved.eveningTime || draftDrive !== savedDriveTime) && (
           <button
             onClick={() => void handleSaveTimes()}
             disabled={busy}
@@ -263,7 +374,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
           >
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
             <span className="text-xs font-bold uppercase tracking-wide">
-              {draftTime !== saved.localTime && draftEvening !== saved.eveningTime
+              {[draftTime !== saved.localTime, draftEvening !== saved.eveningTime, draftDrive !== savedDriveTime].filter(Boolean).length > 1
                 ? 'Save the new times'
                 : 'Save the new time'}
             </span>
@@ -306,6 +417,8 @@ export function ReminderForm({ t }: ReminderFormProps) {
         {timeField}
 
         {eveningSection}
+
+        {driveSection}
 
         {/* One sentence of warning before the phone's own ask appears
             (audit W-7, Nov 16, 2026): the permission prompt is never the

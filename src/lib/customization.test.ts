@@ -29,9 +29,13 @@ import {
 } from './patronSaint';
 import { SAINTS } from '@/data/saints';
 import {
+  EMPTY_PARISH_REMINDERS,
   formatMassTime,
+  loadParishReminders,
   loadUsualMass,
+  massDayOfWeek,
   massPreviewEvening,
+  saveParishReminders,
   saveUsualMass,
 } from './usualMass';
 import { tonightGreeting, gratitudeForDate } from './tonight';
@@ -295,5 +299,57 @@ describe('feature 6 — My usual Mass', () => {
     const settings = readSrc('components/SettingsModal.tsx');
     expect(settings).toContain('My Usual Mass');
     expect(settings).toContain('saveUsualMass');
+  });
+});
+
+describe('the parish reminder settings (Nov 18, 2026)', () => {
+  it('round-trips the Confession day and hour, the leads, and the drive hour', () => {
+    expect(loadParishReminders()).toEqual(EMPTY_PARISH_REMINDERS);
+    saveParishReminders({
+      confessionDay: 6,
+      confessionTime: '15:30',
+      massReminderLead: 60,
+      confessionReminderLead: 30,
+      driveTime: '17:30',
+    });
+    expect(loadParishReminders()).toEqual({
+      confessionDay: 6,
+      confessionTime: '15:30',
+      massReminderLead: 60,
+      confessionReminderLead: 30,
+      driveTime: '17:30',
+    });
+  });
+
+  it('malformed pieces read back as unset — never as some other day or hour', () => {
+    localStorage.setItem('sanctum_parish_reminders', JSON.stringify({
+      confessionDay: 7,
+      confessionTime: '3:30pm',
+      massReminderLead: 45,
+      confessionReminderLead: '60',
+      driveTime: '25:00',
+    }));
+    expect(loadParishReminders()).toEqual(EMPTY_PARISH_REMINDERS);
+  });
+
+  it('an all-empty save clears the key entirely', () => {
+    saveParishReminders({ ...EMPTY_PARISH_REMINDERS, driveTime: '17:30' });
+    expect(localStorage.getItem('sanctum_parish_reminders')).not.toBeNull();
+    saveParishReminders(EMPTY_PARISH_REMINDERS);
+    expect(localStorage.getItem('sanctum_parish_reminders')).toBeNull();
+  });
+
+  it('the usual Mass maps to the server’s day numbering', () => {
+    expect(massDayOfWeek({ parish: 'St. Brigid', time: '09:30', day: 'sunday' })).toBe(0);
+    expect(massDayOfWeek({ parish: 'St. Brigid', time: '17:30', day: 'saturday' })).toBe(6);
+  });
+
+  it('Settings carries the Confession hour and the leads, with the privacy line', () => {
+    const settings = readSrc('components/SettingsModal.tsx');
+    expect(settings).toContain('Parish Confession');
+    expect(settings).toContain('saveParishReminders');
+    expect(settings).toContain('the parish name never leaves this phone');
+    expect(settings).toContain('Reminders begin once notifications are on');
+    expect(settings).toContain('syncParishReminders');
   });
 });

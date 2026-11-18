@@ -51,6 +51,7 @@ import {
   type TailoredDevotional,
 } from '@/lib/tailor';
 import { shareEntryFromDevotional, writeTailorShare } from '@/lib/tailorShare';
+import { requestTailorReadyPing } from '@/lib/push';
 import {
   EMPTY_TAILOR_PROFILE,
   SEASONS_OF_LIFE,
@@ -580,7 +581,14 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
     void fetchTailorAudio(dateKey, audience, devotional).then((merged) => {
       if (!active) return;
       setAudioPreparing(false);
-      if (merged) setDevotional(merged);
+      if (merged) {
+        setDevotional(merged);
+        // The tailor-ready ping (Nov 18, 2026): if the reader opted in
+        // and has put the phone down, one poke says the audio is ready.
+        // The helper holds the whole decision — opt-in, subscription,
+        // background — and fails silently in every other case.
+        void requestTailorReadyPing();
+      }
     });
     return () => {
       active = false;

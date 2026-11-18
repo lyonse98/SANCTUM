@@ -68,6 +68,8 @@ const KNOWN_KEYS = [
   'sanctum_usual_mass',
   'sanctum_parish_patron',
   'sanctum_come_home',
+  'sanctum_parish_reminders',
+  'sanctum_tailor_ready_ping',
 ];
 
 beforeEach(() => {

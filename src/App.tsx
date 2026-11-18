@@ -34,7 +34,7 @@ import { PersonaIntro } from '@/components/PersonaIntro';
 import type { ChurchTab, PraySection } from '@/components/PocketChurchPage';
 import { ReminderModal } from '@/components/ReminderModal';
 import { FOCUS_ROUTES, parseFocusParam } from '@/lib/pushCore';
-import { deactivatePushOnPanic, resyncPushTimezoneIfNeeded } from '@/lib/push';
+import { deactivatePushOnPanic, resyncPushTimezoneIfNeeded, syncParishReminders } from '@/lib/push';
 import { contentDate, contentDateKey } from '@/lib/dayBoundary';
 import { LeftForYou } from '@/components/LeftForYou';
 import { recordCompanionChatDay } from '@/lib/letters';
@@ -131,6 +131,10 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   // standing-profile editor open — the same editor, one tap from
   // Settings. The card consumes it on arrival.
   const [tailorProfileOpen, setTailorProfileOpen] = useState(false);
+  // The tailor-ready poke's landing (Nov 18, 2026): the same one-shot
+  // road into the Gospel card's Tailor panel, without the profile
+  // editor — the tap promised a finished devotional to listen to.
+  const [tailorOpen, setTailorOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const [shareInviteOpen, setShareInviteOpen] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -507,6 +511,10 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   // silent — it no-ops without a subscription and never prompts.
   useEffect(() => {
     void resyncPushTimezoneIfNeeded();
+    // The parish times re-sync on the same app-open path (Nov 18, 2026):
+    // any parish setting changed since the last save is handed to the
+    // server here, silently, whether or not the phone travelled.
+    void syncParishReminders();
   }, []);
 
   // One-tap return (Play 6, Nov 16, 2026). On a cold start, once the gate
@@ -561,6 +569,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     if (!focus) return;
     const route = FOCUS_ROUTES[focus];
     if (route.todayExamen) setForceExamen(true);
+    if (route.todayTailor) setTailorOpen(true);
     if (route.churchTab) setChurchTab(route.churchTab as ChurchTab);
     if (route.churchPray) setChurchPray(route.churchPray as PraySection);
     setView(route.tab);
@@ -687,6 +696,8 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             onOpenCompanion={(p) => handleSelectPersona(p)}
             tailorProfileOpen={tailorProfileOpen}
             onConsumeTailorProfileOpen={() => setTailorProfileOpen(false)}
+            tailorOpen={tailorOpen}
+            onConsumeTailorOpen={() => setTailorOpen(false)}
           />
         </>
       );

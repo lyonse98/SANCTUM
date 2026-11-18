@@ -66,6 +66,13 @@ interface DailyQuoteProps {
    */
   tailorProfileOpen?: boolean;
   onConsumeTailorProfileOpen?: () => void;
+  /**
+   * The tailor-ready poke's landing (Nov 18, 2026): while true, the card
+   * opens its Tailor panel — the finished devotional the poke announced —
+   * then consumes the request via the callback.
+   */
+  tailorOpen?: boolean;
+  onConsumeTailorOpen?: () => void;
 }
 
 /** The two doors share the printed page's one plate class — equals, by construction. */
@@ -96,7 +103,7 @@ export function orderedReadingRows(readings: DailyReadings, texts: ReadingTexts 
   ).filter((row) => row.citation);
 }
 
-export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder, tailorProfileOpen, onConsumeTailorProfileOpen }: DailyQuoteProps) {
+export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder, tailorProfileOpen, onConsumeTailorProfileOpen, tailorOpen, onConsumeTailorOpen }: DailyQuoteProps) {
   // The reading size (Erik, Nov 18, 2026): the card's devotional body
   // text — the key verse, the full readings, the reflection, the
   // challenge — is set at the reader's chosen size; labels and doors
@@ -129,6 +136,13 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     setProfileOpenSignal((n) => n + 1);
     onConsumeTailorProfileOpen?.();
   }, [tailorProfileOpen, onConsumeTailorProfileOpen]);
+  // The tailor-ready poke's landing: the panel alone, no editor — the
+  // tap promised something to listen to, not something to fill in.
+  useEffect(() => {
+    if (!tailorOpen) return;
+    setPanel('tailor');
+    onConsumeTailorOpen?.();
+  }, [tailorOpen, onConsumeTailorOpen]);
   // A spent signal is spent: once the panel closes, the nonce resets,
   // so a later ordinary opening of the door never inherits the request.
   useEffect(() => {
