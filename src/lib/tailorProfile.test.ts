@@ -349,12 +349,31 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
       'cavins',
       'west',
       'hahn',
+      'casey-cole',
+      'david-michael',
+      'josh-johnson',
+      'evert',
+      'stefanick',
+      'akin',
+      'horn',
+      'kreeft',
       'huberman',
       'peterson',
       'williamson',
       'bartlett',
       'clear',
       'goggins',
+      'rogan',
+      'howes',
+      'mylett',
+      'robbins',
+      'ramsey',
+      'manson',
+      'holiday',
+      'ferriss',
+      'newport',
+      'brooks',
+      'haidt',
     ]);
     expect(voicesForAudience('women').map((v) => v.id)).toEqual([
       'sr-miriam',
@@ -365,11 +384,28 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
       'wilkin',
       'sadie',
       'emily-wilson',
+      'katie-prejean',
+      'darrow',
+      'brenninkmeyer',
+      'mother-angelica',
+      'cameron-fradd',
+      'haley-stewart',
+      'kendra-tierney',
+      'she-reads-truth',
+      'risen-motherhood',
       'daigle',
       'annie-downs',
       'brene-brown',
       'mel-robbins',
       'jay-shetty',
+      'parton',
+      'gaines',
+      'guthrie',
+      'ivey',
+      'emily-freeman',
+      'lazy-genius',
+      'underwood',
+      'winans',
     ]);
     // Groups: the faith shelf leads, the culture shelf follows, on both tracks.
     for (const audience of ['men', 'women'] as const) {
@@ -380,10 +416,10 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
         expect(voiceById(audience, voice.id)).toEqual(voice);
       }
     }
-    expect(voicesForAudience('men').filter((v) => v.group === 'faith')).toHaveLength(7);
-    expect(voicesForAudience('men').filter((v) => v.group === 'culture')).toHaveLength(6);
-    expect(voicesForAudience('women').filter((v) => v.group === 'faith')).toHaveLength(8);
-    expect(voicesForAudience('women').filter((v) => v.group === 'culture')).toHaveLength(5);
+    expect(voicesForAudience('men').filter((v) => v.group === 'faith')).toHaveLength(15);
+    expect(voicesForAudience('men').filter((v) => v.group === 'culture')).toHaveLength(17);
+    expect(voicesForAudience('women').filter((v) => v.group === 'faith')).toHaveLength(17);
+    expect(voicesForAudience('women').filter((v) => v.group === 'culture')).toHaveLength(13);
   });
 
   it('the labels are Erik’s, exactly as ruled', () => {
@@ -393,6 +429,8 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
     expect(voiceLabel('women', 'beth-davis')).toBe('Beth Davis (Blessed Is She)');
     expect(voiceLabel('women', 'cobble')).toBe('Tara-Leigh Cobble (The Bible Recap)');
     expect(voiceLabel('women', 'brene-brown')).toBe('Brené Brown');
+    expect(voiceLabel('women', 'cameron-fradd')).toBe('Cameron Fradd (Among the Lilies)');
+    expect(voiceLabel('women', 'lazy-genius')).toBe('The Lazy Genius (Kendra Adachi)');
     expect(voiceLabel('men', 'not-a-voice')).toBeNull();
   });
 
@@ -401,8 +439,8 @@ describe('the Voices — who the reader listens to, for media only (Nov 18, 2026
     const shared = voicesForAudience('women').filter((v) => menIds.has(v.id));
     expect(shared).toEqual([]);
     // And the registry itself is exactly the two lists.
-    expect(VOICES.men).toHaveLength(13);
-    expect(VOICES.women).toHaveLength(13);
+    expect(VOICES.men).toHaveLength(32);
+    expect(VOICES.women).toHaveLength(30);
   });
 
   it('a stored voice validates against its own track’s list — the other track’s voices do not cross', () => {

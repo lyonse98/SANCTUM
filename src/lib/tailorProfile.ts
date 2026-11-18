@@ -171,7 +171,8 @@ export interface VoiceOption {
 export const VOICES_MAX = 5;
 
 /**
- * The voices lists (Erik's FINAL lists, Nov 18, 2026): per track, two
+ * The voices lists (Erik's FINAL lists, Nov 18, 2026, expanded the same
+ * day with his approved additions): per track, two
  * shelves — the faith voices and the culture & self-help voices a reader
  * plausibly already trusts. Their whole job is vibe, message, interests,
  * and trust FOR MEDIA SELECTION: a Tailor build may surface a real work
@@ -190,12 +191,31 @@ export const VOICES: Record<Audience, VoiceOption[]> = {
     { id: 'cavins', label: 'Jeff Cavins', group: 'faith' },
     { id: 'west', label: 'Christopher West', group: 'faith' },
     { id: 'hahn', label: 'Scott Hahn', group: 'faith' },
+    { id: 'casey-cole', label: 'Fr. Casey Cole', group: 'faith' },
+    { id: 'david-michael', label: 'Fr. David Michael Moses', group: 'faith' },
+    { id: 'josh-johnson', label: 'Fr. Josh Johnson', group: 'faith' },
+    { id: 'evert', label: 'Jason Evert', group: 'faith' },
+    { id: 'stefanick', label: 'Chris Stefanick', group: 'faith' },
+    { id: 'akin', label: 'Jimmy Akin', group: 'faith' },
+    { id: 'horn', label: 'Trent Horn', group: 'faith' },
+    { id: 'kreeft', label: 'Peter Kreeft', group: 'faith' },
     { id: 'huberman', label: 'Andrew Huberman', group: 'culture' },
     { id: 'peterson', label: 'Jordan Peterson', group: 'culture' },
     { id: 'williamson', label: 'Chris Williamson (Modern Wisdom)', group: 'culture' },
     { id: 'bartlett', label: 'Steven Bartlett (Diary of a CEO)', group: 'culture' },
     { id: 'clear', label: 'James Clear', group: 'culture' },
     { id: 'goggins', label: 'David Goggins', group: 'culture' },
+    { id: 'rogan', label: 'Joe Rogan', group: 'culture' },
+    { id: 'howes', label: 'Lewis Howes', group: 'culture' },
+    { id: 'mylett', label: 'Ed Mylett', group: 'culture' },
+    { id: 'robbins', label: 'Tony Robbins', group: 'culture' },
+    { id: 'ramsey', label: 'Dave Ramsey', group: 'culture' },
+    { id: 'manson', label: 'Mark Manson', group: 'culture' },
+    { id: 'holiday', label: 'Ryan Holiday', group: 'culture' },
+    { id: 'ferriss', label: 'Tim Ferriss', group: 'culture' },
+    { id: 'newport', label: 'Cal Newport', group: 'culture' },
+    { id: 'brooks', label: 'Arthur Brooks', group: 'culture' },
+    { id: 'haidt', label: 'Jonathan Haidt', group: 'culture' },
   ],
   women: [
     { id: 'sr-miriam', label: 'Sr. Miriam James', group: 'faith' },
@@ -206,11 +226,28 @@ export const VOICES: Record<Audience, VoiceOption[]> = {
     { id: 'wilkin', label: 'Jen Wilkin', group: 'faith' },
     { id: 'sadie', label: 'Sadie Robertson Huff', group: 'faith' },
     { id: 'emily-wilson', label: 'Emily Wilson', group: 'faith' },
+    { id: 'katie-prejean', label: 'Katie Prejean McGrady', group: 'faith' },
+    { id: 'darrow', label: 'Leah Darrow', group: 'faith' },
+    { id: 'brenninkmeyer', label: 'Lisa Brenninkmeyer', group: 'faith' },
+    { id: 'mother-angelica', label: 'Mother Angelica', group: 'faith' },
+    { id: 'cameron-fradd', label: 'Cameron Fradd (Among the Lilies)', group: 'faith' },
+    { id: 'haley-stewart', label: 'Haley Stewart', group: 'faith' },
+    { id: 'kendra-tierney', label: 'Kendra Tierney', group: 'faith' },
+    { id: 'she-reads-truth', label: 'She Reads Truth', group: 'faith' },
+    { id: 'risen-motherhood', label: 'Risen Motherhood', group: 'faith' },
     { id: 'daigle', label: 'Lauren Daigle', group: 'culture' },
     { id: 'annie-downs', label: 'Annie F. Downs', group: 'culture' },
     { id: 'brene-brown', label: 'Brené Brown', group: 'culture' },
     { id: 'mel-robbins', label: 'Mel Robbins', group: 'culture' },
     { id: 'jay-shetty', label: 'Jay Shetty', group: 'culture' },
+    { id: 'parton', label: 'Dolly Parton', group: 'culture' },
+    { id: 'gaines', label: 'Joanna Gaines', group: 'culture' },
+    { id: 'guthrie', label: 'Savannah Guthrie', group: 'culture' },
+    { id: 'ivey', label: 'Jamie Ivey', group: 'culture' },
+    { id: 'emily-freeman', label: 'Emily P. Freeman', group: 'culture' },
+    { id: 'lazy-genius', label: 'The Lazy Genius (Kendra Adachi)', group: 'culture' },
+    { id: 'underwood', label: 'Carrie Underwood', group: 'culture' },
+    { id: 'winans', label: 'CeCe Winans', group: 'culture' },
   ],
 };
 
