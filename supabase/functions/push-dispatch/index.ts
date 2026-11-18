@@ -4,7 +4,8 @@
   Called every quarter hour by pg_cron (see the schedule migration) with an empty body:
   it reads every active row of `push_subscriptions` with the service role, works out who is
   due from each subscription's own timezone and chosen local time, and sends the ones that
-  are. All the rules — the copy, the deep links, the due window, the daylight-saving
+  are. A subscription may also carry an optional evening hour (Nov 17, 2026): it is
+  evaluated independently, with its own sent marker, and sends the very same poke. All the rules — the copy, the deep links, the due window, the daylight-saving
   behaviour — live in ./pushCore.ts, which is GENERATED from src/lib/pushCore.ts by
   scripts/sync-push-core.mjs so the server and the app can never drift apart. Do not edit
   the logic here into a second copy.
@@ -28,7 +29,7 @@ import {
   importVapidKeys,
   PushMessageError,
 } from "jsr:@negrel/webpush@0.5.0";
-import { buildPushPayload, evaluateDue } from "./pushCore.ts";
+import { buildPushPayload, evaluateDue, evaluateEveningDue } from "./pushCore.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,6 +49,9 @@ interface SubscriptionRow {
   local_time: string;
   tz: string;
   last_sent_on: string | null;
+  /** The optional second poke (Nov 17, 2026); null on rows written before the evening migration. */
+  evening_time: string | null;
+  last_evening_sent_on: string | null;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -126,21 +130,35 @@ function rest(path: string, init: RequestInit): Promise<Response> {
   });
 }
 
-const SELECT = "endpoint,p256dh,auth,focus,local_time,tz,last_sent_on";
+const SELECT = "endpoint,p256dh,auth,focus,local_time,tz,last_sent_on,evening_time,last_evening_sent_on";
+const LEGACY_SELECT = "endpoint,p256dh,auth,focus,local_time,tz,last_sent_on";
+
+/**
+ * Reads subscription rows with the evening columns when the database has
+ * them. Until the evening migration is pasted, PostgREST refuses the wider
+ * select — so the read falls back to the legacy columns and every row reads
+ * as having no evening slot. Push never breaks because a column is missing:
+ * the morning dispatch runs exactly as before, and the evening slot simply
+ * waits for its migration.
+ */
+async function querySubscriptions(endpoint: string | null): Promise<SubscriptionRow[]> {
+  const filter = endpoint === null
+    ? "active=eq.true"
+    : `endpoint=eq.${encodeURIComponent(endpoint)}&active=eq.true`;
+  const res = await rest(`push_subscriptions?${filter}&select=${SELECT}`, { method: "GET" });
+  if (res.ok) return (await res.json()) as SubscriptionRow[];
+  const legacy = await rest(`push_subscriptions?${filter}&select=${LEGACY_SELECT}`, { method: "GET" });
+  if (!legacy.ok) throw new Error(`subscription read failed with status ${legacy.status}`);
+  const rows = (await legacy.json()) as Omit<SubscriptionRow, "evening_time" | "last_evening_sent_on">[];
+  return rows.map((row) => ({ ...row, evening_time: null, last_evening_sent_on: null }));
+}
 
 async function listActiveSubscriptions(): Promise<SubscriptionRow[]> {
-  const res = await rest(`push_subscriptions?active=eq.true&select=${SELECT}`, { method: "GET" });
-  if (!res.ok) throw new Error(`subscription read failed with status ${res.status}`);
-  return (await res.json()) as SubscriptionRow[];
+  return querySubscriptions(null);
 }
 
 async function findSubscription(endpoint: string): Promise<SubscriptionRow | null> {
-  const res = await rest(
-    `push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}&active=eq.true&select=${SELECT}`,
-    { method: "GET" },
-  );
-  if (!res.ok) throw new Error(`subscription lookup failed with status ${res.status}`);
-  const rows = (await res.json()) as SubscriptionRow[];
+  const rows = await querySubscriptions(endpoint);
   return rows[0] ?? null;
 }
 
@@ -223,22 +241,56 @@ Deno.serve(async (req: Request) => {
     const counts = { checked: subscriptions.length, due: 0, sent: 0, gone: 0, failed: 0 };
 
     for (const sub of subscriptions) {
+      // The morning slot and the evening slot are evaluated independently:
+      // each has its own hour and its own sent marker, and either can be due
+      // without the other. The poke itself is identical — the same payload,
+      // the same Gospel landing; only the marker written back differs.
+      let deactivated = false;
+
       const evaluation = evaluateDue(
         { tz: sub.tz, localTime: sub.local_time.slice(0, 5), lastSentOn: sub.last_sent_on },
         now,
       );
-      if (!evaluation.due) continue;
-      counts.due += 1;
+      if (evaluation.due) {
+        counts.due += 1;
+        const outcome = await sendPoke(server, sub);
+        if (outcome === "sent") {
+          counts.sent += 1;
+          await patchSubscription(sub.endpoint, { last_sent_on: evaluation.localDateKey });
+        } else if (outcome === "gone") {
+          counts.gone += 1;
+          deactivated = true;
+          await patchSubscription(sub.endpoint, { active: false });
+        } else {
+          counts.failed += 1;
+        }
+      }
 
-      const outcome = await sendPoke(server, sub);
-      if (outcome === "sent") {
-        counts.sent += 1;
-        await patchSubscription(sub.endpoint, { last_sent_on: evaluation.localDateKey });
-      } else if (outcome === "gone") {
-        counts.gone += 1;
-        await patchSubscription(sub.endpoint, { active: false });
-      } else {
-        counts.failed += 1;
+      // A row the push service has forgotten is gone for both slots at once.
+      if (deactivated) continue;
+
+      const eveningEvaluation = evaluateEveningDue(
+        {
+          tz: sub.tz,
+          localTime: sub.local_time.slice(0, 5),
+          lastSentOn: sub.last_sent_on,
+          eveningTime: sub.evening_time ? sub.evening_time.slice(0, 5) : null,
+          eveningLastSentOn: sub.last_evening_sent_on,
+        },
+        now,
+      );
+      if (eveningEvaluation.due) {
+        counts.due += 1;
+        const outcome = await sendPoke(server, sub);
+        if (outcome === "sent") {
+          counts.sent += 1;
+          await patchSubscription(sub.endpoint, { last_evening_sent_on: eveningEvaluation.localDateKey });
+        } else if (outcome === "gone") {
+          counts.gone += 1;
+          await patchSubscription(sub.endpoint, { active: false });
+        } else {
+          counts.failed += 1;
+        }
       }
     }
 
