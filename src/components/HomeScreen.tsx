@@ -8,6 +8,8 @@ import { UtilitiesLine } from '@/components/UtilitiesLine';
 import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { TodayHero } from '@/components/TodayHero';
 import { TonightClosing } from '@/components/TonightClosing';
+import { PatronPlate } from '@/components/PatronPlate';
+import { patronFeastOn } from '@/lib/patronSaint';
 import { DaysPrayedMark } from '@/components/DaysPrayedMark';
 import { TailorToday } from '@/components/TailorToday';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
@@ -18,7 +20,7 @@ import { DAY_START_HOUR, contentDate, contentDateKey, contentNow } from '@/lib/d
 import { currentNovenaArc } from '@/lib/novenaProgress';
 import { todaysIntercession } from '@/lib/todaysIntercession';
 import { adventProgress } from '@/lib/seasonArcs';
-import type { Audience, TabId, UtilityActions } from '@/types';
+import type { Audience, Persona, TabId, UtilityActions } from '@/types';
 import { PRIVACY_SHORT } from '@/lib/privacyCopy';
 
 interface HomeScreenProps {
@@ -40,6 +42,8 @@ interface HomeScreenProps {
   onScrollTopChange?: (top: number) => void;
   /** Opens Pocket Church on the Pray door's Novenas section — the novena arc line's way onward. */
   onOpenNovenas?: () => void;
+  /** Opens a companion's chat — the patron plate's way onward when the year's patron is a companion. */
+  onOpenCompanion?: (persona: Persona) => void;
 }
 
 /**
@@ -59,7 +63,7 @@ interface HomeScreenProps {
  * "Foot of Today"): the three destinations as rows under the day itself,
  * Real Help among them at full weight, and the utilities line last of all.
  */
-export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate, initialScrollTop, onScrollTopChange, onOpenNovenas }: HomeScreenProps) {
+export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate, initialScrollTop, onScrollTopChange, onOpenNovenas, onOpenCompanion }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
   const tonightRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -86,6 +90,9 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
   const [novenaArc] = useState(() => currentNovenaArc());
   const [advent] = useState(() => adventProgress(contentDate()));
   const [tailorOpen, setTailorOpen] = useState(false);
+  // The year's patron, when today is their feast (Erik, Nov 18, 2026):
+  // their plate stands under the masthead for the day, and only the day.
+  const [patronToday] = useState(() => patronFeastOn(contentDate()));
 
   // The evening is the content day's evening (Play 7): from the PM hour, and
   // still — in the small hours before the 04:00 flip — the night that belongs
@@ -151,6 +158,28 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
         <div className="w-full mb-6">
           <TodayHero t={seasonTheme} accent={seasonAccent} audience={audience} onOpenHelp={onOpenHelp} />
         </div>
+
+        {/* Your patron — on their feast day only (Erik, Nov 18, 2026):
+            the plate walks to their company when they are a companion,
+            and otherwise opens the shelf's own line for them. */}
+        {patronToday && (
+          <div className="w-full mb-4">
+            <PatronPlate
+              patron={patronToday}
+              audience={audience}
+              colors={{
+                border: seasonTheme.border,
+                fill: `${seasonTheme.border}1F`,
+                card: seasonTheme.card,
+                textBright: seasonTheme.textBright,
+                textMuted: seasonTheme.textMuted,
+                textDim: seasonTheme.textDim,
+                accent: seasonTheme.accent,
+              }}
+              onOpenCompanion={onOpenCompanion}
+            />
+          </div>
+        )}
 
         {/* The days-prayed mark — one quiet line under the masthead: the
             cumulative tally and today's flame, nothing more. */}

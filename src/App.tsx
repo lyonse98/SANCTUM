@@ -659,6 +659,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             initialScrollTop={loadScrollPosition('today')}
             onScrollTopChange={(top) => saveScrollPosition('today', top)}
             onOpenNovenas={() => { setChurchTab('pray'); setChurchPray('novenas'); setView('church'); }}
+            onOpenCompanion={(p) => handleSelectPersona(p)}
           />
         </>
       );
@@ -698,6 +699,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
           onAudienceChange={handleAudienceChange}
           onClose={() => setSettingsOpen(false)}
           onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
+          onOpenCompanion={(p) => { setSettingsOpen(false); handleSelectPersona(p); }}
         />
         <ShareInviteModal
           open={shareInviteOpen}
@@ -854,6 +856,7 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         onAudienceChange={handleAudienceChange}
         onClose={() => setSettingsOpen(false)}
         onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
+        onOpenCompanion={(p) => { setSettingsOpen(false); handleSelectPersona(p); }}
       />
 
       {showCapModal && (

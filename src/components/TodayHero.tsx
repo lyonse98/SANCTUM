@@ -6,6 +6,7 @@ import { getDailyVisual } from '@/lib/liturgicalVisuals';
 import { getFeastArt, getFeastEmblem } from '@/lib/feastArt';
 import { PRINT_SERIF } from '@/lib/print';
 import { contentDate } from '@/lib/dayBoundary';
+import { patronFeastOn } from '@/lib/patronSaint';
 import type { Audience, PersonaTheme } from '@/types';
 
 interface TodayHeroProps {
@@ -50,6 +51,9 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
   // solemnities only; null on ordinary days and on the women's track.
   const feastEmblem = useMemo(() => getFeastEmblem(contentDate(), audience), [audience]);
   const isSunday = useMemo(() => contentDate().getDay() === 0, []);
+  // The year's patron, on their feast (Erik, Nov 18, 2026): the masthead
+  // gains one quiet marker line. Any other day, nothing stands here.
+  const patronToday = useMemo(() => patronFeastOn(contentDate()), []);
   const [greeting, setGreeting] = useState(() => greetingForHour(new Date().getHours()));
 
   useEffect(() => {
@@ -161,6 +165,15 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
           <p className="text-[13px] text-forge-text-dim text-center max-w-xs leading-relaxed">
             {visual.feastNote ?? season.description}
           </p>
+          {patronToday && (
+            <p
+              data-patron-feast
+              className="text-[12px] font-bold uppercase tracking-[0.18em]"
+              style={{ fontFamily: PRINT_SERIF, color: t.accent }}
+            >
+              Your patron&rsquo;s feast
+            </p>
+          )}
         </div>
 
         {isSunday && onOpenHelp && (

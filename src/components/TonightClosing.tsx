@@ -8,12 +8,15 @@ import { loadTonightsClose } from '@/lib/tailorPm';
 import { TailorPm } from '@/components/TailorPm';
 import { KeptShelf } from '@/components/KeptShelf';
 import {
-  gratitudeForDate,
   honestLookLine,
   loadTonightResolve,
   saveTonightResolve,
   tailorEchoLine,
+  tonightGreeting,
 } from '@/lib/tonight';
+import { loadReaderName } from '@/lib/readerName';
+import { scaledBodyPx, useReadingSize } from '@/lib/readingSize';
+import { formatMassTime, loadUsualMass, massPreviewEvening } from '@/lib/usualMass';
 import { recordCoreAct } from '@/lib/daysPrayed';
 import { fetchDailyReadings } from '@/lib/readings';
 import { fetchPassageVerses } from '@/lib/bible';
@@ -61,6 +64,20 @@ export function saveMassIntention(sundayKey: string, text: string): void {
   } catch {
     // storage unavailable — the evening still reads; the note just isn't kept
   }
+}
+
+/**
+ * The Mass day's celebration name when the reader's usual Mass is the
+ * Saturday vigil (feature 6, Erik, Nov 18, 2026): the calendar's own
+ * name first when the Saturday carries a feast or solemnity, then the
+ * lectionary's celebration for the day, then the season's Saturday.
+ * Sunday's naming is sundayCelebrationName's, untouched.
+ */
+export function saturdayCelebrationName(saturday: Date, readingsCelebration?: string | null): string {
+  const feast = getFeastForDate(saturday);
+  if (feast && (feast.rank === 'feast' || feast.rank === 'solemnity')) return feast.name;
+  if (readingsCelebration) return readingsCelebration;
+  return `Saturday in ${getCurrentSeason(saturday).name}`;
 }
 
 const ADVENT_SUNDAY_ORDINALS = ['First', 'Second', 'Third', 'Fourth'];
@@ -125,16 +142,32 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
   const [pmCloseDone] = useState(() => Boolean(loadTonightsClose(contentKey, audience)));
   const showEveningCue = Boolean(cueMeta?.morning) && !pmCloseDone;
 
+  // The reader's name and reading size (Erik, Nov 18, 2026): the name
+  // addresses the evening's greeting when one is given; the size sets
+  // Tonight's devotional lines. Both are this device's own settings.
+  const [readerName] = useState(() => loadReaderName());
+  const readingSize = useReadingSize();
+
   // Tomorrow at Mass (Play 8): on Saturday — the content day's Saturday,
   // so the small hours of Sunday still belong to this evening — Tonight
-  // also looks one day ahead, to Sunday's Mass.
+  // also looks one day ahead, to Sunday's Mass. My usual Mass (feature
+  // 6, Erik, Nov 18, 2026) aims the same look ahead at the reader's own
+  // Mass: with a parish and time on the device, the heading names them;
+  // a reader whose usual Mass is the Saturday vigil gets the look ahead
+  // on Friday evening instead, aimed at Saturday. Unset, every line of
+  // the standing behavior stands exactly as it was.
+  const [usualMass] = useState(() => loadUsualMass());
+  const massPlan = massPreviewEvening(usualMass);
   const isSaturday = contentDate(now).getDay() === 6;
+  const showMassPreview = massPlan.onSaturday ? contentDate(now).getDay() === massPlan.eveningDay : isSaturday;
   const sundayKey = shiftDateKey(contentKey, 1);
   const [sundayDate] = useState(() => {
     const [y, m, d] = sundayKey.split('-').map((part) => Number(part));
     return new Date(y, (m || 1) - 1, d || 1);
   });
-  const [celebrationName, setCelebrationName] = useState(() => sundayCelebrationName(sundayDate));
+  const [celebrationName, setCelebrationName] = useState(() =>
+    massPlan.onSaturday ? saturdayCelebrationName(sundayDate) : sundayCelebrationName(sundayDate),
+  );
   const [sundayVerse, setSundayVerse] = useState<KeyVerse | null>(null);
   const [massIntention, setMassIntention] = useState(() => loadMassIntention(sundayKey));
   const massSection = getHelpSections(audience).find((s) => s.id === 'mass');
@@ -149,15 +182,20 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
     };
   }, [dateKey, audience]);
 
-  // Sunday's name and Gospel, by the by-date readings path — the same
-  // explicit-date serving the rest of the app uses, aimed one day ahead.
+  // The Mass day's name and Gospel, by the by-date readings path — the
+  // same explicit-date serving the rest of the app uses, aimed one day
+  // ahead (at Sunday, or at Saturday for a vigil goer).
   useEffect(() => {
-    if (!isSaturday) return;
+    if (!showMassPreview) return;
     let live = true;
     void (async () => {
       const readings = await fetchDailyReadings(sundayDate);
       if (!live || !readings) return;
-      setCelebrationName(sundayCelebrationName(sundayDate, readings.celebration));
+      setCelebrationName(
+        massPlan.onSaturday
+          ? saturdayCelebrationName(sundayDate, readings.celebration)
+          : sundayCelebrationName(sundayDate, readings.celebration),
+      );
       if (readings.gospel) {
         const verses = await fetchPassageVerses(readings.gospel);
         if (live && verses) setSundayVerse(pickKeyVerse(verses));
@@ -167,7 +205,7 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSaturday, sundayKey]);
+  }, [showMassPreview, sundayKey]);
 
   const onResolveChange = (value: string) => {
     setResolve(value);
@@ -197,10 +235,10 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
       </div>
 
       <p
-        className="text-[13px] italic leading-relaxed mb-2.5"
-        style={{ fontFamily: PRINT_SERIF, color: t.text }}
+        className="italic leading-relaxed mb-2.5"
+        style={{ fontFamily: PRINT_SERIF, color: t.text, fontSize: scaledBodyPx(13, readingSize) }}
       >
-        {gratitudeForDate(dateKey)}
+        {tonightGreeting(dateKey, readerName)}
       </p>
 
       {showEveningCue && (
@@ -260,13 +298,18 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
           one intention in the user's own words, kept on this device only
           as preparation. The Mass door of Real Help stands here in its
           own words, with the way onward to the full surface. */}
-      {isSaturday && (
+      {showMassPreview && (
         <div data-tomorrow-at-mass className="mt-4 pt-3.5" style={{ borderTop: `1px solid ${t.border}` }}>
           <p
             className="text-[12px] font-bold uppercase tracking-[0.2em] mb-1.5"
             style={{ fontFamily: PRINT_SERIF, color: t.accent }}
           >
             Tomorrow at Mass
+            {usualMass && (
+              <span className="normal-case tracking-normal text-[13px]" style={{ color: t.text }}>
+                {' '}&mdash; {formatMassTime(usualMass.time)} at {usualMass.parish}
+              </span>
+            )}
           </p>
           <p
             className="text-[15px] font-semibold leading-snug mb-2"
@@ -278,11 +321,11 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
           {sundayVerse && (
             <div className="mb-3">
               <p className="text-[12px] uppercase tracking-widest font-bold mb-1" style={{ color: t.textDim }}>
-                Sunday&rsquo;s Gospel &middot; {sundayVerse.citation}
+                {massPlan.onSaturday ? 'Tomorrow' : 'Sunday'}&rsquo;s Gospel &middot; {sundayVerse.citation}
               </p>
               <p
-                className="text-[13px] italic leading-relaxed"
-                style={{ fontFamily: PRINT_SERIF, color: t.text }}
+                className="italic leading-relaxed"
+                style={{ fontFamily: PRINT_SERIF, color: t.text, fontSize: scaledBodyPx(13, readingSize) }}
               >
                 {sundayVerse.text}
               </p>

@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react';
-import { X, ShieldAlert, Lock, MessageSquare, BarChart3, Download, Users, Eraser } from 'lucide-react';
+import { X, ShieldAlert, Lock, MessageSquare, BarChart3, Download, Users, Eraser, Type, PenLine, Star, Church } from 'lucide-react';
 import { useFeedback } from '@/components/FeedbackProvider';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '@/lib/analytics';
 import { PRIVACY_PARAGRAPH, analyticsCopy } from '@/lib/privacyCopy';
 import { eraseTailorProfile, hasTailorProfile } from '@/lib/tailorProfile';
-import type { Audience } from '@/types';
+import { READING_SIZES, loadReadingSize, saveReadingSize, type ReadingSize } from '@/lib/readingSize';
+import { READER_NAME_MAX, loadReaderName, saveReaderName } from '@/lib/readerName';
+import { loadPatronSaint, patronFeastLabel, savePatronSaint } from '@/lib/patronSaint';
+import { USUAL_MASS_PARISH_MAX, formatMassTime, loadUsualMass, saveUsualMass, type UsualMassDay } from '@/lib/usualMass';
+import { SAINTS, type SaintOfDay } from '@/data/saints';
+import { PatronPlate } from '@/components/PatronPlate';
+import type { Audience, Persona } from '@/types';
 import { InstallModal } from '@/components/InstallInstructions';
 import { CrisisLine } from '@/components/CrisisLine';
 
@@ -14,9 +20,11 @@ interface SettingsModalProps {
   onAudienceChange: (audience: Audience) => void;
   onClose: () => void;
   onOpenTerms?: () => void;
+  /** Opens a companion's chat — the patron plate's way onward when the patron is a companion. */
+  onOpenCompanion?: (persona: Persona) => void;
 }
 
-export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpenTerms }: SettingsModalProps) {
+export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpenTerms, onOpenCompanion }: SettingsModalProps) {
   const feedback = useFeedback();
   const [analyticsOn, setAnalyticsOn] = useState(() => isAnalyticsEnabled());
   const [installOpen, setInstallOpen] = useState(false);
@@ -25,10 +33,34 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
   // Tailor panel, not here.
   const [tailorProfileExists, setTailorProfileExists] = useState(false);
 
+  // The reader's own settings (Erik, Nov 18, 2026) — reading size, the
+  // name, the year's patron, the usual Mass. All live on this device;
+  // each is re-read when the sheet opens, since some are also touched
+  // from the players and the Tailor panel.
+  const [readingSize, setReadingSize] = useState<ReadingSize>(() => loadReadingSize());
+  const [nameValue, setNameValue] = useState('');
+  const [patron, setPatron] = useState<SaintOfDay | null>(null);
+  const [patronPickerOpen, setPatronPickerOpen] = useState(false);
+  const [patronQuery, setPatronQuery] = useState('');
+  const [massParish, setMassParish] = useState('');
+  const [massTime, setMassTime] = useState('');
+  const [massDay, setMassDay] = useState<UsualMassDay>('sunday');
+  const [massSaved, setMassSaved] = useState(false);
+
   useEffect(() => {
     if (open) {
       setAnalyticsOn(isAnalyticsEnabled());
       setTailorProfileExists(hasTailorProfile(audience));
+      setReadingSize(loadReadingSize());
+      setNameValue(loadReaderName() ?? '');
+      setPatron(loadPatronSaint());
+      setPatronPickerOpen(false);
+      setPatronQuery('');
+      const mass = loadUsualMass();
+      setMassParish(mass?.parish ?? '');
+      setMassTime(mass?.time ?? '');
+      setMassDay(mass?.day ?? 'sunday');
+      setMassSaved(Boolean(mass));
     }
   }, [open, audience]);
 
@@ -108,6 +140,238 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
             </div>
           </div>
 
+
+          {/* The reader's own settings (Erik, Nov 18, 2026): the reading
+              size, the name, the year's patron, the usual Mass — each
+              kept on this device only, each invisible until it is set. */}
+          <div className="pt-2 space-y-3">
+            <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
+              <div className="flex items-start gap-2">
+                <Type className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
+                <div className="flex-1">
+                  <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                    Reading Size
+                  </p>
+                  <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                    The size of the day&rsquo;s readings, reflection, and closing — set it where your
+                    eyes rest. Kept on this device only.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {READING_SIZES.map((opt) => {
+                      const selected = readingSize === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => { setReadingSize(opt.id); saveReadingSize(opt.id); }}
+                          aria-pressed={selected}
+                          className="py-2 px-2 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
+                          style={{
+                            backgroundColor: selected ? accent : 'transparent',
+                            borderColor: accent,
+                            color: selected ? '#fff' : textMuted,
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
+              <div className="flex items-start gap-2">
+                <PenLine className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
+                <div className="flex-1">
+                  <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                    Your Name
+                  </p>
+                  <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                    What Sanctum may call you. Kept only on this device — a companion is handed the
+                    name itself, in a chat or in a letter, and nothing more.
+                  </p>
+                  <input
+                    type="text"
+                    value={nameValue}
+                    maxLength={READER_NAME_MAX}
+                    onChange={(e) => setNameValue(e.target.value)}
+                    onBlur={() => saveReaderName(nameValue)}
+                    placeholder="Your name, if you like"
+                    aria-label="Your name"
+                    className="w-full bg-transparent border rounded-lg px-3 py-2 text-[13px] leading-relaxed outline-none"
+                    style={{ borderColor: accent, color: textBright }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
+              <div className="flex items-start gap-2">
+                <Star className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
+                <div className="flex-1">
+                  <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                    Patron Saint for the Year
+                  </p>
+                  <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                    The old custom: one patron for the year. Sanctum marks their feast when it
+                    comes, and keeps them one tap away. Kept on this device only.
+                  </p>
+                  {patron && !patronPickerOpen && (
+                    <div className="mb-2">
+                      <PatronPlate
+                        patron={patron}
+                        audience={audience}
+                        colors={{
+                          border,
+                          fill: 'transparent',
+                          card,
+                          textBright,
+                          textMuted,
+                          textDim,
+                          accent,
+                        }}
+                        onOpenCompanion={onOpenCompanion ? (p) => { onClose(); onOpenCompanion(p); } : undefined}
+                      />
+                    </div>
+                  )}
+                  {patronPickerOpen ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={patronQuery}
+                        onChange={(e) => setPatronQuery(e.target.value)}
+                        placeholder="Search the saints"
+                        aria-label="Search the saints"
+                        className="w-full bg-transparent border rounded-lg px-3 py-2 text-[13px] leading-relaxed outline-none mb-2"
+                        style={{ borderColor: accent, color: textBright }}
+                      />
+                      <div className="max-h-56 overflow-y-auto chat-scroll space-y-1">
+                        {SAINTS.filter((s) => s.name.toLowerCase().includes(patronQuery.trim().toLowerCase())).map((saint, i) => (
+                          <button
+                            key={`${saint.name}-${saint.feastDate}-${i}`}
+                            onClick={() => { setPatron(saint); savePatronSaint(saint); setPatronPickerOpen(false); }}
+                            className="w-full flex items-baseline justify-between gap-2 px-2.5 py-2 rounded-lg text-left transition-opacity hover:opacity-70"
+                            style={{ backgroundColor: borderRgba50 }}
+                          >
+                            <span className="text-[13px] font-semibold" style={{ color: textBright }}>{saint.name}</span>
+                            <span className="text-[12px] flex-shrink-0" style={{ color: textDim }}>{patronFeastLabel(saint)}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setPatronPickerOpen(false)}
+                        className="w-full mt-2 py-2 rounded-lg text-[12px] font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
+                        style={{ color: textMuted }}
+                      >
+                        Close the list
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setPatronPickerOpen(true)}
+                        className="flex-1 py-2 px-2 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
+                        style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
+                      >
+                        {patron ? 'Choose another' : 'Choose a patron'}
+                      </button>
+                      {patron && (
+                        <button
+                          onClick={() => { setPatron(null); savePatronSaint(null); }}
+                          className="py-2 px-3 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
+                          style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
+              <div className="flex items-start gap-2">
+                <Church className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
+                <div className="flex-1">
+                  <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: textBright }}>
+                    My Usual Mass
+                  </p>
+                  <p className="text-[13px] leading-relaxed mb-2" style={{ color: textMuted }}>
+                    Your parish and your usual Mass. The evening before it, Tonight looks ahead to
+                    it by name. Kept on this device only — nothing about attendance is ever kept.
+                  </p>
+                  <input
+                    type="text"
+                    value={massParish}
+                    maxLength={USUAL_MASS_PARISH_MAX}
+                    onChange={(e) => { setMassParish(e.target.value); setMassSaved(false); }}
+                    placeholder="Parish name"
+                    aria-label="Parish name"
+                    className="w-full bg-transparent border rounded-lg px-3 py-2 text-[13px] leading-relaxed outline-none mb-2"
+                    style={{ borderColor: accent, color: textBright }}
+                  />
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="time"
+                      value={massTime}
+                      onChange={(e) => { setMassTime(e.target.value); setMassSaved(false); }}
+                      aria-label="Mass time"
+                      className="bg-transparent border rounded-lg px-3 py-2 text-[13px] leading-relaxed outline-none"
+                      style={{ borderColor: accent, color: textBright }}
+                    />
+                    <div className="grid grid-cols-2 gap-2 flex-1">
+                      {([
+                        { id: 'sunday', label: 'Sunday' },
+                        { id: 'saturday', label: 'Sat vigil' },
+                      ] as const).map((opt) => {
+                        const selected = massDay === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            onClick={() => { setMassDay(opt.id); setMassSaved(false); }}
+                            aria-pressed={selected}
+                            className="py-2 px-2 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
+                            style={{
+                              backgroundColor: selected ? accent : 'transparent',
+                              borderColor: accent,
+                              color: selected ? '#fff' : textMuted,
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (massParish.trim() && massTime) {
+                          saveUsualMass({ parish: massParish, time: massTime, day: massDay });
+                          setMassSaved(true);
+                        }
+                      }}
+                      className="flex-1 py-2 px-2 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
+                      style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
+                    >
+                      {massSaved ? `Kept — ${formatMassTime(massTime)} at ${massParish.trim()}` : 'Keep this Mass'}
+                    </button>
+                    {massSaved && (
+                      <button
+                        onClick={() => { saveUsualMass(null); setMassParish(''); setMassTime(''); setMassDay('sunday'); setMassSaved(false); }}
+                        className="py-2 px-3 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all"
+                        style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="pt-2 space-y-3">
             <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>

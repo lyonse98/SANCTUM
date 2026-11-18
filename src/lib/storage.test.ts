@@ -59,6 +59,13 @@ const KNOWN_KEYS = [
   'sanctum_letters',
   'sanctum_letter_threads',
   'sanctum_challenges_lived',
+  'sanctum_favorite_companion_men',
+  'sanctum_favorite_companion_women',
+  'sanctum_listen_speed',
+  'sanctum_reading_size',
+  'sanctum_patron_saint',
+  'sanctum_reader_name',
+  'sanctum_usual_mass',
 ];
 
 beforeEach(() => {

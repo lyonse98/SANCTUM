@@ -6,6 +6,7 @@ import { DAY_START_HOUR } from '@/lib/dayBoundary';
 import { PERSONA_DISPLAY, personaHasBell } from '@/lib/narratorCore';
 import { narratorDisclosureLine } from '@/lib/privacyCopy';
 import { recordCoreAct } from '@/lib/daysPrayed';
+import { listenSpeedLabel, loadListenSpeed, nextListenSpeed, saveListenSpeed, type ListenSpeed } from '@/lib/listenSpeed';
 import { PRINT_SERIF } from '@/lib/print';
 import { loadPushReminder } from '@/lib/push';
 import {
@@ -97,6 +98,10 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
   const [showDisclosureNote, setShowDisclosureNote] = useState(false);
   const [showListenPrompt, setShowListenPrompt] = useState(false);
   const [playing, setPlaying] = useState(false);
+  // The listening speed (Erik, Nov 18, 2026): the stored preference,
+  // applied to the element at its creation and whenever the toggle
+  // walks it — one preference for every narrator playback in the app.
+  const [speed, setSpeed] = useState<ListenSpeed>(() => loadListenSpeed());
   const [elapsed, setElapsed] = useState(0);
   const [total, setTotal] = useState(0);
   // While the listener drags the seek slider, this holds the scrub position so
@@ -182,6 +187,7 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
     if (!elRef.current) {
       const el = new Audio();
       el.preload = 'auto';
+      el.playbackRate = loadListenSpeed();
       el.addEventListener('timeupdate', () => {
         setElapsed(baseOffsetRef.current + el.currentTime);
         syncPositionState();
@@ -409,6 +415,15 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
     void prepareAndPlay();
   };
 
+  /** The speed toggle: walk the offered speeds, keep the choice on the
+   *  device, and apply it to the playing element in the same tap. */
+  const cycleSpeed = () => {
+    const next = nextListenSpeed(speed);
+    setSpeed(next);
+    saveListenSpeed(next);
+    if (elRef.current) elRef.current.playbackRate = next;
+  };
+
   const handleRestart = () => {
     const el = element();
     if (modeRef.current === 'sequence') {
@@ -499,6 +514,15 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
           />
         )}
       </div>
+      <button
+        onClick={cycleSpeed}
+        aria-label={`Listening speed ${listenSpeedLabel(speed)} — tap to change`}
+        title="Listening speed"
+        className="flex-shrink-0 px-1.5 py-1 text-[12px] font-bold transition-opacity hover:opacity-70"
+        style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+      >
+        {listenSpeedLabel(speed)}
+      </button>
       {preparedRef.current && (
         <button
           onClick={handleRestart}

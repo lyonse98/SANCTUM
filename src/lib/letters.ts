@@ -5,6 +5,7 @@ import { fetchPassageVerses } from './bible';
 import { pickKeyVerse } from './keyVerse';
 import { latestLetterThread } from './letterThreads';
 import { loadTailorProfile, northStarLabel } from './tailorProfile';
+import { loadReaderName } from './readerName';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import type { Audience } from '@/types';
 
@@ -181,7 +182,9 @@ export function eligibleLetterPersona(
  * conversation is NEVER a source — this module reads no chat history and
  * no message state; what was said to a companion stays with that
  * companion. When no Tailor thread exists, no tailor fields are sent and
- * the letter falls back to its impersonal form.
+ * the letter falls back to its impersonal form. The reader's name
+ * joined the allowlist on Nov 18, 2026 — read from its own store, as
+ * the name itself, so the letter may open with it.
  */
 export interface LetterPacket {
   gospelCitation?: string;
@@ -192,6 +195,7 @@ export interface LetterPacket {
   tailorFocus?: string;
   tailorTone?: string;
   northStar?: string;
+  name?: string;
 }
 
 export async function buildLetterPacket(audience: Audience): Promise<LetterPacket> {
@@ -219,6 +223,13 @@ export async function buildLetterPacket(audience: Audience): Promise<LetterPacke
   // thread exists, because it was chosen to steer, not offered for a day.
   const star = northStarLabel(loadTailorProfile(audience).northStar);
   if (star) packet.northStar = star;
+  // The reader's name (Erik, Nov 18, 2026) — the ninth allowlisted
+  // field: given by the reader in Settings and kept in its own store,
+  // it rides as the name itself, so the letter may open with it. Like
+  // the star it stands on its own; the framing line is unchanged,
+  // because a name in a greeting is not a source the letter drew on.
+  const readerName = loadReaderName();
+  if (readerName) packet.name = readerName;
   return packet;
 }
 

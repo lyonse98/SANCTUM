@@ -1,6 +1,7 @@
 import type { Audience, Message } from '@/types';
 import { loadAudience } from '@/lib/audience';
 import { loadTailorProfile, northStarLabel } from '@/lib/tailorProfile';
+import { loadReaderName } from '@/lib/readerName';
 import { SourcesTrailerParser, type ChatSource } from '@/lib/chatSources';
 
 interface StreamCallbacks {
@@ -84,6 +85,11 @@ export async function streamChat(
     // profile, resolved to its phrasing on this device, null when unset.
     // This module reads the profile store for this field and nothing else.
     const northStar = northStarLabel(loadTailorProfile(audience).northStar);
+    // The reader's name (Erik, Nov 18, 2026): given by the reader in
+    // Settings, kept in its own small store — this module reads that
+    // store for the name and nothing else. It rides as the name itself,
+    // so a companion may use it sparingly; null when unset.
+    const name = loadReaderName();
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-proxy`;
     const res = await fetch(apiUrl, {
       method: 'POST',
@@ -100,6 +106,7 @@ export async function streamChat(
         distress: context?.distress === true,
         audience,
         northStar,
+        name,
       }),
       signal,
     });

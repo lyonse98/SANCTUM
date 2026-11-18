@@ -43,6 +43,19 @@ export function gratitudeForDate(dateKey: string): string {
 }
 
 /**
+ * Tonight's greeting (Erik, Nov 18, 2026): the day's gratitude line,
+ * addressed to the reader by name when they have given one — the name
+ * set into the line's own opening, the way an evening greeting is
+ * spoken. With no name given, the line is the gratitude line itself,
+ * word for word what it has always been.
+ */
+export function tonightGreeting(dateKey: string, name: string | null): string {
+  const line = gratitudeForDate(dateKey);
+  if (!name) return line;
+  return `${name}, ${line.charAt(0).toLowerCase()}${line.slice(1)}`;
+}
+
+/**
  * No saint line (Erik, Nov 14, 2026): Saint of the Day was demoted in the
  * reconfiguration, so the closing refers to no saint at all, on any day.
  * (The narrator's spoken celebration lines are a different surface — they

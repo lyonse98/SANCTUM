@@ -29,6 +29,7 @@ import {
 } from '@/lib/reflection';
 import { PRINT_PLATE_CLASS, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import { recordCoreAct } from '@/lib/daysPrayed';
+import { scaledBodyPx, useReadingSize } from '@/lib/readingSize';
 import {
   isChallengeLived,
   markChallengeLived,
@@ -83,6 +84,12 @@ export function orderedReadingRows(readings: DailyReadings, texts: ReadingTexts 
 }
 
 export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder }: DailyQuoteProps) {
+  // The reading size (Erik, Nov 18, 2026): the card's devotional body
+  // text — the key verse, the full readings, the reflection, the
+  // challenge — is set at the reader's chosen size; labels and doors
+  // keep theirs. Standard is the size the card has always worn.
+  const readingSize = useReadingSize();
+  const bodyPx = (base: number) => scaledBodyPx(base, readingSize);
   const quote = useMemo(() => quoteForDay(contentDate(), audience), [audience]);
   const feast = useMemo(() => getFeastForDate(contentDate()), []);
   // Rubrication (the printed-page re-skin, Erik, Nov 14, 2026): on feasts and
@@ -381,10 +388,11 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
             The Gospel &middot; {keyVerse.citation}
           </p>
           <p
-            className="text-[17px] leading-relaxed mb-3"
+            className="leading-relaxed mb-3"
             style={{
               fontFamily: PRINT_SERIF,
               color: t.textBright,
+              fontSize: bodyPx(17),
               // A short verse still gives the floated cap its full height.
               minHeight: kvDropCap ? '2.55em' : undefined,
             }}
@@ -421,8 +429,8 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
             A word for today
           </p>
           <p
-            className="text-sm italic leading-relaxed mb-2"
-            style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
+            className="italic leading-relaxed mb-2"
+            style={{ fontFamily: PRINT_SERIF, color: t.textBright, fontSize: bodyPx(14) }}
           >
             &ldquo;{quote.text}&rdquo;
           </p>
@@ -472,8 +480,8 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                   {row.label} &middot; {row.passage!.citation}
                 </p>
                 <p
-                  className="text-sm leading-relaxed"
-                  style={{ fontFamily: PRINT_SERIF, color: row.label === 'Gospel' ? t.textBright : t.text }}
+                  className="leading-relaxed"
+                  style={{ fontFamily: PRINT_SERIF, color: row.label === 'Gospel' ? t.textBright : t.text, fontSize: bodyPx(14) }}
                 >
                   {row.passage!.text}
                 </p>
@@ -542,7 +550,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                 >
                   Reflect{shown.value.facet ? ` \u00b7 ${shown.value.facet}` : ''}
                 </p>
-                <p className="text-[13px] leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+                <p className="leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.textMuted, fontSize: bodyPx(13) }}>
                   {shown.value.reflect}
                 </p>
               </div>
@@ -553,7 +561,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                 >
                   Challenge
                 </p>
-                <p className="text-[13px] leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
+                <p className="leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.text, fontSize: bodyPx(13) }}>
                   {shown.value.challenge}
                 </p>
                 {challengeLived ? (

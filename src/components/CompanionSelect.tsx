@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ChevronRight, Compass } from 'lucide-react';
+import { ChevronRight, Compass, Pin, PinOff } from 'lucide-react';
 import { personasForAudience } from '@/personas';
+import { loadFavoriteCompanion, saveFavoriteCompanion } from '@/lib/favoriteCompanion';
 import { CompanionAvatar } from '@/components/CompanionAvatar';
 import { CompanionRouter } from '@/components/CompanionRouter';
 import { PrintPageHead } from '@/components/PrintPageHead';
@@ -40,6 +41,18 @@ export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }
   const [routerOpen, setRouterOpen] = useState(false);
   const defaultTheme = theme;
 
+  // The favorite companion (Erik, Nov 18, 2026): one pin per track, kept
+  // on this device. The pinned companion stands at the head of the page
+  // as its own plate, one tap from the conversation; the pin itself is
+  // set or cleared by the small control on each companion's row.
+  const [favoriteId, setFavoriteId] = useState<string | null>(() => loadFavoriteCompanion(audience));
+  const favorite = favoriteId ? (cast.find((p) => p.id === favoriteId) ?? null) : null;
+  const togglePin = (persona: Persona) => {
+    const next = favoriteId === persona.id ? null : persona.id;
+    setFavoriteId(next);
+    saveFavoriteCompanion(audience, next);
+  };
+
   // The counsel line — both casts carry their needs, in their own
   // register: her companions carry `issues`, written for her; his carry
   // the `struggles` they have always carried. The line is the entry's
@@ -63,6 +76,37 @@ export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }
             2026) — the first thing on the surface, above the quiz and the
             list, for the visitor who came here in trouble. */}
         <CrisisLine muted={defaultTheme.textMuted} bright={defaultTheme.textBright} className="w-full mb-5" />
+
+        {/* Your companion — the pinned one, at the very top (Erik,
+            Nov 18, 2026): the plate resumes the conversation in one
+            tap. Nothing renders here when no companion is pinned. */}
+        {favorite && (
+          <button
+            data-favorite-companion
+            onClick={() => onSelect(favorite)}
+            className={`${PRINT_PLATE_CLASS} mb-6`}
+            style={{ border: `1px solid ${defaultTheme.accent}`, backgroundColor: `${defaultTheme.border}1F` }}
+          >
+            <span className="portrait-arch-banner flex-shrink-0 rounded-full overflow-hidden">
+              <CompanionAvatar personaId={favorite.id} theme={favorite.theme} size={44} />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span
+                className="block text-[12px] font-bold uppercase tracking-[0.2em]"
+                style={{ fontFamily: PRINT_SERIF, color: defaultTheme.accent }}
+              >
+                Your companion
+              </span>
+              <span className="block text-[15px] font-semibold mt-0.5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textBright }}>
+                {favorite.name}
+              </span>
+              <span className="block text-[13px] leading-snug" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textMuted }}>
+                Pick up the conversation where it stands.
+              </span>
+            </span>
+            <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: defaultTheme.accent }} strokeWidth={2.5} aria-hidden="true" />
+          </button>
+        )}
 
         <p className="text-sm leading-relaxed text-center max-w-sm mx-auto mb-5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textMuted }}>
           Each one has walked the road you're on. Answer three quick questions to find your fit, or pick a voice yourself.
@@ -94,48 +138,68 @@ export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }
             the counsel line as the hint. */}
         <div className="w-full space-y-2">
           {cast.map((persona) => (
-            <button
+            <div
               key={persona.id}
-              onClick={() => onSelect(persona)}
-              className={ROW_CLASS}
+              className="flex items-stretch"
               style={{ border: `1px solid ${defaultTheme.border}`, backgroundColor: `${defaultTheme.border}1F` }}
             >
-              {/* The medallion — the portrait in its frame. The frame
-                  class is the one the select screen has always worn:
-                  a circle on his track, the cathedral arch on hers. */}
-              <span className="portrait-arch-banner flex-shrink-0 rounded-full overflow-hidden mt-0.5">
-                <CompanionAvatar personaId={persona.id} theme={persona.theme} size={44} />
-              </span>
-              <span className="flex-1 min-w-0">
-                <span className="flex items-baseline gap-2 flex-wrap">
-                  <span
-                    className="text-[15px] font-semibold"
-                    style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textBright }}
-                  >
-                    {persona.name}
+              <button
+                onClick={() => onSelect(persona)}
+                className={`${ROW_CLASS} flex-1`}
+              >
+                {/* The medallion — the portrait in its frame. The frame
+                    class is the one the select screen has always worn:
+                    a circle on his track, the cathedral arch on hers. */}
+                <span className="portrait-arch-banner flex-shrink-0 rounded-full overflow-hidden mt-0.5">
+                  <CompanionAvatar personaId={persona.id} theme={persona.theme} size={44} />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-baseline gap-2 flex-wrap">
+                    <span
+                      className="text-[15px] font-semibold"
+                      style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textBright }}
+                    >
+                      {persona.name}
+                    </span>
+                    <span
+                      className="text-[12px] uppercase tracking-widest font-bold"
+                      style={{ color: defaultTheme.textDim }}
+                    >
+                      {persona.title}
+                    </span>
                   </span>
                   <span
-                    className="text-[12px] uppercase tracking-widest font-bold"
-                    style={{ color: defaultTheme.textDim }}
+                    className="block text-[13px] leading-snug mt-0.5"
+                    style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textMuted }}
                   >
-                    {persona.title}
+                    {persona.description}
+                  </span>
+                  <span
+                    className="block text-[12px] italic mt-1"
+                    style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}
+                  >
+                    {needsOf(persona).join(' · ')}
                   </span>
                 </span>
-                <span
-                  className="block text-[13px] leading-snug mt-0.5"
-                  style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textMuted }}
-                >
-                  {persona.description}
-                </span>
-                <span
-                  className="block text-[12px] italic mt-1"
-                  style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}
-                >
-                  {needsOf(persona).join(' · ')}
-                </span>
-              </span>
-              <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: defaultTheme.accent }} strokeWidth={2.5} aria-hidden="true" />
-            </button>
+                <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: defaultTheme.accent }} strokeWidth={2.5} aria-hidden="true" />
+              </button>
+              {/* The pin — the row's one small control (Erik, Nov 18,
+                  2026): pin this companion to the head of the page, or
+                  clear the pin. Quiet by design; the plate at the top
+                  is where the pin speaks. */}
+              <button
+                onClick={() => togglePin(persona)}
+                aria-pressed={favoriteId === persona.id}
+                aria-label={favoriteId === persona.id ? `Unpin ${persona.name}` : `Pin ${persona.name} as your companion`}
+                title={favoriteId === persona.id ? 'Your companion — tap to unpin' : 'Make this your companion'}
+                className="flex-shrink-0 px-2.5 flex items-start pt-3.5 transition-opacity hover:opacity-70"
+                style={{ color: favoriteId === persona.id ? defaultTheme.accent : defaultTheme.textDim }}
+              >
+                {favoriteId === persona.id
+                  ? <PinOff className="w-4 h-4" aria-hidden="true" />
+                  : <Pin className="w-4 h-4" aria-hidden="true" />}
+              </button>
+            </div>
           ))}
         </div>
 

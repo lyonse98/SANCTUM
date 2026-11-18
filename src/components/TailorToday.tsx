@@ -32,6 +32,7 @@ import {
 } from '@/data/tailorBank';
 import { tailorOffered } from '@/lib/tailorAccess';
 import { recordCoreAct } from '@/lib/daysPrayed';
+import { listenSpeedLabel, loadListenSpeed, nextListenSpeed, saveListenSpeed, type ListenSpeed } from '@/lib/listenSpeed';
 import {
   isChallengeLived,
   markChallengeLived,
@@ -556,6 +557,9 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
   // ── Playback (a plain single stream — the tailored render is one file) ──
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const urlRef = useRef<string | null>(null);
+  // The listening speed (Erik, Nov 18, 2026): the same stored preference
+  // the daily Listen bar keeps — one speed for every narrator playback.
+  const [speed, setSpeed] = useState<ListenSpeed>(() => loadListenSpeed());
   const [playing, setPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -574,6 +578,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
     if (!url) return;
     urlRef.current = url;
     const el = new Audio(url);
+    el.playbackRate = loadListenSpeed();
     audioRef.current = el;
     const onTime = () => setElapsed(el.currentTime);
     const onMeta = () => setDuration(Number.isFinite(el.duration) ? el.duration : devotional.audioSeconds);
@@ -609,6 +614,15 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
     if (!el) return;
     el.currentTime = 0;
     void el.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+  };
+
+  /** The speed toggle: walk the offered speeds, keep the choice on the
+   *  device, and apply it to the playing element in the same tap. */
+  const cycleSpeed = () => {
+    const next = nextListenSpeed(speed);
+    setSpeed(next);
+    saveListenSpeed(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
   };
 
   // One stitched stream: a seek is a direct currentTime set, play/pause
@@ -910,6 +924,15 @@ export function TailorToday({ t, audience, dateKey, startOpen = false }: TailorT
                 {fmt(displayElapsed)} / {fmt(duration || devotional.audioSeconds)}
               </p>
             </div>
+            <button
+              onClick={cycleSpeed}
+              aria-label={`Listening speed ${listenSpeedLabel(speed)} — tap to change`}
+              title="Listening speed"
+              className="flex-shrink-0 px-1 py-1 text-[12px] font-bold transition-opacity hover:opacity-70"
+              style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+            >
+              {listenSpeedLabel(speed)}
+            </button>
             <button
               onClick={restart}
               aria-label="Restart"
