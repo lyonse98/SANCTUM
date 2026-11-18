@@ -334,7 +334,11 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
         </span>
       </div>
 
-      {readings?.celebration && (
+      {/* The day's celebration, named beside its rank — except on an
+          optional memorial (Erik, Nov 18, 2026): the day's name stands
+          nowhere on the card's default face that day; it is named only
+          inside the expanded readings below, and in the narration. */}
+      {readings?.celebration && feast?.rank !== 'optional-memorial' && (
         <div className="flex items-baseline gap-2 mb-3">
           <span
             className="text-[12px] uppercase tracking-widest font-bold flex-shrink-0"
@@ -465,6 +469,19 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
 
       {expanded && readings && (
         <div className="space-y-4 pt-3 mt-3 border-t animate-fade-in" style={{ borderColor: `${t.border}66` }}>
+          {/* An optional memorial is named here, and only here on the
+              card (Erik, Nov 18, 2026): one quiet line at the head of
+              the readings the reader chose to open. */}
+          {feast?.rank === 'optional-memorial' && (
+            <p
+              data-optional-memorial-line
+              className="text-[12px] italic"
+              style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+            >
+              {feastRankLabel(feast.rank)} of {feast.name}
+            </p>
+          )}
+
           {loadingAll && !allTexts && (
             <div className="flex items-center gap-2" style={{ color: t.textDim }}>
               <Loader2 className="w-3 h-3 animate-spin" />

@@ -45,6 +45,13 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
   // below stays on the man's own clock — it speaks of his hour, not the day's.
   const season = useMemo(() => getCurrentSeason(contentDate()), []);
   const visual = useMemo(() => getDailyVisual(contentDate()), []);
+  // An optional memorial is not named on the day's face (Erik, Nov 18,
+  // 2026): the masthead line reads exactly as it does on a ferial day —
+  // the season's own description — and the day is named only inside the
+  // expanded readings and in the spoken program. Obligatory memorials,
+  // feasts, and solemnities keep the naming line as it has always stood.
+  const mastheadNote =
+    visual.feastRank === 'optional-memorial' ? season.description : (visual.feastNote ?? season.description);
   // The Illuminated Garden — non-null only on the women's track, and only on a
   // solemnity or one of Our Lady's days; null (nothing rendered) everywhere else.
   const feastArt = useMemo(() => getFeastArt(contentDate(), audience), [audience]);
@@ -168,7 +175,7 @@ export function TodayHero({ t, accent, audience, onOpenHelp }: TodayHeroProps) {
         <div className="flex flex-col items-center gap-1.5">
           <SeasonBadge />
           <p className="text-[13px] text-forge-text-dim text-center max-w-xs leading-relaxed">
-            {visual.feastNote ?? season.description}
+            {mastheadNote}
           </p>
           {patronToday && (
             <p
