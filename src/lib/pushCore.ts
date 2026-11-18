@@ -14,12 +14,16 @@ export const PUSH_TITLE = 'Sanctum';
 export const PUSH_BODY = 'Your Gospel and reflection are ready.';
 
 /**
- * The stored vocabulary of reminder focuses — the same vocabulary as the email reminder.
- * Since Erik's ruling of Nov 16, 2026 the reminder has exactly ONE landing (the day's
- * Gospel — see FOCUS_ROUTES and deepLinkUrlForFocus below); the other three keys survive
- * only so subscriptions and links created before the ruling still parse.
+ * The vocabulary of reminder focuses — the same vocabulary as the email reminder.
+ * Since Erik's ruling of Nov 16, 2026 the daily reminder has exactly ONE landing (the
+ * day's Gospel — see FOCUS_ROUTES and deepLinkUrlForFocus below); the other three
+ * legacy keys survive only so subscriptions and links created before the ruling still
+ * parse. Nov 18, 2026 added four landing-only keys for the newer pokes — 'mass',
+ * 'confession', 'drivehome', 'tailor'. They are never a subscription's stored daily
+ * focus (the database still constrains that column to the legacy four); they exist
+ * so those pokes' taps land where their words promise.
  */
-export const PUSH_FOCUS_KEYS = ['gospel', 'examen', 'rosary', 'rule'] as const;
+export const PUSH_FOCUS_KEYS = ['gospel', 'examen', 'rosary', 'rule', 'mass', 'confession', 'drivehome', 'tailor'] as const;
 export type PushFocus = (typeof PUSH_FOCUS_KEYS)[number];
 export const DEFAULT_PUSH_FOCUS: PushFocus = 'gospel';
 
@@ -42,6 +46,8 @@ export interface FocusRoute {
   churchPray?: string;
   /** Land on Today with the Tonight closing revealed, even outside the evening hours. */
   todayExamen?: boolean;
+  /** Land on Today with the Gospel card's Tailor panel open. */
+  todayTailor?: boolean;
 }
 
 export const FOCUS_ROUTES: Record<PushFocus, FocusRoute> = {
@@ -49,15 +55,35 @@ export const FOCUS_ROUTES: Record<PushFocus, FocusRoute> = {
   examen: { tab: 'today' },
   rosary: { tab: 'today' },
   rule: { tab: 'today' },
+  mass: { tab: 'today' },
+  confession: { tab: 'church', churchTab: 'confession' },
+  drivehome: { tab: 'today', todayExamen: true },
+  tailor: { tab: 'today', todayTailor: true },
 };
 
 /**
- * The URL the notification opens. One landing since Nov 16, 2026: the Gospel, carrying
- * the `#daily-gospel` fragment the Today screen honours by scrolling the readings into
- * view. Whatever focus an old subscription still holds, this is where its tap goes.
+ * The URL the notification opens. The daily reminder has one landing since
+ * Nov 16, 2026: the Gospel, carrying the `#daily-gospel` fragment the Today
+ * screen honours by scrolling the readings into view — whatever legacy focus
+ * an old subscription still holds, this is where its tap goes. The newer
+ * pokes (Nov 18, 2026) carry their own landings: the Mass poke also points
+ * at the Gospel (the readings are what a man takes to Mass), the Confession
+ * poke opens Pocket Church's Confession door, the drive-home poke opens
+ * Tonight, and the tailor-ready poke opens the Tailor panel.
  */
-export function deepLinkUrlForFocus(_focus: string): string {
-  return '/?focus=gospel#daily-gospel';
+export function deepLinkUrlForFocus(focus: string): string {
+  switch (focus) {
+    case 'mass':
+      return '/?focus=mass#daily-gospel';
+    case 'confession':
+      return '/?focus=confession';
+    case 'drivehome':
+      return '/?focus=drivehome';
+    case 'tailor':
+      return '/?focus=tailor';
+    default:
+      return '/?focus=gospel#daily-gospel';
+  }
 }
 
 export interface PushPayload {
@@ -67,10 +93,29 @@ export interface PushPayload {
   focus: PushFocus;
 }
 
+/**
+ * The newer pokes' fixed words (Nov 18, 2026) — as fixed as the daily
+ * poke's: a lock screen is a public place, so each says what is coming and
+ * nothing personal, ever. The Mass and Confession pokes name no parish
+ * (the server has never been told it); the tailor-ready poke names no
+ * content of the build it announces.
+ */
+export const MASS_PUSH_BODY = 'Mass at your parish is coming up.';
+export const CONFESSION_PUSH_BODY = 'Confession time at your parish is coming up.';
+export const DRIVE_HOME_PUSH_BODY = 'Time to close the day.';
+export const TAILOR_READY_PUSH_BODY = 'Your tailored devotional is ready to listen to.';
+
+const SLOT_PUSH_BODIES: Partial<Record<PushFocus, string>> = {
+  mass: MASS_PUSH_BODY,
+  confession: CONFESSION_PUSH_BODY,
+  drivehome: DRIVE_HOME_PUSH_BODY,
+  tailor: TAILOR_READY_PUSH_BODY,
+};
+
 /** Builds exactly what the service worker is allowed to show. No other text ever ships. */
 export function buildPushPayload(focus: string): PushPayload {
   const safe: PushFocus = isPushFocus(focus) ? focus : DEFAULT_PUSH_FOCUS;
-  return { title: PUSH_TITLE, body: PUSH_BODY, url: deepLinkUrlForFocus(safe), focus: safe };
+  return { title: PUSH_TITLE, body: SLOT_PUSH_BODIES[safe] ?? PUSH_BODY, url: deepLinkUrlForFocus(safe), focus: safe };
 }
 
 /** Reads the focus out of a page URL's query string (`?focus=examen`); null when absent or unknown. */
@@ -208,4 +253,110 @@ export function evaluateEveningDue(sub: PushEveningTiming, now: Date): DueEvalua
 
 export function isEveningDue(sub: PushEveningTiming, now: Date): boolean {
   return evaluateEveningDue(sub, now).due;
+}
+
+/** The day of week (0 = Sunday … 6 = Saturday) of a local calendar date — a property of the date itself, not of any timezone. */
+function dayOfWeekOfDateKey(dateKey: string): number {
+  const [y, m, d] = dateKey.split('-').map((part) => Number(part));
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+/** Whole days since the epoch for a local calendar date — the ruler the weekly math measures on. */
+function dateKeyToDayIndex(dateKey: string): number {
+  const [y, m, d] = dateKey.split('-').map((part) => Number(part));
+  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
+}
+
+/** How long after the event itself a weekly poke may still land — a late tick is a nudge, not a post-mortem. */
+export const WEEKLY_GRACE_MINUTES = 30;
+
+/**
+ * Is a weekly poke owed on this dispatch tick? (The parish Mass and
+ * Confession reminders, Erik, Nov 18, 2026.)
+ *
+ * The event is a weekly local datetime — a day of week and an 'HH:MM' in
+ * the subscription's timezone — and the poke belongs to the moment `leadMin`
+ * minutes BEFORE it. That moment may fall on the previous local date (an
+ * early Mass with a two-hour lead is reminded the night before), so the
+ * arithmetic is done in absolute local minutes: the local date read as a
+ * day index, times 1440, plus the wall-clock minutes. Both occurrences
+ * that could own this tick — the most recent event day and the next one —
+ * are tested, and the poke is due from the reminder moment until half an
+ * hour past the event itself.
+ *
+ * The returned `localDateKey` is the EVENT's local date — the date written
+ * to the slot's sent marker — so the guard is per event, not per day the
+ * poke happened to land on. Daylight saving is handled the way the daily
+ * slots handle it: everything is compared in local wall-clock terms, and
+ * the marker refuses a duplicate.
+ */
+export function evaluateWeeklyDue(
+  now: Date,
+  timeZone: string,
+  dayOfWeek: number,
+  timeHHMM: string,
+  leadMin: number,
+  lastSentOn: string | null,
+): DueEvaluation {
+  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) return { due: false, localDateKey: '' };
+  if (!isValidLocalTime(timeHHMM)) return { due: false, localDateKey: '' };
+  if (!Number.isInteger(leadMin) || leadMin <= 0 || leadMin > 1440) return { due: false, localDateKey: '' };
+  let local: LocalNow;
+  try {
+    local = localNowParts(now, timeZone);
+  } catch {
+    return { due: false, localDateKey: '' }; // an unparseable timezone never sends
+  }
+
+  const todayIndex = dateKeyToDayIndex(local.dateKey);
+  const nowAbs = todayIndex * 1440 + local.minutes;
+  const eventMinutes = localTimeToMinutes(timeHHMM);
+  const daysBack = (dayOfWeekOfDateKey(local.dateKey) - dayOfWeek + 7) % 7;
+
+  for (const eventIndex of [todayIndex - daysBack, todayIndex - daysBack + 7]) {
+    const eventAbs = eventIndex * 1440 + eventMinutes;
+    if (nowAbs >= eventAbs - leadMin && nowAbs < eventAbs + WEEKLY_GRACE_MINUTES) {
+      const eventDateKey = shiftDateKey(local.dateKey, eventIndex - todayIndex);
+      return { due: lastSentOn !== eventDateKey, localDateKey: eventDateKey };
+    }
+  }
+  return { due: false, localDateKey: local.dateKey };
+}
+
+export function isWeeklyDue(
+  now: Date,
+  timeZone: string,
+  dayOfWeek: number,
+  timeHHMM: string,
+  leadMin: number,
+  lastSentOn: string | null,
+): boolean {
+  return evaluateWeeklyDue(now, timeZone, dayOfWeek, timeHHMM, leadMin, lastSentOn).due;
+}
+
+/**
+ * The drive-home slot (Erik, Nov 18, 2026): a third daily poke at its own
+ * hour, opening Tonight for the ride home. Due-matching is the daily
+ * question asked of the drive hour with the drive slot's own marker — and
+ * deliberately WITHOUT the morning/evening pair's same-time guard: slots
+ * of different purposes are independent, so a drive hour that happens to
+ * equal the evening hour still fires for its own reason.
+ */
+export interface PushDriveTiming extends PushSubscriptionTiming {
+  /** 'HH:MM', the optional drive-home hour; null when no drive-home reminder is set. */
+  driveTime: string | null;
+  /** 'YYYY-MM-DD' in the subscriber's timezone — the local date of the last delivered drive-home poke. */
+  driveLastSentOn: string | null;
+}
+
+export function evaluateDriveDue(sub: PushDriveTiming, now: Date): DueEvaluation {
+  if (!isValidLocalTime(sub.driveTime)) return { due: false, localDateKey: '' };
+  return evaluateDue(
+    { tz: sub.tz, localTime: sub.driveTime, lastSentOn: sub.driveLastSentOn },
+    now,
+  );
+}
+
+export function isDriveDue(sub: PushDriveTiming, now: Date): boolean {
+  return evaluateDriveDue(sub, now).due;
 }

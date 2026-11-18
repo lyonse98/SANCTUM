@@ -1,17 +1,25 @@
 import { execFileSync } from 'node:child_process';
 import { describe, it, expect } from 'vitest';
 import {
+  CONFESSION_PUSH_BODY,
+  DRIVE_HOME_PUSH_BODY,
+  MASS_PUSH_BODY,
   PUSH_BODY,
   PUSH_FOCUS_KEYS,
   PUSH_TITLE,
+  TAILOR_READY_PUSH_BODY,
   buildPushPayload,
   deepLinkUrlForFocus,
+  evaluateDriveDue,
   evaluateDue,
   evaluateEveningDue,
+  evaluateWeeklyDue,
+  isDriveDue,
   isDue,
   isEveningDue,
   isPushFocus,
   isValidLocalTime,
+  isWeeklyDue,
   localNowParts,
   parseFocusParam,
   FOCUS_ROUTES,
@@ -21,14 +29,28 @@ import { REMINDER_FOCUS_OPTIONS } from './reminderFocus';
 const LA = 'America/Los_Angeles';
 
 describe('push payload — the copy rule', () => {
-  it('says the one discreet thing, for every focus', () => {
-    for (const focus of PUSH_FOCUS_KEYS) {
+  it('says the one discreet thing, for every daily-reminder focus', () => {
+    for (const focus of ['gospel', 'examen', 'rosary', 'rule'] as const) {
       const payload = buildPushPayload(focus);
       expect(payload.title).toBe('Sanctum');
       expect(payload.title).toBe(PUSH_TITLE);
       expect(payload.body).toBe('Your Gospel and reflection are ready.');
       expect(payload.body).toBe(PUSH_BODY);
       expect(payload.focus).toBe(focus);
+    }
+  });
+
+  it('the newer pokes carry their own fixed words (Nov 18, 2026) — and nothing personal', () => {
+    expect(buildPushPayload('mass').body).toBe('Mass at your parish is coming up.');
+    expect(buildPushPayload('mass').body).toBe(MASS_PUSH_BODY);
+    expect(buildPushPayload('confession').body).toBe('Confession time at your parish is coming up.');
+    expect(buildPushPayload('confession').body).toBe(CONFESSION_PUSH_BODY);
+    expect(buildPushPayload('drivehome').body).toBe('Time to close the day.');
+    expect(buildPushPayload('drivehome').body).toBe(DRIVE_HOME_PUSH_BODY);
+    expect(buildPushPayload('tailor').body).toBe('Your tailored devotional is ready to listen to.');
+    expect(buildPushPayload('tailor').body).toBe(TAILOR_READY_PUSH_BODY);
+    for (const focus of PUSH_FOCUS_KEYS) {
+      expect(buildPushPayload(focus).title).toBe('Sanctum');
     }
   });
 
@@ -43,34 +65,56 @@ describe('push payload — the copy rule', () => {
 });
 
 describe('deep links', () => {
-  it('lands every focus on Today — the Gospel is the one landing (Nov 16, 2026)', () => {
+  it('lands every daily-reminder focus on Today — the Gospel is the one landing (Nov 16, 2026)', () => {
     expect(FOCUS_ROUTES.gospel).toEqual({ tab: 'today' });
     expect(FOCUS_ROUTES.examen).toEqual({ tab: 'today' });
     expect(FOCUS_ROUTES.rosary).toEqual({ tab: 'today' });
     expect(FOCUS_ROUTES.rule).toEqual({ tab: 'today' });
   });
 
-  it('the app offers exactly one focus, while the stored vocabulary keeps the legacy keys', () => {
-    expect(REMINDER_FOCUS_OPTIONS.map((o) => o.key)).toEqual(['gospel']);
-    expect([...PUSH_FOCUS_KEYS]).toEqual(['gospel', 'examen', 'rosary', 'rule']);
+  it('the newer pokes land where their words promise (Nov 18, 2026)', () => {
+    // The Mass poke points at the Gospel — the readings are what he takes to Mass.
+    expect(FOCUS_ROUTES.mass).toEqual({ tab: 'today' });
+    // The Confession poke opens Pocket Church's Confession door.
+    expect(FOCUS_ROUTES.confession).toEqual({ tab: 'church', churchTab: 'confession' });
+    // The drive-home poke opens Tonight; the tailor-ready poke opens the Tailor panel.
+    expect(FOCUS_ROUTES.drivehome).toEqual({ tab: 'today', todayExamen: true });
+    expect(FOCUS_ROUTES.tailor).toEqual({ tab: 'today', todayTailor: true });
   });
 
-  it('builds the URL the app will open — the Gospel URL, whatever the stored focus', () => {
+  it('the app offers exactly one daily focus, while the vocabulary keeps the legacy keys and gains the landing keys', () => {
+    expect(REMINDER_FOCUS_OPTIONS.map((o) => o.key)).toEqual(['gospel']);
+    expect([...PUSH_FOCUS_KEYS]).toEqual([
+      'gospel', 'examen', 'rosary', 'rule', 'mass', 'confession', 'drivehome', 'tailor',
+    ]);
+  });
+
+  it('builds the URL the app will open — the Gospel URL, whatever the stored daily focus', () => {
     expect(deepLinkUrlForFocus('gospel')).toBe('/?focus=gospel#daily-gospel');
     expect(deepLinkUrlForFocus('examen')).toBe('/?focus=gospel#daily-gospel');
     expect(deepLinkUrlForFocus('rosary')).toBe('/?focus=gospel#daily-gospel');
     expect(deepLinkUrlForFocus('rule')).toBe('/?focus=gospel#daily-gospel');
   });
 
+  it('builds the newer pokes their own URLs', () => {
+    expect(deepLinkUrlForFocus('mass')).toBe('/?focus=mass#daily-gospel');
+    expect(deepLinkUrlForFocus('confession')).toBe('/?focus=confession');
+    expect(deepLinkUrlForFocus('drivehome')).toBe('/?focus=drivehome');
+    expect(deepLinkUrlForFocus('tailor')).toBe('/?focus=tailor');
+    expect(deepLinkUrlForFocus('weather')).toBe('/?focus=gospel#daily-gospel');
+  });
+
   it('parses the focus back out of the query string', () => {
     expect(parseFocusParam('?focus=examen')).toBe('examen');
     expect(parseFocusParam('?focus=rosary&x=1')).toBe('rosary');
+    expect(parseFocusParam('?focus=confession')).toBe('confession');
+    expect(parseFocusParam('?focus=drivehome')).toBe('drivehome');
     expect(parseFocusParam('?focus=bogus')).toBeNull();
     expect(parseFocusParam('')).toBeNull();
     expect(parseFocusParam('?x=1')).toBeNull();
   });
 
-  it('recognises exactly the four focus keys', () => {
+  it('recognises exactly the eight focus keys', () => {
     for (const key of PUSH_FOCUS_KEYS) expect(isPushFocus(key)).toBe(true);
     expect(isPushFocus('scripture')).toBe(false);
     expect(isPushFocus(null)).toBe(false);
@@ -208,6 +252,121 @@ describe('evening due matching — the second poke (Nov 17, 2026)', () => {
     expect(isEveningDue({ ...sub, eveningTime: null }, new Date('2026-11-17T04:05:00Z'))).toBe(false);
     expect(isEveningDue({ ...sub, eveningTime: '25:00' }, new Date('2026-11-17T04:05:00Z'))).toBe(false);
     expect(isEveningDue({ ...sub, eveningTime: '8pm' }, new Date('2026-11-17T04:05:00Z'))).toBe(false);
+  });
+});
+
+describe('weekly due matching — the parish pokes (Nov 18, 2026)', () => {
+  // November in Los Angeles is PST (UTC-8). Nov 15, 2026 is a Sunday.
+  const SUNDAY = 0;
+  const SATURDAY = 6;
+
+  it('is due once the lead has run out before the event', () => {
+    // Sunday Mass 09:30, one hour ahead: the poke belongs to 08:30.
+    // 16:35 UTC = 08:35 PST on Sunday Nov 15.
+    const result = evaluateWeeklyDue(new Date('2026-11-15T16:35:00Z'), LA, SUNDAY, '09:30', 60, null);
+    expect(result.due).toBe(true);
+    expect(result.localDateKey).toBe('2026-11-15');
+    expect(isWeeklyDue(new Date('2026-11-15T16:35:00Z'), LA, SUNDAY, '09:30', 60, null)).toBe(true);
+  });
+
+  it('is not due before the reminder moment, nor after the grace past the event', () => {
+    // 08:20 local — the hour's lead has not run out yet.
+    expect(isWeeklyDue(new Date('2026-11-15T16:20:00Z'), LA, SUNDAY, '09:30', 60, null)).toBe(false);
+    // 09:45 local — inside the half hour after Mass begins, still a nudge.
+    expect(isWeeklyDue(new Date('2026-11-15T17:45:00Z'), LA, SUNDAY, '09:30', 60, null)).toBe(true);
+    // 10:05 local — the grace has passed; a poke now would be a post-mortem.
+    expect(isWeeklyDue(new Date('2026-11-15T18:05:00Z'), LA, SUNDAY, '09:30', 60, null)).toBe(false);
+  });
+
+  it('the sent marker is the event date — and only that event', () => {
+    const now = new Date('2026-11-15T16:35:00Z');
+    expect(isWeeklyDue(now, LA, SUNDAY, '09:30', 60, '2026-11-15')).toBe(false);
+    // Last Sunday's marker does not block this Sunday.
+    expect(isWeeklyDue(now, LA, SUNDAY, '09:30', 60, '2026-11-08')).toBe(true);
+  });
+
+  it('a weekday that is not the event day never fires', () => {
+    // Monday Nov 16, 08:35 local — the same wall clock, the wrong day.
+    expect(isWeeklyDue(new Date('2026-11-16T16:35:00Z'), LA, SUNDAY, '09:30', 60, null)).toBe(false);
+    // Nor does next Sunday's poke arrive a week early.
+    expect(isWeeklyDue(new Date('2026-11-15T16:35:00Z'), LA, SATURDAY, '09:30', 60, null)).toBe(false);
+  });
+
+  it('a lead that crosses midnight reminds the night before, for the event date', () => {
+    // Sunday 01:00, two hours ahead: the poke belongs to Saturday 23:00.
+    // 07:10 UTC Nov 15 = 23:10 PST Nov 14 — Saturday night, inside the window.
+    const result = evaluateWeeklyDue(new Date('2026-11-15T07:10:00Z'), LA, SUNDAY, '01:00', 120, null);
+    expect(result.due).toBe(true);
+    // The marker is the EVENT's date — Sunday's, not the Saturday the poke landed on.
+    expect(result.localDateKey).toBe('2026-11-15');
+    // Saturday 22:50 local (06:50 UTC) — the reminder moment has not come yet.
+    expect(isWeeklyDue(new Date('2026-11-15T06:50:00Z'), LA, SUNDAY, '01:00', 120, null)).toBe(false);
+    // And once sent for that event, the small hours do not send it again.
+    expect(isWeeklyDue(new Date('2026-11-15T08:35:00Z'), LA, SUNDAY, '01:00', 120, '2026-11-15')).toBe(false);
+  });
+
+  it('a Saturday event evaluated from Friday night stays quiet until its own lead', () => {
+    // Saturday Confession 15:30, 30 ahead: the poke belongs to Saturday 15:00.
+    // Friday Nov 13, 15:05 local (23:05 UTC) — a full day early.
+    expect(isWeeklyDue(new Date('2026-11-13T23:05:00Z'), LA, SATURDAY, '15:30', 30, null)).toBe(false);
+    // Saturday Nov 14, 15:05 local (23:05 UTC) — inside the window.
+    const result = evaluateWeeklyDue(new Date('2026-11-14T23:05:00Z'), LA, SATURDAY, '15:30', 30, null);
+    expect(result.due).toBe(true);
+    expect(result.localDateKey).toBe('2026-11-14');
+  });
+
+  it('never sends for a malformed day, time, lead, or timezone', () => {
+    const now = new Date('2026-11-15T16:35:00Z');
+    expect(isWeeklyDue(now, LA, 7, '09:30', 60, null)).toBe(false);
+    expect(isWeeklyDue(now, LA, -1, '09:30', 60, null)).toBe(false);
+    expect(isWeeklyDue(now, LA, SUNDAY, '25:00', 60, null)).toBe(false);
+    expect(isWeeklyDue(now, LA, SUNDAY, '09:30', 0, null)).toBe(false);
+    expect(isWeeklyDue(now, 'Not/AZone', SUNDAY, '09:30', 60, null)).toBe(false);
+  });
+});
+
+describe('drive-home due matching — the third daily poke (Nov 18, 2026)', () => {
+  const sub = {
+    tz: LA,
+    localTime: '07:00',
+    lastSentOn: null as string | null,
+    driveTime: '17:30' as string | null,
+    driveLastSentOn: null as string | null,
+  };
+
+  it('is due inside the quarter-hour window after the drive hour', () => {
+    // 01:35 UTC Nov 17 = 17:35 PST Nov 16.
+    const result = evaluateDriveDue(sub, new Date('2026-11-17T01:35:00Z'));
+    expect(result.due).toBe(true);
+    expect(result.localDateKey).toBe('2026-11-16');
+    expect(isDriveDue(sub, new Date('2026-11-17T01:44:00Z'))).toBe(true);
+    expect(isDriveDue(sub, new Date('2026-11-17T01:45:00Z'))).toBe(false); // 17:45 — window closed
+  });
+
+  it('its own marker guards it — and only it', () => {
+    const sent = { ...sub, driveLastSentOn: '2026-11-16' };
+    expect(isDriveDue(sent, new Date('2026-11-17T01:35:00Z'))).toBe(false);
+    // The morning marker never blocks the drive home.
+    const morningSent = { ...sub, lastSentOn: '2026-11-16' };
+    expect(isDriveDue(morningSent, new Date('2026-11-17T01:35:00Z'))).toBe(true);
+  });
+
+  it('is independent of the evening slot — a shared hour still fires for its own purpose', () => {
+    // The evening slot refuses an hour equal to the morning's; the drive
+    // slot has no such pair and no such guard.
+    const shared = { ...sub, driveTime: '20:00' };
+    // 04:05 UTC Nov 17 = 20:05 PST Nov 16.
+    expect(isDriveDue(shared, new Date('2026-11-17T04:05:00Z'))).toBe(true);
+    const eveningShared = {
+      tz: LA, localTime: '20:00', lastSentOn: null as string | null,
+      eveningTime: '20:00' as string | null, eveningLastSentOn: null as string | null,
+    };
+    expect(isEveningDue(eveningShared, new Date('2026-11-17T04:05:00Z'))).toBe(false);
+  });
+
+  it('no drive hour set — or a malformed one — never sends', () => {
+    expect(isDriveDue({ ...sub, driveTime: null }, new Date('2026-11-17T01:35:00Z'))).toBe(false);
+    expect(isDriveDue({ ...sub, driveTime: '5:30pm' }, new Date('2026-11-17T01:35:00Z'))).toBe(false);
   });
 });
 
