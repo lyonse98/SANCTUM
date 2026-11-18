@@ -178,3 +178,34 @@ export function evaluateDue(sub: PushSubscriptionTiming, now: Date): DueEvaluati
 export function isDue(sub: PushSubscriptionTiming, now: Date): boolean {
   return evaluateDue(sub, now).due;
 }
+
+/**
+ * The evening slot (Erik's ruling, Nov 17, 2026): a subscriber may add a
+ * second daily poke in the evening. It is the SAME poke — same payload, same
+ * Gospel landing — so the only new question is when it is due, and that is
+ * the morning question asked of the evening hour, with the evening slot's
+ * own sent marker. Two guards keep it honest:
+ *
+ * - No evening hour set (or a malformed one) means no evening poke, ever.
+ * - An evening hour equal to the morning hour is one poke, never two
+ *   identical ones minutes apart in spirit and seconds apart in fact.
+ */
+export interface PushEveningTiming extends PushSubscriptionTiming {
+  /** 'HH:MM', the optional evening hour; null when no evening reminder is set. */
+  eveningTime: string | null;
+  /** 'YYYY-MM-DD' in the subscriber's timezone — the local date of the last delivered evening poke. */
+  eveningLastSentOn: string | null;
+}
+
+export function evaluateEveningDue(sub: PushEveningTiming, now: Date): DueEvaluation {
+  if (!isValidLocalTime(sub.eveningTime)) return { due: false, localDateKey: '' };
+  if (sub.eveningTime === sub.localTime) return { due: false, localDateKey: '' };
+  return evaluateDue(
+    { tz: sub.tz, localTime: sub.eveningTime, lastSentOn: sub.eveningLastSentOn },
+    now,
+  );
+}
+
+export function isEveningDue(sub: PushEveningTiming, now: Date): boolean {
+  return evaluateEveningDue(sub, now).due;
+}

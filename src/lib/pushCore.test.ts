@@ -7,7 +7,9 @@ import {
   buildPushPayload,
   deepLinkUrlForFocus,
   evaluateDue,
+  evaluateEveningDue,
   isDue,
+  isEveningDue,
   isPushFocus,
   isValidLocalTime,
   localNowParts,
@@ -159,6 +161,53 @@ describe('due matching — daylight saving', () => {
     // 09:55 UTC = 1:55 PST (before the jump); 10:05 UTC = 3:05 PDT (after it).
     expect(isDue(sub, new Date('2026-03-08T09:55:00Z'))).toBe(false);
     expect(isDue(sub, new Date('2026-03-08T10:05:00Z'))).toBe(false);
+  });
+});
+
+describe('evening due matching — the second poke (Nov 17, 2026)', () => {
+  // November evenings in Los Angeles are PST (UTC-8): 04:0x UTC is 20:0x local the day before.
+  const sub = {
+    tz: LA,
+    localTime: '07:00',
+    lastSentOn: null as string | null,
+    eveningTime: '20:00' as string | null,
+    eveningLastSentOn: null as string | null,
+  };
+
+  it('is due inside the quarter-hour window after the evening time', () => {
+    // 04:05 UTC Nov 17 = 20:05 PST Nov 16.
+    const result = evaluateEveningDue(sub, new Date('2026-11-17T04:05:00Z'));
+    expect(result.due).toBe(true);
+    expect(result.localDateKey).toBe('2026-11-16');
+    expect(isEveningDue(sub, new Date('2026-11-17T04:14:00Z'))).toBe(true);
+  });
+
+  it('is not due before the evening time, or once its window has passed', () => {
+    expect(isEveningDue(sub, new Date('2026-11-17T03:50:00Z'))).toBe(false); // 19:50 local
+    expect(isEveningDue(sub, new Date('2026-11-17T04:15:00Z'))).toBe(false); // 20:15 local — window closed
+  });
+
+  it('the evening sent marker guards the evening slot — and only that slot', () => {
+    const eveningSent = { ...sub, eveningLastSentOn: '2026-11-16' };
+    expect(isEveningDue(eveningSent, new Date('2026-11-17T04:05:00Z'))).toBe(false);
+    // Yesterday's evening marker does not block tonight.
+    const eveningSentYesterday = { ...sub, eveningLastSentOn: '2026-11-15' };
+    expect(isEveningDue(eveningSentYesterday, new Date('2026-11-17T04:05:00Z'))).toBe(true);
+    // The morning marker is the morning slot's business; it never blocks the evening.
+    const morningSent = { ...sub, lastSentOn: '2026-11-16' };
+    expect(isEveningDue(morningSent, new Date('2026-11-17T04:05:00Z'))).toBe(true);
+  });
+
+  it('an evening hour equal to the morning hour is one poke, never two', () => {
+    const same = { ...sub, eveningTime: '07:00' };
+    // 15:05 UTC Nov 16 = 07:05 PST — squarely inside the shared window.
+    expect(evaluateEveningDue(same, new Date('2026-11-16T15:05:00Z')).due).toBe(false);
+  });
+
+  it('no evening hour set — or a malformed one — never sends', () => {
+    expect(isEveningDue({ ...sub, eveningTime: null }, new Date('2026-11-17T04:05:00Z'))).toBe(false);
+    expect(isEveningDue({ ...sub, eveningTime: '25:00' }, new Date('2026-11-17T04:05:00Z'))).toBe(false);
+    expect(isEveningDue({ ...sub, eveningTime: '8pm' }, new Date('2026-11-17T04:05:00Z'))).toBe(false);
   });
 });
 
