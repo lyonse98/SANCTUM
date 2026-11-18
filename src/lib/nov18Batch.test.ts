@@ -18,7 +18,9 @@ import { join } from 'node:path';
  * and the name renders once.
  *
  * WS3 — Tailor had two doors on Today (the Gospel card's tile and the
- * page's plate); the card's door is gone, the plate is the one entry.
+ * page's plate); the card's door went, the plate was the one entry.
+ * (Superseded the same evening: Erik restored the card door and the
+ * plate went instead — see nov18Fixes.test.ts.)
  */
 
 const ROOT = join(__dirname, '..', '..');
@@ -107,15 +109,21 @@ describe('WS2 — the celebration is named once on Home', () => {
 });
 
 describe('WS3 — exactly one Tailor entry on Today', () => {
-  it('the Gospel card has no Tailor door left', () => {
-    expect(card).not.toContain('data-tile="tailor"');
-    expect(card).not.toContain('<TailorToday');
+  // Deliberate reversal (Erik, Nov 18, 2026, evening): the single entry
+  // changed hands the same day it was pinned — the Gospel card's door
+  // was restored beside Reflect and the page's plate was removed. The
+  // principle this describe guards is unchanged (exactly ONE entry);
+  // only its address moved. The evening swap and the door's shape are
+  // pinned in nov18Fixes.test.ts.
+  it('the Gospel card carries the Tailor door again', () => {
+    expect(card).toContain('data-tile="tailor"');
+    expect(card).toContain('<TailorToday');
   });
 
-  it('the page plate is the one entry, mounting the one panel', () => {
-    expect(home.match(/data-tailor-entry/g) ?? []).toHaveLength(1);
-    expect(home.match(/<TailorToday/g) ?? []).toHaveLength(1);
-    expect(home).toContain('Tailor today&rsquo;s devotional');
+  it('the card door is the one entry; the page plate is gone', () => {
+    expect(home.match(/data-tailor-entry/g) ?? []).toHaveLength(0);
+    expect(home.match(/<TailorToday/g) ?? []).toHaveLength(0);
+    expect(card.match(/data-tile="tailor"/g) ?? []).toHaveLength(1);
   });
 
   it('Reflect with a companion is untouched — a different feature', () => {

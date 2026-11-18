@@ -17,9 +17,10 @@ const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
  * collapsibly behind an expander, in lectionary order. The "From the
  * tradition" quote stays off the card; the saint's standalone card stays
  * demoted to the header's celebration line; and the Way-1 shape is Listen
- * as the program with Reflect as the card's door — the card's Tailor Today
- * tile was retired Nov 18, 2026 (Erik), Tailor keeping its one entry in
- * Today's own stack.
+ * as the program with Tailor and Reflect as the card's two doors — the
+ * Tailor door was retired in the Nov 18, 2026 dedupe and restored the
+ * same evening at Erik's word, the stack plate going away in its place,
+ * and the door itself turning to "Close the day" in the evening.
  */
 
 const SUNDAY: DailyReadings = {
@@ -153,34 +154,35 @@ describe('the card, revised the same evening — what came back, what stayed gon
   });
 });
 
-describe('Way 1 — the program and the one door', () => {
+describe('Way 1 — the program and the two doors', () => {
   const card = read('components/DailyQuote.tsx');
 
   // The printed-page re-skin (Erik, Nov 14, 2026) promoted Listen to the
   // head of the Gospel section as the program strip and set the other Ways
-  // as printed-line doors. The card's Tailor Today door was retired Nov 18,
-  // 2026 (Erik) — Tailor's one entry on Today is the plate in the page's
-  // stack — so Reflect stands as the card's only door. The pins below were
-  // updated for both changes.
-  it('Listen stands at the head; Reflect is the card\u2019s one door', () => {
+  // as printed-line doors. The card's Tailor Today door was retired in the
+  // Nov 18, 2026 dedupe and restored the same evening (Erik) — Tailor's
+  // one entry on Today is the card door again, beside Reflect, and the
+  // plate in the page's stack is gone. The pins below were updated for
+  // both changes.
+  it('Listen stands at the head; Tailor and Reflect are the card\u2019s two doors', () => {
     expect(card).not.toContain('grid grid-cols-3');
     const doors = [...card.matchAll(/data-tile="([a-z]+)"/g)].map((m) => m[1]);
-    expect(doors).toEqual(['reflect']);
+    expect(doors).toEqual(['tailor', 'reflect']);
     // The program strip mounts before the key-verse face of the section.
     expect(card.indexOf('<ListenBar')).toBeLessThan(card.indexOf('The Gospel &middot;'));
     expect(card).toMatch(/>\s*Reflect\s*<\/span>/);
     expect(card).toContain('With a companion');
   });
 
-  it('the card carries no Tailor door and no Tailor panel', () => {
-    expect(card).not.toContain('data-tile="tailor"');
-    expect(card).not.toContain('<TailorToday');
-    expect(card).not.toContain("panel === 'tailor'");
-    expect(card).not.toContain('Tailor today — a devotional for your day');
+  it('the card carries the Tailor door and its panel', () => {
+    expect(card).toContain('data-tile="tailor"');
+    expect(card).toContain('<TailorToday');
+    expect(card).toContain("panel === 'tailor'");
+    expect(card).toContain('Tailor today — a devotional for your day');
   });
 
-  it('the Reflect door wears the shared plate class', () => {
-    expect(card.match(/className=\{DOOR_CLASS\}/g)).toHaveLength(1);
+  it('the two doors share one class', () => {
+    expect(card.match(/className=\{DOOR_CLASS\}/g)).toHaveLength(2);
   });
 
   it('Reflect carries no glow and no dominance classes', () => {

@@ -15,9 +15,8 @@ import { BringSomeoneHome } from '@/components/BringSomeoneHome';
 import { massNudgeFor } from '@/lib/massNudge';
 import { formatMassTime } from '@/lib/usualMass';
 import { DaysPrayedMark } from '@/components/DaysPrayedMark';
-import { TailorToday } from '@/components/TailorToday';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
-import { PRINT_PLATE_CLASS, PRINT_SERIF } from '@/lib/print';
+import { PRINT_SERIF } from '@/lib/print';
 import { AUDIO_PM_START_HOUR } from '@/lib/narratorCore';
 import { morningResolve } from '@/lib/tonight';
 import { DAY_START_HOUR, contentDate, contentDateKey, contentNow } from '@/lib/dayBoundary';
@@ -85,15 +84,14 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
   const seasonTheme = getSeasonTheme(contentDate(), audience);
   const seasonAccent = getSeasonAccentColor(contentDate());
 
-  // The retention lines (Nov 16, 2026): the content day's key for the
-  // Tailor door below, the novena arc already under way on this device,
-  // and Advent's own arc when the season is Advent — each read once,
-  // from what the day already carries; nothing new is fetched for them.
+  // The retention lines (Nov 16, 2026): the content day's key, the
+  // novena arc already under way on this device, and Advent's own arc
+  // when the season is Advent — each read once, from what the day
+  // already carries; nothing new is fetched for them.
   const [contentKey] = useState(() => contentDateKey());
   const [intercession] = useState(() => todaysIntercession(contentKey));
   const [novenaArc] = useState(() => currentNovenaArc());
   const [advent] = useState(() => adventProgress(contentDate()));
-  const [tailorOpen, setTailorOpen] = useState(false);
   // The year's patron, when today is their feast (Erik, Nov 18, 2026):
   // their plate stands under the masthead for the day, and only the day.
   const [patronToday] = useState(() => patronFeastOn(contentDate()));
@@ -318,42 +316,11 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           </div>
         )}
 
-        {/* Tailor Today, on Today itself (Play 4): the page's one door
-            into the flow — the Gospel card's own Tailor door was retired
-            (Erik, Nov 18, 2026) so the morning's tailoring is found in
-            exactly one place, the page's own stack. The panel is the
-            existing intake, whole. */}
-        <div className="w-full mb-5">
-          <button
-            data-tailor-entry
-            onClick={() => setTailorOpen((open) => !open)}
-            aria-expanded={tailorOpen}
-            className={PRINT_PLATE_CLASS}
-            style={{ border: `1px solid ${seasonTheme.border}`, backgroundColor: `${seasonTheme.border}1F` }}
-          >
-            <span
-              className="text-[12px] font-bold uppercase tracking-wide flex-shrink-0"
-              style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textBright }}
-            >
-              Tailor today&rsquo;s devotional
-            </span>
-            <span
-              aria-hidden="true"
-              className="flex-1"
-              style={{ borderBottom: `1px dotted ${seasonTheme.textDim}` }}
-            />
-            <span
-              className="text-[12px] italic flex-shrink-0"
-              style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textDim }}
-            >
-              For your morning
-            </span>
-            <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: seasonAccent }} strokeWidth={2.5} aria-hidden="true" />
-          </button>
-          {tailorOpen && (
-            <TailorToday t={seasonTheme} audience={audience} dateKey={contentKey} startOpen />
-          )}
-        </div>
+        {/* Tailor Today is not in the page's stack (Erik, Nov 18, 2026):
+            the Gospel card's own Tailor door is its one entry on Today
+            again — restored the same evening it was retired, at Erik's
+            word — and in the evening that door itself becomes Close
+            the day. The stack keeps no second door into the flow. */}
 
         {/* Tonight — the day's closing, in its home on Today. Present from the
             PM hour; a reminder's tap lands the eye on it at any hour. */}

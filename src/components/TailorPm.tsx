@@ -19,21 +19,30 @@ interface TailorPmProps {
   dateKey: string;
   /** This morning's intake, from the device's own record — the twin needs a morning to close. */
   morning: TailorMorningRecord;
+  /**
+   * Panel mode (the Gospel card's evening door, Erik, Nov 18, 2026): the
+   * door on the card is the entry, so the panel opens straight into the
+   * close instead of rendering its own plate button first. Tonight's
+   * closing never passes it — there, the plate is the door.
+   */
+  startOpen?: boolean;
 }
 
 /**
  * Close the day — the Tailor PM twin's surface (Nov 14, 2026). It lives in
- * Tonight's closing, and only there: TonightClosing renders it solely when
- * this morning's Tailor build exists on the device, because the twin needs
- * a morning to close. One plate opens it; one tap on the dusk word builds
+ * Tonight's closing: TonightClosing renders it solely when this morning's
+ * Tailor build exists on the device, because the twin needs a morning to
+ * close. Since Nov 18, 2026 it also stands behind the Gospel card's
+ * evening door, opened straight into the close (startOpen). One plate
+ * opens it; one tap on the dusk word builds
  * it (the function's allowance is one close per day); the package then
  * reads as a quiet night page — the reckoning, the closing prayer, the
  * line to carry into sleep — and is kept on the device for the night, so
  * re-opening reads it back instead of rebuilding. Print voice throughout,
  * matching Tonight and Tailor as they now stand. No audio in v1.
  */
-export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
-  const [open, setOpen] = useState(false);
+export function TailorPm({ t, audience, dateKey, morning, startOpen = false }: TailorPmProps) {
+  const [open, setOpen] = useState(startOpen);
   const [built, setBuilt] = useState<TailorPmPackage | null>(
     () => loadTonightsClose(dateKey, audience)?.evening ?? null,
   );

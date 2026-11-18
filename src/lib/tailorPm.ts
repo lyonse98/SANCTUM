@@ -1,5 +1,6 @@
 import type { Audience } from '@/types';
 import { tailorEndpoint, type TailorMorningRecord } from '@/lib/tailor';
+import { DAY_START_HOUR } from '@/lib/dayBoundary';
 
 /**
  * Close the day — the Tailor PM twin, client side (Nov 14, 2026).
@@ -27,6 +28,27 @@ export const EVENING_STATES: { id: EveningState; label: string }[] = [
 
 export function isEveningState(value: unknown): value is EveningState {
   return value === 'held' || value === 'broke' || value === 'mixed' || value === 'heavy';
+}
+
+/** The hour the Gospel card's Tailor door turns to the evening (Erik, Nov 18, 2026). */
+export const TAILOR_DOOR_PM_HOUR = 17;
+
+/**
+ * Whether the Gospel card's Tailor door wears its evening face — "Close
+ * the day", opening the PM twin — at `now` (Erik, Nov 18, 2026). The
+ * swap needs all three: the evening (from 17:00, and through the small
+ * hours, which still belong to the content day being closed), a morning
+ * record on the device to close against, and no close written yet. Any
+ * one missing and the door stays the morning's Tailor door.
+ */
+export function tailorDoorIsClose(
+  now: Date,
+  morning: TailorMorningRecord | null | undefined,
+  pmCloseDone: boolean,
+): boolean {
+  if (!morning || pmCloseDone) return false;
+  const hour = now.getHours();
+  return hour >= TAILOR_DOOR_PM_HOUR || hour < DAY_START_HOUR;
 }
 
 /** The evening package the close returns — three short pieces, nothing else. */

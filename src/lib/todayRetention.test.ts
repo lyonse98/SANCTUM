@@ -43,15 +43,31 @@ beforeEach(() => {
 
 describe('Play 4 — the AM→PM loop is findable, and both halves count the day', () => {
   it('Today itself carries a Tailor door into the existing flow', () => {
-    expect(home).toContain('data-tailor-entry');
-    expect(home).toContain('Tailor today&rsquo;s devotional');
-    expect(home).toContain('<TailorToday t={seasonTheme} audience={audience} dateKey={contentKey} startOpen />');
+    // Deliberate change (Erik, Nov 18, 2026, evening): the Tailor door
+    // lives on the Gospel card again — restored beside Reflect after
+    // the morning dedupe moved it to a plate in Today's stack — and
+    // the stack plate is gone, so the card door is once more Tailor's
+    // ONE entry on Today, not the second of two.
+    const card = read('components/DailyQuote.tsx');
+    expect(card).toContain('data-tile="tailor"');
+    expect(card).toContain("panel === 'tailor'");
+    expect(card).toContain('<TailorToday t={t} audience={audience} dateKey={readings.date} startOpen />');
+    expect(home).not.toContain('data-tailor-entry');
+    expect(home).not.toContain('<TailorToday');
     expect(home).toContain('contentDateKey()');
-    // Deliberate change (Erik, Nov 18, 2026): the Gospel card's own Tailor
-    // door was retired — this plate is now Tailor's ONE entry on Today,
-    // not the second of two. It was "untouched" when Play 4 was pinned.
-    expect(read('components/DailyQuote.tsx')).not.toContain("panel === 'tailor'");
-    expect(read('components/DailyQuote.tsx')).not.toContain('data-tile="tailor"');
+  });
+
+  it('in the evening the card\u2019s Tailor door becomes Close the day', () => {
+    const card = read('components/DailyQuote.tsx');
+    // The swap reads the same on-device facts Tonight's cue reads.
+    expect(card).toContain('readTailorMeta(localDateKey, audience)');
+    expect(card).toContain('loadTonightsClose(localDateKey, audience)');
+    expect(card).toContain('tailorDoorIsClose(new Date(), morningRecord, pmCloseDone)');
+    expect(card).toContain("panel === 'close'");
+    expect(card).toContain('<TailorPm t={t} audience={audience} dateKey={readings.date} morning={morningRecord} startOpen />');
+    expect(card).toContain('Close the day');
+    // Tonight's own PM plate stands untouched.
+    expect(tonight).toContain('<TailorPm t={t} audience={audience} dateKey={dateKey} morning={tailorMeta.morning} />');
   });
 
   it('a completed Tailor build records the tailor act; a completed close records tonight', () => {
