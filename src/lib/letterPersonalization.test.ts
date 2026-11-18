@@ -76,6 +76,16 @@ describe('letter personalization — the openness is on the surface', () => {
     expect(count(about, 'the North Star he may choose')).toBe(1);
     expect(count(about, 'which guides Tailor, the companions, and a companion')).toBe(2);
   });
+
+  it('About names the voices choice on both tracks — media pick only (Nov 18, 2026)', () => {
+    const about = readSrc('components/AboutSanctumPage.tsx');
+    expect(count(about, 'the voices she may name')).toBe(1);
+    expect(count(about, 'the voices he may name')).toBe(1);
+    // The clause states the fence in the enumeration itself: the voices
+    // are used ONLY to choose the media pick — nothing else is promised
+    // or implied for them.
+    expect(count(about, 'which are used only to choose the day')).toBe(2);
+  });
 });
 
 describe('letter mode v2 — the function packet', () => {

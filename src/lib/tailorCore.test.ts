@@ -6,11 +6,13 @@ import {
   PASSAGES_BY_STATE,
   MEDIA_CATALOG,
   MEDIA_VALUES_FLOOR,
+  MEDIA_VOICE_FIT_CREDIT,
   TAILOR_FOCUSES,
   TAILOR_STATES,
   TAILOR_TONES,
   bestCatalogMedia,
   mediaAxisTotal,
+  mediaMatchesVoice,
   pickMedia,
   pickPassage,
   scoreCatalogMedia,
@@ -22,6 +24,8 @@ import {
   buildMediaSearchQuery,
   buildMediaStateQuery,
   buildMediaThemeQuery,
+  buildMediaVoicesQuery,
+  buildPmUserPrompt,
   buildTailorSystemPrompt,
   buildTailorUserPrompt,
   composeTailored,
@@ -37,6 +41,7 @@ import {
   validateProfile,
   type MediaCandidate,
   type TailorBundle,
+  type TailorProfileInput,
 } from '../../supabase/functions/tailor-devotional/tailorCore';
 import { DAILY_QUOTES, DAILY_QUOTES_WOMEN } from '@/data/quotes';
 import {
@@ -551,6 +556,8 @@ const PROFILE = {
   standingGoal: 'SENTINEL-GOAL-be-a-patient-father',
   mediaPrefs: ['song', 'video'] as const,
   northStar: '"Be still, and know that I am God." — Psalm 46:10',
+  voices: [] as string[],
+  voicesOther: '',
 };
 
 describe('v2 — the standing profile validates to labels and caps', () => {
@@ -1133,5 +1140,217 @@ describe('v2 — privacy pins for the new payload paths', () => {
         'AUDIO_RENDER_KEY',
       ]),
     );
+  });
+});
+
+// ── Voices (Nov 18, 2026): media selection only, fenced from everything else ──
+
+describe('voices — the reader’s trusted voices bias the media pick, and nothing else', () => {
+  const axes = (fit: number, alignment: number, popularity: number) => ({
+    fit,
+    alignment,
+    popularity,
+    total: mediaAxisTotal(fit, alignment, popularity),
+  });
+
+  const VOICED_PROFILE: TailorProfileInput = {
+    seasonOfLife: null,
+    ongoingBattles: [],
+    standingGoal: '',
+    mediaPrefs: [],
+    northStar: null,
+    voices: ['David Goggins'],
+    voicesOther: 'SENTINEL-OTHER-a-name-he-typed',
+  };
+
+  it('validation cleans and caps the voices like every other label list', () => {
+    const p = validateProfile({
+      profile: {
+        voices: ['  Andrew Huberman  ', 'Andrew Huberman', 'David Goggins', 'A', 'B', 'C', 'D'],
+        voicesOther: '  Someone   He Trusts  ',
+      },
+    });
+    // Deduped after cleaning, capped at five; the free-text name cleaned to one line.
+    expect(p?.voices).toEqual(['Andrew Huberman', 'David Goggins', 'A', 'B', 'C']);
+    expect(p?.voicesOther).toBe('Someone He Trusts');
+    // Each label capped at 70, the free-text name at 80.
+    const long = validateProfile({ profile: { voices: ['v'.repeat(90)], voicesOther: 'o'.repeat(100) } });
+    expect(long?.voices[0]).toHaveLength(70);
+    expect(long?.voicesOther).toHaveLength(80);
+    // Voices alone make a profile; an empty voices shape is no profile at all.
+    expect(validateProfile({ profile: { voices: ['Matt Fradd'] } })).not.toBeNull();
+    expect(validateProfile({ profile: { voicesOther: 'A name' } })).not.toBeNull();
+    expect(validateProfile({ profile: { voices: [], voicesOther: '   ' } })).toBeNull();
+    expect(validateProfile({ profile: { voices: 'not-an-array' } })).toBeNull();
+  });
+
+  it('THE FENCE: the reflection prompt cannot see the voices — its profile type has no such fields', () => {
+    // A full validated profile, voices and all, handed to the prompt
+    // builder: the composed prompt carries the North Star (which IS
+    // allowed to steer) and neither voice string.
+    const prompt = buildTailorUserPrompt(
+      BUNDLE,
+      INTAKE,
+      pickPassage('work', 'anxious', '2026-11-12'),
+      { ...PROFILE, voices: ['SENTINEL-VOICE-Label'], voicesOther: 'SENTINEL-OTHER-a-name-he-typed' } as TailorProfileInput,
+      'men',
+    );
+    expect(prompt).toContain('His North Star');
+    expect(prompt).not.toContain('SENTINEL-VOICE');
+    expect(prompt).not.toContain('SENTINEL-OTHER');
+    // And the source agrees: the prompt builder's section of the core
+    // never reads a voices field.
+    const core = readRoot('supabase/functions/tailor-devotional/tailorCore.ts');
+    const builderAt = core.indexOf('export function buildTailorUserPrompt');
+    const builderEnd = core.indexOf('export function parseTailorResult');
+    expect(core.slice(builderAt, builderEnd)).not.toContain('voices');
+  });
+
+  it('THE FENCE, driven through a build: voices reach the hunt and the scorer, never a generation prompt', async () => {
+    const generationPrompts: string[] = [];
+    const bridgePrompts: string[] = [];
+    const queries: string[] = [];
+    const scorePrompts: string[] = [];
+    await composeTailored({
+      dateISO: '2026-11-12',
+      audience: 'men',
+      intake: { state: 'anxious', focus: 'work', tone: 'courage', freeText: '' },
+      bundle: BUNDLE,
+      profile: VOICED_PROFILE,
+      generateTailored: async (system, user) => {
+        generationPrompts.push(system, user);
+        return { reflect: 'A reflection of decent length about endurance.', challenge: 'One act.' };
+      },
+      findMedia: async (query) => {
+        queries.push(query);
+        return GROUNDED_OK;
+      },
+      scoreMedia: async (prompt) => {
+        scorePrompts.push(prompt);
+        return scorerReply([{ fit: 20, alignment: 28, popularity: 10 }]);
+      },
+      generateBridge: async (prompt) => {
+        bridgePrompts.push(prompt);
+        return null;
+      },
+      hour: 7,
+    });
+    // The reflection/challenge generation and the spoken bridge: no
+    // voice label, no free-text name — the fence is total there.
+    for (const p of [...generationPrompts, ...bridgePrompts]) {
+      expect(p).not.toContain('Goggins');
+      expect(p).not.toContain('SENTINEL-OTHER');
+    }
+    expect(bridgePrompts).toHaveLength(1);
+    // The hunt: a voices angle names the chip LABEL — and the free-text
+    // name hunts nowhere (typed words are never spent on the internet).
+    expect(queries.some((q) => q.includes('David Goggins'))).toBe(true);
+    for (const q of queries) expect(q).not.toContain('SENTINEL-OTHER');
+    // The scorer is media path: it may know both, to credit fit.
+    expect(scorePrompts).toHaveLength(1);
+    expect(scorePrompts[0]).toContain('David Goggins');
+    expect(scorePrompts[0]).toContain('SENTINEL-OTHER-a-name-he-typed');
+  });
+
+  it('THE FENCE: the PM twin never validates a profile and its prompts take none', () => {
+    const core = readRoot('supabase/functions/tailor-devotional/tailorCore.ts');
+    const pmSection = core.slice(core.indexOf('// ── Close the day'));
+    expect(pmSection).not.toContain('voices');
+    const fnIndex = readRoot('supabase/functions/tailor-devotional/index.ts');
+    // The morning path is the only validateProfile call in the function.
+    expect(fnIndex.match(/validateProfile\(payload\)/g)).toHaveLength(1);
+    // The PM user prompt is built from the day and the morning alone.
+    const pm = buildPmUserPrompt(BUNDLE, INTAKE, 'held', 'men');
+    expect(pm).not.toContain('voices');
+  });
+
+  it('the voices query names the labels and the kinds under the pop rules', () => {
+    const q = buildMediaVoicesQuery(['David Goggins', 'James Clear'], ['video', 'podcast']);
+    expect(q).toContain('David Goggins; James Clear');
+    expect(q).toContain('by or featuring one of the voices this reader listens to');
+    expect(q).toContain('videos, podcasts');
+    expect(q).toContain('must NOT be church content');
+  });
+
+  it('the score prompt names the voices for fit — and only when there are voices', () => {
+    const candidate: MediaCandidate = {
+      kind: 'video',
+      title: 'A Talk',
+      creator: 'Someone',
+      url: 'https://www.youtube.com/watch?v=mk48xRzuNvA',
+      source: '',
+    };
+    const ctx = { focus: 'work' as const, state: 'anxious' as const, tone: null, audience: 'men' as const, reflect: 'A reflection.' };
+    const withVoices = buildMediaScorePrompt([candidate], { ...ctx, voices: ['Andrew Huberman'] });
+    expect(withVoices).toContain('The reader listens to these voices: Andrew Huberman.');
+    expect(withVoices).toContain('credit it inside the fit axis');
+    const without = buildMediaScorePrompt([candidate], ctx);
+    expect(without).not.toContain('listens to these voices');
+  });
+
+  it('the match: full name, a distinctive surname, or the show — never a stray short surname', () => {
+    const cand = (creator: string, title = 'A Work', source = '') => ({ title, creator, source });
+    expect(mediaMatchesVoice(cand('Andrew Huberman'), ['Andrew Huberman'])).toBe(true);
+    expect(mediaMatchesVoice(cand('Huberman Lab'), ['Andrew Huberman'])).toBe(true);
+    expect(mediaMatchesVoice(cand('Modern Wisdom'), ['Chris Williamson (Modern Wisdom)'])).toBe(true);
+    expect(mediaMatchesVoice(cand('Brene Brown'), ['Brené Brown'])).toBe(true);
+    expect(mediaMatchesVoice(cand('The Diary Of A CEO'), ['Steven Bartlett (Diary of a CEO)'])).toBe(true);
+    expect(mediaMatchesVoice(cand('LeBron James'), ['James Clear'])).toBe(false);
+    expect(mediaMatchesVoice(cand('Kanye West'), ['Christopher West'])).toBe(false);
+    // The grounding source's own title counts — a find can name its voice there.
+    expect(mediaMatchesVoice(cand('Some Show', 'Episode 12', 'David Goggins on discipline'), ['David Goggins'])).toBe(true);
+    expect(mediaMatchesVoice(cand('Anyone'), [])).toBe(false);
+    expect(mediaMatchesVoice(cand('Anyone'), [''])).toBe(false);
+  });
+
+  it('the catalog credit: a chosen voice’s work earns fit inside the axis — the floor stays absolute', () => {
+    const brene = MEDIA_CATALOG.find((m) => m.creator.includes('Brené Brown'))!;
+    // Morning: conversation focus only (fit 18) — the credit adds its 10.
+    const plain = scoreCatalogMedia(brene, 'conversation', 'down', null)!;
+    const voiced = scoreCatalogMedia(brene, 'conversation', 'down', null, ['Brené Brown'])!;
+    expect(plain.fit).toBe(18);
+    expect(voiced.fit).toBe(18 + MEDIA_VOICE_FIT_CREDIT);
+    expect(voiced.total).toBe(plain.total + MEDIA_VOICE_FIT_CREDIT);
+    // Capped at the axis: a perfect-fit morning is already at 40.
+    const capped = scoreCatalogMedia(brene, 'conversation', 'anxious', 'clarity', ['Brené Brown'])!;
+    expect(capped.fit).toBe(40);
+    // The floor is not outvoted: "Imagine" (values 30) stays unscoreable
+    // even when John Lennon is the reader's chosen voice.
+    const imagine = MEDIA_CATALOG.find((m) => m.title === 'Imagine')!;
+    expect(scoreCatalogMedia(imagine, 'today', 'down', null, ['John Lennon'])).toBeNull();
+    // And the catalog competition itself carries the credit through.
+    const best = bestCatalogMedia('work', 'down', null, '2026-11-12', [], ['David Goggins'])!;
+    const goggins = MEDIA_CATALOG.find((m) => m.creator.includes('Goggins'))!;
+    expect(best.media.url).toBe(goggins.url);
+  });
+
+  it('the live credit: a voice’s work can take the card on fit — capped, and never through the church door', () => {
+    const dragons: MediaCandidate = {
+      kind: 'song', title: 'Demons', creator: 'Imagine Dragons',
+      url: 'https://www.youtube.com/watch?v=mWRsgZuwf_8', source: '',
+    };
+    const goggins: MediaCandidate = {
+      kind: 'video', title: 'Goggins on Discipline', creator: 'David Goggins',
+      url: 'https://www.youtube.com/watch?v=5tSTk1083VY', source: '',
+    };
+    const raw = [axes(30, 28, 20), axes(25, 28, 20)];
+    // Without voices the stronger raw total wins; with Goggins chosen,
+    // his work's fit credit (25 → 35) takes the card.
+    expect(selectScoredMedia([dragons, goggins], raw)?.candidate).toBe(dragons);
+    const voicedWin = selectScoredMedia([dragons, goggins], raw, null, ['David Goggins']);
+    expect(voicedWin?.candidate).toBe(goggins);
+    expect(voicedWin?.axes.fit).toBe(35);
+    // The credit stops at the axis cap.
+    const cappedWin = selectScoredMedia([goggins], [axes(38, 28, 20)], null, ['David Goggins']);
+    expect(cappedWin?.axes.fit).toBe(40);
+    expect(cappedWin?.axes.total).toBe(88);
+    // A chosen voice who IS church content stays excluded: the credit
+    // runs inside the selection, and the exclusion still drops him first.
+    const frMike: MediaCandidate = {
+      kind: 'podcast', title: 'Bible in a Year — Day 1', creator: 'Fr. Mike Schmitz',
+      url: 'https://www.youtube.com/watch?v=church12345', source: '',
+    };
+    expect(selectScoredMedia([frMike], [axes(40, 35, 25)], null, ['Fr. Mike Schmitz'])).toBeNull();
+    expect(selectScoredMedia([frMike, dragons], [axes(40, 35, 25), axes(20, 28, 10)], null, ['Fr. Mike Schmitz'])?.candidate).toBe(dragons);
   });
 });

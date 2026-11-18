@@ -1063,15 +1063,76 @@ export function mediaAxisTotal(fit: number, alignment: number, popularity: numbe
   return round2(fit + alignment + popularity);
 }
 
+// ── The voices credit (Erik, Nov 18, 2026) ───────────────────────────────────
+//
+// The standing profile's "Voices you listen to" — the teachers a reader
+// already trusts, chosen from the app's own chip lists — bias MEDIA
+// SELECTION ONLY: a work by or featuring a chosen voice earns fit credit
+// on either side of the competition (catalog here, live finds in
+// tailorCore). The voices never touch the reflection, the challenge, or
+// the bridge — those prompt builders never receive them — and the credit
+// is fit only: it cannot lift a work over the values floor, and it never
+// resurrects church content (the exclusion runs before any scoring).
+
+/** The fit credit a voice match earns — meaningful, never decisive alone. */
+export const MEDIA_VOICE_FIT_CREDIT = 10;
+
+/** Case- and accent-folded text, so "Brené" and "Brene" meet. */
+function foldVoiceText(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * The match keys one voice label carries: the full name ("Matt Fradd"),
+ * the show or house in its parentheses ("Modern Wisdom", "The Bible
+ * Recap"), and the surname alone when the surname is long enough to be
+ * distinctive ("Huberman", "Goggins", "Williamson"). Short surnames
+ * (West, Hahn, Clear, Brown) match on the full name only — a stray
+ * "James" or "Brown" in a credit line is not the reader's voice.
+ */
+export function mediaVoiceKeys(voice: string): string[] {
+  const label = foldVoiceText(voice).trim();
+  if (!label) return [];
+  const keys = new Set<string>();
+  const paren = label.match(/^(.*?)\s*\((.*?)\)\s*$/);
+  const name = (paren ? paren[1] : label).trim();
+  const show = paren ? paren[2].trim() : '';
+  if (name) keys.add(name);
+  if (show) keys.add(show);
+  const words = name.split(/\s+/);
+  const surname = words[words.length - 1];
+  if (surname && surname.length >= 6) keys.add(surname);
+  return [...keys];
+}
+
+/** True when a work's title/creator (and, for live finds, its source line) names one of the voices. */
+export function mediaMatchesVoice(
+  candidate: { title: string; creator: string; source?: string },
+  voices: string[],
+): boolean {
+  if (voices.length === 0) return false;
+  const hay = foldVoiceText(`${candidate.title} ${candidate.creator} ${candidate.source ?? ''}`);
+  return voices.some((v) => mediaVoiceKeys(v).some((k) => k.length > 0 && hay.includes(k)));
+}
+
 /**
  * The fit axis for a catalog entry, from its tags: the day's focus leads
  * (18), the morning's state answers next (12), the asked tone last (10).
+ * A voice match adds the voices credit on top — inside the same 40-point
+ * axis, so a perfectly-fitting morning is already at the cap.
  */
-export function catalogFit(media: TailorMedia, focus: TailorFocus, state: TailorState, tone: TailorTone | null): number {
+export function catalogFit(
+  media: TailorMedia,
+  focus: TailorFocus,
+  state: TailorState,
+  tone: TailorTone | null,
+  voiceMatch = false,
+): number {
   let fit = 0;
   if (media.focuses.includes(focus)) fit += 18;
   if (media.states.includes(state)) fit += 12;
   if (tone !== null && media.tones.includes(tone)) fit += 10;
+  if (voiceMatch) fit = Math.min(40, fit + MEDIA_VOICE_FIT_CREDIT);
   return fit;
 }
 
@@ -1079,15 +1140,17 @@ export function catalogFit(media: TailorMedia, focus: TailorFocus, state: Tailor
  * Scores one catalog entry for one morning on the unified axes — or null
  * when the entry falls below the values floor. The floor is checked
  * FIRST and is absolute: a null here can never be outvoted by fit or fame.
+ * `voices` (the profile's labels) earn a matching entry its fit credit.
  */
 export function scoreCatalogMedia(
   media: TailorMedia,
   focus: TailorFocus,
   state: TailorState,
   tone: TailorTone | null,
+  voices: string[] = [],
 ): MediaAxisScore | null {
   if (media.values < MEDIA_VALUES_FLOOR) return null;
-  const fit = catalogFit(media, focus, state, tone);
+  const fit = catalogFit(media, focus, state, tone, mediaMatchesVoice(media, voices));
   const alignment = round2(media.values * 0.35);
   const popularity = round2(media.popularity * 0.25);
   return { fit, alignment, popularity, total: mediaAxisTotal(fit, alignment, popularity) };
@@ -1118,6 +1181,7 @@ export function bestCatalogMedia(
   tone: TailorTone | null,
   dateISO: string,
   extra: TailorMedia[] = [],
+  voices: string[] = [],
 ): ScoredCatalogMedia | null {
   const pool: TailorMedia[] = [...MEDIA_CATALOG];
   if (extra.length > 0) {
@@ -1131,7 +1195,7 @@ export function bestCatalogMedia(
   let best: ScoredCatalogMedia | null = null;
   let tied: ScoredCatalogMedia[] = [];
   for (const media of pool) {
-    const axes = scoreCatalogMedia(media, focus, state, tone);
+    const axes = scoreCatalogMedia(media, focus, state, tone, voices);
     if (!axes) continue;
     if (!best || axes.total > best.axes.total) {
       best = { media, axes };

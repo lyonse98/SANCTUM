@@ -38,10 +38,18 @@
   PRIVACY, BY CONSTRUCTION: this module holds no persistence of any kind.
   The intake, the profile, and the composed devotional pass through it and
   out with the HTTP response; nothing here can write them anywhere.
+
+  VOICES (Nov 18, 2026): the profile's "Voices you listen to" bias media
+  selection only — a dedicated search angle, the scorer's fit judgment,
+  and a code-level fit credit for works by a chosen voice, on both the
+  live and catalog sides. They are structurally excluded from the
+  reflection/challenge prompt (TailorPromptProfile carries no voices
+  fields), from the spoken bridge, and from the PM twin.
 */
 
 import {
   MEDIA_VALUES_FLOOR,
+  MEDIA_VOICE_FIT_CREDIT,
   TAILOR_SEARCH_KINDS,
   TAILOR_SEARCH_KIND_LABELS,
   bestCatalogMedia,
@@ -50,6 +58,7 @@ import {
   isTailorState,
   isTailorTone,
   mediaAxisTotal,
+  mediaMatchesVoice,
   pickPassage,
   tailorFocusLabel,
   tailorStateLabel,
@@ -117,6 +126,15 @@ export function validateIntake(payload: Record<string, unknown>): TailorIntake |
  * capped line, the media preferences as search-kind keys. Everything is
  * sanitized to shape and length — labels are phrasing for the prompt, never
  * instructions — and a profile carrying nothing at all validates to null.
+ *
+ * THE VOICES FENCE (Erik, Nov 18, 2026): the profile's `voices` — the
+ * teachers the reader listens to, chip labels plus one free-text name —
+ * tailor MEDIA SELECTION ONLY. They are validated here because the media
+ * hunt and scorer live here, but they are structurally barred from every
+ * other prompt: the reflection prompt is typed over TailorPromptProfile,
+ * which has no voices fields at all (see below), the bridge prompt takes
+ * no profile, and the PM twin never validates a profile. Media is the
+ * only road they travel.
  */
 export interface TailorProfileInput {
   seasonOfLife: string | null;
@@ -125,7 +143,19 @@ export interface TailorProfileInput {
   mediaPrefs: TailorSearchKind[];
   /** The North Star's phrasing (client-resolved label), or null when unset. */
   northStar: string | null;
+  /** The chosen voices' LABELS (client-resolved from its chip lists), at most five. Media only. */
+  voices: string[];
+  /** One more voice, in the reader's own words, capped short. Media only. */
+  voicesOther: string;
 }
+
+/**
+ * The profile as the REFLECTION prompt may see it: every field above
+ * except the voices. buildTailorUserPrompt is typed over this shape, so
+ * the voices cannot reach the reflection or the challenge by accident —
+ * the field is not there to read.
+ */
+export type TailorPromptProfile = Omit<TailorProfileInput, "voices" | "voicesOther">;
 
 export function validateProfile(payload: Record<string, unknown>): TailorProfileInput | null {
   const raw = payload.profile;
@@ -144,7 +174,17 @@ export function validateProfile(payload: Record<string, unknown>): TailorProfile
   // The North Star rides as one short phrasing string, cleaned like the
   // other labels — phrasing for the prompt, never an instruction channel.
   const northStar = clean(p.northStar, 160);
-  if (!seasonOfLife && ongoingBattles.length === 0 && !standingGoal && mediaPrefs.length === 0 && !northStar) {
+  // The voices: chip labels resolved by the client, cleaned and capped
+  // like every other label list — at most five, each a short name — plus
+  // one free-text name. They feed the media hunt and scorer, nothing else.
+  const voices = Array.isArray(p.voices)
+    ? [...new Set(p.voices.map((v) => clean(v, 70)).filter((v) => v.length > 0))].slice(0, 5)
+    : [];
+  const voicesOther = clean(p.voicesOther, 80);
+  if (
+    !seasonOfLife && ongoingBattles.length === 0 && !standingGoal && mediaPrefs.length === 0 &&
+    !northStar && voices.length === 0 && !voicesOther
+  ) {
     return null;
   }
   return {
@@ -153,6 +193,8 @@ export function validateProfile(payload: Record<string, unknown>): TailorProfile
     standingGoal,
     mediaPrefs,
     northStar: northStar || null,
+    voices,
+    voicesOther,
   };
 }
 
@@ -180,12 +222,17 @@ export function buildTailorSystemPrompt(audience: NarratorAudience): string {
   return `${grounding}\n\n${buildTailorTask(audience)}`;
 }
 
-/** The user prompt: the canonical day + the curated passage + this morning. */
+/**
+ * The user prompt: the canonical day + the curated passage + this morning.
+ * The profile it accepts is TailorPromptProfile — the voices are not a
+ * field on it, so no edit here can steer the reflection or the challenge
+ * by them (Erik's fence, Nov 18, 2026).
+ */
 export function buildTailorUserPrompt(
   bundle: TailorBundle,
   intake: TailorIntake,
   passage: TailorPassage,
-  profile?: TailorProfileInput | null,
+  profile?: TailorPromptProfile | null,
   audience: NarratorAudience = "men",
 ): string {
   const she = audience === "women";
@@ -448,6 +495,24 @@ export function buildMediaStateQuery(args: MediaSearchArgs): string {
   );
 }
 
+/**
+ * The voices angle (Nov 18, 2026): a hunt for a real work BY or FEATURING
+ * one of the voices the reader chose. What enters the query is the chip
+ * LABELS — the app's own curated vocabulary, names the reader picked off
+ * a list Sanctum wrote, exactly as a focus label is Sanctum's word for a
+ * category. The free-text `voicesOther` NEVER enters a query: words the
+ * user typed are not spent on the internet, the standing rule — it may
+ * only inform the in-function scorer and the local match.
+ */
+export function buildMediaVoicesQuery(voices: string[], kinds: TailorSearchKind[]): string {
+  return (
+    `Find one real, well-known work — one of these kinds only: ${mediaKindWords(kinds)} — ` +
+    `by or featuring one of the voices this reader listens to: ${voices.join("; ")}. ` +
+    MEDIA_POP_RULES +
+    mediaAnswerTail(kinds)
+  );
+}
+
 /** Words too common — or too generic to aim a search — to be theme keywords. */
 const THEME_STOPWORDS = new Set([
   "about", "above", "after", "again", "against", "because", "before", "behind",
@@ -651,6 +716,13 @@ export interface MediaScoreContext {
   audience: NarratorAudience;
   /** The tailored reflection, composed this build — its thrust is scored against. */
   reflect: string;
+  /**
+   * The voices the reader listens to (chip labels, plus the free-text
+   * name when given) — media scoring only: a work by or featuring one of
+   * them is a stronger fit for THIS reader. This prompt is the media
+   * path; the voices appear in no other prompt the function builds.
+   */
+  voices?: string[];
 }
 
 export function buildMediaScorePrompt(
@@ -671,6 +743,13 @@ export function buildMediaScorePrompt(
       `- popularity: 0-25 — mainstream recognizability (David Goggins / Linkin Park / Coldplay tier scores high; an obscure channel scores low). A song, talk, interview, or clip someone would actually open from a morning devotional earns its tier; a full album, a multi-hour stream, or a listing page scores low.\n` +
       `Church content — worship music, hymns, sermons, church or ministry podcasts — scores 0 on every axis, always.`,
   );
+  if (ctx.voices && ctx.voices.length > 0) {
+    lines.push(
+      `\nThe reader listens to these voices: ${ctx.voices.join(", ")}. A work by or featuring one of them — ` +
+        `or squarely in their line — is a stronger fit for this reader: credit it inside the fit axis. ` +
+        `The voices change nothing else: alignment is still judged on the work's substance alone.`,
+    );
+  }
   lines.push(
     `\nAlso judge, for each candidate, which mornings the WORK ITSELF answers — from its substance alone, ` +
       `never from this reader's morning: "focuses" chosen from work, marriage, family, conversation, grief, ` +
@@ -808,16 +887,30 @@ export interface ScoredLiveMedia {
  * Null scores mean no winner at all: without scores there is no total to
  * compete with the catalog's, and the caller degrades to the catalog.
  * The tags, when the caller read them from the same reply, ride along
- * aligned by candidate — they never influence who wins.
+ * aligned by candidate — they never influence who wins. `voices` earns a
+ * matching candidate its fit credit before the competition (see the map
+ * below) — fit only, inside the exclusion and the floor's reach.
  */
 export function selectScoredMedia(
   candidates: MediaCandidate[],
   scores: MediaAxisScore[] | null,
   tags: (MediaTagSet | null)[] | null = null,
+  voices: string[] = [],
 ): ScoredLiveMedia | null {
   if (scores === null) return null;
   const zipped = candidates
-    .map((c, i) => ({ candidate: c, axes: scores[i], tags: tags?.[i] ?? null }))
+    .map((c, i) => {
+      // The voices credit (Nov 18, 2026): a candidate by or featuring a
+      // chosen voice earns fit credit, applied here in code — inside the
+      // fit axis's own 40-point cap — before the exclusion and the floor
+      // run, so it can never resurrect church content or outvote values.
+      let axes = scores[i];
+      if (voices.length > 0 && mediaMatchesVoice(c, voices)) {
+        const fit = Math.min(40, axes.fit + MEDIA_VOICE_FIT_CREDIT);
+        axes = { ...axes, fit, total: mediaAxisTotal(fit, axes.alignment, axes.popularity) };
+      }
+      return { candidate: c, axes, tags: tags?.[i] ?? null };
+    })
     .filter((z) => !isChurchMedia(z.candidate))
     // The floor on the scaled axis: alignment (0–35) is the values score
     // (0–100) at 0.35 weight — kept in integers so an estimate landing
@@ -996,11 +1089,30 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
   const profile = deps.profile ?? null;
   const passage = pickPassage(intake.focus, intake.state, dateISO);
 
+  // THE VOICES FENCE, enforced here at the seam (Erik, Nov 18, 2026):
+  // the reflection prompt is handed a profile built field by field
+  // WITHOUT the voices — they exist in this composition only inside the
+  // media block below (the hunt, the scorer, the match credit). The
+  // free-text name joins the labels for matching and scoring; neither
+  // ever crosses into a generation prompt.
+  const promptProfile: TailorPromptProfile | null = profile
+    ? {
+        seasonOfLife: profile.seasonOfLife,
+        ongoingBattles: profile.ongoingBattles,
+        standingGoal: profile.standingGoal,
+        mediaPrefs: profile.mediaPrefs,
+        northStar: profile.northStar,
+      }
+    : null;
+  const voices = profile?.voices ?? [];
+  const voicesOther = (profile?.voicesOther ?? "").trim();
+  const matchVoices = voicesOther ? [...voices, voicesOther] : [...voices];
+
   // The one generation runs first now: the media hunt scores candidates
   // against the tailored reflection's thrust, and its third search angle is
   // aimed by the reflection's own theme keywords.
   const systemPrompt = buildTailorSystemPrompt(audience);
-  const userPrompt = buildTailorUserPrompt(bundle, intake, passage, profile, audience);
+  const userPrompt = buildTailorUserPrompt(bundle, intake, passage, promptProfile, audience);
   const tailored = await deps.generateTailored(systemPrompt, userPrompt);
 
   // The media: gather → verify → exclude → score, then ONE unified
@@ -1024,7 +1136,7 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
   const libraryRows = deps.loadWinners
     ? await deps.loadWinners().catch(() => [] as TailorMedia[])
     : [];
-  const catalogBest = bestCatalogMedia(intake.focus, intake.state, intake.tone, dateISO, libraryRows);
+  const catalogBest = bestCatalogMedia(intake.focus, intake.state, intake.tone, dateISO, libraryRows, matchVoices);
   let liveBest: ScoredLiveMedia | null = null;
   if (deps.findMedia) {
     const searchArgs: MediaSearchArgs = {
@@ -1035,9 +1147,15 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
       kinds,
     };
     const queries = [buildMediaSearchQuery(searchArgs), buildMediaStateQuery(searchArgs)];
+    // The voices angle rides only when the reader chose voices — the
+    // chip labels hunt for a work by a voice they already trust.
+    if (voices.length > 0) queries.push(buildMediaVoicesQuery(voices, kinds));
     const themeKeywords = reflectionThemeKeywords(tailored.reflect, [
       intake.freeText,
       profile?.standingGoal ?? "",
+      // A voice's name is the reader's choice, not the reflection's
+      // theme: struck from the theme angle like their own words are.
+      ...matchVoices,
     ]);
     if (themeKeywords.length > 0) queries.push(buildMediaThemeQuery(themeKeywords, kinds));
     const raws = await Promise.all(
@@ -1062,6 +1180,7 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
         tone: intake.tone,
         audience,
         reflect: tailored.reflect,
+        voices: matchVoices,
       });
       const rawScores = await deps.scoreMedia(prompt).catch(() => null);
       const scores = parseMediaScores(rawScores, survivors.length);
@@ -1071,7 +1190,7 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
         // The winner tags ride in the same reply: read them alongside,
         // aligned by candidate, for the library if this find wins.
         const tags = parseMediaTags(rawScores, survivors.length);
-        liveBest = selectScoredMedia(survivors, scores, tags);
+        liveBest = selectScoredMedia(survivors, scores, tags, matchVoices);
       }
     }
   }

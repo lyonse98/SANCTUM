@@ -35,6 +35,16 @@ export interface TailorProfile {
    * and nothing anywhere treats its absence as a gap to be filled.
    */
   northStar: string | null;
+  /**
+   * The voices the reader listens to (VOICES ids, at most five): the
+   * teachers whose voice they already trust. MEDIA ONLY (Erik, Nov 18,
+   * 2026): they bias which media a Tailor build picks and references —
+   * never the reflection, the challenge, the bridge, a companion, or a
+   * letter. Optional like the North Star; empty is the ordinary state.
+   */
+  voices: string[];
+  /** One more voice, in the reader's own words (a name, ≤80 chars). Media only, like the chips. */
+  voicesOther: string;
 }
 
 export const EMPTY_TAILOR_PROFILE: TailorProfile = {
@@ -44,6 +54,8 @@ export const EMPTY_TAILOR_PROFILE: TailorProfile = {
   mediaPrefs: [],
   defaultTone: null,
   northStar: null,
+  voices: [],
+  voicesOther: '',
 };
 
 // ── The North Stars — one compass, chosen from a list ────────────────────────
@@ -143,6 +155,97 @@ export function northStarLabel(id: string | null): string | null {
   const star = northStarById(id);
   if (!star) return null;
   return star.citation ? `"${star.text}" — ${star.citation}` : `"${star.text}"`;
+}
+
+// ── The voices — who the reader already listens to ───────────────────────────
+
+export interface VoiceOption {
+  id: string;
+  /** The name the chip shows — the same string that rides with a request. */
+  label: string;
+  /** The shelf the chip sits on in the editor. */
+  group: 'faith' | 'culture';
+}
+
+/** How many voices a reader may name — a handful of real influences, not a fan list. */
+export const VOICES_MAX = 5;
+
+/**
+ * The voices lists (Erik's FINAL lists, Nov 18, 2026): per track, two
+ * shelves — the faith voices and the culture & self-help voices a reader
+ * plausibly already trusts. Their whole job is vibe, message, interests,
+ * and trust FOR MEDIA SELECTION: a Tailor build may surface a real work
+ * by or featuring a chosen voice. NO political figures — Erik's standing
+ * rule for these lists. Unlike the North Stars the tracks share nothing
+ * here: his shelf and hers are different people, because his listening
+ * and hers are. A chosen voice rides with a request as its LABEL, like
+ * every other profile field — and only as far as the media hunt.
+ */
+export const VOICES: Record<Audience, VoiceOption[]> = {
+  men: [
+    { id: 'fr-mike', label: 'Fr. Mike Schmitz', group: 'faith' },
+    { id: 'barron', label: 'Bishop Barron', group: 'faith' },
+    { id: 'fradd', label: 'Matt Fradd', group: 'faith' },
+    { id: 'roumie', label: 'Jonathan Roumie', group: 'faith' },
+    { id: 'cavins', label: 'Jeff Cavins', group: 'faith' },
+    { id: 'west', label: 'Christopher West', group: 'faith' },
+    { id: 'hahn', label: 'Scott Hahn', group: 'faith' },
+    { id: 'huberman', label: 'Andrew Huberman', group: 'culture' },
+    { id: 'peterson', label: 'Jordan Peterson', group: 'culture' },
+    { id: 'williamson', label: 'Chris Williamson (Modern Wisdom)', group: 'culture' },
+    { id: 'bartlett', label: 'Steven Bartlett (Diary of a CEO)', group: 'culture' },
+    { id: 'clear', label: 'James Clear', group: 'culture' },
+    { id: 'goggins', label: 'David Goggins', group: 'culture' },
+  ],
+  women: [
+    { id: 'sr-miriam', label: 'Sr. Miriam James', group: 'faith' },
+    { id: 'khym', label: 'Heather Khym', group: 'faith' },
+    { id: 'beth-davis', label: 'Beth Davis (Blessed Is She)', group: 'faith' },
+    { id: 'cobble', label: 'Tara-Leigh Cobble (The Bible Recap)', group: 'faith' },
+    { id: 'jackie-hill-perry', label: 'Jackie Hill Perry', group: 'faith' },
+    { id: 'wilkin', label: 'Jen Wilkin', group: 'faith' },
+    { id: 'sadie', label: 'Sadie Robertson Huff', group: 'faith' },
+    { id: 'emily-wilson', label: 'Emily Wilson', group: 'faith' },
+    { id: 'daigle', label: 'Lauren Daigle', group: 'culture' },
+    { id: 'annie-downs', label: 'Annie F. Downs', group: 'culture' },
+    { id: 'brene-brown', label: 'Brené Brown', group: 'culture' },
+    { id: 'mel-robbins', label: 'Mel Robbins', group: 'culture' },
+    { id: 'jay-shetty', label: 'Jay Shetty', group: 'culture' },
+  ],
+};
+
+/** The voices this track may choose from, faith shelf first, Erik's order. */
+export function voicesForAudience(audience: Audience): VoiceOption[] {
+  return VOICES[audience];
+}
+
+export function voiceById(audience: Audience, id: string): VoiceOption | null {
+  return VOICES[audience].find((v) => v.id === id) ?? null;
+}
+
+/** Whether an id is on this track's own list — the load-time gate, as with the stars. */
+export function isVoiceForAudience(audience: Audience, id: string): boolean {
+  return VOICES[audience].some((v) => v.id === id);
+}
+
+/** The label a chosen voice travels as — labels, not ids, like everything else here. */
+export function voiceLabel(audience: Audience, id: string): string | null {
+  return voiceById(audience, id)?.label ?? null;
+}
+
+/**
+ * Stored or drafted voices, made safe: this track's ids only, deduped,
+ * at most VOICES_MAX. Used at load (a foreign or retired id drops) and at
+ * save (the cap is the profile's shape, not just the editor's manners).
+ */
+function cleanVoices(audience: Audience, value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  for (const v of value) {
+    if (typeof v === 'string' && isVoiceForAudience(audience, v) && !out.includes(v)) out.push(v);
+    if (out.length >= VOICES_MAX) break;
+  }
+  return out;
 }
 
 export function tailorProfileKey(audience: Audience): string {
@@ -256,6 +359,10 @@ export function loadTailorProfile(audience: Audience): TailorProfile {
         typeof parsed.northStar === 'string' && isNorthStarForAudience(audience, parsed.northStar)
           ? parsed.northStar
           : null,
+      // Voices likewise: only this track's own ids survive, capped at
+      // five; the free-text name is one short line.
+      voices: cleanVoices(audience, parsed.voices),
+      voicesOther: typeof parsed.voicesOther === 'string' ? parsed.voicesOther.slice(0, 80) : '',
     };
   } catch {
     return { ...EMPTY_TAILOR_PROFILE };
@@ -264,7 +371,14 @@ export function loadTailorProfile(audience: Audience): TailorProfile {
 
 export function saveTailorProfile(audience: Audience, profile: TailorProfile): void {
   try {
-    localStorage.setItem(tailorProfileKey(audience), JSON.stringify(profile));
+    // The voices' shape is enforced here, not only in the editor: this
+    // track's ids, at most five, and the free-text name within its cap.
+    const normalized: TailorProfile = {
+      ...profile,
+      voices: cleanVoices(audience, profile.voices),
+      voicesOther: (profile.voicesOther ?? '').slice(0, 80),
+    };
+    localStorage.setItem(tailorProfileKey(audience), JSON.stringify(normalized));
   } catch {
     // Storage unavailable — the profile simply does not persist.
   }
@@ -279,7 +393,9 @@ export function hasTailorProfile(audience: Audience): boolean {
     p.standingGoal.trim().length > 0 ||
     p.mediaPrefs.length > 0 ||
     p.defaultTone !== null ||
-    p.northStar !== null
+    p.northStar !== null ||
+    p.voices.length > 0 ||
+    p.voicesOther.trim().length > 0
   );
 }
 
@@ -301,6 +417,10 @@ export interface TailorRequestProfile {
   mediaPrefs: TailorSearchKind[];
   /** The North Star's resolved phrasing (see northStarLabel), or null. */
   northStar: string | null;
+  /** The chosen voices' LABELS (see voiceLabel) — media selection only, server-fenced. */
+  voices: string[];
+  /** The free-text voice, trimmed — media selection only, like the labels. */
+  voicesOther: string;
 }
 
 export function profileForRequest(audience: Audience, profile: TailorProfile): TailorRequestProfile | null {
@@ -311,6 +431,13 @@ export function profileForRequest(audience: Audience, profile: TailorProfile): T
     standingGoal: profile.standingGoal.trim(),
     mediaPrefs: [...profile.mediaPrefs],
     northStar: northStarLabel(profile.northStar),
+    // Ids never cross the wire: each chosen voice resolves to its label,
+    // and an id that is not this track's own simply does not ride.
+    voices: (profile.voices ?? [])
+      .map((id) => voiceLabel(audience, id))
+      .filter((l): l is string => l !== null)
+      .slice(0, VOICES_MAX),
+    voicesOther: (profile.voicesOther ?? '').trim(),
   };
 }
 
@@ -321,7 +448,9 @@ function hasTailorProfileValues(profile: TailorProfile): boolean {
     profile.standingGoal.trim().length > 0 ||
     profile.mediaPrefs.length > 0 ||
     profile.defaultTone !== null ||
-    profile.northStar !== null
+    profile.northStar !== null ||
+    (profile.voices ?? []).length > 0 ||
+    (profile.voicesOther ?? '').trim().length > 0
   );
 }
 
@@ -338,6 +467,10 @@ export function profileSignature(profile: TailorRequestProfile | null): string {
     profile.standingGoal.trim().toLowerCase(),
     profile.mediaPrefs.join(','),
     profile.northStar ?? '',
+    // The voices change which media a build picks, so they change the
+    // build: a voices edit busts the day's cache like any other edit.
+    (profile.voices ?? []).join(','),
+    (profile.voicesOther ?? '').trim().toLowerCase(),
   ].join('|');
 }
 

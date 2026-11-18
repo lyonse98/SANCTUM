@@ -53,6 +53,7 @@ import { shareEntryFromDevotional, writeTailorShare } from '@/lib/tailorShare';
 import {
   EMPTY_TAILOR_PROFILE,
   SEASONS_OF_LIFE,
+  VOICES_MAX,
   battlesForAudience,
   eraseTailorProfile,
   loadTailorProfile,
@@ -60,6 +61,7 @@ import {
   profileDefaults,
   profileForRequest,
   saveTailorProfile,
+  voicesForAudience,
   type TailorProfile,
 } from '@/lib/tailorProfile';
 
@@ -93,21 +95,26 @@ function ChipRow({
   options,
   isOn,
   onToggle,
+  isDisabled,
 }: {
   t: PersonaTheme;
   options: { id: string; label: string }[];
   isOn: (id: string) => boolean;
   onToggle: (id: string) => void;
+  /** Chips that cannot be taken right now (the voices' five-cap) — dimmed and inert. */
+  isDisabled?: (id: string) => boolean;
 }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {options.map((opt) => {
         const on = isOn(opt.id);
+        const disabled = !on && (isDisabled?.(opt.id) ?? false);
         return (
           <button
             key={opt.id}
             onClick={() => onToggle(opt.id)}
             aria-pressed={on}
+            disabled={disabled}
             className="px-3 py-2 text-[12px] transition-all active:scale-95"
             style={{
               fontFamily: PRINT_SERIF,
@@ -115,6 +122,7 @@ function ChipRow({
               border: `1px solid ${on ? t.accent : `${t.border}99`}`,
               color: on ? t.accent : t.textMuted,
               fontWeight: on ? 700 : 500,
+              opacity: disabled ? 0.45 : 1,
             }}
           >
             {opt.label}
@@ -181,7 +189,9 @@ function TailorProfileEditor({
     draft.standingGoal.trim().length > 0 ||
     draft.mediaPrefs.length > 0 ||
     draft.defaultTone !== null ||
-    draft.northStar !== null;
+    draft.northStar !== null ||
+    draft.voices.length > 0 ||
+    draft.voicesOther.trim().length > 0;
 
   const labelStyle: React.CSSProperties = { fontFamily: PRINT_SERIF, color: t.accent };
   const fieldLabel = `block ${PRINT_STAMP_CLASS} mb-2`;
@@ -260,6 +270,69 @@ function TailorProfileEditor({
             }))
           }
         />
+      </div>
+
+      <div>
+        <span className={fieldLabel} style={labelStyle}>Voices you listen to — optional</span>
+        {/* The voices (Nov 18, 2026): the teachers a reader already trusts,
+            named so a build can find their real work for the media card —
+            and for nothing else. They sit beside the media kinds because
+            media is the only thing they touch; the North Star below is
+            the one that steers. Five at most: a handful of real
+            influences, not a fan list — at five the rest go quiet. */}
+        {(
+          [
+            ['faith', 'Faith'],
+            ['culture', 'Culture & self-help'],
+          ] as const
+        ).map(([group, subhead]) => (
+          <div key={group} className="mb-2">
+            <span className={`block ${PRINT_STAMP_CLASS} mb-1`} style={{ color: t.textDim }}>
+              {subhead}
+            </span>
+            <ChipRow
+              t={t}
+              options={voicesForAudience(audience).filter((v) => v.group === group)}
+              isOn={(id) => draft.voices.includes(id)}
+              isDisabled={(id) => !draft.voices.includes(id) && draft.voices.length >= VOICES_MAX}
+              onToggle={(id) =>
+                setDraft((d) => ({
+                  ...d,
+                  voices: d.voices.includes(id)
+                    ? d.voices.filter((v) => v !== id)
+                    : d.voices.length < VOICES_MAX
+                      ? [...d.voices, id]
+                      : d.voices,
+                }))
+              }
+            />
+          </div>
+        ))}
+        <label className="block mt-1">
+          <span className={`block ${PRINT_STAMP_CLASS} mb-1`} style={{ color: t.textDim }}>
+            Someone else
+          </span>
+          <input
+            value={draft.voicesOther}
+            onChange={(e) => setDraft((d) => ({ ...d, voicesOther: e.target.value.slice(0, 80) }))}
+            placeholder="A name — a teacher, a voice you trust"
+            className="w-full text-xs px-1 py-2 focus:outline-none"
+            style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderBottom: `1px solid ${t.border}`,
+              borderRadius: 0,
+              fontFamily: PRINT_SERIF,
+              color: t.text,
+            }}
+          />
+        </label>
+        <p className="text-[12px] mt-1" style={{ color: t.textDim }}>
+          Up to {VOICES_MAX}.
+        </p>
+        <p className="text-[13px] leading-relaxed mt-1" style={{ color: t.textDim }}>
+          Used only to choose the day&rsquo;s media pick. Kept only on this phone.
+        </p>
       </div>
 
       <div>

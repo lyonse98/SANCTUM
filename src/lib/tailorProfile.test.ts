@@ -6,9 +6,12 @@ import {
   EMPTY_TAILOR_PROFILE,
   NORTH_STARS,
   SEASONS_OF_LIFE,
+  VOICES,
+  VOICES_MAX,
   battlesForAudience,
   eraseTailorProfile,
   hasTailorProfile,
+  isVoiceForAudience,
   loadTailorProfile,
   northStarById,
   northStarLabel,
@@ -18,6 +21,9 @@ import {
   profileSignature,
   saveTailorProfile,
   tailorProfileKey,
+  voiceById,
+  voiceLabel,
+  voicesForAudience,
   type TailorProfile,
 } from './tailorProfile';
 import { personasForAudience } from '@/personas';
@@ -39,6 +45,8 @@ const PROFILE: TailorProfile = {
   mediaPrefs: ['song', 'video'],
   defaultTone: 'courage',
   northStar: 'be-still',
+  voices: ['fradd', 'goggins'],
+  voicesOther: '',
 };
 
 /** Minimal Storage whose keys are own enumerable properties, like the browser's. */
@@ -316,6 +324,183 @@ describe('the North Star — one chosen compass, optional by design (Nov 18, 202
     expect(loadTailorProfile('men').northStar).toBe('thy-will');
     eraseTailorProfile('men');
     expect(loadTailorProfile('men')).toEqual(EMPTY_TAILOR_PROFILE);
+  });
+});
+
+describe('the Voices — who the reader listens to, for media only (Nov 18, 2026)', () => {
+  const originalStorage = globalThis.localStorage;
+  const originalSession = globalThis.sessionStorage;
+  beforeEach(() => {
+    Object.defineProperty(globalThis, 'localStorage', { value: makeStorage(), configurable: true });
+    Object.defineProperty(globalThis, 'sessionStorage', { value: makeStorage(), configurable: true });
+  });
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'localStorage', { value: originalStorage, configurable: true });
+    Object.defineProperty(globalThis, 'sessionStorage', { value: originalSession, configurable: true });
+    vi.restoreAllMocks();
+  });
+
+  it("each track sees its own final list, in Erik's order, faith shelf first", () => {
+    expect(voicesForAudience('men').map((v) => v.id)).toEqual([
+      'fr-mike',
+      'barron',
+      'fradd',
+      'roumie',
+      'cavins',
+      'west',
+      'hahn',
+      'huberman',
+      'peterson',
+      'williamson',
+      'bartlett',
+      'clear',
+      'goggins',
+    ]);
+    expect(voicesForAudience('women').map((v) => v.id)).toEqual([
+      'sr-miriam',
+      'khym',
+      'beth-davis',
+      'cobble',
+      'jackie-hill-perry',
+      'wilkin',
+      'sadie',
+      'emily-wilson',
+      'daigle',
+      'annie-downs',
+      'brene-brown',
+      'mel-robbins',
+      'jay-shetty',
+    ]);
+    // Groups: the faith shelf leads, the culture shelf follows, on both tracks.
+    for (const audience of ['men', 'women'] as const) {
+      const groups = voicesForAudience(audience).map((v) => v.group);
+      expect(groups.indexOf('culture')).toBeGreaterThan(groups.lastIndexOf('faith'));
+      for (const voice of voicesForAudience(audience)) {
+        expect(voice.label.length).toBeGreaterThan(0);
+        expect(voiceById(audience, voice.id)).toEqual(voice);
+      }
+    }
+    expect(voicesForAudience('men').filter((v) => v.group === 'faith')).toHaveLength(7);
+    expect(voicesForAudience('men').filter((v) => v.group === 'culture')).toHaveLength(6);
+    expect(voicesForAudience('women').filter((v) => v.group === 'faith')).toHaveLength(8);
+    expect(voicesForAudience('women').filter((v) => v.group === 'culture')).toHaveLength(5);
+  });
+
+  it('the labels are Erik’s, exactly as ruled', () => {
+    expect(voiceLabel('men', 'fr-mike')).toBe('Fr. Mike Schmitz');
+    expect(voiceLabel('men', 'williamson')).toBe('Chris Williamson (Modern Wisdom)');
+    expect(voiceLabel('men', 'bartlett')).toBe('Steven Bartlett (Diary of a CEO)');
+    expect(voiceLabel('women', 'beth-davis')).toBe('Beth Davis (Blessed Is She)');
+    expect(voiceLabel('women', 'cobble')).toBe('Tara-Leigh Cobble (The Bible Recap)');
+    expect(voiceLabel('women', 'brene-brown')).toBe('Brené Brown');
+    expect(voiceLabel('men', 'not-a-voice')).toBeNull();
+  });
+
+  it('unlike the stars, the tracks share no voice — his shelf and hers are different people', () => {
+    const menIds = new Set(voicesForAudience('men').map((v) => v.id));
+    const shared = voicesForAudience('women').filter((v) => menIds.has(v.id));
+    expect(shared).toEqual([]);
+    // And the registry itself is exactly the two lists.
+    expect(VOICES.men).toHaveLength(13);
+    expect(VOICES.women).toHaveLength(13);
+  });
+
+  it('a stored voice validates against its own track’s list — the other track’s voices do not cross', () => {
+    localStorage.setItem(tailorProfileKey('men'), JSON.stringify({ voices: ['fradd', 'daigle', 'not-a-voice'] }));
+    expect(loadTailorProfile('men').voices).toEqual(['fradd']);
+    localStorage.setItem(tailorProfileKey('women'), JSON.stringify({ voices: ['goggins', 'daigle'] }));
+    expect(loadTailorProfile('women').voices).toEqual(['daigle']);
+    expect(isVoiceForAudience('men', 'daigle')).toBe(false);
+    expect(isVoiceForAudience('women', 'daigle')).toBe(true);
+  });
+
+  it('the five-cap holds at load and at save, and duplicates never survive either', () => {
+    expect(VOICES_MAX).toBe(5);
+    const seven = ['fr-mike', 'barron', 'fradd', 'roumie', 'cavins', 'west', 'hahn'];
+    localStorage.setItem(tailorProfileKey('men'), JSON.stringify({ voices: seven }));
+    expect(loadTailorProfile('men').voices).toEqual(seven.slice(0, 5));
+    saveTailorProfile('men', { ...EMPTY_TAILOR_PROFILE, voices: seven });
+    expect(loadTailorProfile('men').voices).toEqual(seven.slice(0, 5));
+    localStorage.setItem(tailorProfileKey('men'), JSON.stringify({ voices: ['fradd', 'fradd', 'goggins'] }));
+    expect(loadTailorProfile('men').voices).toEqual(['fradd', 'goggins']);
+    saveTailorProfile('men', { ...EMPTY_TAILOR_PROFILE, voices: ['goggins', 'goggins', 'fradd'] });
+    expect(loadTailorProfile('men').voices).toEqual(['goggins', 'fradd']);
+  });
+
+  it('the free-text voice is one short line, capped at 80 on load and on save', () => {
+    localStorage.setItem(tailorProfileKey('men'), JSON.stringify({ voicesOther: 'x'.repeat(120) }));
+    expect(loadTailorProfile('men').voicesOther).toHaveLength(80);
+    saveTailorProfile('men', { ...EMPTY_TAILOR_PROFILE, voicesOther: 'y'.repeat(120) });
+    expect(loadTailorProfile('men').voicesOther).toHaveLength(80);
+  });
+
+  it('voices alone make a profile — and the whole-profile erase takes them too', () => {
+    saveTailorProfile('women', { ...EMPTY_TAILOR_PROFILE, voices: ['sr-miriam'] });
+    expect(hasTailorProfile('women')).toBe(true);
+    saveTailorProfile('women', { ...EMPTY_TAILOR_PROFILE, voicesOther: 'A college chaplain' });
+    expect(hasTailorProfile('women')).toBe(true);
+    expect(loadTailorProfile('women').voicesOther).toBe('A college chaplain');
+    eraseTailorProfile('women');
+    expect(loadTailorProfile('women')).toEqual(EMPTY_TAILOR_PROFILE);
+  });
+
+  it('the request carries voice LABELS, never ids — and the free-text name trimmed', () => {
+    const req = profileForRequest('men', {
+      ...EMPTY_TAILOR_PROFILE,
+      voices: ['fradd', 'goggins'],
+      voicesOther: '  My parish priest  ',
+    });
+    expect(req?.voices).toEqual(['Matt Fradd', 'David Goggins']);
+    expect(req?.voices).not.toContain('fradd');
+    expect(req?.voicesOther).toBe('My parish priest');
+    // A foreign id in the draft simply does not ride.
+    const crossed = profileForRequest('men', { ...EMPTY_TAILOR_PROFILE, voices: ['daigle'] });
+    expect(crossed?.voices).toEqual([]);
+  });
+
+  it('a voices change busts the day-cache signature like any other profile edit', () => {
+    const base = profileForRequest('men', { ...EMPTY_TAILOR_PROFILE, voices: ['fradd'] });
+    const otherChips = profileForRequest('men', { ...EMPTY_TAILOR_PROFILE, voices: ['goggins'] });
+    const otherText = profileForRequest('men', { ...EMPTY_TAILOR_PROFILE, voicesOther: 'Someone' });
+    expect(profileSignature(otherChips)).not.toBe(profileSignature(base));
+    expect(profileSignature(otherText)).not.toBe(profileSignature(base));
+  });
+
+  it('unset is the ordinary state: a profile written before the field existed loads voiceless', () => {
+    localStorage.setItem(
+      tailorProfileKey('men'),
+      JSON.stringify({
+        seasonOfLife: 'father-young',
+        ongoingBattles: ['Work pressure'],
+        standingGoal: 'Be a patient father.',
+        mediaPrefs: ['song'],
+        defaultTone: 'courage',
+        northStar: 'be-still',
+      }),
+    );
+    const loaded = loadTailorProfile('men');
+    expect(loaded.voices).toEqual([]);
+    expect(loaded.voicesOther).toBe('');
+    const req = profileForRequest('men', loaded);
+    expect(req?.voices).toEqual([]);
+    expect(req?.voicesOther).toBe('');
+  });
+
+  it('the editor carries the section beside the media kinds — never below the North Star', () => {
+    const panel = readFileSync(join(__dirname, '..', 'components/TailorToday.tsx'), 'utf8');
+    const mediaAt = panel.indexOf('What lifts you — kinds it may go and find');
+    const voicesAt = panel.indexOf('Voices you listen to — optional');
+    const starAt = panel.indexOf('Your North Star — only if you want one');
+    expect(mediaAt).toBeGreaterThanOrEqual(0);
+    expect(voicesAt).toBeGreaterThan(mediaAt);
+    expect(starAt).toBeGreaterThan(voicesAt);
+    // Grouped shelves, the track's own list, the cap wired into the chips.
+    expect(panel).toContain('voicesForAudience(audience)');
+    expect(panel).toContain('Culture & self-help');
+    expect(panel).toContain('VOICES_MAX');
+    expect(panel).toContain('Someone else');
+    // The disclosure, word for word: media only, this phone only.
+    expect(panel).toContain('Used only to choose the day&rsquo;s media pick. Kept only on this phone.');
   });
 });
 
