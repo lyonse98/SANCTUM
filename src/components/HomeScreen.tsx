@@ -10,6 +10,10 @@ import { TodayHero } from '@/components/TodayHero';
 import { TonightClosing } from '@/components/TonightClosing';
 import { PatronPlate } from '@/components/PatronPlate';
 import { patronFeastOn } from '@/lib/patronSaint';
+import { parishPatronFeastOn } from '@/lib/parishPatron';
+import { BringSomeoneHome } from '@/components/BringSomeoneHome';
+import { massNudgeFor } from '@/lib/massNudge';
+import { formatMassTime } from '@/lib/usualMass';
 import { DaysPrayedMark } from '@/components/DaysPrayedMark';
 import { TailorToday } from '@/components/TailorToday';
 import { getSeasonTheme, getSeasonAccentColor } from '@/lib/seasonTheme';
@@ -93,6 +97,15 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
   // The year's patron, when today is their feast (Erik, Nov 18, 2026):
   // their plate stands under the masthead for the day, and only the day.
   const [patronToday] = useState(() => patronFeastOn(contentDate()));
+  // The parish's patron, when today is their feast (Erik, Nov 18, 2026):
+  // the same plate under the masthead, in the parish's keeping.
+  const [parishPatronToday] = useState(() => parishPatronFeastOn(contentDate()));
+  // The come-home sheet (Erik, Nov 18, 2026): the sender's half of the
+  // door, opened from the quiet line under More of Sanctum.
+  const [comeHomeSheetOpen, setComeHomeSheetOpen] = useState(false);
+  // The pre-Mass nudge (Erik, Nov 18, 2026): on the usual-Mass day,
+  // while the hour is still ahead of it — and never otherwise.
+  const [massNudge] = useState(() => massNudgeFor(new Date()));
 
   // The evening is the content day's evening (Play 7): from the PM hour, and
   // still — in the small hours before the 04:00 flip — the night that belongs
@@ -181,11 +194,57 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           </div>
         )}
 
+        {/* Your parish's patron — on their feast day only (Erik, Nov 18,
+            2026): the year's patron's plate in a second keeping. A
+            personal observance; the calendar's own day is untouched. */}
+        {parishPatronToday && (
+          <div className="w-full mb-4" data-parish-patron-plate>
+            <PatronPlate
+              patron={parishPatronToday}
+              audience={audience}
+              eyebrow="Your parish's patron"
+              colors={{
+                border: seasonTheme.border,
+                fill: `${seasonTheme.border}1F`,
+                card: seasonTheme.card,
+                textBright: seasonTheme.textBright,
+                textMuted: seasonTheme.textMuted,
+                textDim: seasonTheme.textDim,
+                accent: seasonTheme.accent,
+              }}
+              onOpenCompanion={onOpenCompanion}
+            />
+          </div>
+        )}
+
         {/* The days-prayed mark — one quiet line under the masthead: the
             cumulative tally and today's flame, nothing more. */}
         <div className="w-full mb-4">
           <DaysPrayedMark t={seasonTheme} />
         </div>
+
+        {/* The pre-Mass nudge — on the usual-Mass day only, while the
+            Mass is still ahead (Erik, Nov 18, 2026): one slim plate over
+            the Gospel card, and its tap lands on the readings. It keeps
+            no record of anything — no attendance, no tap. */}
+        {massNudge && (
+          <button
+            data-mass-nudge
+            onClick={() => gospelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            className="w-full mb-4 flex items-center gap-2.5 px-3.5 py-2.5 text-left transition-opacity hover:opacity-80 active:opacity-60"
+            style={{ border: `1px solid ${seasonTheme.border}`, backgroundColor: `${seasonTheme.border}1F` }}
+          >
+            <span className="flex-1 min-w-0">
+              <span className="block text-[13px] font-semibold" style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textBright }}>
+                Mass today &mdash; {formatMassTime(massNudge.time)} at {massNudge.parish}
+              </span>
+              <span className="block text-[12px] italic" style={{ fontFamily: PRINT_SERIF, color: seasonTheme.textDim }}>
+                The readings are ready below.
+              </span>
+            </span>
+            <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: seasonAccent }} strokeWidth={2.5} aria-hidden="true" />
+          </button>
+        )}
 
         {/* Daily Gospel — the day's anchor */}
         <div ref={gospelRef} className="w-full mb-5">
@@ -309,8 +368,10 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
             This block replaced the old one-line Real Help link; Real Help
             is its third row, at the same weight as the others. */}
         <div className="w-full mb-6">
-          <MoreOfSanctum t={seasonTheme} onNavigate={onNavigate} />
+          <MoreOfSanctum t={seasonTheme} onNavigate={onNavigate} onBringSomeoneHome={() => setComeHomeSheetOpen(true)} />
         </div>
+
+        <BringSomeoneHome open={comeHomeSheetOpen} t={seasonTheme} onClose={() => setComeHomeSheetOpen(false)} />
 
         <p
           className="text-[13px] text-forge-text-dim text-center leading-relaxed max-w-xs mb-5"

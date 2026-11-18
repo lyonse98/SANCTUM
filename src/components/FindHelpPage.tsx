@@ -18,6 +18,7 @@ import { PrintPageHead } from '@/components/PrintPageHead';
 import { CrisisCard } from '@/components/CrisisCard';
 import { PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import { HELP_DISCLAIMER, HELP_SECTIONS, getHelpSections, type HelpIconKey } from '@/lib/realHelp';
+import { seasonHelpSections } from '@/lib/seasonHelp';
 
 interface FindHelpPageProps {
   t: PersonaTheme;
@@ -54,6 +55,10 @@ const ICONS: Record<HelpIconKey, LucideIcon> = {
 export function FindHelpPage({ t, audience, accent, onBack, onPrayNow, utilities }: FindHelpPageProps) {
   const sections = getHelpSections(audience);
   const a = accent ?? t.accent;
+  // For this season (Erik, Nov 18, 2026): the doors the reader's stored
+  // season of life names first, read on-device from the Tailor profile.
+  // Empty — and the plate never stands — when no season is set.
+  const [seasonSections] = useState(() => seasonHelpSections(audience));
 
   return (
     <div className="absolute inset-0 overflow-y-auto chat-scroll" style={{ backgroundColor: t.bg }}>
@@ -86,6 +91,49 @@ export function FindHelpPage({ t, audience, accent, onBack, onPrayNow, utilities
         <p className="text-xs leading-relaxed text-center mb-6 max-w-md" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
           Eight doors out of this app. Pick the one that fits what you are carrying right now.
         </p>
+
+        {/* For this season — the doors the reader's own season of life
+            names first (Erik, Nov 18, 2026). A quiet plate, drawn from
+            the Tailor profile kept on this device; the full list stands
+            below it unchanged, and a tap walks to the door itself. */}
+        {seasonSections.length > 0 && (
+          <div
+            className="w-full border p-4 mb-6 animate-fade-in"
+            style={{ backgroundColor: `${a}0F`, borderColor: `${a}33` }}
+            data-season-help
+          >
+            <p className={`${PRINT_STAMP_CLASS} mb-1`} style={{ fontFamily: PRINT_SERIF, color: a }}>
+              For this season
+            </p>
+            <p className="text-xs leading-relaxed mb-3" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+              From the season of life in your Tailor profile — the doors it most often needs first.
+            </p>
+            <div className="space-y-2">
+              {seasonSections.map((section) => {
+                const Icon = ICONS[section.icon];
+                return (
+                  <button
+                    key={section.id}
+                    data-season-help-entry={section.id}
+                    onClick={() => document.getElementById(`help-section-${section.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className="w-full min-h-[48px] flex items-center gap-3 px-3 py-2.5 border text-left transition-opacity hover:opacity-80 active:opacity-60"
+                    style={{ backgroundColor: `${a}0A`, borderColor: `${a}2E` }}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" style={{ color: a }} />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-xs font-bold" style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
+                        {section.title}
+                      </span>
+                      <span className="block text-[12px] leading-tight" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+                        {section.tagline}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Sections — real help only: people, not tools (Erik's ruling, Nov 12, 2026.
             The quick wellness tools were removed from the app altogether; this page
@@ -130,7 +178,8 @@ function HelpSectionCard({ section, t, accent, index }: HelpSectionCardProps) {
 
   return (
     <section
-      className="animate-slide-up pt-5 pb-6"
+      id={`help-section-${section.id}`}
+      className="animate-slide-up pt-5 pb-6 scroll-mt-4"
       style={{
         borderTop: index === 0 ? `3px double ${t.border}` : `1px solid ${t.border}`,
         animationDelay: `${index * 60}ms`,
