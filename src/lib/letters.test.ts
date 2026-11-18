@@ -131,6 +131,7 @@ describe('letters — chat days, store, eligibility', () => {
       text: 'Dear friend...',
       withGospel: true,
       withTailor: false,
+      withNorthStar: false,
     });
     // verify request body
     const lastCall = vi.mocked(fetch).mock.calls.at(-1);
@@ -157,7 +158,7 @@ describe('letters — chat days, store, eligibility', () => {
     });
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ok: true, letter: 'Dear friend...' }) } as Response);
     const result = await fetchCompanionLetter('joseph', 'men');
-    expect(result).toEqual({ text: 'Dear friend...', withGospel: true, withTailor: true });
+    expect(result).toEqual({ text: 'Dear friend...', withGospel: true, withTailor: true, withNorthStar: false });
     const init = vi.mocked(fetch).mock.calls.at(-1)?.[1] as RequestInit;
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
     expect(body.issue).toBe('My father is in hospital.');
@@ -166,7 +167,7 @@ describe('letters — chat days, store, eligibility', () => {
     expect(body.tailorFocus).toBe('family');
     expect(body.tailorTone).toBe('comfort');
     // The allowlist is the whole payload: the four envelope keys plus the
-    // seven packet fields, and nothing else can ride.
+    // packet fields, and nothing else can ride.
     expect(Object.keys(body).sort()).toEqual([
       'audience',
       'gospelCitation',
@@ -182,6 +183,28 @@ describe('letters — chat days, store, eligibility', () => {
     ]);
   });
 
+  it('fetchCompanionLetter hands over the North Star on its own — no thread needed', async () => {
+    const { fetchCompanionLetter } = await import('./letters');
+    const { EMPTY_TAILOR_PROFILE, saveTailorProfile } = await import('./tailorProfile');
+    saveTailorProfile('men', { ...EMPTY_TAILOR_PROFILE, northStar: 'be-still' });
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ok: true, letter: 'Dear friend...' }) } as Response);
+    const result = await fetchCompanionLetter('joseph', 'men');
+    expect(result).toEqual({ text: 'Dear friend...', withGospel: true, withTailor: false, withNorthStar: true });
+    const init = vi.mocked(fetch).mock.calls.at(-1)?.[1] as RequestInit;
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    // The star rides as its resolved phrasing — never the raw id.
+    expect(body.northStar).toBe('"Be still, and know that I am God." — Psalm 46:10');
+    expect(Object.keys(body).sort()).toEqual([
+      'audience',
+      'gospelCitation',
+      'keyVerse',
+      'mode',
+      'northStar',
+      'personaId',
+      'season',
+    ]);
+  });
+
   it('letterFramingLine names the sources, or stays silent for an impersonal letter', () => {
     expect(letterFramingLine({})).toBeNull();
     expect(letterFramingLine({ withGospel: false, withTailor: false })).toBeNull();
@@ -189,6 +212,16 @@ describe('letters — chat days, store, eligibility', () => {
     expect(letterFramingLine({ withTailor: true })).toBe('Written with what you shared in Tailor.');
     expect(letterFramingLine({ withGospel: true, withTailor: true })).toBe(
       'Written with today’s Gospel and what you shared in Tailor.',
+    );
+    expect(letterFramingLine({ withNorthStar: true })).toBe('Written with your North Star.');
+    expect(letterFramingLine({ withGospel: true, withNorthStar: true })).toBe(
+      'Written with today’s Gospel and your North Star.',
+    );
+    expect(letterFramingLine({ withTailor: true, withNorthStar: true })).toBe(
+      'Written with what you shared in Tailor and your North Star.',
+    );
+    expect(letterFramingLine({ withGospel: true, withTailor: true, withNorthStar: true })).toBe(
+      'Written with today’s Gospel, what you shared in Tailor, and your North Star.',
     );
   });
 });

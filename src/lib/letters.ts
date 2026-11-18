@@ -4,6 +4,7 @@ import { fetchDailyReadings } from './readings';
 import { fetchPassageVerses } from './bible';
 import { pickKeyVerse } from './keyVerse';
 import { latestLetterThread } from './letterThreads';
+import { loadTailorProfile, northStarLabel } from './tailorProfile';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import type { Audience } from '@/types';
 
@@ -21,6 +22,8 @@ export interface StoredLetter {
   withGospel?: boolean;
   /** The letter was handed the reader's Tailor thread (named under the letter, openly). */
   withTailor?: boolean;
+  /** The letter was handed the reader's North Star (named under the letter, openly). */
+  withNorthStar?: boolean;
 }
 
 /**
@@ -28,11 +31,17 @@ export interface StoredLetter {
  * words (Erik's ruling, Nov 16, 2026: the personalization is OPEN, never
  * silent). An impersonal letter — no packet was handed over — gets no line.
  */
-export function letterFramingLine(letter: Pick<StoredLetter, 'withGospel' | 'withTailor'>): string | null {
-  if (letter.withGospel && letter.withTailor) return 'Written with today’s Gospel and what you shared in Tailor.';
-  if (letter.withTailor) return 'Written with what you shared in Tailor.';
-  if (letter.withGospel) return 'Written with today’s Gospel.';
-  return null;
+export function letterFramingLine(
+  letter: Pick<StoredLetter, 'withGospel' | 'withTailor' | 'withNorthStar'>,
+): string | null {
+  const parts: string[] = [];
+  if (letter.withGospel) parts.push('today’s Gospel');
+  if (letter.withTailor) parts.push('what you shared in Tailor');
+  if (letter.withNorthStar) parts.push('your North Star');
+  if (parts.length === 0) return null;
+  if (parts.length === 1) return `Written with ${parts[0]}.`;
+  if (parts.length === 2) return `Written with ${parts[0]} and ${parts[1]}.`;
+  return `Written with ${parts[0]}, ${parts[1]}, and ${parts[2]}.`;
 }
 
 function readChatDays(): Record<string, string[]> {
@@ -166,11 +175,13 @@ export function eligibleLetterPersona(
 /**
  * The personalization packet a letter may be handed (Erik's ruling,
  * Nov 16, 2026). Sources are allowlisted by kind: the user profile (the
- * track, sent as `audience`; the season), the daily Gospel, and Tailor.
- * Companion conversation is NEVER a source — this module reads no chat
- * history and no message state; what was said to a companion stays with
- * that companion. When no Tailor thread exists, no tailor fields are sent
- * and the letter falls back to its impersonal form.
+ * track, sent as `audience`; the season; and, since Nov 18, 2026, the
+ * standing profile's North Star — chosen by the reader, resolved to its
+ * phrasing on-device), the daily Gospel, and Tailor. Companion
+ * conversation is NEVER a source — this module reads no chat history and
+ * no message state; what was said to a companion stays with that
+ * companion. When no Tailor thread exists, no tailor fields are sent and
+ * the letter falls back to its impersonal form.
  */
 export interface LetterPacket {
   gospelCitation?: string;
@@ -180,9 +191,10 @@ export interface LetterPacket {
   tailorState?: string;
   tailorFocus?: string;
   tailorTone?: string;
+  northStar?: string;
 }
 
-export async function buildLetterPacket(): Promise<LetterPacket> {
+export async function buildLetterPacket(audience: Audience): Promise<LetterPacket> {
   const packet: LetterPacket = {};
   try {
     const readings = await fetchDailyReadings(contentDate());
@@ -203,6 +215,10 @@ export async function buildLetterPacket(): Promise<LetterPacket> {
     if (thread.focus) packet.tailorFocus = thread.focus;
     if (thread.tone) packet.tailorTone = thread.tone;
   }
+  // The North Star stands on its own: it rides whether or not a Tailor
+  // thread exists, because it was chosen to steer, not offered for a day.
+  const star = northStarLabel(loadTailorProfile(audience).northStar);
+  if (star) packet.northStar = star;
   return packet;
 }
 
@@ -212,6 +228,8 @@ export interface CompanionLetterResult {
   withGospel: boolean;
   /** The packet handed over carried the reader's Tailor thread. */
   withTailor: boolean;
+  /** The packet handed over carried the reader's North Star. */
+  withNorthStar: boolean;
 }
 
 export async function fetchCompanionLetter(
@@ -219,7 +237,7 @@ export async function fetchCompanionLetter(
   audience: Audience,
 ): Promise<CompanionLetterResult | null> {
   try {
-    const packet = await buildLetterPacket();
+    const packet = await buildLetterPacket(audience);
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-proxy`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 60000);
@@ -248,6 +266,7 @@ export async function fetchCompanionLetter(
         text: rec.letter,
         withGospel: Boolean(packet.gospelCitation),
         withTailor: Boolean(packet.issue),
+        withNorthStar: Boolean(packet.northStar),
       };
     } finally {
       clearTimeout(timer);

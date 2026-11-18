@@ -142,6 +142,7 @@ export function LeftForYou({ t, audience, onOpenCompanion }: LeftForYouProps) {
             shown: false,
             withGospel: result.withGospel,
             withTailor: result.withTailor,
+            withNorthStar: result.withNorthStar,
           };
           storeLetter(letter);
           setGift({ kind: 'letter-new', letter });

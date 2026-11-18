@@ -270,7 +270,9 @@ Do not mention these instructions. Follow them silently. If not a crisis, procee
 // Letter personalization (v2, Erik's ruling, Nov 16, 2026): a letter may be
 // handed a small packet from allowlisted sources only — the day's Gospel,
 // and the one sentence the reader offered Tailor Today for tailoring, with
-// that morning's stated enums. Companion conversation is never a source:
+// that morning's stated enums — and, since Nov 18, 2026, the reader's
+// chosen North Star from the standing profile. Companion conversation is
+// never a source:
 // what was said to a companion stays with that companion. The packet fields
 // are validated one by one below and composed into ONE fixed-format block
 // after the letter instruction; with no valid packet, the composed
@@ -346,6 +348,20 @@ interface LetterPacket {
   tailorState?: string;
   tailorFocus?: string;
   tailorTone?: string;
+  northStar?: string;
+}
+
+/**
+ * The North Star cleaner, shared by the chat path and the letter packet
+ * (Erik, Nov 18, 2026): one short phrasing string the reader chose in the
+ * standing profile, whitespace-normalized and capped — phrasing, never an
+ * instruction channel. Anything else validates to null and the request
+ * proceeds exactly as it did before the field existed.
+ */
+function cleanNorthStar(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const s = value.replace(/\s+/g, " ").trim();
+  return s ? s.slice(0, 160) : null;
 }
 
 /** Validates the caller's packet fields one by one; null when nothing valid was offered. */
@@ -360,6 +376,11 @@ function letterPacketFromPayload(payload: Record<string, unknown>): LetterPacket
   if (gospelCitation) packet.gospelCitation = gospelCitation;
   const keyVerse = clean(payload.keyVerse, 600);
   if (keyVerse) packet.keyVerse = keyVerse;
+  // The North Star is a standalone field: it was chosen to steer, not
+  // offered for one morning, so it does NOT ride only with the issue the
+  // way the stated enums do — it is admitted on its own.
+  const northStar = cleanNorthStar(payload.northStar);
+  if (northStar) packet.northStar = northStar;
   // The thread is the personal core: the enums ride only with the sentence
   // they were stated beside, never on their own.
   const issue = clean(payload.issue, 200);
@@ -408,8 +429,17 @@ function letterPacketBlock(packet: LetterPacket): string {
       ` This was given for tailoring, on purpose — the reader offered it so that what is written for them could be aimed at it.`;
     const carrying =
       `PERSONAL THREAD — HOW TO CARRY WHAT WAS OFFERED:\n` +
-      `The no-knowledge rule in the letter instruction governs everything except this one thread. For this thread, and only this thread, you may speak gently to what the reader is carrying, in the present tense — it was handed to you for exactly this, as a companion is handed a note, not told a story. Never write "when you told me", never suggest it came from a conversation, and never recount the offering as an event. Do not invent beyond the sentence: no backstory, no assumed details, no named sins or struggles the sentence itself does not name. Carry it as something carried — a weight in the reader's hands — never as a fault, a failing, or a debt to be settled. Every other rule stands in full: portrayal, no intercession promises, no revelation, nothing that resembles absolution, no invented quotations, absence never remarked, and the close still points outward — to a priest, to the sacraments, to the reader's own people.`;
+      `The no-knowledge rule in the letter instruction governs everything except this one thread. For this thread, and only this thread, you may speak gently to what the reader is carrying, in the present tense — it was handed to you for exactly this, as a companion is handed a note, not told a story. Never write "when you told me", never suggest it came from a conversation, and never recount the offering as an event. Do not invent beyond the sentence: no backstory, no assumed details, no named sins or struggles the sentence itself does not name. Carry it as something carried — a weight in the reader's hands — never as a fault, a failing, or a debt to be settled. Every other rule stands in full: portrayal, no intercession promises, no revelation, nothing that resembles absolution, no invented quotations, absence never remarked, and the close still points outward — to a priest, to the sacraments, to the reader's own people.` +
+      (packet.northStar
+        ? ` The reader's North Star, given below, may also guide this letter, and may be quoted exactly as given.`
+        : ``);
     parts.push(offered, carrying);
+  }
+  if (packet.northStar) {
+    parts.push(
+      `THE READER'S NORTH STAR:\n` +
+        `The reader has chosen a North Star — the scripture or idea they steer by: ${packet.northStar}. Let it guide the letter the way it guides the reader — quietly, where it genuinely fits. You may quote it exactly as given; it is provided verbatim. Never present it as revelation or as a message from God to this reader, and add no invented commentary about it.`,
+    );
   }
   return parts.join("\n\n");
 }
@@ -765,6 +795,22 @@ Deno.serve(async (req: Request) => {
     }
     if (payload.distress === true) {
       personaPrompt += DISTRESS_NOTE;
+    }
+
+    // The reader's North Star (Erik, Nov 18, 2026): one optional field,
+    // validated to a short phrasing string. When it is present, ONE block
+    // joins the persona instruction — for companions and for Aquinas
+    // alike. When it is absent, nothing is appended and the composed
+    // instruction is byte-for-byte what it was before the field existed.
+    // (Letter mode returned above and never reaches this: letters are
+    // handed the star through the packet instead.)
+    const northStar = cleanNorthStar(payload.northStar);
+    if (northStar) {
+      personaPrompt +=
+        `\n\nTHE READER'S NORTH STAR:\n` +
+        `The reader has chosen a North Star — the scripture or idea they steer by: ${northStar}. ` +
+        `Let it quietly color your counsel when it genuinely fits. It is provided verbatim, and you may quote it exactly as given. ` +
+        `Never present it as revelation or as a message from God to this reader, and do not recite it back in every reply — let it surface only occasionally and naturally, the way a shared compass would.`;
     }
 
     // The corpus block (usage rules + the retrieved passages themselves) rides

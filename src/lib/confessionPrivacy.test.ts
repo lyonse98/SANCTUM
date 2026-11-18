@@ -34,14 +34,25 @@ describe('confession privacy — llm.ts never sends confession state', () => {
     expect(llm.toLowerCase()).not.toContain('confession');
   });
 
-  it('builds its chat-proxy payload with exactly the five allowed fields', () => {
+  it('builds its chat-proxy payload with exactly the six allowed fields', () => {
     const match = llm.match(/JSON\.stringify\(\{([\s\S]*?)\}\)/);
     expect(match, 'llm.ts should build the chat-proxy body with JSON.stringify').not.toBeNull();
     const block = match![1]
       // Strip line comments so commented prose cannot be mistaken for a field.
       .replace(/\/\/[^\n]*/g, '');
     const fields = [...block.matchAll(/^\s*([A-Za-z]+)\s*(?::|,)/gm)].map((m) => m[1]);
-    expect([...fields].sort()).toEqual(['audience', 'distress', 'messages', 'personaId', 'season']);
+    // northStar joined the set on Erik's ruling (Nov 18, 2026): the reader's
+    // chosen compass from the standing profile — a profile label, never
+    // anything about confession, and never conversation content.
+    expect([...fields].sort()).toEqual(['audience', 'distress', 'messages', 'northStar', 'personaId', 'season']);
+  });
+
+  it('the one profile field llm.ts reads is the North Star — nothing else from the store', () => {
+    expect(llm).toContain("from '@/lib/tailorProfile'");
+    expect(llm).toContain('northStarLabel(loadTailorProfile(audience).northStar)');
+    for (const other of ['seasonOfLife', 'ongoingBattles', 'standingGoal', 'mediaPrefs', 'defaultTone']) {
+      expect(llm).not.toContain(other);
+    }
   });
 });
 

@@ -1,5 +1,6 @@
 import type { Audience, Message } from '@/types';
 import { loadAudience } from '@/lib/audience';
+import { loadTailorProfile, northStarLabel } from '@/lib/tailorProfile';
 import { SourcesTrailerParser, type ChatSource } from '@/lib/chatSources';
 
 interface StreamCallbacks {
@@ -77,6 +78,12 @@ export async function streamChat(
     console.info('[Sanctum] chat timing', timing);
   };
   try {
+    const audience = context?.audience ?? loadAudience();
+    // The reader's North Star (Erik, Nov 18, 2026): the one profile field a
+    // companion may be handed — chosen by the reader in the standing
+    // profile, resolved to its phrasing on this device, null when unset.
+    // This module reads the profile store for this field and nothing else.
+    const northStar = northStarLabel(loadTailorProfile(audience).northStar);
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-proxy`;
     const res = await fetch(apiUrl, {
       method: 'POST',
@@ -91,7 +98,8 @@ export async function streamChat(
         personaId: context?.personaId ?? '',
         season: context?.season ?? '',
         distress: context?.distress === true,
-        audience: context?.audience ?? loadAudience(),
+        audience,
+        northStar,
       }),
       signal,
     });
