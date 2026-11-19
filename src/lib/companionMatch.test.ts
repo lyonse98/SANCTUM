@@ -71,9 +71,12 @@ describe('the typable companion matcher', () => {
     expect(router).toContain('matchCompanionsByNeed');
     expect(router).toContain('What do you need to talk about?');
     expect(router).toContain('Or say it in your own words');
-    // The guided questions survive intact beside it.
-    expect(router).toContain('What brings you here?');
+    // The guided questions survive intact beside it — since the
+    // deepening (Nov 19, 2026) they live in the quiz engine the router
+    // renders, so the pin reads them there.
     expect(router).toContain('QUESTIONS');
+    const quiz = read('lib/companionQuiz.ts');
+    expect(quiz).toContain('What brings you here?');
     // And the no-match is answered with the whole cast, not a dead end.
     expect(router).toContain('See the whole cast');
     expect(router).toContain('not a dead end');
