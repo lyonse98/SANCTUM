@@ -158,8 +158,11 @@ const TRADITION_QUOTE_PREFIX = "A word from the tradition — ";
  * audit script rebuilt from them. Protected by construction: every
  * reading unit (its intro line rides with its text), the reading closes
  * and acclamation, the supplement passage whole, and the tradition quote.
- * Eligible: the head, the readings program line, the readings-to-Gospel
- * hand-off, the hand-offs, the reflection, and the challenge.
+ * Eligible: the head, the spoken intro (Nov 19, 2026 — generated
+ * connective speech riding at the head of the readings string, its own
+ * paragraph, never a reading text), the readings program line, the
+ * readings-to-Gospel hand-off, the hand-offs, the reflection, and the
+ * challenge.
  */
 export async function proofreadTailoredScript(
   script: TailoredScript,

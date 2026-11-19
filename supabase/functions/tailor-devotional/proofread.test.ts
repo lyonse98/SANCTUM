@@ -128,6 +128,38 @@ describe('proofreadTailoredScript — the tailored flow', () => {
     expect(sent).toContain('The hour turns to the Gospel.');
   });
 
+  it('the spoken intro is eligible for the gate; the reading texts stay protected', async () => {
+    const INTRO = 'The the spoken intro carries a doubled word.';
+    const script = assembleTailoredScript({
+      dateISO: '2026-10-29',
+      celebration: 'Thursday of the 30th week in Ordinary Time',
+      head: 'am',
+      gospelCitation: 'Luke 19:1-10',
+      spokenIntro: INTRO,
+      readings: [
+        { kind: 'first', citation: 'Romans 8:31-39', text: FIRST_TEXT },
+        { kind: 'gospel', citation: 'Luke 19:1-10', text: GOSPEL_TEXT },
+      ],
+      reflect: 'A sound reflection.',
+      challenge: 'A sound challenge.',
+      facet: 'As a man',
+      passageCitation: 'Isaiah 41:10',
+      passageText: PASSAGE_TEXT,
+    });
+    expect(script.introIncluded).toBe(true);
+    const seen: string[][] = [];
+    const model = fakeModel((p) => p.replace('The the', 'The'), seen);
+    const { script: out, changed } = await proofreadTailoredScript(script, model);
+    const sent = seen.flat();
+    // The intro was sent (eligible) and fixed in place, ahead of the
+    // program line; no reading text was ever sent.
+    expect(sent).toContain(INTRO);
+    expect(changed).toBe(1);
+    expect(out.readings.startsWith('The spoken intro carries a doubled word.')).toBe(true);
+    expect(sent.some((p) => p.includes(FIRST_TEXT))).toBe(false);
+    expect(sent.some((p) => p.includes(GOSPEL_TEXT))).toBe(false);
+  });
+
   it('a model that answers garbage leaves the tailored script untouched', async () => {
     const script = fixtureScript();
     const model: ProofreadModel = async () => 'no array here';

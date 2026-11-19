@@ -79,6 +79,7 @@ import {
   TIME_NEUTRAL_LINT,
   assembleTailoredScript,
   validateSpokenBridge,
+  validateSpokenIntro,
   type NarratorAudience,
   type TailoredReadingPart,
   type TailoredScript,
@@ -1006,12 +1007,65 @@ The tailored challenge:
 ${args.challenge}`;
 }
 
+// ── The spoken intro (Nov 19, 2026) ─────────────────────────────────────────
+
+/**
+ * The prompt for the build's spoken intro — the short context the day's
+ * narrator speaks before the readings: yesterday's Gospel in one clause,
+ * then today's preview and one listening cue. The tailored twin of the
+ * daily program's intro. It is a SECOND, separate generation (an injected
+ * dep, like the bridge): it runs only when the caller actually fetched
+ * yesterday's Gospel, and any failure along the way simply means the
+ * program has no intro — the audio plan is then exactly today's.
+ *
+ * The fence is the daily intro's fence, word for word in substance:
+ * description only — scenes, people, and the question the text itself
+ * raises; no lessons, no application, no opinions; facts only from the
+ * two Gospels given. Yesterday's content is never invented: the prompt is
+ * only ever built over a fetched yesterday, and the words still pass the
+ * word-count gate (validateSpokenIntro) before they can be spoken.
+ */
+export function buildSpokenIntroPrompt(args: {
+  audience: NarratorAudience;
+  yesterdayCitation: string;
+  yesterdayText: string;
+  gospelCitation: string;
+  gospelText: string;
+  celebration: string | null;
+}): string {
+  const them = args.audience === 'women' ? 'woman' : 'man';
+  const lines = [
+    `You are Sanctum's devotional writer. In today's tailored audio program for one ${them}, before the day's readings are read aloud, the day's narrator speaks a short intro that sets the two days side by side — yesterday's Gospel and today's. Write that intro — plain spoken prose only, no JSON, no preamble, nothing but the intro itself.`,
+    ``,
+    `- 40-70 words, warm and unhurried. Yesterday in one clause — "Yesterday we heard…" — naming what yesterday's Gospel was about: its scene, its people, its movement. Then today: what today's passage is about — the scene, the people, the movement — and close with ONE thing to listen for: a question the passage itself poses, or a detail to notice as it is read.`,
+    `- THE FENCE, absolute: description only. Name scenes, people, and the question the text itself raises. No lessons, no application, no opinions — not yours, not anyone's. No "this teaches us", no "we are called to", nothing the two Gospels do not themselves say. No new facts: if it is not in yesterday's Gospel text or today's, it does not belong. No quotations except words taken verbatim from the two Gospels. You are a fellow listener setting the table — never a priest, never a teacher, never a preacher. No greeting, no name, no introduction of yourself. No em dashes.`,
+  ];
+  if (args.celebration) lines.push(``, `Today the Church celebrates: ${args.celebration}`);
+  lines.push(
+    ``,
+    `Yesterday's Gospel (${args.yesterdayCitation}):`,
+    args.yesterdayText,
+    ``,
+    `Today's Gospel (${args.gospelCitation}):`,
+    args.gospelText,
+  );
+  return lines.join('\n');
+}
+
 export interface ComposedTailored {
   passage: TailorPassage;
   media: ComposedMedia;
   mediaWin: MediaWin;
   tailored: TailoredParts;
   traditionQuote: TraditionQuote | null;
+  /**
+   * The spoken intro (Nov 19, 2026), validated — or null when the build
+   * had no yesterday Gospel to draw on, no intro generation, a failed
+   * call, or words that failed the gate. SPOKEN only: unlike the bridge
+   * it does not ride in the response body — it lives in the script alone
+   * (script.introIncluded), ahead of the readings.
+   */
+  intro: string | null;
   /**
    * The spoken bridge (Nov 14, 2026), validated — or null when the build
    * had no bridge generation, it failed, or its words failed the gate.
@@ -1077,6 +1131,21 @@ export interface ComposeDeps {
    * (fail-open, like every other hunt in this composition).
    */
   generateBridge?: (prompt: string) => Promise<string | null>;
+  /**
+   * Yesterday's Gospel, fetched by the caller (citation + verbatim text)
+   * — the spoken intro's first material. Absent or null: the build has no
+   * intro, because yesterday's content is never invented or remembered by
+   * the model; the intro generation is not even attempted.
+   */
+  yesterdayGospel?: { citation: string; text: string } | null;
+  /**
+   * The spoken-intro generation — injected; receives the intro prompt
+   * (buildSpokenIntroPrompt, over yesterday's Gospel and today's) and
+   * returns the model's raw reply. Absent, failed, or unusable: the build
+   * simply has no intro and the audio plan is exactly as before
+   * (fail-open, like every other hunt in this composition).
+   */
+  generateIntro?: (prompt: string) => Promise<string | null>;
   /** Device hour at build time — picks the AM or PM head, as the player does. */
   hour: number;
 }
@@ -1265,6 +1334,30 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
     bridge = validateSpokenBridge(rawBridge);
   }
 
+  // The spoken intro (Nov 19, 2026): a second, small generation over
+  // yesterday's Gospel and today's — it can only run when the caller
+  // actually fetched yesterday's, because its first clause is a fact
+  // about yesterday and facts are fetched, never remembered. Fail-open
+  // throughout: no yesterday, no dep, a failed call, or words that fail
+  // the word gate all leave the program exactly as it was before the
+  // intro existed.
+  let intro: string | null = null;
+  if (deps.generateIntro && deps.yesterdayGospel) {
+    const rawIntro = await deps
+      .generateIntro(
+        buildSpokenIntroPrompt({
+          audience,
+          yesterdayCitation: deps.yesterdayGospel.citation,
+          yesterdayText: deps.yesterdayGospel.text,
+          gospelCitation: bundle.gospelCitation,
+          gospelText: bundle.gospelText,
+          celebration: bundle.celebration,
+        }),
+      )
+      .catch(() => null);
+    intro = validateSpokenIntro(rawIntro);
+  }
+
   const script = assembleTailoredScript({
     dateISO,
     audience,
@@ -1277,6 +1370,7 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
     facet: bundle.facet,
     scene: null,
     spokenBridge: bridge,
+    spokenIntro: intro,
     tomorrowCelebration: null,
     tomorrowGospelCitation: null,
     passageCitation: passage.citation,
@@ -1292,6 +1386,7 @@ export async function composeTailored(deps: ComposeDeps): Promise<ComposedTailor
     tailored,
     traditionQuote,
     bridge,
+    intro,
     script,
     narratorName: PERSONA_DISPLAY[script.persona]?.name ?? "The Lector",
     mediaStats,

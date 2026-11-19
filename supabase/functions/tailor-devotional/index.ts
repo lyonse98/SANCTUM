@@ -556,6 +556,46 @@ async function readBundle(
   return { ...readings, ...reflection };
 }
 
+/**
+ * Yesterday's Gospel, for the spoken intro (Nov 19, 2026): citation +
+ * verbatim text from yesterday's daily_readings row — the same source the
+ * bundle reads for today. If the row is missing, the daily-readings
+ * function is asked to build it (it caches the row itself), exactly as
+ * readBundle does for today. ANY failure returns null — and a null here
+ * means the build has no intro, because yesterday's content is fetched,
+ * never invented.
+ */
+async function readYesterdayGospel(
+  dateISO: string,
+): Promise<{ citation: string; text: string } | null> {
+  const yesterday = addDaysISO(dateISO, -1);
+  const read = async () => {
+    const rows = await restSelect("daily_readings", `date=eq.${yesterday}&select=payload`);
+    const payload = rows[0]?.payload as
+      | {
+          citations?: { gospel?: unknown };
+          texts?: { gospel?: { citation?: unknown; text?: unknown } | null };
+        }
+      | undefined;
+    const part = payload?.texts?.gospel;
+    if (!part || typeof part.text !== "string" || !part.text.trim()) return null;
+    const citation =
+      typeof payload?.citations?.gospel === "string" && payload.citations.gospel.trim()
+        ? payload.citations.gospel
+        : typeof part.citation === "string"
+          ? part.citation
+          : "";
+    if (!citation.trim()) return null;
+    return { citation, text: part.text };
+  };
+  let found = await read();
+  if (!found) {
+    await callFunction(`daily-readings?date=${yesterday}`, { method: "GET" });
+    found = await read();
+  }
+  return found;
+}
+
 // ── The one generation ───────────────────────────────────────────────────────
 
 async function generateTailored(systemPrompt: string, userPrompt: string): Promise<TailoredParts> {
@@ -748,6 +788,44 @@ async function generateBridgeText(prompt: string): Promise<string | null> {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: BRIDGE_INSTRUCTION }] },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: 512,
+            thinkingConfig: { thinkingLevel: "low" },
+          },
+        }),
+        signal: AbortSignal.timeout(45000),
+      },
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+    return typeof text === "string" ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── The spoken intro generation (Nov 19, 2026) ───────────────────────────────
+
+// generateBridgeText's twin: the rubric lives in the core
+// (buildSpokenIntroPrompt there); this is only the transport — a plain
+// generation, no search tool, returning the reply text itself (the intro
+// is prose, not JSON). Any failure returns null and the composition
+// builds without an intro, fail-open like every other hunt.
+const INTRO_INSTRUCTION = `You are Sanctum's devotional writer. Follow the writing task in the request exactly and answer with ONLY the intro prose it asks for — no preamble, no commentary, nothing else.`;
+
+async function generateIntroText(prompt: string): Promise<string | null> {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: INTRO_INSTRUCTION }] },
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
             maxOutputTokens: 512,
@@ -1138,6 +1216,10 @@ Deno.serve(async (req: Request) => {
       findMedia: searchMediaLive,
       scoreMedia: scoreMediaLive,
       generateBridge: generateBridgeText,
+      generateIntro: generateIntroText,
+      // Yesterday's Gospel for the spoken intro — fetched, never
+      // invented; a failed fetch simply means this build has no intro.
+      yesterdayGospel: await readYesterdayGospel(dateISO).catch(() => null),
       corpusQuote,
       // The grown media library rides into the pool (outputs.ts reads it;
       // the core merges it beside the seed). Read failure is a seed-only
