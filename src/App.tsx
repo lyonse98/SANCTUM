@@ -7,6 +7,7 @@ import { Header } from '@/components/Header';
 import { SettingsModal } from '@/components/SettingsModal';
 import { PresetChips } from '@/components/PresetChips';
 import { ChatFeed } from '@/components/ChatFeed';
+import { ConfirmEraseSheet } from '@/components/ConfirmEraseSheet';
 import { ChatInput } from '@/components/ChatInput';
 import { HomeScreen } from '@/components/HomeScreen';
 
@@ -107,6 +108,11 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [personaId, setPersonaId] = useState<PersonaId | null>(null);
   const [introActive, setIntroActive] = useState(false);
   const [panicActive, setPanicActive] = useState(false);
+  // No erasure fires on a single tap (Erik, Nov 19, 2026): the panic wipe
+  // and the clear-this-conversation door each open the confirmation sheet
+  // first, and only the sheet's final tap runs the handler.
+  const [panicConfirmOpen, setPanicConfirmOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(() => hasAcceptedTerms());
   // The active track. Existing installs carry no stored audience and load as
   // 'men' (loadAudience's default), so nothing changes for them until they
@@ -407,8 +413,11 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       setStreamingContent('');
     }
     setMessages([]);
-    if (personaId) clearHistory(personaId);
-  }, [isStreaming, personaId]);
+    // Incognito's promise stands even here: the saved conversation is
+    // paused, untouched — clearing an incognito thread clears only the
+    // memory of it, never the record it paused.
+    if (personaId && !incognito) clearHistory(personaId);
+  }, [isStreaming, personaId, incognito]);
 
   const handlePreset = useCallback(
     (chip: PresetChip) => {
@@ -811,9 +820,9 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         onSelectPersona={handleSelectPersona}
         incognito={incognito}
         onToggleIncognito={handleToggleIncognito}
-        onClear={handleClear}
+        onClear={() => setClearConfirmOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
-        onPanic={handlePanic}
+        onPanic={() => setPanicConfirmOpen(true)}
         onGoHome={() => handleChangeView('today')}
       />
 
@@ -915,6 +924,52 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       )}
 
       <ReminderModal open={reminderOpen} t={t} onClose={() => setReminderOpen(false)} />
+
+      {/* Clear this conversation (Nov 19, 2026): the header's trash door
+          opens this sheet first. The clear itself is narrow by
+          construction — handleClear empties the open thread and removes
+          this companion's stored history, nothing else; the profile,
+          the tallies, the letters, the other conversations, and today's
+          message count all stand outside its reach. */}
+      <ConfirmEraseSheet
+        open={clearConfirmOpen}
+        t={t}
+        title="Clear this conversation"
+        goes={[`Every message in your conversation with ${persona.name}, as it stands on this device.`]}
+        stays={[
+          'Your profile, days prayed, and settings stay.',
+          'Your other companions’ conversations stay.',
+        ]}
+        confirmLabel="Clear this conversation"
+        onConfirm={() => { setClearConfirmOpen(false); handleClear(); }}
+        onCancel={() => setClearConfirmOpen(false)}
+      />
+
+      {/* The panic wipe, confirmed (Nov 19, 2026): the shield in the
+          header opens this sheet before anything is erased — the scope
+          named in plain words, the final tap the only road to
+          handlePanic. The "You are safe" screen after the wipe is
+          unchanged. */}
+      <ConfirmEraseSheet
+        open={panicConfirmOpen}
+        t={t}
+        title="Erase everything on this device"
+        intro="This clears the whole of Sanctum from this phone, in one go. It cannot be undone."
+        goes={[
+          'Your companion conversations, every one of them.',
+          'Your Tailor profile and the choices in it.',
+          'Your days prayed, and the Kept shelf with them.',
+          'The companions’ letters left for you.',
+          'Your settings and reminder times — reminders are switched off.',
+        ]}
+        stays={[
+          'Nothing on a server holds your words — there is nothing elsewhere to erase.',
+          'The app itself stays installed. You can begin again.',
+        ]}
+        confirmLabel="Erase everything"
+        onConfirm={() => { setPanicConfirmOpen(false); handlePanic(); }}
+        onCancel={() => setPanicConfirmOpen(false)}
+      />
     </div>
   );
 }

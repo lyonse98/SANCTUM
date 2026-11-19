@@ -215,8 +215,8 @@ export function Header({
               color: t.textMuted,
               borderColor: `${t.border}99`,
             }}
-            aria-label="Clear conversation"
-            title="Clear conversation"
+            aria-label="Clear this conversation"
+            title="Clear this conversation"
           >
             <Trash2 className="w-4 h-4" />
           </button>
