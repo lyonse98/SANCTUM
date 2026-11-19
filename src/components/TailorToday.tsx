@@ -37,11 +37,6 @@ import { tailorOffered } from '@/lib/tailorAccess';
 import { recordCoreAct } from '@/lib/daysPrayed';
 import { listenSpeedLabel, loadListenSpeed, nextListenSpeed, saveListenSpeed, type ListenSpeed } from '@/lib/listenSpeed';
 import {
-  isChallengeLived,
-  markChallengeLived,
-  unmarkChallengeLived,
-} from '@/lib/challengesLived';
-import {
   MEDIA_KIND_LABELS,
   fetchTailorAudio,
   getOrBuildTailored,
@@ -777,29 +772,9 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
     setScrubValue(null);
   };
 
-  // The tailored challenge, lived: the same quiet testimony line the
-  // Gospel card carries, here under the built devotional's challenge —
-  // the intake never shows it. The mark lives in the on-device journal
-  // under this build's dateKey; marking counts the day (a challenge act),
-  // and setting it aside removes only the journal entry.
-  const [challengeLived, setChallengeLived] = useState(false);
-  useEffect(() => {
-    if (view === 'done' && devotional) {
-      setChallengeLived(isChallengeLived(dateKey, 'tailor'));
-    }
-  }, [view, devotional, dateKey]);
-
-  const markTailorChallengeLived = () => {
-    if (!devotional) return;
-    markChallengeLived({ dateKey, source: 'tailor', text: devotional.challenge });
-    recordCoreAct('challenge');
-    setChallengeLived(true);
-  };
-
-  const unmarkTailorChallengeLived = () => {
-    unmarkChallengeLived(dateKey, 'tailor');
-    setChallengeLived(false);
-  };
+  // The tailored challenge stands here unmarked (Erik, Nov 19, 2026):
+  // its "I did this" testimony moved to Tonight with the daily
+  // challenge's — the day's challenges are answered at its close.
 
   const build = async () => {
     const intake: TailorIntake = {
@@ -1147,32 +1122,6 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
                 Challenge · tailored for you
               </p>
               <p className="text-[13px] leading-relaxed mt-1.5" style={{ fontFamily: PRINT_SERIF, color: t.text }}>{devotional.challenge}</p>
-              {challengeLived ? (
-                <p className="text-[12px] mt-1.5" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
-                  This one was lived.{' '}
-                  <button
-                    onClick={unmarkTailorChallengeLived}
-                    className="underline underline-offset-2 transition-opacity hover:opacity-70"
-                    style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
-                  >
-                    undo
-                  </button>
-                </p>
-              ) : (
-                <button
-                  onClick={markTailorChallengeLived}
-                  data-challenge-lived-button
-                  className="inline-flex items-center px-3 py-1.5 mt-2 text-[12px] font-bold uppercase tracking-wide transition-opacity hover:opacity-80 active:opacity-60"
-                  style={{
-                    fontFamily: PRINT_SERIF,
-                    color: t.textMuted,
-                    border: `1px solid ${t.border}`,
-                    backgroundColor: `${t.border}1F`,
-                  }}
-                >
-                  I did this
-                </button>
-              )}
             </div>
             {devotional.traditionQuote && (
               <div className="py-3" style={{ borderTop: `1px solid ${t.border}` }}>

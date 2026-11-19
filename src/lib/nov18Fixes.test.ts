@@ -21,7 +21,8 @@ import { getDailyVisual } from '@/lib/liturgicalVisuals';
  *    at every hour, and "Close the day" lives only in Tonight. The
  *    reverted state is pinned below and in todayRetention.test.ts.
  * 4. "I did this" must read as a button — both challenge marks now
- *    wear a bordered button's frame.
+ *    wear a bordered button's frame. (Placement reversed Nov 19,
+ *    2026: the marks live in Tonight now — see the fix 4 pins.)
  * 5. The Tailor profile is editable from Settings — one entry, the
  *    same editor, the same store.
  */
@@ -34,6 +35,7 @@ const hero = readSrc('components/TodayHero.tsx');
 const card = readSrc('components/DailyQuote.tsx');
 const tailor = readSrc('components/TailorToday.tsx');
 const settings = readSrc('components/SettingsModal.tsx');
+const tonight = readSrc('components/TonightClosing.tsx');
 const app = readSrc('App.tsx');
 const home = readSrc('components/HomeScreen.tsx');
 
@@ -143,34 +145,48 @@ describe('fix 3 — the Tailor door restored; the evening swap REVERTED', () => 
 });
 
 describe('fix 4 — "I did this" reads as a button, in both challenges', () => {
+  // Placement REVERSED (Erik, Nov 19, 2026): the mark no longer
+  // stands under the morning's challenges at all — it lives in
+  // Tonight, at the day's close, and only on days the user prayed
+  // with the app in the morning. What survives of this fix is the
+  // button's frame, carried into Tonight unchanged; what changed
+  // is where — and when — the mark stands.
   const buttonOf = (src: string) => {
     const start = src.indexOf('data-challenge-lived-button');
     return src.slice(src.lastIndexOf('<button', start), src.indexOf('</button>', start));
   };
 
-  it('the daily challenge\u2019s mark wears a bordered button\u2019s frame', () => {
-    const button = buttonOf(card);
+  it('the marks are gone from the morning surfaces', () => {
+    expect(card).not.toContain('data-challenge-lived-button');
+    expect(tailor).not.toContain('data-challenge-lived-button');
+    expect(card).not.toContain('markDailyChallengeLived');
+    expect(tailor).not.toContain('markTailorChallengeLived');
+    expect(card).not.toContain('This one was lived.');
+    expect(tailor).not.toContain('This one was lived.');
+  });
+
+  it('the mark stands in Tonight, wearing the same bordered frame', () => {
+    const button = buttonOf(tonight);
     expect(button).toContain('border: `1px solid ${t.border}`');
     expect(button).toContain('backgroundColor: `${t.border}1F`');
     expect(button).toContain('px-3 py-1.5');
     expect(button).toContain('I did this');
-    expect(button).toContain('onClick={markDailyChallengeLived}');
   });
 
-  it('the Tailor challenge\u2019s mark wears the same frame', () => {
-    const button = buttonOf(tailor);
-    expect(button).toContain('border: `1px solid ${t.border}`');
-    expect(button).toContain('backgroundColor: `${t.border}1F`');
-    expect(button).toContain('px-3 py-1.5');
-    expect(button).toContain('I did this');
-    expect(button).toContain('onClick={markTailorChallengeLived}');
+  it('both challenges are marked from Tonight, against the same journal', () => {
+    expect(tonight).toContain('livedMark(dailyLived, markDailyChallengeLived, unmarkDailyChallengeLived)');
+    expect(tonight).toContain('livedMark(tailorLived, markTailorChallengeLived, unmarkTailorChallengeLived)');
+    expect(tonight).toContain('This one was lived.');
+    expect(tonight).toContain("source: 'daily'");
+    expect(tonight).toContain("source: 'tailor'");
+    expect(tonight).toContain('markChallengeLived');
+    expect(tonight).toContain('unmarkChallengeLived');
   });
 
-  it('the lived state and its undo are unchanged', () => {
-    expect(card).toContain('This one was lived.');
-    expect(tailor).toContain('This one was lived.');
-    expect(card).toContain('onClick={unmarkDailyChallengeLived}');
-    expect(tailor).toContain('onClick={unmarkTailorChallengeLived}');
+  it('the gate is the morning\u2019s prayer: a Tailor morning record, or the day already counted', () => {
+    expect(tonight).toContain('Boolean(tailorMeta?.morning) || loadDaysPrayedDates().includes(dateKey)');
+    expect(tonight).toContain('morningPrayed && livedMark(dailyLived');
+    expect(tonight).toContain('morningPrayed && tailoredPkg');
   });
 });
 

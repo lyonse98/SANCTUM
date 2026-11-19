@@ -28,13 +28,7 @@ import {
   type Reflection,
 } from '@/lib/reflection';
 import { PRINT_PLATE_CLASS, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
-import { recordCoreAct } from '@/lib/daysPrayed';
 import { scaledBodyPx, useReadingSize } from '@/lib/readingSize';
-import {
-  isChallengeLived,
-  markChallengeLived,
-  unmarkChallengeLived,
-} from '@/lib/challengesLived';
 import { ListenBar } from '@/components/ListenBar';
 import { TailorToday, type TailorReflectRequest } from '@/components/TailorToday';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
@@ -255,27 +249,10 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     audience,
   );
 
-  // The challenge, lived: a quiet testimony line under the challenge, not
-  // a badge. The mark is read from the on-device journal once the day's
-  // reflection stands; marking also counts the day in the cumulative
-  // tally (a challenge act), and setting the mark aside removes only the
-  // journal entry — the day itself is never un-recorded.
-  const [challengeLived, setChallengeLived] = useState(false);
-  useEffect(() => {
-    if (shown.value) setChallengeLived(isChallengeLived(localDateKey, 'daily'));
-  }, [shown.value, localDateKey]);
-
-  const markDailyChallengeLived = () => {
-    if (!shown.value) return;
-    markChallengeLived({ dateKey: localDateKey, source: 'daily', text: shown.value.challenge });
-    recordCoreAct('challenge');
-    setChallengeLived(true);
-  };
-
-  const unmarkDailyChallengeLived = () => {
-    unmarkChallengeLived(localDateKey, 'daily');
-    setChallengeLived(false);
-  };
+  // The challenge stands here unmarked (Erik, Nov 19, 2026): the
+  // "I did this" testimony moved to Tonight, at the day's close —
+  // the morning proposes, the evening answers. The journal and the
+  // Kept shelf are untouched; only the marking's home moved.
 
   const loadAllTexts = async (): Promise<ReadingTexts | null> => {
     if (allTexts) return allTexts;
@@ -661,32 +638,6 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                 <p className="leading-relaxed" style={{ fontFamily: PRINT_SERIF, color: t.text, fontSize: bodyPx(13) }}>
                   {shown.value.challenge}
                 </p>
-                {challengeLived ? (
-                  <p className="text-[12px] mt-1.5" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
-                    This one was lived.{' '}
-                    <button
-                      onClick={unmarkDailyChallengeLived}
-                      className="underline underline-offset-2 transition-opacity hover:opacity-70"
-                      style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
-                    >
-                      undo
-                    </button>
-                  </p>
-                ) : (
-                  <button
-                    onClick={markDailyChallengeLived}
-                    data-challenge-lived-button
-                    className="inline-flex items-center px-3 py-1.5 mt-2 text-[12px] font-bold uppercase tracking-wide transition-opacity hover:opacity-80 active:opacity-60"
-                    style={{
-                      fontFamily: PRINT_SERIF,
-                      color: t.textMuted,
-                      border: `1px solid ${t.border}`,
-                      backgroundColor: `${t.border}1F`,
-                    }}
-                  >
-                    I did this
-                  </button>
-                )}
               </div>
             </>
           ) : null}

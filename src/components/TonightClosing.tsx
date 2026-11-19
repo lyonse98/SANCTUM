@@ -3,7 +3,12 @@ import { ChevronRight, Church, Moon } from 'lucide-react';
 import { PRINT_PLATE_CLASS, PRINT_SERIF } from '@/lib/print';
 import { fetchReflection } from '@/lib/reflection';
 import { contentDate, contentDateKey, contentNow, shiftDateKey } from '@/lib/dayBoundary';
-import { readTailorMeta } from '@/lib/tailor';
+import { loadTodaysTailored, readTailorMeta, type TailoredDevotional } from '@/lib/tailor';
+import {
+  isChallengeLived,
+  markChallengeLived,
+  unmarkChallengeLived,
+} from '@/lib/challengesLived';
 import { loadTonightsClose } from '@/lib/tailorPm';
 import { TailorPm } from '@/components/TailorPm';
 import { KeptShelf } from '@/components/KeptShelf';
@@ -17,7 +22,7 @@ import {
 import { loadReaderName } from '@/lib/readerName';
 import { scaledBodyPx, useReadingSize } from '@/lib/readingSize';
 import { formatMassTime, loadUsualMass, massPreviewEvening } from '@/lib/usualMass';
-import { recordCoreAct } from '@/lib/daysPrayed';
+import { loadDaysPrayedDates, recordCoreAct } from '@/lib/daysPrayed';
 import { fetchDailyReadings } from '@/lib/readings';
 import { fetchPassageVerses } from '@/lib/bible';
 import { pickKeyVerse, type KeyVerse } from '@/lib/keyVerse';
@@ -182,6 +187,93 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
     };
   }, [dateKey, audience]);
 
+  // The challenges, answered (Erik, Nov 19, 2026): the "I did this"
+  // mark lives here now, at the day's close — the morning proposes,
+  // the evening answers — and only on a day the user prayed with the
+  // app in the morning. The gate's signals, honestly: the morning
+  // Tailor record, when one exists, is exact. Otherwise the gate is
+  // the days-prayed tally, which keeps only day keys — no act kind,
+  // no hour — so it reads "the content day already counts as prayed
+  // as Tonight is opened." That read happens once, as this section
+  // mounts: Tonight's own acts (the resolve typed below, the PM
+  // close) are recorded after it, so opening Tonight alone does not
+  // open the gate in the visit that creates them. The journal is the
+  // same one the morning surfaces wrote to (lib/challengesLived);
+  // the Kept shelf reads it exactly as before.
+  const [morningPrayed] = useState(
+    () => Boolean(tailorMeta?.morning) || loadDaysPrayedDates().includes(dateKey),
+  );
+  const [dailyLived, setDailyLived] = useState(() => isChallengeLived(dateKey, 'daily'));
+  const [tailorLived, setTailorLived] = useState(() => isChallengeLived(dateKey, 'tailor'));
+  const [tailoredPkg, setTailoredPkg] = useState<TailoredDevotional | null>(null);
+
+  // The morning's built devotional, for its challenge's words — the
+  // journal keeps the challenge as it was given, so the mark needs
+  // the package itself, not the intake the meta remembers.
+  useEffect(() => {
+    if (!tailorMeta?.morning) return;
+    let live = true;
+    void loadTodaysTailored(dateKey, audience).then((pkg) => {
+      if (live) setTailoredPkg(pkg);
+    });
+    return () => {
+      live = false;
+    };
+  }, [tailorMeta, dateKey, audience]);
+
+  const markDailyChallengeLived = () => {
+    if (!challenge) return;
+    markChallengeLived({ dateKey, source: 'daily', text: challenge });
+    recordCoreAct('challenge');
+    setDailyLived(true);
+  };
+
+  const unmarkDailyChallengeLived = () => {
+    unmarkChallengeLived(dateKey, 'daily');
+    setDailyLived(false);
+  };
+
+  const markTailorChallengeLived = () => {
+    if (!tailoredPkg) return;
+    markChallengeLived({ dateKey, source: 'tailor', text: tailoredPkg.challenge });
+    recordCoreAct('challenge');
+    setTailorLived(true);
+  };
+
+  const unmarkTailorChallengeLived = () => {
+    unmarkChallengeLived(dateKey, 'tailor');
+    setTailorLived(false);
+  };
+
+  /** One challenge's testimony: the bordered mark, or the lived line with its undo. */
+  const livedMark = (lived: boolean, onMark: () => void, onUnmark: () => void) =>
+    lived ? (
+      <p className="text-[12px] mt-1.5" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+        This one was lived.{' '}
+        <button
+          onClick={onUnmark}
+          className="underline underline-offset-2 transition-opacity hover:opacity-70"
+          style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+        >
+          undo
+        </button>
+      </p>
+    ) : (
+      <button
+        onClick={onMark}
+        data-challenge-lived-button
+        className="inline-flex items-center px-3 py-1.5 mt-2 text-[12px] font-bold uppercase tracking-wide transition-opacity hover:opacity-80 active:opacity-60"
+        style={{
+          fontFamily: PRINT_SERIF,
+          color: t.textMuted,
+          border: `1px solid ${t.border}`,
+          backgroundColor: `${t.border}1F`,
+        }}
+      >
+        I did this
+      </button>
+    );
+
   // The Mass day's name and Gospel, by the by-date readings path — the
   // same explicit-date serving the rest of the app uses, aimed one day
   // ahead (at Sunday, or at Saturday for a vigil goer).
@@ -268,12 +360,30 @@ export function TonightClosing({ t, audience, onOpenHelp }: TonightClosingProps)
       )}
 
       {challenge && (
-        <p
-          className="text-xs leading-relaxed mb-3.5"
-          style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
-        >
-          {honestLookLine(challenge)}
-        </p>
+        <div className="mb-3.5">
+          <p
+            className="text-xs leading-relaxed"
+            style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
+          >
+            {honestLookLine(challenge)}
+          </p>
+          {morningPrayed && livedMark(dailyLived, markDailyChallengeLived, unmarkDailyChallengeLived)}
+        </div>
+      )}
+
+      {/* The tailored challenge, answered beside the day's (Erik,
+          Nov 19, 2026): its words echoed, its mark under them — only
+          where a morning build stands and the morning was prayed. */}
+      {morningPrayed && tailoredPkg && (
+        <div className="mb-3.5">
+          <p
+            className="text-xs leading-relaxed"
+            style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
+          >
+            Your tailored challenge was: {tailoredPkg.challenge}
+          </p>
+          {livedMark(tailorLived, markTailorChallengeLived, unmarkTailorChallengeLived)}
+        </div>
       )}
 
       <label
