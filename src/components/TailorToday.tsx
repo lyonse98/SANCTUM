@@ -88,6 +88,9 @@ interface TailorTodayProps {
   profileOpenSignal?: number;
 }
 
+/** How long the narration stitch may run before the preparing line gives up on it (the watchdog). */
+const AUDIO_STITCH_WATCHDOG_MS = 8 * 60 * 1000;
+
 function fmt(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -569,8 +572,14 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
   // text package is already on screen, so the fetch rides behind it — the
   // play bar waits in its preparing state, then the stitched audio takes
   // the plan's place. One attempt per shown package; a failed stitch
-  // leaves the text standing and a later open tries again.
+  // leaves the text standing and a later open tries again — and now
+  // RESUMES, because the stitch banks its pieces on the device as they
+  // land (Nov 18, 2026). The preparing line counts the pieces in hand;
+  // a stitch that cannot finish — or one the watchdog has given up on —
+  // settles into a quiet failure line instead of spinning forever.
   const [audioPreparing, setAudioPreparing] = useState(false);
+  const [audioProgress, setAudioProgress] = useState<{ done: number; total: number } | null>(null);
+  const [audioFailed, setAudioFailed] = useState(false);
   const audioAttemptedFor = useRef<TailoredDevotional | null>(null);
   useEffect(() => {
     if (!devotional || devotional.audioBase64 || !devotional.audioPlan) return;
@@ -578,20 +587,49 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
     audioAttemptedFor.current = devotional;
     let active = true;
     setAudioPreparing(true);
-    void fetchTailorAudio(dateKey, audience, devotional).then((merged) => {
+    setAudioFailed(false);
+    setAudioProgress(null);
+    // The watchdog: eight minutes of preparing with no completion is a
+    // hang, whatever the cause — clear the spinner and say so quietly.
+    // The stitch itself is not cancelled; if it lands later, the player
+    // simply takes the failure line's place.
+    const watchdog = window.setTimeout(() => {
       if (!active) return;
       setAudioPreparing(false);
-      if (merged) {
-        setDevotional(merged);
-        // The tailor-ready ping (Nov 18, 2026): if the reader opted in
-        // and has put the phone down, one poke says the audio is ready.
-        // The helper holds the whole decision — opt-in, subscription,
-        // background — and fails silently in every other case.
-        void requestTailorReadyPing();
-      }
-    });
+      setAudioFailed(true);
+    }, AUDIO_STITCH_WATCHDOG_MS);
+    void fetchTailorAudio(dateKey, audience, devotional, {
+      onProgress: (done, total) => {
+        if (active) setAudioProgress({ done, total });
+      },
+    })
+      .then((merged) => {
+        if (!active) return;
+        window.clearTimeout(watchdog);
+        setAudioPreparing(false);
+        if (merged) {
+          setAudioFailed(false);
+          setDevotional(merged);
+          // The tailor-ready ping (Nov 18, 2026): if the reader opted in
+          // and has put the phone down, one poke says the audio is ready.
+          // The helper holds the whole decision — opt-in, subscription,
+          // background — and fails silently in every other case.
+          void requestTailorReadyPing();
+        } else {
+          setAudioFailed(true);
+        }
+      })
+      .catch(() => {
+        // fetchTailorAudio is built never to reject — this is the belt
+        // over its braces, so no rejection can strand the spinner either.
+        if (!active) return;
+        window.clearTimeout(watchdog);
+        setAudioPreparing(false);
+        setAudioFailed(true);
+      });
     return () => {
       active = false;
+      window.clearTimeout(watchdog);
     };
   }, [devotional, dateKey, audience]);
 
@@ -920,7 +958,25 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
                 <Loader2 className="w-5 h-5 animate-spin" />
               </div>
               <p className="text-[12px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
-                Preparing the narration…
+                {audioProgress && audioProgress.done > 0
+                  ? `Preparing the narration… ${audioProgress.done} of ${audioProgress.total}`
+                  : 'Preparing the narration…'}
+              </p>
+            </div>
+          )}
+          {/* A stitch that could not finish (Nov 18, 2026): no spinner,
+              no error face — one quiet line in the play bar's place, and
+              the text package standing fully usable beneath it. The
+              pieces already fetched are banked on the device, so
+              reopening this panel continues the narration, not restarts it. */}
+          {!devotional.audioBase64 && devotional.audioPlan && !audioPreparing && audioFailed && (
+            <div
+              className="flex items-center gap-3 py-3 mb-3"
+              style={{ borderTop: `1px solid ${t.border}`, borderBottom: `1px solid ${t.border}` }}
+              aria-live="polite"
+            >
+              <p className="text-[12px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+                The narration didn’t finish — reopen this to continue it.
               </p>
             </div>
           )}

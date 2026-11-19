@@ -182,10 +182,26 @@ function writeTailorMeta(dateKey: string, audience: Audience, meta: TailorMeta):
   }
 }
 
+/**
+ * One stitch's banked pieces (Nov 18, 2026): the narration pieces that have
+ * already landed on this device, kept beside the devotional they belong to
+ * so a stitch interrupted — a weak piece, a resource-limit kill, the app
+ * closed mid-flight — resumes where it stopped instead of starting over.
+ * `total` is the plan length the bank belongs to; a bank whose total does
+ * not match the plan in hand is a different build's and is ignored.
+ */
+export interface TailorPieceBank {
+  total: number;
+  byIndex: Record<string, { audioBase64: string; seconds: number }>;
+}
+
 /** The minimal store the tailor cache needs — Cache Storage in the browser, a fake in tests. */
 export interface TailorStore {
   get(key: string): Promise<TailoredDevotional | null>;
   set(key: string, value: TailoredDevotional): Promise<void>;
+  getPieces(key: string): Promise<TailorPieceBank | null>;
+  setPieces(key: string, value: TailorPieceBank): Promise<void>;
+  deletePieces(key: string): Promise<void>;
 }
 
 const CACHE_NAME = 'sanctum-tailor-v1';
@@ -197,6 +213,7 @@ function storeKey(dateKey: string, audience: Audience, hash: string): string {
 /** The browser store: Cache Storage, on-device only, never uploaded anywhere. */
 export function createCacheStore(): TailorStore {
   const memory = new Map<string, TailoredDevotional>();
+  const piecesMemory = new Map<string, TailorPieceBank>();
   return {
     async get(key) {
       try {
@@ -223,6 +240,47 @@ export function createCacheStore(): TailorStore {
         }
       } catch {
         // the in-memory copy still serves this session
+      }
+    },
+    // The piece bank lives in the SAME cache as the devotional itself, under
+    // the devotional's own key + ':pieces' — so the panic wipe, which deletes
+    // every Cache Storage cache wholesale, takes the bank with the package.
+    async getPieces(key) {
+      try {
+        if (typeof caches !== 'undefined') {
+          const cache = await caches.open(CACHE_NAME);
+          const hit = await cache.match(key);
+          if (hit) return (await hit.json()) as TailorPieceBank;
+          return null;
+        }
+      } catch {
+        // fall through to the in-memory copy
+      }
+      return piecesMemory.get(key) ?? null;
+    },
+    async setPieces(key, value) {
+      piecesMemory.set(key, value);
+      try {
+        if (typeof caches !== 'undefined') {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(
+            key,
+            new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } }),
+          );
+        }
+      } catch {
+        // the in-memory copy still serves this session
+      }
+    },
+    async deletePieces(key) {
+      piecesMemory.delete(key);
+      try {
+        if (typeof caches !== 'undefined') {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.delete(key);
+        }
+      } catch {
+        // a stale bank is ignored once the merged package stands
       }
     },
   };
@@ -312,6 +370,10 @@ export function parseTailorResponse(raw: unknown): TailoredDevotional | null {
 export interface TailorDeps {
   fetchImpl?: typeof fetch;
   store?: TailorStore;
+  /** Stitch progress, (pieces in hand, plan length) — banked pieces from a resumed stitch count from the start. */
+  onProgress?: (done: number, total: number) => void;
+  /** The pause between piece retries — injectable so tests never wait on a real backoff. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 /** The function's address and public key — the one door both calls use. */
@@ -462,13 +524,19 @@ export function concatBase64Mp3(pieces: string[]): string | null {
 /** How many piece renders run at once — a few buckets in the air, no flood. */
 const PIECE_CONCURRENCY = 3;
 
+/**
+ * One piece render attempt. A failure also says whether the platform's
+ * resource limit killed it (HTTP 546 / WORKER_RESOURCE_LIMIT — the burst
+ * kill a long stitch can trip): that failure earns the longer pause before
+ * the retry, because the limit needs a moment to breathe.
+ */
 async function callTailorPiece(
   endpoint: { url: string; anonKey: string },
   dateKey: string,
   audience: Audience,
   entry: TailorAudioPlanEntry,
   fetchImpl: typeof fetch,
-): Promise<{ audioBase64: string; seconds: number } | null> {
+): Promise<{ piece: { audioBase64: string; seconds: number } | null; resourceLimited: boolean }> {
   try {
     const res = await fetchImpl(endpoint.url, {
       method: 'POST',
@@ -484,17 +552,56 @@ async function callTailorPiece(
       // is for a cold start, not for a render that will never finish.
       signal: AbortSignal.timeout(150000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { piece: null, resourceLimited: res.status === 546 };
     const json = (await res.json()) as Record<string, unknown>;
     if (json.ok !== true || typeof json.audioBase64 !== 'string' || json.audioBase64.length === 0) {
-      return null;
+      const err = typeof json.error === 'string' ? json.error : '';
+      return { piece: null, resourceLimited: err.includes('WORKER_RESOURCE_LIMIT') };
     }
     return {
-      audioBase64: json.audioBase64,
-      seconds: typeof json.seconds === 'number' && json.seconds > 0 ? json.seconds : 0,
+      piece: {
+        audioBase64: json.audioBase64,
+        seconds: typeof json.seconds === 'number' && json.seconds > 0 ? json.seconds : 0,
+      },
+      resourceLimited: false,
     };
   } catch {
-    return null;
+    return { piece: null, resourceLimited: false };
+  }
+}
+
+/** Attempts per piece before the stitch settles for this open (Nov 18, 2026: three, with backoff). */
+const PIECE_MAX_ATTEMPTS = 3;
+/** The pause before the 2nd and 3rd attempts. */
+const PIECE_BACKOFF_MS = [1000, 3000];
+/** A resource-limit kill always earns at least this long a pause. */
+const RESOURCE_LIMIT_PAUSE_MS = 3000;
+
+async function fetchPieceWithRetries(
+  endpoint: { url: string; anonKey: string },
+  dateKey: string,
+  audience: Audience,
+  entry: TailorAudioPlanEntry,
+  fetchImpl: typeof fetch,
+  sleep: (ms: number) => Promise<void>,
+): Promise<{ audioBase64: string; seconds: number } | null> {
+  for (let attempt = 0; attempt < PIECE_MAX_ATTEMPTS; attempt += 1) {
+    const { piece, resourceLimited } = await callTailorPiece(endpoint, dateKey, audience, entry, fetchImpl);
+    if (piece) return piece;
+    if (attempt < PIECE_MAX_ATTEMPTS - 1) {
+      const base = PIECE_BACKOFF_MS[attempt];
+      await sleep(resourceLimited ? Math.max(base, RESOURCE_LIMIT_PAUSE_MS) : base);
+    }
+  }
+  return null;
+}
+
+/** Progress is the caller's courtesy — a throwing listener must never break the stitch. */
+function reportProgress(deps: TailorDeps, done: number, total: number): void {
+  try {
+    deps.onProgress?.(done, total);
+  } catch {
+    // ignore
   }
 }
 
@@ -504,9 +611,17 @@ async function callTailorPiece(
  * authorization — no build quota is involved), the MP3 bytes are joined in
  * plan order, and the stitched package replaces the plan's promise in the
  * on-device cache, so the play bar, replay, and share flows take it from
- * there unchanged. Fail-open by design: any piece that fails its one retry
- * leaves the package text-only (null returned) with its plan intact, and a
- * later open may try again.
+ * there unchanged.
+ *
+ * Resilient by design (Nov 18, 2026): pieces are BANKED to the on-device
+ * store as they land, under the devotional's own key + ':pieces', so a
+ * stitch that fails — or an app closed mid-stitch — resumes on the next
+ * open with only the missing pieces fetched; each piece gets three
+ * attempts with backoff (a resource-limit kill earns the longer pause);
+ * and the promise NEVER rejects — a run that cannot finish resolves null
+ * with the bank intact, leaving the package text-only and its plan ready
+ * for the next open. On success the merged package is cached exactly as
+ * before and the bank is deleted.
  */
 export async function fetchTailorAudio(
   dateKey: string,
@@ -514,58 +629,135 @@ export async function fetchTailorAudio(
   devotional: TailoredDevotional,
   deps: TailorDeps = {},
 ): Promise<TailoredDevotional | null> {
-  const plan = devotional.audioPlan;
-  if (!plan || plan.length === 0 || devotional.audioBase64) return null;
-  const endpoint = tailorEndpoint();
-  if (!endpoint) return null;
-  const fetchImpl = deps.fetchImpl ?? fetch;
-
-  const ordered = [...plan].sort((a, b) => a.index - b.index);
-  const pieces = new Array<string | null>(ordered.length).fill(null);
-  let seconds = 0;
-  let failed = false;
-  let cursor = 0;
-  const worker = async () => {
-    while (!failed && cursor < ordered.length) {
-      const at = cursor;
-      cursor += 1;
-      const entry = ordered[at];
-      // One retry per piece: a cold start or a dropped call should not cost
-      // the morning its narration; a second failure settles it.
-      let got = await callTailorPiece(endpoint, dateKey, audience, entry, fetchImpl);
-      if (!got) got = await callTailorPiece(endpoint, dateKey, audience, entry, fetchImpl);
-      if (!got) {
-        failed = true;
-        return;
-      }
-      pieces[at] = got.audioBase64;
-      seconds += got.seconds;
-    }
-  };
-  await Promise.all(
-    Array.from({ length: Math.min(PIECE_CONCURRENCY, ordered.length) }, () => worker()),
-  );
-  if (failed || pieces.some((p) => p === null)) return null;
-
-  const audioBase64 = concatBase64Mp3(pieces as string[]);
-  if (!audioBase64) return null;
-  const merged: TailoredDevotional = {
-    ...devotional,
-    audioBase64,
-    audioSeconds: Math.round(seconds * 10) / 10,
-  };
-  // The stitched package takes the plan's place in the cache, under the
-  // day's own key — a replay from here is the old baked-audio replay.
-  const meta = readTailorMeta(dateKey, audience);
-  if (meta) {
+  try {
+    const plan = devotional.audioPlan;
+    if (!plan || plan.length === 0 || devotional.audioBase64) return null;
+    const endpoint = tailorEndpoint();
+    if (!endpoint) return null;
+    const fetchImpl = deps.fetchImpl ?? fetch;
+    const sleep =
+      deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
     const store = deps.store ?? defaultStore();
-    try {
-      await store.set(storeKey(dateKey, audience, meta.hash), merged);
-    } catch {
-      // The merged package still plays this session; the cache is a courtesy.
+
+    const ordered = [...plan].sort((a, b) => a.index - b.index);
+    const total = ordered.length;
+
+    // The bank's home: the devotional's own store key, so the bank and the
+    // package live and die together (the panic wipe takes the whole cache).
+    // Without a meta record there is no key to bank under — the stitch then
+    // runs in memory only, exactly as it did before banking existed.
+    const meta = readTailorMeta(dateKey, audience);
+    const devKey = meta ? storeKey(dateKey, audience, meta.hash) : null;
+    const piecesKey = devKey ? `${devKey}:pieces` : null;
+
+    const pieces = new Array<string | null>(total).fill(null);
+    const pieceSeconds = new Array<number>(total).fill(0);
+    const bank: TailorPieceBank = { total, byIndex: {} };
+    let done = 0;
+    if (piecesKey) {
+      try {
+        const saved = await store.getPieces(piecesKey);
+        if (saved && saved.total === total && saved.byIndex && typeof saved.byIndex === 'object') {
+          ordered.forEach((entry, pos) => {
+            const hit = saved.byIndex[String(entry.index)];
+            if (hit && typeof hit.audioBase64 === 'string' && hit.audioBase64.length > 0) {
+              pieces[pos] = hit.audioBase64;
+              pieceSeconds[pos] =
+                typeof hit.seconds === 'number' && hit.seconds > 0 ? hit.seconds : 0;
+              bank.byIndex[String(entry.index)] = {
+                audioBase64: hit.audioBase64,
+                seconds: pieceSeconds[pos],
+              };
+              done += 1;
+            }
+          });
+        }
+      } catch {
+        // The bank is a courtesy — an unreadable bank just means a fresh stitch.
+      }
     }
+    reportProgress(deps, done, total);
+
+    // Bank writes are serialized through one chain: workers mutate the
+    // shared bank, then queue a snapshot, so no two writes can race an
+    // older state over a newer one. A failed write never fails the stitch.
+    let bankChain: Promise<void> = Promise.resolve();
+    const persistBank = () => {
+      if (!piecesKey) return;
+      const snapshot: TailorPieceBank = { total, byIndex: { ...bank.byIndex } };
+      bankChain = bankChain.then(async () => {
+        try {
+          await store.setPieces(piecesKey, snapshot);
+        } catch {
+          // the in-memory stitch still stands; the next open re-fetches what it must
+        }
+      });
+    };
+
+    const missing: number[] = [];
+    ordered.forEach((entry, pos) => {
+      if (!pieces[pos]) missing.push(pos);
+    });
+    let failed = false;
+    let cursor = 0;
+    const worker = async () => {
+      while (!failed && cursor < missing.length) {
+        const pos = missing[cursor];
+        cursor += 1;
+        const entry = ordered[pos];
+        const got = await fetchPieceWithRetries(endpoint, dateKey, audience, entry, fetchImpl, sleep);
+        if (!got) {
+          failed = true;
+          return;
+        }
+        pieces[pos] = got.audioBase64;
+        pieceSeconds[pos] = got.seconds;
+        bank.byIndex[String(entry.index)] = { audioBase64: got.audioBase64, seconds: got.seconds };
+        persistBank();
+        done += 1;
+        reportProgress(deps, done, total);
+      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(PIECE_CONCURRENCY, missing.length) }, () => worker()),
+    );
+    // Let the last bank writes land before answering, so a quick reopen
+    // resumes from everything this run managed to fetch.
+    await bankChain;
+    if (failed || pieces.some((p) => p === null)) return null;
+
+    const audioBase64 = concatBase64Mp3(pieces as string[]);
+    if (!audioBase64) return null;
+    const seconds = pieceSeconds.reduce((n, s) => n + s, 0);
+    const merged: TailoredDevotional = {
+      ...devotional,
+      audioBase64,
+      audioSeconds: Math.round(seconds * 10) / 10,
+    };
+    // The stitched package takes the plan's place in the cache, under the
+    // day's own key — a replay from here is the old baked-audio replay —
+    // and the bank, its work done, is deleted.
+    if (devKey) {
+      try {
+        await store.set(devKey, merged);
+      } catch {
+        // The merged package still plays this session; the cache is a courtesy.
+      }
+      if (piecesKey) {
+        try {
+          await store.deletePieces(piecesKey);
+        } catch {
+          // a stale bank is ignored once the package carries its audio
+        }
+      }
+    }
+    return merged;
+  } catch {
+    // Never reject: whatever went wrong — a concat failure, a store that
+    // threw past its guards — the answer is the text package, plan intact,
+    // bank intact, and a later open to try again.
+    return null;
   }
-  return merged;
 }
 
 /**

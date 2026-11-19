@@ -5,6 +5,7 @@ import {
   getOrBuildTailored,
   readTailorMeta,
   tailorMetaKey,
+  type TailorPieceBank,
   type TailorStore,
   type TailoredDevotional,
 } from './tailor';
@@ -109,9 +110,13 @@ describe('the morning record — the intake, kept on this device only', () => {
 
   function fakeStore(): TailorStore {
     const memory = new Map<string, TailoredDevotional>();
+    const pieces = new Map<string, TailorPieceBank>();
     return {
       async get(key) { return memory.get(key) ?? null; },
       async set(key, value) { memory.set(key, value); },
+      async getPieces(key) { return pieces.get(key) ?? null; },
+      async setPieces(key, value) { pieces.set(key, value); },
+      async deletePieces(key) { pieces.delete(key); },
     };
   }
 

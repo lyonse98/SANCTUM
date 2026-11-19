@@ -11,6 +11,7 @@ import {
   tailorAudioUrl,
   tailorCreditLine,
   tailorMetaKey,
+  type TailorPieceBank,
   type TailorStore,
   type TailoredDevotional,
 } from './tailor';
@@ -59,15 +60,29 @@ const PLAN = [
 /** The pieces' audio, by index — 'ABC' + 'DEF' + 'GHI' when stitched. */
 const PIECE_AUDIO: Record<number, string> = { 0: 'QUJD', 1: 'REVG', 2: 'R0hJ' };
 
-function memoryStore(): TailorStore & { map: Map<string, TailoredDevotional> } {
+function memoryStore(): TailorStore & {
+  map: Map<string, TailoredDevotional>;
+  piecesMap: Map<string, TailorPieceBank>;
+} {
   const map = new Map<string, TailoredDevotional>();
+  const piecesMap = new Map<string, TailorPieceBank>();
   return {
     map,
+    piecesMap,
     async get(key) {
       return map.get(key) ?? null;
     },
     async set(key, value) {
       map.set(key, value);
+    },
+    async getPieces(key) {
+      return piecesMap.get(key) ?? null;
+    },
+    async setPieces(key, value) {
+      piecesMap.set(key, value);
+    },
+    async deletePieces(key) {
+      piecesMap.delete(key);
     },
   };
 }
@@ -299,16 +314,23 @@ describe('the audio plan, fetched and stitched on-device', () => {
 
   type FetchCall = { url: string; body: Record<string, unknown> };
 
-  /** Fetch that answers piece posts from PIECE_AUDIO and records the calls. */
-  function pieceFetch(calls: FetchCall[], failIndex?: number, failOnce = false) {
-    let failedAlready = false;
+  /** The retry backoff, stood still — no test waits on a real pause. */
+  const noSleep = async () => {};
+
+  /**
+   * Fetch that answers piece posts from PIECE_AUDIO and records the calls.
+   * `failTimes` says how many attempts of an index fail before it answers
+   * (Infinity fails them all — a piece that never lands).
+   */
+  function pieceFetch(calls: FetchCall[], failTimes: Record<number, number> = {}) {
+    const attempts = new Map<number, number>();
     return vi.fn(async (url: string, init?: { body?: string }) => {
       const body = JSON.parse(init?.body ?? '{}') as Record<string, unknown>;
       calls.push({ url, body });
       const piece = body.piece as { index: number };
-      const shouldFail = piece.index === failIndex && (!failOnce || !failedAlready);
-      if (shouldFail) {
-        failedAlready = true;
+      const n = (attempts.get(piece.index) ?? 0) + 1;
+      attempts.set(piece.index, n);
+      if (n <= (failTimes[piece.index] ?? 0)) {
         return { ok: false, status: 403, json: async () => ({ ok: false }) } as Response;
       }
       return {
@@ -339,9 +361,12 @@ describe('the audio plan, fetched and stitched on-device', () => {
     const merged = await fetchTailorAudio('2026-11-12', 'men', devotional, {
       fetchImpl: pieceFetch(calls),
       store,
+      sleep: noSleep,
     });
     expect(merged?.audioBase64).toBe('QUJDREVGR0hJ'); // the plan's pieces, in order
     expect(merged?.audioSeconds).toBe(30); // the pieces' own seconds, summed
+    // The piece bank did its work and is gone — success deletes it.
+    expect(store.piecesMap.size).toBe(0);
 
     // Every call carried exactly its plan entry — date, track, index, text, token.
     expect(calls).toHaveLength(3);
@@ -359,19 +384,29 @@ describe('the audio plan, fetched and stitched on-device', () => {
     expect(replay?.audioBase64).toBe('QUJDREVGR0hJ');
   });
 
-  it('a piece that fails its one retry leaves the package text-only, plan intact', async () => {
+  it('a piece that fails every attempt resolves null — never throws — and the banked pieces stay banked', async () => {
     const calls: FetchCall[] = [];
     const { store, devotional } = await plannedBuild(calls);
     const merged = await fetchTailorAudio('2026-11-12', 'men', devotional, {
-      fetchImpl: pieceFetch(calls, 1),
+      fetchImpl: pieceFetch(calls, { 1: Infinity }),
       store,
+      sleep: noSleep,
     });
     expect(merged).toBeNull();
-    // The failing piece was called twice (first try + the one retry).
+    // The failing piece got its three attempts, no more.
     const pieceOneCalls = calls.filter(
       (c) => (c.body.piece as { index: number }).index === 1,
     );
-    expect(pieceOneCalls).toHaveLength(2);
+    expect(pieceOneCalls).toHaveLength(3);
+    // The pieces that DID land are banked under the devotional's own key,
+    // waiting for the next open — only the missing piece is absent.
+    expect(store.piecesMap.size).toBe(1);
+    const [bankKey, bank] = [...store.piecesMap.entries()][0];
+    expect(bankKey.endsWith(':pieces')).toBe(true);
+    expect(bank.total).toBe(PLAN.length);
+    expect(Object.keys(bank.byIndex).sort()).toEqual(['0', '2']);
+    expect(bank.byIndex['0'].audioBase64).toBe(PIECE_AUDIO[0]);
+    expect(bank.byIndex['2'].audioBase64).toBe(PIECE_AUDIO[2]);
     // Nothing was written over the cached package — a later open may retry.
     const cached = await loadTodaysTailored('2026-11-12', 'men', { store });
     expect(cached?.audioBase64).toBeNull();
@@ -382,10 +417,76 @@ describe('the audio plan, fetched and stitched on-device', () => {
     const calls: FetchCall[] = [];
     const { store, devotional } = await plannedBuild(calls);
     const merged = await fetchTailorAudio('2026-11-12', 'men', devotional, {
-      fetchImpl: pieceFetch(calls, 2, true),
+      fetchImpl: pieceFetch(calls, { 2: 1 }),
       store,
+      sleep: noSleep,
     });
     expect(merged?.audioBase64).toBe('QUJDREVGR0hJ');
+  });
+
+  it('a piece that fails twice and answers on the third attempt completes the stitch', async () => {
+    const calls: FetchCall[] = [];
+    const { store, devotional } = await plannedBuild(calls);
+    const merged = await fetchTailorAudio('2026-11-12', 'men', devotional, {
+      fetchImpl: pieceFetch(calls, { 2: 2 }),
+      store,
+      sleep: noSleep,
+    });
+    expect(merged?.audioBase64).toBe('QUJDREVGR0hJ');
+    const pieceTwoCalls = calls.filter(
+      (c) => (c.body.piece as { index: number }).index === 2,
+    );
+    expect(pieceTwoCalls).toHaveLength(3);
+  });
+
+  it('a resumed stitch fetches only the missing pieces, and progress counts the banked ones', async () => {
+    const calls: FetchCall[] = [];
+    const { store, devotional } = await plannedBuild(calls);
+    // Pre-seed the bank: pieces 0 and 2 already landed on an earlier open.
+    const [devKey] = [...store.map.keys()];
+    await store.setPieces(`${devKey}:pieces`, {
+      total: PLAN.length,
+      byIndex: {
+        '0': { audioBase64: PIECE_AUDIO[0], seconds: 10 },
+        '2': { audioBase64: PIECE_AUDIO[2], seconds: 10 },
+      },
+    });
+    const progress: [number, number][] = [];
+    const merged = await fetchTailorAudio('2026-11-12', 'men', devotional, {
+      fetchImpl: pieceFetch(calls),
+      store,
+      sleep: noSleep,
+      onProgress: (done, total) => progress.push([done, total]),
+    });
+    expect(merged?.audioBase64).toBe('QUJDREVGR0hJ'); // banked + fetched, in plan order
+    expect(merged?.audioSeconds).toBe(30); // the banked pieces' seconds count too
+    // Only the missing piece was fetched — exactly one call, for index 1.
+    expect(calls).toHaveLength(1);
+    expect((calls[0].body.piece as { index: number }).index).toBe(1);
+    // Progress opened with the two banked pieces already counted.
+    expect(progress[0]).toEqual([2, 3]);
+    expect(progress[progress.length - 1]).toEqual([3, 3]);
+    // And the finished stitch cleared the bank behind it.
+    expect(store.piecesMap.size).toBe(0);
+  });
+
+  it('progress fires as pieces land, rising to the plan length', async () => {
+    const calls: FetchCall[] = [];
+    const { store, devotional } = await plannedBuild(calls);
+    const progress: [number, number][] = [];
+    const merged = await fetchTailorAudio('2026-11-12', 'men', devotional, {
+      fetchImpl: pieceFetch(calls),
+      store,
+      sleep: noSleep,
+      onProgress: (done, total) => progress.push([done, total]),
+    });
+    expect(merged?.audioBase64).toBe('QUJDREVGR0hJ');
+    expect(progress).toEqual([
+      [0, 3],
+      [1, 3],
+      [2, 3],
+      [3, 3],
+    ]);
   });
 
   it('no plan — or audio already present — means no piece calls at all', async () => {

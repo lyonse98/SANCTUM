@@ -97,4 +97,31 @@ describe('panic wipe', () => {
     wipeAllSanctumData();
     expect(localStorage.getItem('some_other_app_key')).toBe('keep');
   });
+
+  it('deletes the tailor cache — the devotional and its banked narration pieces alike', async () => {
+    // The tailor store (lib/tailor) keeps the cached devotional AND the
+    // stitch's piece bank (the devotional's key + ':pieces') in the one
+    // Cache Storage cache, 'sanctum-tailor-v1'. The wipe deletes every
+    // cache wholesale, so both go together — this pins that the bank can
+    // never outlive a panic wipe.
+    const deleted: string[] = [];
+    Object.defineProperty(globalThis, 'caches', {
+      value: {
+        keys: async () => ['sanctum-tailor-v1'],
+        delete: async (k: string) => {
+          deleted.push(k);
+          return true;
+        },
+      },
+      configurable: true,
+    });
+    try {
+      wipeAllSanctumData();
+      // The wipe fires the cache deletion without awaiting it; let it land.
+      await new Promise((r) => setTimeout(r, 0));
+      expect(deleted).toContain('sanctum-tailor-v1');
+    } finally {
+      Object.defineProperty(globalThis, 'caches', { value: undefined, configurable: true });
+    }
+  });
 });
