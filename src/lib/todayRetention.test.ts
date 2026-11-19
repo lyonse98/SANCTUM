@@ -51,7 +51,7 @@ describe('Play 4 — the AM→PM loop is findable, and both halves count the day
     const card = read('components/DailyQuote.tsx');
     expect(card).toContain('data-tile="tailor"');
     expect(card).toContain("panel === 'tailor'");
-    expect(card).toContain('<TailorToday t={t} audience={audience} dateKey={readings.date} startOpen profileOpenSignal={profileOpenSignal} onReflectWithCompanion={onReflectWithCompanion ? handleReflectTailoredWithCompanion : undefined} />');
+    expect(card).toContain('<TailorToday t={t} audience={audience} dateKey={readings.date} startOpen onReflectWithCompanion={onReflectWithCompanion ? handleReflectTailoredWithCompanion : undefined} />');
     expect(home).not.toContain('data-tailor-entry');
     expect(home).not.toContain('<TailorToday');
     expect(home).toContain('contentDateKey()');

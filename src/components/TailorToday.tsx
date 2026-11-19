@@ -100,13 +100,6 @@ interface TailorTodayProps {
    * rendering a second "Tailor today" button of its own.
    */
   startOpen?: boolean;
-  /**
-   * A request from outside the panel (Settings' "Edit Tailor profile",
-   * Erik, Nov 18, 2026) to stand with the standing-profile editor open.
-   * A nonce, not a flag: each new value asks again. The editor it opens
-   * is the same one the intake carries — same component, same store.
-   */
-  profileOpenSignal?: number;
 }
 
 /** How long the narration stitch may run before the preparing line gives up on it (the watchdog). */
@@ -198,8 +191,10 @@ function ChoiceRow<T extends string>({
  * kept on this device only, edited here and erased here. The erase is a
  * two-step act — the first tap arms it, the second carries it out — the
  * same deliberate posture the app takes toward anything it keeps for you.
+ * Since Nov 19, 2026 (Erik) it stands in two homes — this panel, and
+ * inside the Settings sheet — one component, one store, never forked.
  */
-function TailorProfileEditor({
+export function TailorProfileEditor({
   t,
   audience,
   onSaved,
@@ -514,7 +509,7 @@ function TailorProfileEditor({
  * does the morning's own intake, kept there for tonight's Close the day
  * (the PM twin, Nov 14, 2026), which re-sends it transiently the same way.
  */
-export function TailorToday({ t, audience, dateKey, startOpen = false, profileOpenSignal = 0, onReflectWithCompanion }: TailorTodayProps) {
+export function TailorToday({ t, audience, dateKey, startOpen = false, onReflectWithCompanion }: TailorTodayProps) {
   const offered = tailorOffered();
 
   const [view, setView] = useState<'idle' | 'form' | 'building' | 'done' | 'error'>(startOpen ? 'form' : 'idle');
@@ -531,12 +526,6 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
   // prefill happens once — the morning's own taps are never overridden.
   const [profile, setProfile] = useState<TailorProfile>(() => loadTailorProfile(audience));
   const [profileOpen, setProfileOpen] = useState(false);
-  // Settings' way in (Erik, Nov 18, 2026): a fresh signal opens the
-  // standing-profile editor over the intake, exactly as its own toggle
-  // would — one editor, reached from two doors.
-  useEffect(() => {
-    if (profileOpenSignal > 0) setProfileOpen(true);
-  }, [profileOpenSignal]);
   const prefilledFor = useRef<Audience | null>(null);
   useEffect(() => {
     const loaded = loadTailorProfile(audience);

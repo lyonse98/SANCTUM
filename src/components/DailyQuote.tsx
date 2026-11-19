@@ -51,13 +51,6 @@ interface DailyQuoteProps {
   /** Opens the reminder form — handed to the Listen bar for its one-time post-listen line. */
   onOpenReminder?: () => void;
   /**
-   * Settings' "Edit Tailor profile" lands here (Erik, Nov 18, 2026):
-   * while true, the card opens its Tailor panel with the standing-
-   * profile editor open, then consumes the request via the callback.
-   */
-  tailorProfileOpen?: boolean;
-  onConsumeTailorProfileOpen?: () => void;
-  /**
    * The tailor-ready poke's landing (Nov 18, 2026): while true, the card
    * opens its Tailor panel — the finished devotional the poke announced —
    * then consumes the request via the callback.
@@ -94,7 +87,7 @@ export function orderedReadingRows(readings: DailyReadings, texts: ReadingTexts 
   ).filter((row) => row.citation);
 }
 
-export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder, tailorProfileOpen, onConsumeTailorProfileOpen, tailorOpen, onConsumeTailorOpen }: DailyQuoteProps) {
+export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder, tailorOpen, onConsumeTailorOpen }: DailyQuoteProps) {
   // The reading size (Erik, Nov 18, 2026): the card's devotional body
   // text — the key verse, the full readings, the reflection, the
   // challenge — is set at the reader's chosen size; labels and doors
@@ -116,17 +109,6 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
   const [preparing, setPreparing] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [panel, setPanel] = useState<CardPanel>('none');
-  // Settings' profile request (Erik, Nov 18, 2026): the flag opens the
-  // Tailor panel and bumps the nonce the panel's editor listens for,
-  // then the request is consumed — Settings is one tap away from the
-  // same editor the intake carries, never a second one.
-  const [profileOpenSignal, setProfileOpenSignal] = useState(0);
-  useEffect(() => {
-    if (!tailorProfileOpen) return;
-    setPanel('tailor');
-    setProfileOpenSignal((n) => n + 1);
-    onConsumeTailorProfileOpen?.();
-  }, [tailorProfileOpen, onConsumeTailorProfileOpen]);
   // The tailor-ready poke's landing: the panel alone, no editor — the
   // tap promised something to listen to, not something to fill in.
   useEffect(() => {
@@ -134,11 +116,6 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     setPanel('tailor');
     onConsumeTailorOpen?.();
   }, [tailorOpen, onConsumeTailorOpen]);
-  // A spent signal is spent: once the panel closes, the nonce resets,
-  // so a later ordinary opening of the door never inherits the request.
-  useEffect(() => {
-    if (panel === 'none' && profileOpenSignal !== 0) setProfileOpenSignal(0);
-  }, [panel, profileOpenSignal]);
   const [expanded, setExpanded] = useState(false);
   const [staleDate, setStaleDate] = useState<string | null>(null);
 
@@ -728,7 +705,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           {/* The panel — the existing Tailor intake, reused whole, in
               the space under the plates. */}
           {panel === 'tailor' && (
-            <TailorToday t={t} audience={audience} dateKey={readings.date} startOpen profileOpenSignal={profileOpenSignal} onReflectWithCompanion={onReflectWithCompanion ? handleReflectTailoredWithCompanion : undefined} />
+            <TailorToday t={t} audience={audience} dateKey={readings.date} startOpen onReflectWithCompanion={onReflectWithCompanion ? handleReflectTailoredWithCompanion : undefined} />
           )}
 
           {/* Share is a flywheel piece (Nov 13, 2026): a full-width secondary

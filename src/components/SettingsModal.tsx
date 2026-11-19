@@ -12,7 +12,8 @@ import { USUAL_MASS_PARISH_MAX, formatMassTime, loadParishReminders, loadUsualMa
 import { loadPushReminder, syncParishReminders } from '@/lib/push';
 import { SAINTS, type SaintOfDay } from '@/data/saints';
 import { PatronPlate } from '@/components/PatronPlate';
-import type { Audience, Persona } from '@/types';
+import { TailorProfileEditor } from '@/components/TailorToday';
+import type { Audience, Persona, PersonaTheme } from '@/types';
 import { InstallModal } from '@/components/InstallInstructions';
 import { CrisisLine } from '@/components/CrisisLine';
 
@@ -29,28 +30,27 @@ const LEAD_OPTIONS: { value: ReminderLead | null; label: string }[] = [
 
 interface SettingsModalProps {
   open: boolean;
+  /** The day's theme — the embedded Tailor profile editor is set in the print voice and takes its colors from it. */
+  t: PersonaTheme;
   audience: Audience;
   onAudienceChange: (audience: Audience) => void;
   onClose: () => void;
   onOpenTerms?: () => void;
   /** Opens a companion's chat — the patron plate's way onward when the patron is a companion. */
   onOpenCompanion?: (persona: Persona) => void;
-  /**
-   * Opens Today at the Gospel card's Tailor panel with the standing-
-   * profile editor open (Erik, Nov 18, 2026) — the same editor the
-   * Tailor intake carries, one tap from here.
-   */
-  onEditTailorProfile?: () => void;
 }
 
-export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpenTerms, onOpenCompanion, onEditTailorProfile }: SettingsModalProps) {
+export function SettingsModal({ open, t, audience, onAudienceChange, onClose, onOpenTerms, onOpenCompanion }: SettingsModalProps) {
   const feedback = useFeedback();
   const [analyticsOn, setAnalyticsOn] = useState(() => isAnalyticsEnabled());
   const [installOpen, setInstallOpen] = useState(false);
   // The Tailor profile erase shows only when this track actually has one —
-  // re-checked each time the sheet opens, since the profile is edited in the
-  // Tailor panel, not here.
+  // re-checked each time the sheet opens, and again whenever the embedded
+  // editor saves or erases.
   const [tailorProfileExists, setTailorProfileExists] = useState(false);
+  // The embedded profile editor (Erik, Nov 19, 2026): folded away until
+  // its entry is tapped, then standing open under its card, in the sheet.
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
 
   // The reader's own settings (Erik, Nov 18, 2026) — reading size, the
   // name, the year's patron, the usual Mass. All live on this device;
@@ -82,6 +82,7 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
     if (open) {
       setAnalyticsOn(isAnalyticsEnabled());
       setTailorProfileExists(hasTailorProfile(audience));
+      setProfileEditorOpen(false);
       setReadingSize(loadReadingSize());
       setNameValue(loadReaderName() ?? '');
       setPatron(loadPatronSaint());
@@ -643,9 +644,11 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
             </div>
 
             {/* The Tailor profile, editable from here (Erik, Nov 18,
-                2026): the entry opens Today at the Tailor panel with
-                the standing-profile editor open — the same editor,
-                bound to the same on-device store, not a second one.
+                2026; brought inside the sheet Nov 19, 2026): the
+                editor stands in the sheet itself now, expanding under
+                this card — the same editor the Tailor intake carries,
+                bound to the same on-device store, with the same
+                explicit Save; nothing routes out to Today any more.
                 The erase stands under it, behind its has-profile
                 guard, exactly as before. */}
             <div className="rounded-lg p-3 border" style={{ backgroundColor: borderRgba50, borderColor: borderRgba50 }}>
@@ -663,13 +666,32 @@ export function SettingsModal({ open, audience, onAudienceChange, onClose, onOpe
                   </p>
                   <button
                     data-edit-tailor-profile
-                    onClick={() => { onClose(); onEditTailorProfile?.(); }}
+                    onClick={() => setProfileEditorOpen((o) => !o)}
+                    aria-expanded={profileEditorOpen}
                     className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-all mb-2"
                     style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
                   >
                     <PenLine className="w-3.5 h-3.5" />
-                    <span className="text-[12px] font-bold uppercase tracking-wide">Edit Tailor profile</span>
+                    <span className="text-[12px] font-bold uppercase tracking-wide">
+                      {profileEditorOpen ? 'Close the profile editor' : 'Edit Tailor profile'}
+                    </span>
                   </button>
+                  {profileEditorOpen && (
+                    <div className="mb-2 animate-fade-in">
+                      <TailorProfileEditor
+                        t={t}
+                        audience={audience}
+                        onSaved={() => setTailorProfileExists(hasTailorProfile(audience))}
+                      />
+                      <button
+                        onClick={() => setProfileEditorOpen(false)}
+                        className="w-full mt-2 py-2 rounded-lg text-[12px] font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
+                        style={{ color: textMuted }}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  )}
                   {tailorProfileExists && (
                     <button
                       onClick={() => {

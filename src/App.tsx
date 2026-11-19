@@ -126,11 +126,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [incognito, setIncognito] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // Settings' "Edit Tailor profile" (Erik, Nov 18, 2026): a one-shot
-  // request that Today opens the Gospel card's Tailor panel with the
-  // standing-profile editor open — the same editor, one tap from
-  // Settings. The card consumes it on arrival.
-  const [tailorProfileOpen, setTailorProfileOpen] = useState(false);
   // The tailor-ready poke's landing (Nov 18, 2026): the same one-shot
   // road into the Gospel card's Tailor panel, without the profile
   // editor — the tap promised a finished devotional to listen to.
@@ -694,8 +689,6 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
             onScrollTopChange={(top) => saveScrollPosition('today', top)}
             onOpenNovenas={() => { setChurchTab('pray'); setChurchPray('novenas'); setView('church'); }}
             onOpenCompanion={(p) => handleSelectPersona(p)}
-            tailorProfileOpen={tailorProfileOpen}
-            onConsumeTailorProfileOpen={() => setTailorProfileOpen(false)}
             tailorOpen={tailorOpen}
             onConsumeTailorOpen={() => setTailorOpen(false)}
           />
@@ -733,12 +726,12 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
         <SettingsModal
           open={settingsOpen}
+          t={areaTheme}
           audience={audience}
           onAudienceChange={handleAudienceChange}
           onClose={() => setSettingsOpen(false)}
           onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
           onOpenCompanion={(p) => { setSettingsOpen(false); handleSelectPersona(p); }}
-          onEditTailorProfile={() => { setSettingsOpen(false); setView('today'); setTailorProfileOpen(true); }}
         />
         <ShareInviteModal
           open={shareInviteOpen}
@@ -891,12 +884,12 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       <SettingsModal
         open={settingsOpen}
+        t={t}
         audience={audience}
         onAudienceChange={handleAudienceChange}
         onClose={() => setSettingsOpen(false)}
         onOpenTerms={() => { setSettingsOpen(false); setShowTerms(true); }}
         onOpenCompanion={(p) => { setSettingsOpen(false); handleSelectPersona(p); }}
-        onEditTailorProfile={() => { setSettingsOpen(false); handleChangeView('today'); setTailorProfileOpen(true); }}
       />
 
       {showCapModal && (

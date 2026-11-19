@@ -24,7 +24,8 @@ import { getDailyVisual } from '@/lib/liturgicalVisuals';
  *    wear a bordered button's frame. (Placement reversed Nov 19,
  *    2026: the marks live in Tonight now — see the fix 4 pins.)
  * 5. The Tailor profile is editable from Settings — one entry, the
- *    same editor, the same store.
+ *    same editor, the same store. (Deepened Nov 19, 2026: the editor
+ *    stands inside the Settings sheet now — see the fix 5 pins.)
  */
 
 const ROOT = join(__dirname, '..', '..');
@@ -191,33 +192,39 @@ describe('fix 4 — "I did this" reads as a button, in both challenges', () => {
 });
 
 describe('fix 5 — the Tailor profile is editable from Settings', () => {
-  it('Settings carries the entry, one tap out', () => {
+  // Deepened (Erik, Nov 19, 2026): editing no longer routes out to
+  // Today's Tailor panel — the same editor stands inside the
+  // Settings sheet itself, expanding under its card, with a Done
+  // that folds it away. The one-shot road (Settings → App →
+  // HomeScreen → Gospel card → panel nonce) is gone with the
+  // behavior it served. The erase stands where it stood, behind
+  // its has-profile guard.
+  it('Settings carries the entry and the editor, in the sheet', () => {
     expect(settings).toContain('data-edit-tailor-profile');
     expect(settings).toContain('Edit Tailor profile');
-    expect(settings).toContain('onEditTailorProfile');
+    expect(settings).toContain('<TailorProfileEditor');
+    expect(settings).toContain('setProfileEditorOpen');
     // The erase still stands, behind its has-profile guard.
     expect(settings).toContain('Erase Tailor profile');
     expect(settings).toContain('tailorProfileExists &&');
   });
 
-  it('the shell routes the request to Today\u2019s Gospel card', () => {
-    expect(app).toContain('onEditTailorProfile={() => { setSettingsOpen(false); setView(\'today\'); setTailorProfileOpen(true); }}');
-    expect(app).toContain('tailorProfileOpen={tailorProfileOpen}');
-    expect(app).toContain('onConsumeTailorProfileOpen={() => setTailorProfileOpen(false)}');
-    expect(home).toContain('tailorProfileOpen={tailorProfileOpen}');
-    expect(home).toContain('onConsumeTailorProfileOpen={onConsumeTailorProfileOpen}');
-  });
-
-  it('the card opens the Tailor panel and passes the request to the one editor', () => {
-    expect(card).toContain("setPanel('tailor')");
-    expect(card).toContain('profileOpenSignal={profileOpenSignal}');
-    expect(card).toContain('onConsumeTailorProfileOpen?.()');
-    // The editor it opens is TailorToday's own — the same component
-    // that renders the intake's editor, bound to the same store.
-    expect(tailor).toContain('profileOpenSignal');
-    expect(tailor).toContain('if (profileOpenSignal > 0) setProfileOpen(true)');
+  it('the editor is TailorToday\u2019s own, exported — one editor, one store', () => {
+    expect(tailor).toContain('export function TailorProfileEditor');
     expect(tailor).toContain('<TailorProfileEditor t={t} audience={audience} onSaved={setProfile} />');
     expect(tailor).toContain('loadTailorProfile');
     expect(tailor).toContain('saveTailorProfile');
+  });
+
+  it('the route-out plumbing is gone, end to end', () => {
+    expect(settings).not.toContain('onEditTailorProfile');
+    expect(app).not.toContain('onEditTailorProfile');
+    expect(app).not.toContain('tailorProfileOpen');
+    expect(home).not.toContain('tailorProfileOpen');
+    expect(card).not.toContain('tailorProfileOpen');
+    expect(card).not.toContain('profileOpenSignal');
+    expect(tailor).not.toContain('profileOpenSignal');
+    // The card's own Tailor door is untouched by the removal.
+    expect(card).toContain("setPanel('tailor')");
   });
 });

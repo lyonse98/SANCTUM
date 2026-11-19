@@ -47,9 +47,6 @@ interface HomeScreenProps {
   onOpenNovenas?: () => void;
   /** Opens a companion's chat — the patron plate's way onward when the year's patron is a companion. */
   onOpenCompanion?: (persona: Persona) => void;
-  /** Settings' "Edit Tailor profile" request, handed to the Gospel card (Erik, Nov 18, 2026). */
-  tailorProfileOpen?: boolean;
-  onConsumeTailorProfileOpen?: () => void;
   /** The tailor-ready poke's landing, handed to the Gospel card (Erik, Nov 18, 2026). */
   tailorOpen?: boolean;
   onConsumeTailorOpen?: () => void;
@@ -72,7 +69,7 @@ interface HomeScreenProps {
  * "Foot of Today"): the three destinations as rows under the day itself,
  * Real Help among them at full weight, and the utilities line last of all.
  */
-export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate, initialScrollTop, onScrollTopChange, onOpenNovenas, onOpenCompanion, tailorProfileOpen, onConsumeTailorProfileOpen, tailorOpen, onConsumeTailorOpen }: HomeScreenProps) {
+export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate, initialScrollTop, onScrollTopChange, onOpenNovenas, onOpenCompanion, tailorOpen, onConsumeTailorOpen }: HomeScreenProps) {
   const gospelRef = useRef<HTMLDivElement>(null);
   const tonightRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -257,8 +254,6 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
             audience={audience}
             onReflectWithCompanion={onReflectWithCompanion}
             onOpenReminder={onOpenReminder}
-            tailorProfileOpen={tailorProfileOpen}
-            onConsumeTailorProfileOpen={onConsumeTailorProfileOpen}
             tailorOpen={tailorOpen}
             onConsumeTailorOpen={onConsumeTailorOpen}
           />
