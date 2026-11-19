@@ -238,7 +238,13 @@ const generateTailored = async () => ({
 });
 
 describe('the tailor bridge — composition', () => {
-  it('a generated bridge rides the response and opens the second movement', async () => {
+  // Erik, Nov 19, 2026: the bridge still generates and still rides the
+  // response as its own field, but the tailored SPOKEN program no longer
+  // speaks it — in the tailored shape it reflected in its own words
+  // immediately before the reflection itself, so the reflection was heard
+  // twice. These pins record the reversal (they asserted the opposite
+  // before Nov 19).
+  it('a generated bridge rides the response but is not spoken in the tailored program', async () => {
     const composed = await composeTailored({
       dateISO: '2026-11-12',
       audience: 'men',
@@ -251,14 +257,13 @@ describe('the tailor bridge — composition', () => {
     expect(composed.bridge).toBe(TAILOR_BRIDGE);
     const body = buildResponseBody('2026-11-12', composed, null, 0, null);
     expect(body.bridge).toBe(TAILOR_BRIDGE);
-    // Passage → bridge → reflection, in the spoken text.
-    const st = composed.script.spokenText;
-    expect(st.indexOf(composed.script.passage)).toBeLessThan(st.indexOf(TAILOR_BRIDGE));
-    expect(st.indexOf(TAILOR_BRIDGE)).toBeLessThan(st.indexOf('TAILORED REFLECTION'));
-    expect(composed.script.mainB.startsWith(TAILOR_BRIDGE)).toBe(true);
+    // Nowhere in the spoken text — and the second movement opens with the
+    // reflection hand-off (Nov 12, 2026 is a Thursday: Martin reads).
+    expect(composed.script.spokenText).not.toContain(TAILOR_BRIDGE);
+    expect(composed.script.mainB.startsWith("Keep that room in mind. Here is today's reflection.")).toBe(true);
   });
 
-  it('the audio plan speaks the bridge after the silence, before the reflection', async () => {
+  it('the audio plan speaks no bridge: passage, silence, reflection', async () => {
     const composed = await composeTailored({
       dateISO: '2026-11-12',
       audience: 'men',
@@ -270,14 +275,14 @@ describe('the tailor bridge — composition', () => {
     });
     const pieces = buildPieceTexts(composed.script);
     const texts = pieces.map((p) => p.text);
-    const passageAt = texts.findIndex((t) => t.includes("for what you're carrying today"));
+    const passageAt = texts.findIndex((t) => t.includes("For what you're carrying today"));
     const silenceAt = pieces.findIndex((p) => p.kind === 'silence');
     const bridgeAt = texts.findIndex((t) => t.includes('TAILOR BRIDGE OPENS HERE'));
     const reflectAt = texts.findIndex((t) => t.includes('TAILORED REFLECTION'));
     expect(passageAt).toBeGreaterThanOrEqual(0);
     expect(passageAt).toBeLessThan(silenceAt);
-    expect(silenceAt).toBeLessThan(bridgeAt);
-    expect(bridgeAt).toBeLessThan(reflectAt);
+    expect(bridgeAt).toBe(-1);
+    expect(silenceAt).toBeLessThan(reflectAt);
   });
 
   it('absent, failed, and over-long bridges all leave the program exactly as before', async () => {

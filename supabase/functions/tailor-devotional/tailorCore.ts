@@ -963,6 +963,11 @@ export interface MediaWin {
  * introduces that media, and any failure along the way simply means the
  * program has no bridge — the audio plan is then exactly today's.
  *
+ * Nov 19, 2026: the bridge is still generated and still rides in the build
+ * response as its own field, but the tailored SPOKEN program no longer
+ * speaks it (assembleTailoredScript drops it — in the tailored shape it
+ * reflected in its own words immediately before the reflection itself).
+ *
  * The fence is the daily bridge's fence, word for word in substance: the
  * bridge draws ONLY on the package's own texts (the day's Gospel, the
  * supplement passage, the tailored reflection and challenge), carries no
@@ -1010,10 +1015,10 @@ export interface ComposedTailored {
   /**
    * The spoken bridge (Nov 14, 2026), validated — or null when the build
    * had no bridge generation, it failed, or its words failed the gate.
-   * When present it also rides inside script.mainB (assembleScript places
-   * it at the head of the second movement), so the audio plan speaks it
-   * between the passage and the reflection; this field is the response's
-   * own copy of the same words.
+   * It rides in the response as its own field only: the tailored spoken
+   * program no longer speaks it (Erik, Nov 19, 2026 — assembleTailoredScript
+   * drops it, because in the tailored shape it reflected in its own words
+   * immediately before the reflection itself was read).
    */
   bridge: string | null;
   script: TailoredScript;

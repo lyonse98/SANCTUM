@@ -1012,6 +1012,14 @@ export interface PersonaBank {
    * (Nov 13, 2026 — the spoken clause trailed every challenge like a label).
    */
   challengeHandoff: string;
+  /**
+   * The spoken hand-off from the day's readings to the Gospel in the tailored
+   * program (Nov 19, 2026): one line in the narrator's own voice, spoken after
+   * the last pre-Gospel reading's close and before the Gospel intro, so the
+   * readings never jump-cut into the Gospel. Factual only — it names the turn,
+   * never what the Gospel means.
+   */
+  readingsBridge: string;
   /** Templates with slots {tomorrowWeekday} {tomorrowCelebration} {tomorrowWeek} {bookChapter}. */
   teaserTemplates: string[];
   soberSignOnsAM: string[];
@@ -1050,6 +1058,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Listen to that silence once more. Here is today's reflection.",
     challengeHandoff: "And here is today's challenge.",
+    readingsBridge: 'Well — now, the Gospel.',
     teaserTemplates: [
       "Tomorrow's {tomorrowWeekday} — and the Gospel is {bookChapter}.",
       "Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.", // DRAFT §5.3
@@ -1086,6 +1095,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Sit with that for a second. Here's today's reflection.",
     challengeHandoff: 'Now the challenge.',
+    readingsBridge: "Now — the Gospel. This is what we're here for.",
     teaserTemplates: [
       'Tomorrow: {tomorrowWeekday}. {bookChapter}. Be ready.',
       'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.', // DRAFT §5.3
@@ -1122,6 +1132,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Here's today's reflection.",
     challengeHandoff: "And today's challenge.",
+    readingsBridge: 'Alright — now the Gospel.',
     teaserTemplates: [
       'Tomorrow: {tomorrowWeekday}. {bookChapter}.',
       'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.', // DRAFT §5.3
@@ -1159,6 +1170,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Sit with that a second. Here's today's reflection.",
     challengeHandoff: "And today's challenge. One thing, today:",
+    readingsBridge: 'And now, brother — the Gospel.',
     teaserTemplates: [
       "Tomorrow's {tomorrowWeekday}, still {tomorrowWeek} — and the Gospel is {bookChapter}.",
       'Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.', // DRAFT §5.3
@@ -1175,11 +1187,11 @@ export const BANK: Record<PersonaId, PersonaBank> = {
     signOnsAM: [
       "The hour is His. Let's keep it.",
       "Another hour, given. Let's spend this one on the Gospel.",
-      'We keep the hours, and the hours keep us. Begin.',
+      'We keep the hours, and the hours keep us.',
     ],
     signOnsPM: [
       "The hour is His. Let's keep it.",
-      'We keep the hours, and the hours keep us. Begin.',
+      'We keep the hours, and the hours keep us.',
     ],
     signOffs: [
       'Keep the rhythm.',
@@ -1195,6 +1207,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Keep that room in mind. Here is today's reflection.",
     challengeHandoff: "And today's challenge.",
+    readingsBridge: 'The hour turns to the Gospel.',
     teaserTemplates: [
       'Tomorrow is {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.',
       'Tomorrow, {tomorrowWeekday} of {tomorrowWeek} — the Gospel is {bookChapter}.', // DRAFT §5.3
@@ -1234,6 +1247,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Sit in that silence a moment. Here's today's reflection.",
     challengeHandoff: 'And the challenge.',
+    readingsBridge: 'Now — the Gospel. Listen.',
     teaserTemplates: [
       "Tomorrow is {tomorrowWeekday}, the week's end. The Gospel is {bookChapter}.",
       'Tomorrow: {tomorrowCelebration}. The Gospel is {bookChapter}.', // DRAFT §5.3
@@ -1270,6 +1284,7 @@ export const BANK: Record<PersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Now here's today's reflection.",
     challengeHandoff: "And today's challenge.",
+    readingsBridge: 'And now — the Gospel itself.',
     teaserTemplates: [
       "Tomorrow's {tomorrowWeekday} — {tomorrowCelebration} — and the Gospel is {bookChapter}.",
       'Tomorrow is {tomorrowWeekday}. The Gospel is {bookChapter}.', // DRAFT §5.3
@@ -1334,6 +1349,7 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Hold that quiet a second longer. Here is today's reflection.",
     challengeHandoff: "And here is today's challenge.",
+    readingsBridge: 'Well — now we come to the Gospel.',
     teaserTemplates: [
       "Tomorrow is {tomorrowWeekday}, and the Gospel is {bookChapter}.",
       "Tomorrow is {tomorrowWeekday} — the Church gives us {tomorrowCelebration}, and the Gospel is {bookChapter}.",
@@ -1370,6 +1386,7 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Hold that a second. Here's today's reflection.",
     challengeHandoff: 'Now the challenge.',
+    readingsBridge: "Now the Gospel — let's hear it.",
     teaserTemplates: [
       'Tomorrow: {tomorrowWeekday}. {bookChapter}. Same time — be ready.',
       'Tomorrow: {tomorrowCelebration}. Gospel: {bookChapter}.',
@@ -1406,6 +1423,7 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "And here's today's reflection.",
     challengeHandoff: "And today's challenge.",
+    readingsBridge: 'Alright — now, the Gospel.',
     teaserTemplates: [
       'Tomorrow: {tomorrowWeekday}, and {bookChapter}.',
       'Tomorrow: {tomorrowCelebration} — and the Gospel is {bookChapter}.',
@@ -1443,6 +1461,7 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Stay with that a second. Here's today's reflection.",
     challengeHandoff: "And today's challenge. One thing, today:",
+    readingsBridge: 'And now, sister — the Gospel.',
     teaserTemplates: [
       "Tomorrow, {tomorrowWeekday}, still in {tomorrowWeek} — the Gospel is {bookChapter}.",
       'Tomorrow is {tomorrowWeekday}, and the Church gives us {tomorrowCelebration}. The Gospel is {bookChapter}.',
@@ -1459,11 +1478,11 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     signOnsAM: [
       "The hour is here, and it's His. Let's keep it.",
       'Twenty years of hours, and not one of them wasted. The Gospel.',
-      'The bell, the hour, the Gospel. Begin.',
+      'The bell, the hour, the Gospel.',
     ],
     signOnsPM: [
       'The day is folding into evening. One more hour, kept with Him.',
-      'The hours keep us, when we keep them. Begin.',
+      'The hours keep us, when we keep them.',
     ],
     signOffs: [
       'Keep the rhythm — He keeps you.',
@@ -1479,6 +1498,7 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Keep the room before you. Here is today's reflection.",
     challengeHandoff: "And today's challenge.",
+    readingsBridge: 'Now the bell gives way to the Gospel.',
     teaserTemplates: [
       'Tomorrow the hours bring {tomorrowWeekday} — {tomorrowCelebration}. The Gospel is {bookChapter}.',
       'Tomorrow, {tomorrowWeekday} in {tomorrowWeek} — the Gospel is {bookChapter}.',
@@ -1516,6 +1536,7 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Rest in that silence a moment. Here's today's reflection.",
     challengeHandoff: 'And the challenge.',
+    readingsBridge: 'And now — the Gospel. Listen.',
     teaserTemplates: [
       "Tomorrow is {tomorrowWeekday} — the week's end — and the Gospel is {bookChapter}.",
       'Tomorrow: {tomorrowCelebration} — and the Gospel is {bookChapter}.',
@@ -1552,6 +1573,7 @@ export const BANK_WOMEN: Record<WomenPersonaId, PersonaBank> = {
     ],
     reflectionHandoff: "Here's today's reflection, then.",
     challengeHandoff: "And today's challenge.",
+    readingsBridge: 'And now — the Gospel, neighbor.',
     teaserTemplates: [
       "Tomorrow's {tomorrowWeekday}: {tomorrowCelebration}, and the Gospel is {bookChapter}.",
       "Tomorrow's {tomorrowWeekday}. The Gospel is {bookChapter} — I'll have the coffee on.",
@@ -1582,6 +1604,13 @@ export const GOSPEL_CLOSE = 'The Gospel of the Lord.';
 export const ACCLAMATION = 'Praise to you, Lord Jesus Christ.';
 /** The landing after a non-Gospel reading in the tailored program (Nov 18, 2026). */
 export const READING_CLOSE = 'The Word of the Lord.';
+/**
+ * The shared readings-to-Gospel hand-off for a voice with none of its own —
+ * the Lector's line on both tracks (Nov 19, 2026). Every weekday narrator
+ * carries his or her own in the bank (`readingsBridge`); the Lector speaks
+ * this one.
+ */
+export const READINGS_BRIDGE_DEFAULT = 'And now — the Gospel.';
 
 // ── The draft registry — every line written for this build (§5.3) ─────
 //
@@ -2097,7 +2126,8 @@ export interface TailoredReadingPart {
  * spoken (Erik, Nov 18, 2026: a psalm that isn't sung doesn't land). What is
  * tailored is what follows: one need-matched passage
  * from the curated bank, offered AFTER the readings as a supplement and
- * introduced as one ("And for what you're carrying today —"), then the
+ * introduced as one ("For what you're carrying today, a word from
+ * Scripture —"), then the
  * reflection and challenge re-aimed at one user's stated morning, uniting
  * the readings to what that user brought in. There is no scene (the scene
  * belongs to the day) and no tomorrow teaser (a tailored devotional ends
@@ -2154,27 +2184,59 @@ export function assembleTailoredScript(inputs: TailoredAssembleInputs): Tailored
   if (!gospel) throw new Error('tailored assembly requires the day\'s Gospel');
   // The day's own assembly decides who reads (weekday narrator, Lector on a
   // solemnity), whether the day is sober, both heads, and the whole second
-  // movement (bridge → reflection hand-off → tailored reflection → challenge
-  // hand-off → tailored challenge → sign-off, the bridge present only when
-  // the build generated one and passed it through as spokenBridge) — the
-  // tailored build reuses all of it and replaces only the first movement
-  // with the readings entire.
+  // movement (reflection hand-off → tailored reflection → challenge
+  // hand-off → tailored challenge → sign-off) — the tailored build reuses
+  // all of it and replaces only the first movement with the readings
+  // entire. The generated spoken bridge is deliberately NOT carried into
+  // this program (Erik, Nov 19, 2026): in the tailored shape it reflected
+  // in its own words immediately before the reflection itself was read, so
+  // the listener heard the reflection twice. The daily program keeps its
+  // bridge; only this path drops it.
   const base = assembleScript({
     ...inputs,
     gospelCitation: gospel.citation,
     gospelText: gospel.text,
     scene: null,
+    spokenBridge: null,
     tomorrowCelebration: null,
     tomorrowGospelCitation: null,
   });
   const head = inputs.head === 'pm' ? base.headPM : base.headAM;
 
-  const readingParagraphs: string[] = [];
+  // The readings hand-off (Nov 19, 2026): the narrator's own line from the
+  // readings to the Gospel — the Lector speaks the shared default.
+  const bridgeLine = base.lector
+    ? READINGS_BRIDGE_DEFAULT
+    : ((inputs.audience ?? 'men') === 'women'
+        ? BANK_WOMEN[base.persona as WomenPersonaId]
+        : BANK[base.persona as PersonaId]
+      ).readingsBridge;
+
+  // The program line (Nov 19, 2026): the day's readings named up front, from
+  // the bundle's own citations, so the listener is situated before the first
+  // reading begins — a fixed template over facts, never generated. The psalm
+  // is not named: it is not spoken (below).
+  const spokenParts = inputs.readings.filter((p) => p.kind !== 'psalm');
+  const preGospelCitations = spokenParts
+    .filter((p) => p.kind === 'first' || p.kind === 'second')
+    .map((p) => spokenizeOrdinals(p.citation));
+  const readingsIntroLine = preGospelCitations.length
+    ? `Today's readings — ${preGospelCitations.join(', ')} and the Gospel, ${spokenizeOrdinals(gospel.citation)}.`
+    : `Today's readings — the Gospel, ${spokenizeOrdinals(gospel.citation)}.`;
+
+  const readingParagraphs: string[] = [readingsIntroLine];
+  let heardReading = false;
   for (const part of inputs.readings) {
     // The psalm is read on the page, not aloud (Erik, Nov 18, 2026) — it
     // remains in the Tailor text package and may still shape the reflection
     // and challenge; only the spoken program skips it.
     if (part.kind === 'psalm') continue;
+    if (part.kind === 'gospel' && heardReading) {
+      // The hand-off stands between the last reading's close and the Gospel
+      // intro — its own paragraph, like the closes, so the piece split keeps
+      // the separation and the turn is heard as a turn.
+      readingParagraphs.push(bridgeLine);
+    }
     readingParagraphs.push(`${readingIntro(part)}\n${part.text}`);
     if (part.kind === 'gospel') {
       readingParagraphs.push(GOSPEL_CLOSE, ACCLAMATION);
@@ -2184,11 +2246,12 @@ export function assembleTailoredScript(inputs: TailoredAssembleInputs): Tailored
       // the produced separation — intro, reading, close, next intro — and
       // the program never jump-cuts from one reading into another.
       readingParagraphs.push(READING_CLOSE);
+      heardReading = true;
     }
   }
   const readings = readingParagraphs.join('\n\n');
 
-  const passage = `And for what you're carrying today — ${spokenizeOrdinals(inputs.passageCitation)}. ${inputs.passageText}`;
+  const passage = `For what you're carrying today, a word from Scripture — ${spokenizeOrdinals(inputs.passageCitation)}. ${inputs.passageText}`;
 
   // The tradition quote rides inside the second movement, directly after the
   // reflection it was chosen to answer — the reflection speaks first, then

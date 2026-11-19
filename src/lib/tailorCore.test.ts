@@ -391,8 +391,10 @@ describe('composition with the model layer mocked', () => {
     }
     expect(composed.script.spokenText).not.toContain('responsorial psalm');
     expect(composed.script.spokenText).not.toContain('PSALM VERBATIM TEXT.');
-    // The passage is introduced as a supplement, after the readings.
-    expect(composed.script.passage).toContain("And for what you're carrying today —");
+    // The passage is introduced as a supplement, after the readings — and
+    // named as what it is (Erik, Nov 19, 2026): a word from Scripture for
+    // what the reader is carrying, not a second reading of the day.
+    expect(composed.script.passage).toContain("For what you're carrying today, a word from Scripture —");
     expect(composed.script.spokenText.indexOf(composed.script.passage)).toBeGreaterThan(
       composed.script.spokenText.indexOf(BUNDLE.gospelText),
     );

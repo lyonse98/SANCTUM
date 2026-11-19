@@ -61,6 +61,7 @@ function collectBankLines(): BankLine[] {
       ['frameMemorialPM', bank.frameMemorialPM],
       ['reflectionHandoff', bank.reflectionHandoff],
       ['challengeHandoff', bank.challengeHandoff],
+      ['readingsBridge', bank.readingsBridge],
       ['soberFrame', bank.soberFrame],
     ];
     for (const [slot, text] of singles) out.push({ where: `${id}.${slot}`, slot, text });

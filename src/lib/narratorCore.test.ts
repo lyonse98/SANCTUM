@@ -7,9 +7,11 @@ import {
   DRAFT_BANK_LINES,
   LECTOR_BANK,
   LEXICON,
+  READINGS_BRIDGE_DEFAULT,
   TIME_NEUTRAL_LINT,
   applyLexicon,
   assembleScript,
+  assembleTailoredScript,
   bookChapterSpoken,
   citationChapters,
   computeWeekLabel,
@@ -25,6 +27,7 @@ import {
   validateScene,
   type AssembleInputs,
   type PersonaId,
+  type TailoredAssembleInputs,
 } from './narratorCore';
 import { getFeastForDate } from '@/data/feastDays';
 import { SAINTS } from '@/data/saints';
@@ -652,6 +655,123 @@ describe('spoken labels — dual memorials and Sundays (Nov 13, 2026)', () => {
         expect(head, audience).not.toContain('ordinary day');
       }
     }
+  });
+});
+
+describe('the tailored program restructure (Nov 19, 2026)', () => {
+  const TAILORED: TailoredAssembleInputs = {
+    dateISO: '2026-10-29', // a Thursday — Martin reads
+    celebration: 'Thursday of the 30th week of Ordinary Time',
+    gospelCitation: 'Luke 19:1-10',
+    gospelText: 'GOSPEL TEXT.',
+    reflect: 'TAILORED REFLECT TEXT.',
+    challenge: 'TAILORED CHALLENGE TEXT.',
+    facet: 'As a man',
+    scene: null,
+    tomorrowCelebration: null,
+    tomorrowGospelCitation: null,
+    readings: [
+      { kind: 'first', citation: 'Romans 8:31-39', text: 'FIRST READING TEXT.' },
+      { kind: 'psalm', citation: 'Psalm 98', text: 'PSALM TEXT.' },
+      { kind: 'gospel', citation: 'Luke 19:1-10', text: 'GOSPEL TEXT.' },
+    ],
+    passageCitation: 'Isaiah 41:10',
+    passageText: 'SUPPLEMENT TEXT.',
+    head: 'am',
+  };
+
+  it('opens the readings with the program line — weekday form, psalm unnamed', () => {
+    const s = assembleTailoredScript(TAILORED);
+    const intro = "Today's readings — Romans 8:31-39 and the Gospel, Luke 19:1-10.";
+    expect(s.readings.startsWith(intro)).toBe(true);
+    expect(s.spokenText.indexOf(intro)).toBeGreaterThan(s.head.length);
+    expect(s.spokenText.indexOf(intro)).toBeLessThan(s.spokenText.indexOf('FIRST READING TEXT.'));
+    expect(intro).not.toContain('Psalm');
+  });
+
+  it('names both readings on a two-reading day', () => {
+    const s = assembleTailoredScript({
+      ...TAILORED,
+      dateISO: '2026-10-25', // a Sunday — Henry reads
+      celebration: 'Sunday of the 30th week of Ordinary Time',
+      readings: [
+        { kind: 'first', citation: 'Romans 8:31-39', text: 'FIRST READING TEXT.' },
+        { kind: 'second', citation: '2 Thessalonians 2:16-3:5', text: 'SECOND READING TEXT.' },
+        { kind: 'gospel', citation: 'Luke 19:1-10', text: 'GOSPEL TEXT.' },
+      ],
+    });
+    expect(s.readings.startsWith(
+      "Today's readings — Romans 8:31-39, 2 Thessalonians 2:16-3:5 and the Gospel, Luke 19:1-10.",
+    )).toBe(true);
+  });
+
+  it('hands off from the readings to the Gospel in the narrator’s own voice', () => {
+    const s = assembleTailoredScript(TAILORED);
+    expect(s.persona).toBe('martin');
+    const close = s.readings.indexOf('The Word of the Lord.');
+    const bridge = s.readings.indexOf('The hour turns to the Gospel.');
+    const gospelIntro = s.readings.indexOf('A reading from the holy Gospel according to Luke.');
+    expect(close).toBeGreaterThanOrEqual(0);
+    expect(bridge).toBeGreaterThan(close);
+    expect(gospelIntro).toBeGreaterThan(bridge);
+  });
+
+  it('the Lector speaks the shared default hand-off', () => {
+    const s = assembleTailoredScript({
+      ...TAILORED,
+      dateISO: '2026-12-25',
+      celebration: 'The Nativity of the Lord',
+    });
+    expect(s.lector).toBe(true);
+    expect(s.readings).toContain(`\n\n${READINGS_BRIDGE_DEFAULT}\n\n`);
+  });
+
+  it('no hand-off and a Gospel-only program line when the Gospel stands alone', () => {
+    const s = assembleTailoredScript({
+      ...TAILORED,
+      readings: [{ kind: 'gospel', citation: 'Luke 19:1-10', text: 'GOSPEL TEXT.' }],
+    });
+    expect(s.readings.startsWith("Today's readings — the Gospel, Luke 19:1-10.")).toBe(true);
+    expect(s.readings).not.toContain('The hour turns to the Gospel.');
+  });
+
+  it('speaks no generated bridge — the reflection is heard once (the daily program keeps its bridge)', () => {
+    const bridgeWords = 'GENERATED BRIDGE WORDS — the narrator reflects in his own words first.';
+    const tailored = assembleTailoredScript({ ...TAILORED, spokenBridge: bridgeWords });
+    expect(tailored.mainB).not.toContain(bridgeWords);
+    expect(tailored.spokenText).not.toContain(bridgeWords);
+    // The second movement is hand-off → reflection → challenge → sign-off.
+    const handoff = tailored.mainB.indexOf("Keep that room in mind. Here is today's reflection.");
+    const reflect = tailored.mainB.indexOf('TAILORED REFLECT TEXT.');
+    const challenge = tailored.mainB.indexOf('TAILORED CHALLENGE TEXT.');
+    expect(handoff).toBeGreaterThanOrEqual(0);
+    expect(reflect).toBeGreaterThan(handoff);
+    expect(challenge).toBeGreaterThan(reflect);
+    // The daily assembly with the same bridge is untouched: it still opens
+    // the second movement.
+    const daily = assembleScript({ ...OCT30, spokenBridge: bridgeWords });
+    expect(daily.bridgeIncluded).toBe(true);
+    expect(daily.mainB.startsWith(bridgeWords)).toBe(true);
+  });
+
+  it('keeps the tradition quote immediately after the reflection', () => {
+    const s = assembleTailoredScript({
+      ...TAILORED,
+      traditionQuote: { text: 'QUOTE TEXT.', author: 'St. Test' },
+    });
+    const reflect = s.mainB.indexOf('TAILORED REFLECT TEXT.');
+    const quote = s.mainB.indexOf('A word from the tradition — St. Test: QUOTE TEXT.');
+    const challengeHandoff = s.mainB.indexOf("And today's challenge.");
+    expect(reflect).toBeGreaterThanOrEqual(0);
+    expect(quote).toBe(reflect + 'TAILORED REFLECT TEXT.'.length + 2);
+    expect(challengeHandoff).toBeGreaterThan(quote);
+  });
+
+  it('frames the supplement as a word from Scripture for what the reader carries', () => {
+    const s = assembleTailoredScript(TAILORED);
+    expect(s.passage).toBe(
+      "For what you're carrying today, a word from Scripture — Isaiah 41:10. SUPPLEMENT TEXT.",
+    );
   });
 });
 
