@@ -16,6 +16,7 @@ function scriptWith(parts: Partial<TailoredScript>): TailoredScript {
     persona: 'tom',
     lector: false,
     sober: false,
+    introIncluded: false,
     head: 'HEAD-TEXT',
     readings: 'READINGS-TEXT',
     passage: 'PASSAGE-TEXT',

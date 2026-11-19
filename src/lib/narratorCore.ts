@@ -1759,6 +1759,32 @@ export function validateSpokenCarry(carry: unknown): string | null {
   return text;
 }
 
+// ── The spoken intro gate (Nov 19, 2026) ─────────────────────────────────────
+
+/** Word bounds for the generated spoken intro — the storage gate. */
+export const SPOKEN_INTRO_MIN_WORDS = 30;
+export const SPOKEN_INTRO_MAX_WORDS = 80;
+
+/**
+ * Validates a generated spoken intro body (the short context the narrator
+ * speaks before the day's Gospel — yesterday's Gospel in a clause, then
+ * today's preview and one listening cue; see assembleScript). The fence
+ * itself lives in the generation prompts; this is the length/shape gate the
+ * generators apply before the words are stored or spoken: a missing, empty,
+ * or off-length intro reads as absent, and the day renders exactly as it
+ * did before the intro existed. The gate counts WORDS, not characters —
+ * the intro's shape is a spoken breath (~40–70 words), and a character
+ * ceiling would pass a stub and fail an honest one. Returns the trimmed
+ * text, or null.
+ */
+export function validateSpokenIntro(intro: unknown): string | null {
+  if (typeof intro !== 'string' || !intro.trim()) return null;
+  const text = intro.trim();
+  const words = text.split(/\s+/).length;
+  if (words < SPOKEN_INTRO_MIN_WORDS || words > SPOKEN_INTRO_MAX_WORDS) return null;
+  return text;
+}
+
 /** The Charter's banned shapes, checked over bank text (spec §10.1). */
 export const BANNED_BANK_PATTERNS: RegExp[] = [
   /what Jesus is really saying/i,
@@ -1817,6 +1843,16 @@ export interface AssembleInputs {
    * null/absent to omit it, with the same byte-identical fallback.
    */
   spokenCarry?: string | null;
+  /**
+   * The spoken intro (Nov 19, 2026): the generated short context the
+   * narrator speaks at the head of the Gospel movement, before the Gospel
+   * intro — yesterday's Gospel in a clause, then today's preview and one
+   * listening cue — already word-gated, or null/absent to omit it. Added
+   * spoken material AROUND the verbatim zones, never inside them; when
+   * absent (every row stored before the intro existed) the assembly is
+   * identical to the pre-intro script, byte for byte.
+   */
+  spokenIntro?: string | null;
   tomorrowCelebration: string | null;
   tomorrowGospelCitation: string | null;
   /** Test/dry-run seam: force variant indices instead of the date-keyed picks. */
@@ -1837,6 +1873,7 @@ export interface AssembledScript {
   sceneIncluded: boolean;
   bridgeIncluded: boolean;
   carryIncluded: boolean;
+  introIncluded: boolean;
   headAM: string;
   headPM: string;
   /** Speech request A: scene → Gospel → acclamation (the produced silence follows). */
@@ -1935,16 +1972,30 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
   let bridgeIncluded = false;
   let carryIncluded = false;
 
+  // The spoken intro (Nov 19, 2026): generated context spoken at the head
+  // of the Gospel movement, ahead of everything else in mainA — the scene
+  // keeps its place pointing at the moment the reading begins, and the
+  // Gospel intro follows. Absent, the first movement is exactly the
+  // pre-intro one, paragraph for paragraph and beat for beat.
+  const introText = typeof inputs.spokenIntro === 'string' ? inputs.spokenIntro.trim() : '';
+  let introIncluded = false;
+
   if (lector) {
     const lectorBank = audience === 'women' ? LECTOR_BANK_WOMEN : LECTOR_BANK;
     const frame = fillTemplate(lectorBank.frameSolemnity, frameSlots);
     headAM = frame;
     headPM = frame;
     const evangelist = evangelistOf(inputs.gospelCitation) ?? '';
-    mainA = joinParagraphs(
-      [fillTemplate(GOSPEL_INTRO, { evangelist }), inputs.gospelText, GOSPEL_CLOSE, ACCLAMATION],
-      [0, lectorBank.pauseBeats.afterGospel, 0],
-    );
+    const aParagraphs = [fillTemplate(GOSPEL_INTRO, { evangelist }), inputs.gospelText, GOSPEL_CLOSE, ACCLAMATION];
+    const aBeats = [0, lectorBank.pauseBeats.afterGospel, 0];
+    if (introText) {
+      // Prepend the paragraph AND a beat: every original beat keeps the
+      // gap it always held, and the intro joins with a plain break.
+      aParagraphs.unshift(introText);
+      aBeats.unshift(0);
+      introIncluded = true;
+    }
+    mainA = joinParagraphs(aParagraphs, aBeats);
     const bParagraphs: string[] = [];
     if (bridgeText) {
       bParagraphs.push(bridgeText);
@@ -2011,6 +2062,13 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
     const evangelist = evangelistOf(inputs.gospelCitation) ?? '';
     aParagraphs.push(fillTemplate(GOSPEL_INTRO, { evangelist }), inputs.gospelText, GOSPEL_CLOSE, ACCLAMATION);
     aBeats.push(beats.afterGospel, 0);
+    if (introText) {
+      // Prepend the paragraph AND a beat: every original beat keeps the
+      // gap it always held, and the intro joins with a plain break.
+      aParagraphs.unshift(introText);
+      aBeats.unshift(0);
+      introIncluded = true;
+    }
     mainA = joinParagraphs(aParagraphs, aBeats);
 
     const signOff = sober
@@ -2099,6 +2157,7 @@ export function assembleScript(inputs: AssembleInputs): AssembledScript {
     sceneIncluded,
     bridgeIncluded,
     carryIncluded,
+    introIncluded,
     headAM,
     headPM,
     mainA,
@@ -2157,6 +2216,8 @@ export interface TailoredScript {
   persona: NarratorId;
   lector: boolean;
   sober: boolean;
+  /** Whether the spoken intro (Nov 19, 2026) opens the readings movement. */
+  introIncluded: boolean;
   /** The spoken parts, in order — rendered separately and joined with the produced silence. */
   head: string;
   readings: string;
@@ -2224,7 +2285,15 @@ export function assembleTailoredScript(inputs: TailoredAssembleInputs): Tailored
     ? `Today's readings — ${preGospelCitations.join(', ')} and the Gospel, ${spokenizeOrdinals(gospel.citation)}.`
     : `Today's readings — the Gospel, ${spokenizeOrdinals(gospel.citation)}.`;
 
-  const readingParagraphs: string[] = [readingsIntroLine];
+  // The spoken intro (Nov 19, 2026): the build's generated context —
+  // yesterday's Gospel in a clause, then today's preview and one
+  // listening cue — opens the readings movement, ahead of the program
+  // line that names the readings. Absent (no build generated one), the
+  // movement is exactly the pre-intro one, paragraph for paragraph.
+  const introText = typeof inputs.spokenIntro === 'string' ? inputs.spokenIntro.trim() : '';
+  const readingParagraphs: string[] = introText
+    ? [introText, readingsIntroLine]
+    : [readingsIntroLine];
   let heardReading = false;
   for (const part of inputs.readings) {
     // The psalm is read on the page, not aloud (Erik, Nov 18, 2026) — it
@@ -2278,6 +2347,7 @@ export function assembleTailoredScript(inputs: TailoredAssembleInputs): Tailored
     persona: base.persona,
     lector: base.lector,
     sober: base.sober,
+    introIncluded: introText !== '',
     head,
     readings,
     passage,
