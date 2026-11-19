@@ -15,6 +15,7 @@ import { PatronPlate } from '@/components/PatronPlate';
 import { TailorProfileEditor } from '@/components/TailorToday';
 import type { Audience, Persona, PersonaTheme } from '@/types';
 import { InstallModal } from '@/components/InstallInstructions';
+import { ConfirmEraseSheet } from '@/components/ConfirmEraseSheet';
 import { CrisisLine } from '@/components/CrisisLine';
 
 /** Day-of-week names in the server's numbering: index 0 is Sunday. */
@@ -44,6 +45,9 @@ export function SettingsModal({ open, t, audience, onAudienceChange, onClose, on
   const feedback = useFeedback();
   const [analyticsOn, setAnalyticsOn] = useState(() => isAnalyticsEnabled());
   const [installOpen, setInstallOpen] = useState(false);
+  // The profile erase confirms first (Erik, Nov 19, 2026): the button
+  // opens the shared sheet, and only the sheet's final tap erases.
+  const [eraseProfileConfirmOpen, setEraseProfileConfirmOpen] = useState(false);
   // The Tailor profile erase shows only when this track actually has one —
   // re-checked each time the sheet opens, and again whenever the embedded
   // editor saves or erases.
@@ -694,10 +698,7 @@ export function SettingsModal({ open, t, audience, onAudienceChange, onClose, on
                   )}
                   {tailorProfileExists && (
                     <button
-                      onClick={() => {
-                        eraseTailorProfile(audience);
-                        setTailorProfileExists(false);
-                      }}
+                      onClick={() => setEraseProfileConfirmOpen(true)}
                       className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-all"
                       style={{ backgroundColor: 'transparent', borderColor: accent, color: textMuted }}
                     >
@@ -752,6 +753,28 @@ export function SettingsModal({ open, t, audience, onAudienceChange, onClose, on
           </div>
         </div>
       </div>
+      {/* Erase Tailor profile, confirmed (Nov 19, 2026): the sheet names
+          the standing profile as what goes — and the built devotionals,
+          conversations, and tallies as what stays. */}
+      <ConfirmEraseSheet
+        open={eraseProfileConfirmOpen}
+        t={t}
+        title="Erase your Tailor profile"
+        goes={[
+          'Your standing profile for this track — your season of life, the battles you named, your goal, the voices you listen to, your North Star.',
+        ]}
+        stays={[
+          'Devotionals already built stay, on this device.',
+          'Your conversations, days prayed, and settings stay.',
+        ]}
+        confirmLabel="Erase profile"
+        onConfirm={() => {
+          eraseTailorProfile(audience);
+          setTailorProfileExists(false);
+          setEraseProfileConfirmOpen(false);
+        }}
+        onCancel={() => setEraseProfileConfirmOpen(false)}
+      />
       {installOpen && (
         <InstallModal
           cardBackground={card}

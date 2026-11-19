@@ -10,6 +10,7 @@ import {
 } from '@/lib/beatitudes';
 import { getCommandments, getDutiesOfState } from '@/lib/confession';
 import { HELP_SECTIONS } from '@/lib/realHelp';
+import { ConfirmEraseSheet } from '@/components/ConfirmEraseSheet';
 import { PRAYERS } from '@/data/prayers';
 import type { Audience } from '@/types';
 
@@ -70,6 +71,10 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
     saveNotes({});
   }, []);
 
+  // The wipe confirms first (Erik, Nov 19, 2026): the button opens the
+  // shared sheet, and only the sheet's final tap clears the checkmarks.
+  const [wipeConfirmOpen, setWipeConfirmOpen] = useState(false);
+
   const checkedCount = Object.values(notes).filter(Boolean).length;
 
   return (
@@ -80,7 +85,7 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
           <h3 className={PRINT_STAMP_CLASS} style={{ color: t.accent }}>Confession Prep</h3>
         </div>
         {checkedCount > 0 && (
-          <button onClick={wipeNotes} className="flex items-center gap-1 text-[12px] font-medium transition-all active:scale-95 px-2 py-1 border"
+          <button onClick={() => setWipeConfirmOpen(true)} className="flex items-center gap-1 text-[12px] font-medium transition-all active:scale-95 px-2 py-1 border"
             style={{ backgroundColor: 'rgba(153,27,27,0.08)', borderColor: 'rgba(185,28,28,0.3)', color: '#B91C1C' }}>
             <Trash2 className="w-3 h-3" /> Wipe Notes
           </button>
@@ -280,6 +285,23 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
             : 'No items noted yet. Tap any question that applies to you.'}
         </p>
       </div>
+
+      {/* Wipe Notes, confirmed (Nov 19, 2026): the checkmarks are the
+          reader's own examination record — the sheet names them as what
+          goes before the wipe runs. */}
+      <ConfirmEraseSheet
+        open={wipeConfirmOpen}
+        t={t}
+        title="Wipe your notes"
+        goes={['The items you have checked in this examination, on this device.']}
+        stays={[
+          'The examination itself stays, ready for next time.',
+          'Everything else — your profile, your days prayed — stays.',
+        ]}
+        confirmLabel="Wipe notes"
+        onConfirm={() => { setWipeConfirmOpen(false); wipeNotes(); }}
+        onCancel={() => setWipeConfirmOpen(false)}
+      />
     </div>
   );
 }
