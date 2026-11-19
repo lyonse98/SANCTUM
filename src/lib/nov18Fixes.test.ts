@@ -3,8 +3,6 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getFeastForDate } from '@/data/feastDays';
 import { getDailyVisual } from '@/lib/liturgicalVisuals';
-import { tailorDoorIsClose, TAILOR_DOOR_PM_HOUR } from '@/lib/tailorPm';
-import type { TailorMorningRecord } from '@/lib/tailor';
 
 /**
  * The Nov 18, 2026 evening fixes (Erik, five rulings):
@@ -16,10 +14,12 @@ import type { TailorMorningRecord } from '@/lib/tailor';
  *    masthead reads as a ferial day's, the Gospel card's header line is
  *    silent, and the day is named only inside the expanded readings
  *    (and in the spoken program, untouched here).
- * 3. The Gospel card's Tailor door is restored beside Reflect, the
- *    stack plate is gone, and in the evening the door becomes Close
- *    the day (pinned in todayRetention.test.ts; the swap's logic is
- *    unit-tested below).
+ * 3. The Gospel card's Tailor door is restored beside Reflect and
+ *    the stack plate is gone. An evening swap (the door becoming
+ *    "Close the day" after 17:00) shipped with this batch and was
+ *    REVERTED the same night at Erik's ruling — the door is Tailor
+ *    at every hour, and "Close the day" lives only in Tonight. The
+ *    reverted state is pinned below and in todayRetention.test.ts.
  * 4. "I did this" must read as a button — both challenge marks now
  *    wear a bordered button's frame.
  * 5. The Tailor profile is editable from Settings — one entry, the
@@ -97,35 +97,26 @@ describe('fix 2 — optional memorials stand nowhere on Today\u2019s default fac
   });
 });
 
-describe('fix 3 — the evening swap, as logic', () => {
-  const morning: TailorMorningRecord = { state: 'steady', focus: 'today', tone: 'comfort', freeText: '' };
-  const at = (hour: number) => new Date(2026, 10, 18, hour, 0);
-
-  it('the swap hour is 17:00', () => {
-    expect(TAILOR_DOOR_PM_HOUR).toBe(17);
+describe('fix 3 — the Tailor door restored; the evening swap REVERTED', () => {
+  // The swap shipped with this batch and was reverted the same night
+  // at Erik's ruling: a first-time arrival at night must still find
+  // the Tailor devotional, and "Close the day" has exactly one
+  // surface — the PM plate inside Tonight. The helper
+  // (tailorDoorIsClose) and its unit tests are gone with the swap.
+  it('the card door is Tailor at every hour — no swap state, no PM mount', () => {
+    expect(card).not.toContain('tailorDoorIsClose');
+    expect(card).not.toContain('TailorPm');
+    expect(card).not.toContain('For your evening');
+    expect(card).toContain("setPanel((p) => (p === 'tailor' ? 'none' : 'tailor'))");
+    expect(card).toContain("panel === 'tailor'");
   });
 
-  it('before the evening, the door stays the morning\u2019s', () => {
-    expect(tailorDoorIsClose(at(9), morning, false)).toBe(false);
-    expect(tailorDoorIsClose(at(16), morning, false)).toBe(false);
-  });
-
-  it('from 17:00, with a morning unclosed, the door is Close the day', () => {
-    expect(tailorDoorIsClose(at(17), morning, false)).toBe(true);
-    expect(tailorDoorIsClose(at(21), morning, false)).toBe(true);
-  });
-
-  it('the small hours still belong to the day being closed', () => {
-    expect(tailorDoorIsClose(at(1), morning, false)).toBe(true);
-    expect(tailorDoorIsClose(at(3), morning, false)).toBe(true);
-    // From the 04:00 flip the content day has turned — the morning's door again.
-    expect(tailorDoorIsClose(at(4), morning, false)).toBe(false);
-  });
-
-  it('no morning record, no swap; a written close, no swap', () => {
-    expect(tailorDoorIsClose(at(19), null, false)).toBe(false);
-    expect(tailorDoorIsClose(at(19), undefined, false)).toBe(false);
-    expect(tailorDoorIsClose(at(19), morning, true)).toBe(false);
+  it('the helper is gone from the PM lib; the PM record logic stands', () => {
+    const pm = readSrc('lib/tailorPm.ts');
+    expect(pm).not.toContain('tailorDoorIsClose');
+    expect(pm).not.toContain('TAILOR_DOOR_PM_HOUR');
+    expect(pm).toContain('loadTonightsClose');
+    expect(pm).toContain('buildCloseOfDay');
   });
 });
 

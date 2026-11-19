@@ -57,16 +57,20 @@ describe('Play 4 — the AM→PM loop is findable, and both halves count the day
     expect(home).toContain('contentDateKey()');
   });
 
-  it('in the evening the card\u2019s Tailor door becomes Close the day', () => {
+  it('the card\u2019s Tailor door never swaps — Close the day lives only in Tonight', () => {
+    // Reversal (Erik, Nov 18, 2026, later that evening): an evening
+    // swap that turned the card's Tailor door into "Close the day"
+    // after 17:00 was reverted the same night. A first-time arrival
+    // at night must still find the Tailor devotional, and there is
+    // exactly ONE "Close the day" surface — Tonight's PM plate. The
+    // door is Tailor at every hour; the card mounts no TailorPm.
     const card = read('components/DailyQuote.tsx');
-    // The swap reads the same on-device facts Tonight's cue reads.
-    expect(card).toContain('readTailorMeta(localDateKey, audience)');
-    expect(card).toContain('loadTonightsClose(localDateKey, audience)');
-    expect(card).toContain('tailorDoorIsClose(new Date(), morningRecord, pmCloseDone)');
-    expect(card).toContain("panel === 'close'");
-    expect(card).toContain('<TailorPm t={t} audience={audience} dateKey={readings.date} morning={morningRecord} startOpen />');
-    expect(card).toContain('Close the day');
-    // Tonight's own PM plate stands untouched.
+    expect(card).not.toContain('TailorPm');
+    expect(card).not.toContain('tailorDoorIsClose');
+    expect(card).not.toContain("panel === 'close'");
+    expect(card).not.toContain('For your evening');
+    expect(card).toContain("setPanel((p) => (p === 'tailor' ? 'none' : 'tailor'))");
+    // Tonight's own PM plate stands untouched — the one Close the day.
     expect(tonight).toContain('<TailorPm t={t} audience={audience} dateKey={dateKey} morning={tailorMeta.morning} />');
   });
 

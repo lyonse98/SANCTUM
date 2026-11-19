@@ -19,8 +19,10 @@ const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
  * demoted to the header's celebration line; and the Way-1 shape is Listen
  * as the program with Tailor and Reflect as the card's two doors — the
  * Tailor door was retired in the Nov 18, 2026 dedupe and restored the
- * same evening at Erik's word, the stack plate going away in its place,
- * and the door itself turning to "Close the day" in the evening.
+ * same evening at Erik's word, the stack plate going away in its place.
+ * An evening swap that turned the door to "Close the day" was tried and
+ * reverted the same night (Erik) — the door is Tailor at every hour,
+ * and "Close the day" lives only inside Tonight.
  */
 
 const SUNDAY: DailyReadings = {

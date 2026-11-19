@@ -37,9 +37,6 @@ import {
 } from '@/lib/challengesLived';
 import { ListenBar } from '@/components/ListenBar';
 import { TailorToday } from '@/components/TailorToday';
-import { TailorPm } from '@/components/TailorPm';
-import { readTailorMeta } from '@/lib/tailor';
-import { loadTonightsClose, tailorDoorIsClose } from '@/lib/tailorPm';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
 import type { Audience, PersonaTheme } from '@/types';
 
@@ -78,7 +75,7 @@ interface DailyQuoteProps {
 /** The two doors share the printed page's one plate class — equals, by construction. */
 const DOOR_CLASS = PRINT_PLATE_CLASS;
 
-type CardPanel = 'none' | 'tailor' | 'close';
+type CardPanel = 'none' | 'tailor';
 
 export interface ReadingRow {
   label: string;
@@ -279,17 +276,6 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     unmarkChallengeLived(localDateKey, 'daily');
     setChallengeLived(false);
   };
-
-  // The Tailor door's two faces (Erik, Nov 18, 2026): the morning's
-  // "Tailor Today", and — from the evening hour, when this morning's
-  // build stands on the device still unclosed — "Close the day",
-  // opening the PM twin in the morning door's place. Read once at
-  // mount, the way Tonight reads its own evening cue: the door the
-  // card opens with is the door the day is keeping.
-  const [morningRecord] = useState(() => readTailorMeta(localDateKey, audience)?.morning ?? null);
-  const [pmCloseDone] = useState(() => Boolean(loadTonightsClose(localDateKey, audience)));
-  const doorIsClose = tailorDoorIsClose(new Date(), morningRecord, pmCloseDone);
-  const tailorPanel: CardPanel = doorIsClose ? 'close' : 'tailor';
 
   const loadAllTexts = async (): Promise<ReadingTexts | null> => {
     if (allTexts) return allTexts;
@@ -681,19 +667,20 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           The Tailor door's round trip (Erik, Nov 18, 2026): retired in
           the morning's dedupe in favour of a plate in Today's stack,
           restored the same evening at Erik's word — the card door is
-          Tailor's one entry on Today again, the stack plate gone — and
-          from the evening hour the door itself turns: with a morning
-          build on the device still unclosed, it reads "Close the day"
-          and opens the PM twin instead. Tonight's own PM plate stands
-          as it always has. */}
+          Tailor's one entry on Today again, the stack plate gone. An
+          evening swap that turned this door into "Close the day" was
+          tried and reverted the same night at Erik's ruling: the door
+          is Tailor at every hour — a first-time arrival at night must
+          still find the devotional — and "Close the day" lives in
+          exactly one place, Tonight's own PM plate. */}
       {!loading && readings?.date && (
         <>
           <div role="group" aria-label="Ways into today's Gospel" className="space-y-2">
             <button
               data-tile="tailor"
-              onClick={() => setPanel((p) => (p === tailorPanel ? 'none' : tailorPanel))}
-              aria-expanded={panel === tailorPanel}
-              aria-label={doorIsClose ? 'Close the day — tonight\u2019s closing for this morning\u2019s devotional' : 'Tailor today — a devotional for your day'}
+              onClick={() => setPanel((p) => (p === 'tailor' ? 'none' : 'tailor'))}
+              aria-expanded={panel === 'tailor'}
+              aria-label="Tailor today — a devotional for your day"
               className={DOOR_CLASS}
               style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F` }}
             >
@@ -701,7 +688,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                 className="text-[12px] font-bold uppercase tracking-wide flex-shrink-0"
                 style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
               >
-                {doorIsClose ? 'Close the day' : 'Tailor Today'}
+                Tailor Today
               </span>
               <span
                 aria-hidden="true"
@@ -712,7 +699,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
                 className="text-[12px] italic flex-shrink-0"
                 style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
               >
-                {doorIsClose ? 'For your evening' : 'For your day'}
+                For your day
               </span>
               <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} aria-hidden="true" />
             </button>
@@ -748,14 +735,10 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
             </button>
           </div>
 
-          {/* The panels — the existing Tailor intake, reused whole, in
-              the space under the plates; in the evening, the PM twin in
-              its place, opened straight into the close. */}
+          {/* The panel — the existing Tailor intake, reused whole, in
+              the space under the plates. */}
           {panel === 'tailor' && (
             <TailorToday t={t} audience={audience} dateKey={readings.date} startOpen profileOpenSignal={profileOpenSignal} />
-          )}
-          {panel === 'close' && morningRecord && (
-            <TailorPm t={t} audience={audience} dateKey={readings.date} morning={morningRecord} startOpen />
           )}
 
           {/* Share is a flywheel piece (Nov 13, 2026): a full-width secondary
