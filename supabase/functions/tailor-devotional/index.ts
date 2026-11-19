@@ -142,6 +142,11 @@ import {
   type TailorAudioPlanEntry,
 } from "./audioPlan.ts";
 import { loadMediaWinners, recordComposedOutput, recordPmOutput } from "./outputs.ts";
+import {
+  PROOFREAD_INSTRUCTION,
+  proofreadTailoredScript,
+  type ProofreadModel,
+} from "./proofread.ts";
 
 // The edge runtime's background-task hook: the output record is dispatched
 // with the response already shaped and registered here, so the isolate
@@ -580,6 +585,45 @@ async function generateTailored(systemPrompt: string, userPrompt: string): Promi
   if (!parsed) throw new Error("tailor model returned an unusable shape");
   return parsed;
 }
+
+// ── The proofread model (Nov 19, 2026 — see ./proofread.ts) ─────────────────
+
+/**
+ * The gate's one call: Gemini Flash over the eligible paragraphs, answered
+ * with the JSON array the gate parses. Fail-open by contract — every
+ * failure is a null, and the gate keeps the original script.
+ */
+const callProofreadModel: ProofreadModel = async (paragraphs) => {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: PROOFREAD_INSTRUCTION }] },
+          contents: [
+            { role: "user", parts: [{ text: `Proofread these paragraphs:\n${JSON.stringify(paragraphs)}` }] },
+          ],
+          generationConfig: {
+            maxOutputTokens: 4096,
+            temperature: 0,
+            thinkingConfig: { thinkingLevel: "low" },
+          },
+        }),
+        signal: AbortSignal.timeout(45000),
+      },
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+    return typeof text === "string" ? text : null;
+  } catch {
+    return null;
+  }
+};
 
 // ── The PM generation (Close the day's one call) ─────────────────────────────
 
@@ -1101,6 +1145,18 @@ Deno.serve(async (req: Request) => {
       loadWinners: () => loadMediaWinners(),
       hour: losAngelesHour(),
     });
+
+    // The proofread gate (Nov 19, 2026 — ./proofread.ts): a whole-script
+    // read for mechanics after the spoken text is assembled and before
+    // the audio plan is issued (and before the disabled in-function render
+    // block, which reads the same script). Scripture, the supplement, and
+    // the tradition quote are protected by construction; fail-open
+    // throughout. Only the stage and the changed count are logged.
+    const proof = await proofreadTailoredScript(composed.script, callProofreadModel);
+    composed.script = proof.script;
+    console.log(
+      `tailor-devotional proofread: date=${dateISO} audience=${audience} changed=${proof.changed}`,
+    );
 
     // With TAILOR_AUDIO_ENABLED false, the render block below is out of the
     // execution path (kept whole as the reference production) and the build

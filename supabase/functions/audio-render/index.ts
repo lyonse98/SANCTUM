@@ -128,6 +128,11 @@ import {
   type PieceSpec,
 } from "./renderPlan.ts";
 import { evaluateStartGate, type StartGateDecision } from "./startGate.ts";
+import {
+  PROOFREAD_INSTRUCTION,
+  proofreadAssembledScript,
+  type ProofreadModel,
+} from "./proofread.ts";
 
 // The edge runtime's background-task hook: a chained step call is dispatched
 // with fetch and registered here so the isolate stays alive until the request
@@ -142,6 +147,7 @@ const corsHeaders = {
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
 const TTS_MODEL = "gemini-3.8-flash-tts";
+const TEXT_MODEL = "gemini-3.8-flash";
 const BUCKET = "daily-audio";
 // Hard cap on fresh starts per date (spec §8.2, adapted): a fresh start
 // costs one bundle fetch plus at most one short TTS call before the first
@@ -436,6 +442,45 @@ async function renderSpeech(text: string, voice: string, model: string = TTS_MOD
   }
   return base64ToBytes(data.data);
 }
+
+// ── The proofread model (Nov 19, 2026 — see ./proofread.ts) ─────────────────
+
+/**
+ * The gate's one call: Gemini Flash over the eligible paragraphs, answered
+ * with the JSON array the gate parses. Fail-open by contract — every
+ * failure is a null, and the gate keeps the original script.
+ */
+const callProofreadModel: ProofreadModel = async (paragraphs) => {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: PROOFREAD_INSTRUCTION }] },
+          contents: [
+            { role: "user", parts: [{ text: `Proofread these paragraphs:\n${JSON.stringify(paragraphs)}` }] },
+          ],
+          generationConfig: {
+            maxOutputTokens: 4096,
+            temperature: 0,
+            thinkingConfig: { thinkingLevel: "low" },
+          },
+        }),
+        signal: AbortSignal.timeout(45000),
+      },
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+    return typeof text === "string" ? text : null;
+  } catch {
+    return null;
+  }
+};
 
 // ── Encode + upload ───────────────────────────────────────────────────────────
 
@@ -762,6 +807,18 @@ async function runRender(
     }
     persona = assembled.persona;
 
+    // The proofread gate (Nov 19, 2026 — ./proofread.ts): a whole-script
+    // read for mechanics before a single piece renders, Scripture and the
+    // ritual formulas protected by construction, fail-open throughout.
+    // The dry run passes through it too, so a probe shows the exact words
+    // a render would speak. Only the stage and the changed count are
+    // logged — never the text.
+    const proof = await proofreadAssembledScript(assembled, bundle.gospelText, callProofreadModel);
+    assembled = proof.assembled;
+    console.log(
+      `audio-render proofread: date=${dateISO} audience=${audience} changed=${proof.changed}`,
+    );
+
     if (dryRun) {
       // The piece report is additive diagnostics: the day's cut, on the
       // canonical texts (the render itself cuts the lexicon-applied texts,
@@ -787,6 +844,7 @@ async function runRender(
         sceneIncluded: assembled.sceneIncluded,
         bridgeIncluded: assembled.bridgeIncluded,
         carryIncluded: assembled.carryIncluded,
+        proofreadChanged: proof.changed,
         selections: assembled.selections,
         headAM: assembled.headAM,
         headPM: assembled.headPM,
