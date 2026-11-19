@@ -56,6 +56,28 @@ describe('fix 1 — Bring someone home reads as a button', () => {
     expect(home).toContain('onBringSomeoneHome={() => setComeHomeSheetOpen(true)}');
     expect(home).toContain('<BringSomeoneHome');
   });
+
+  it('the row spans are overflow-proofed — the hint truncates inside the plate', () => {
+    // Erik's field report (Nov 18, 2026, later that evening): the
+    // bring plate's text spilled past its border on mobile — label,
+    // hint, and chevron were all flex-shrink-0, ~394px of
+    // unshrinkable content on a ~360px screen, while the three
+    // destination rows fit only because their words are shorter.
+    const start = more.indexOf('data-bring-someone-home');
+    const button = more.slice(more.lastIndexOf('<button', start), more.indexOf('</button>', start));
+    // The bring plate's hint ellipsizes before anything can spill.
+    expect(button).toContain('text-[12px] italic min-w-0 truncate');
+    expect(button).not.toContain('italic flex-shrink-0');
+    // The label is the anchor: min-w-0 + truncate, second line of defense.
+    expect(button).toContain('text-[15px] font-semibold min-w-0 truncate');
+    expect(button).not.toContain('font-semibold flex-shrink-0');
+    // The dotted leader keeps a floor and never collapses to nothing.
+    expect(button).toContain('flex-1 min-w-[16px]');
+    // The three destination rows wear the same spans (the entries map).
+    expect(more.split('text-[12px] italic min-w-0 truncate')).toHaveLength(3);
+    expect(more.split('text-[15px] font-semibold min-w-0 truncate')).toHaveLength(3);
+    expect(more.split('flex-1 min-w-[16px]')).toHaveLength(3);
+  });
 });
 
 describe('fix 2 — optional memorials stand nowhere on Today\u2019s default face', () => {
