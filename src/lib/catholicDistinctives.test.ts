@@ -104,7 +104,11 @@ describe('daily-reflection — the Catholic shape section', () => {
     expect(count(source, 'Framing only: it adds no claim of its own')).toBe(2);
     expect(count(source, 'Keep it background texture')).toBe(2);
     expect(count(source, 'never spotlight it')).toBe(2);
-    expect(count(source, "no opinions — not yours, not anyone's")).toBe(2);
+    // Twice in the bridge fences — and twice more since Nov 19, 2026, in
+    // the spoken intro's fences, which carry the same sentence by design
+    // (the intro stands under the same fence family; spokenIntro.test.ts
+    // pins the intro sections themselves).
+    expect(count(source, "no opinions — not yours, not anyone's")).toBe(4);
     expect(source).toContain('SPOKEN_BRIDGE_MAX_CHARS = 1200');
     expect(source).toContain('SPOKEN_CARRY_MAX_CHARS = 300');
     expect(source).toContain('validateSpokenBridge(parsed.bridge)');
