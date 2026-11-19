@@ -26,6 +26,21 @@
 // invalid bridge stores NULL and the audio assembles exactly as it did before the
 // bridge existed; like the scene, neither field ever appears in the public response.
 //
+// SPOKEN INTRO (Nov 19, 2026): the same call also returns an "intro" — the short
+// context the narrator speaks before the Gospel: yesterday's Gospel in one
+// clause, then today's preview (what the passage is about) and one listening
+// cue. For it, the function also fetches YESTERDAY's Gospel (citation from the
+// lectionary API, text through the same daily_readings path as today's) and
+// puts both Gospels in the model input. The intro is fenced in the prompts
+// (description only — scenes, people, the question the text itself raises; no
+// lessons, no application, no opinions; facts only from the two Gospels
+// given), accepted only when BOTH Gospels were in the input and the words
+// pass the word-count gate (30–80), and stored in `daily_reflections.spoken_intro`.
+// Yesterday unfetchable → no intro is generated at all (never guessed); a
+// missing or invalid intro stores NULL and the audio assembles exactly as it
+// did before the intro existed; like the bridge, it never appears in the
+// public response.
+//
 // DISTINCTIVES (Nov 16, 2026): both track prompts carry a "Catholic shape" section —
 // the sacramental life as the writing's natural furniture, a one-note anti-stuffing
 // rule, a challenge practice bank drawn from the Church's own practices, season
@@ -107,8 +122,13 @@ THE SPOKEN BRIDGE AND CARRY (for the day's audio): after the Gospel is read alou
 - Carry: one or two sentences, 15-30 words — the single thing from the challenge to carry into the day, as a quiet resolve or a question to keep. The same fence.
 - If no Gospel text is provided below, return the bridge and the carry as empty strings.
 
+THE SPOKEN INTRO (for the day's audio): before the Gospel is read aloud, the day's narrator speaks a short intro that sets the two days side by side — yesterday's Gospel and today's, both provided in the input below. Write it from ONLY those two Gospels and nothing else.
+- 40-70 words of plain spoken prose, warm and unhurried. Yesterday in one clause — "Yesterday we heard…" — naming what yesterday's Gospel was about: its scene, its people, its movement. Then today: what today's passage is about — the scene, the people, the movement — and close with ONE thing to listen for: a question the passage itself poses, or a detail to notice as it is read.
+- THE FENCE, absolute: description only. Name scenes, people, and the question the text itself raises. No lessons, no application, no opinions — not yours, not anyone's. No "this teaches us", no "we are called to", nothing the two Gospels do not themselves say. No new facts: if it is not in yesterday's Gospel text or today's, it does not belong. No quotations except words taken verbatim from the two Gospels. You are a fellow listener setting the table — never a priest, never a teacher, never a preacher. No greeting, no name, no introduction of yourself. No em dashes.
+- If yesterday's Gospel text is not provided below, or no Gospel text is provided below, return the intro as an empty string.
+
 Reply with ONLY a JSON object, no markdown fence, no other text:
-{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a man","scene":"<the scene, or empty string>","bridge":"<the spoken bridge, or empty string>","carry":"<the spoken carry, or empty string>"}`;
+{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a man","scene":"<the scene, or empty string>","bridge":"<the spoken bridge, or empty string>","carry":"<the spoken carry, or empty string>","intro":"<the spoken intro, or empty string>"}`;
 
 type Audience = "men" | "women";
 
@@ -149,8 +169,13 @@ THE SPOKEN BRIDGE AND CARRY (for the day's audio): after the Gospel is read alou
 - Carry: one or two sentences, 15-30 words — the single thing from the challenge to carry into the day, as a quiet resolve or a question to keep. The same fence.
 - If no Gospel text is provided below, return the bridge and the carry as empty strings.
 
+THE SPOKEN INTRO (for the day's audio): before the Gospel is read aloud, the day's narrator speaks a short intro that sets the two days side by side — yesterday's Gospel and today's, both provided in the input below. Write it from ONLY those two Gospels and nothing else.
+- 40-70 words of plain spoken prose, warm and unhurried. Yesterday in one clause — "Yesterday we heard…" — naming what yesterday's Gospel was about: its scene, its people, its movement. Then today: what today's passage is about — the scene, the people, the movement — and close with ONE thing to listen for: a question the passage itself poses, or a detail to notice as it is read.
+- THE FENCE, absolute: description only. Name scenes, people, and the question the text itself raises. No lessons, no application, no opinions — not yours, not anyone's. No "this teaches us", no "we are called to", nothing the two Gospels do not themselves say. No new facts: if it is not in yesterday's Gospel text or today's, it does not belong. No quotations except words taken verbatim from the two Gospels. You are a fellow listener setting the table — never a priest, never a teacher, never a preacher. No greeting, no name, no introduction of yourself. No em dashes.
+- If yesterday's Gospel text is not provided below, or no Gospel text is provided below, return the intro as an empty string.
+
 Reply with ONLY a JSON object, no markdown fence, no other text:
-{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a woman","scene":"<the scene, or empty string>","bridge":"<the spoken bridge, or empty string>","carry":"<the spoken carry, or empty string>"}`;
+{"reflect":"<one question, two sentences max>","challenge":"<one concrete action for today>","facet":"As a woman","scene":"<the scene, or empty string>","bridge":"<the spoken bridge, or empty string>","carry":"<the spoken carry, or empty string>","intro":"<the spoken intro, or empty string>"}`;
 
 interface ReadingSet {
   firstReading?: string;
@@ -271,6 +296,7 @@ async function storeReflection(
   scene: string | null,
   bridge: string | null,
   carry: string | null,
+  intro: string | null,
 ): Promise<void> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -298,16 +324,17 @@ async function storeReflection(
     scene,
     spoken_bridge: bridge,
     spoken_carry: carry,
+    spoken_intro: intro,
   };
 
   try {
     const res = await post(body);
     if (!res.ok) {
-      // Deploy-order guard: if the spoken-bridge migration has not landed
-      // yet, PostgREST rejects the unknown columns — and with them the
-      // whole row. Retry in the pre-bridge shape so the day's reflection is
-      // never lost to a column that is still on its way.
-      const { spoken_bridge: _bridge, spoken_carry: _carry, ...legacy } = body;
+      // Deploy-order guard: if the spoken-bridge or spoken-intro migration
+      // has not landed yet, PostgREST rejects the unknown columns — and
+      // with them the whole row. Retry in the pre-bridge shape so the
+      // day's reflection is never lost to a column that is still on its way.
+      const { spoken_bridge: _bridge, spoken_carry: _carry, spoken_intro: _intro, ...legacy } = body;
       await post(legacy);
     }
   } catch {
@@ -366,6 +393,25 @@ function validateSpokenCarry(carry: unknown): string | null {
   return text;
 }
 
+// ── Spoken intro gate ─────────────────────────────────────────────────────────
+// Ported from src/lib/narratorCore.ts (validateSpokenIntro and its bounds) —
+// the copies must agree, the same way the bridge/carry gates are ported.
+// The fence lives in the prompts; this is the word-count gate: a missing,
+// empty, or off-length intro (the shape is ~40–70 words; the gate admits
+// 30–80) stores NULL, and the day's audio assembles exactly as it did
+// before the intro existed.
+
+const SPOKEN_INTRO_MIN_WORDS = 30;
+const SPOKEN_INTRO_MAX_WORDS = 80;
+
+function validateSpokenIntro(intro: unknown): string | null {
+  if (typeof intro !== "string" || !intro.trim()) return null;
+  const text = intro.trim();
+  const words = text.split(/\s+/).length;
+  if (words < SPOKEN_INTRO_MIN_WORDS || words > SPOKEN_INTRO_MAX_WORDS) return null;
+  return text;
+}
+
 // Reads the day's Gospel text from the `daily_readings` bundle; if the row is missing,
 // asks the daily-readings function to build it (it caches the row itself). Any failure
 // returns null — the reflection then generates without a scene, never blocked.
@@ -410,6 +456,33 @@ async function fetchGospelText(dateKey: string): Promise<string | null> {
   }
 }
 
+/** The calendar day before a YYYY-MM-DD key (noon UTC — no DST edge can shift it). */
+function previousDateKey(dateKey: string): string {
+  const d = new Date(`${dateKey}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+// ── Yesterday's Gospel (the spoken intro's first material) ────────────────────
+// The intro sets yesterday beside today, so its first fact must be fetched,
+// never remembered by the model: the citation comes from the same lectionary
+// API as today's readings, the text through the same daily_readings path as
+// today's Gospel text. ANY failure returns null — and a null here means the
+// intro is not generated at all, never guessed.
+
+async function fetchYesterdayGospel(
+  dateKey: string,
+): Promise<{ citation: string; text: string } | null> {
+  const yesterday = previousDateKey(dateKey);
+  const [readingsData, text] = await Promise.all([
+    fetchReadings(yesterday),
+    fetchGospelText(yesterday),
+  ]);
+  const citation = readingsData?.readings.gospel;
+  if (!citation || !text) return null;
+  return { citation, text };
+}
+
 // ── Readings fetcher ──────────────────────────────────────────────────────────
 
 async function fetchReadings(
@@ -447,6 +520,7 @@ function buildInput(
   celebration: string | null,
   gospelText: string | null,
   saintBlock: string,
+  yesterdayGospel: { citation: string; text: string } | null,
 ): string {
   const lines: string[] = [];
   if (celebration) lines.push(`Today the Church celebrates: ${celebration}`);
@@ -470,6 +544,13 @@ function buildInput(
     lines.push("", "Gospel text:", gospelText);
   }
 
+  // The spoken intro's first material (Nov 19, 2026): yesterday's Gospel,
+  // fetched — never remembered by the model. Absent (any fetch failed), the
+  // block is omitted whole and the intro is neither requested nor accepted.
+  if (yesterdayGospel) {
+    lines.push("", `Yesterday's Gospel: ${yesterdayGospel.citation}`, "Yesterday's Gospel text:", yesterdayGospel.text);
+  }
+
   // The saint weave (Nov 14, 2026): on a day the calendar keeps a saint the
   // bank can describe, the input gains the weave instruction; on every
   // other day saintBlock is empty and the input is byte-identical to what
@@ -488,7 +569,14 @@ function parseReflection(
   raw: string,
   gospelGrounded: boolean,
   audience: Audience,
-): { reflection: Reflection; scene: string | null; bridge: string | null; carry: string | null } | null {
+  introGrounded: boolean,
+): {
+  reflection: Reflection;
+  scene: string | null;
+  bridge: string | null;
+  carry: string | null;
+  intro: string | null;
+} | null {
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) return null;
   try {
@@ -499,6 +587,7 @@ function parseReflection(
       scene?: unknown;
       bridge?: unknown;
       carry?: unknown;
+      intro?: unknown;
     };
     const reflect = typeof parsed.reflect === "string" ? parsed.reflect.trim() : "";
     const challenge = typeof parsed.challenge === "string" ? parsed.challenge.trim() : "";
@@ -518,7 +607,12 @@ function parseReflection(
     // Anything else stores NULL and the audio behaves exactly as before.
     const bridge = gospelGrounded ? validateSpokenBridge(parsed.bridge) : null;
     const carry = gospelGrounded ? validateSpokenCarry(parsed.carry) : null;
-    return { reflection, scene, bridge, carry };
+    // The intro stands under the strictest discipline of the set: it is
+    // accepted only when BOTH Gospels were in the input (introGrounded —
+    // yesterday's fetched, today's in hand) and only through its word
+    // gate. Anything else stores NULL and the audio behaves as before.
+    const intro = introGrounded ? validateSpokenIntro(parsed.intro) : null;
+    return { reflection, scene, bridge, carry, intro };
   } catch {
     return null;
   }
@@ -576,11 +670,18 @@ Deno.serve(async (req: Request) => {
     // reflection generates exactly as before, just without a scene.
     const gospelText = await fetchGospelText(dateKey);
 
+    // Best-effort: yesterday's Gospel grounds the spoken intro. Null is
+    // fine in the same way — the reflection generates exactly as before,
+    // just without an intro; the intro is never guessed from memory.
+    const yesterdayGospel = await fetchYesterdayGospel(dateKey).catch(() => null);
+    const introGrounded = gospelText !== null && yesterdayGospel !== null;
+
     const input = buildInput(
       readingsData.readings,
       readingsData.celebration,
       gospelText,
       buildInputSaintBlock(dateKey),
+      yesterdayGospel,
     );
     if (input.length < 20) return errorResponse(GENERIC_ERROR, 502);
 
@@ -596,6 +697,7 @@ Deno.serve(async (req: Request) => {
       scene: string | null;
       bridge: string | null;
       carry: string | null;
+      intro: string | null;
     } | null> => {
       const res = await fetch(url, {
         method: "POST",
@@ -610,8 +712,9 @@ Deno.serve(async (req: Request) => {
           generationConfig: {
             temperature: 0.7,
             // 1024 priced the pre-bridge answer (reflect + challenge + scene);
-            // the bridge (~170 words) and carry ride in the same JSON now.
-            maxOutputTokens: 1536,
+            // the bridge (~170 words) and carry ride in the same JSON now,
+            // and the intro (~70 words) with them.
+            maxOutputTokens: 1792,
             thinkingConfig: { thinkingLevel: "low" },
           },
         }),
@@ -630,7 +733,7 @@ Deno.serve(async (req: Request) => {
         return null;
       }
 
-      const parsed = parseReflection(raw, gospelText !== null, audience);
+      const parsed = parseReflection(raw, gospelText !== null, audience, introGrounded);
       if (!parsed) console.error("Reflection model returned an unusable response");
       return parsed;
     };
@@ -655,7 +758,8 @@ Deno.serve(async (req: Request) => {
       if (generated.scene) sharedScene = generated.scene;
       // The bridge and carry are NOT shared: each binds its own track's
       // reflection and challenge, so each row stores the ones its own
-      // generation wrote.
+      // generation wrote. The intro is stored the same way — per row,
+      // from the row's own generation.
       await storeReflection(
         dateKey,
         a,
@@ -664,6 +768,7 @@ Deno.serve(async (req: Request) => {
         scene,
         generated.bridge,
         generated.carry,
+        generated.intro,
       );
       if (a === answerAudience) answer = generated.reflection;
     }
