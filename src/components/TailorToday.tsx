@@ -773,7 +773,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
   };
 
   // The tailored challenge stands here unmarked (Erik, Nov 19, 2026):
-  // its "I did this" testimony moved to Tonight with the daily
+  // its lived-mark testimony moved to Tonight with the daily
   // challenge's — the day's challenges are answered at its close.
 
   const build = async () => {

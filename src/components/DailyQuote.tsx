@@ -250,7 +250,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
   );
 
   // The challenge stands here unmarked (Erik, Nov 19, 2026): the
-  // "I did this" testimony moved to Tonight, at the day's close —
+  // lived-mark testimony moved to Tonight, at the day's close —
   // the morning proposes, the evening answers. The journal and the
   // Kept shelf are untouched; only the marking's home moved.
 
