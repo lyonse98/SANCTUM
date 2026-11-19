@@ -778,9 +778,16 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   const t = persona.theme;
   const WatermarkIcon = Church;
 
+  // The conversation stands as a fixed full-screen surface, like the shell
+  // below (Nov 19, 2026): in document flow the column's height rode on
+  // dvh, and with a long history the feed — a flex child that could not
+  // shrink — grew past the screen and carried the typing box with it.
+  // Fixed, the page beneath can never scroll under the chat, the feed
+  // scrolls inside its own area (min-h-0 in ChatFeed), and the input
+  // stays at the visible bottom.
   return (
     <div
-      className="flex flex-col h-dvh max-w-2xl mx-auto relative overflow-hidden"
+      className="fixed inset-0 flex flex-col max-w-2xl mx-auto overflow-hidden"
       style={{ backgroundColor: t.bg, paddingTop: 'env(safe-area-inset-top)' }}
     >
       <div

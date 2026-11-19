@@ -123,7 +123,7 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
 
   if (messages.length === 0 && !isStreaming) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-6 py-12 text-center">
         <div className="relative mb-5">
           <div
             className="rounded-full shadow-xl overflow-hidden"
@@ -161,7 +161,7 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
   }
 
   return (
-    <div className="flex-1 overflow-y-auto chat-scroll px-5 py-5 space-y-6 max-w-2xl mx-auto w-full">
+    <div className="flex-1 min-h-0 overflow-y-auto chat-scroll px-5 py-5 space-y-6 max-w-2xl mx-auto w-full">
       {crisisActive && (
         <CrisisCard theme={persona.theme} dismissable onDismiss={onCrisisDismiss} />
       )}

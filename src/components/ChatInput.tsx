@@ -73,7 +73,7 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
 
   return (
     <div
-      className="px-4 pt-2.5 pb-3 border-t backdrop-blur-sm"
+      className="flex-shrink-0 px-4 pt-2.5 pb-3 border-t backdrop-blur-sm"
       style={{ backgroundColor: `${t.bg}F2`, borderColor: `${t.border}66` }}
     >
       {rateLimited && (
