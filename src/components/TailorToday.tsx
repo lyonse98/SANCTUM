@@ -8,9 +8,11 @@ import {
   Mic,
   Music,
   Newspaper,
+  FastForward,
   Pause,
   Play,
   RefreshCw,
+  Rewind,
   RotateCcw,
   SlidersHorizontal,
   Sparkles,
@@ -724,6 +726,16 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
 
   const displayElapsed = scrubValue ?? elapsed;
 
+  // The ten-second skips (Erik, Nov 19, 2026): beside the scrubber,
+  // for the thumb that wants a sentence again or a passage sooner.
+  // Clamped to the stream's own ends; the ruler is the slider's —
+  // the element's duration once known, the build's seconds before.
+  const seekMax = duration > 0 ? duration : (devotional?.audioSeconds ?? 0);
+  const skipBy = (delta: number) => {
+    if (seekMax <= 0) return;
+    seekTo(Math.min(seekMax, Math.max(0, displayElapsed + delta)));
+  };
+
   const handleScrubStart = () => {
     scrubbingRef.current = true;
     setScrubValue(displayElapsed);
@@ -1034,6 +1046,24 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
               style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
             >
               {listenSpeedLabel(speed)}
+            </button>
+            <button
+              onClick={() => skipBy(-10)}
+              disabled={seekMax <= 0}
+              aria-label="Back 10 seconds"
+              className="transition-opacity hover:opacity-70 flex-shrink-0 disabled:opacity-40"
+              style={{ color: t.textDim }}
+            >
+              <Rewind className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => skipBy(10)}
+              disabled={seekMax <= 0}
+              aria-label="Forward 10 seconds"
+              className="transition-opacity hover:opacity-70 flex-shrink-0 disabled:opacity-40"
+              style={{ color: t.textDim }}
+            >
+              <FastForward className="w-4 h-4" />
             </button>
             <button
               onClick={restart}

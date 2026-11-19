@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pause, Play, RotateCcw } from 'lucide-react';
+import { FastForward, Pause, Play, Rewind, RotateCcw } from 'lucide-react';
 import type { PersonaTheme } from '@/types';
 import { fetchDailyAudio, headForHour, sequenceSeekTarget, type DailyAudio } from '@/lib/dailyAudio';
 import { DAY_START_HOUR } from '@/lib/dayBoundary';
@@ -523,6 +523,30 @@ export function ListenBar({ t, dateKey, citation, audience, onOpenReminder }: Li
       >
         {listenSpeedLabel(speed)}
       </button>
+      {/* The ten-second skips (Erik, Nov 19, 2026): beside the
+          scrubber, once there is a stream to move in — the same
+          whole-listening seconds the slider and the lock screen
+          speak, clamped by the seek itself. */}
+      {preparedRef.current && (
+        <>
+          <button
+            onClick={() => seekToGlobal(displayElapsed - 10)}
+            aria-label="Back 10 seconds"
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95 hover:opacity-70"
+            style={{ color: t.textDim }}
+          >
+            <Rewind className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => seekToGlobal(displayElapsed + 10)}
+            aria-label="Forward 10 seconds"
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95 hover:opacity-70"
+            style={{ color: t.textDim }}
+          >
+            <FastForward className="w-3.5 h-3.5" />
+          </button>
+        </>
+      )}
       {preparedRef.current && (
         <button
           onClick={handleRestart}
