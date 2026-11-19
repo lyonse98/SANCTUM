@@ -7,6 +7,8 @@ import { Header } from '@/components/Header';
 import { SettingsModal } from '@/components/SettingsModal';
 import { PresetChips } from '@/components/PresetChips';
 import { ChatFeed } from '@/components/ChatFeed';
+import { CompanionIntake } from '@/components/CompanionIntake';
+import { showsIntake } from '@/lib/companionIntake';
 import { ConfirmEraseSheet } from '@/components/ConfirmEraseSheet';
 import { ChatInput } from '@/components/ChatInput';
 import { HomeScreen } from '@/components/HomeScreen';
@@ -130,6 +132,12 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   }, [personaId, audience]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // The companion intake's two guards (Nov 19, 2026): the thread must
+  // have settled — its stored history, if any, already loaded — before
+  // an empty thread can be read as a fresh one, and an opening once
+  // asked or passed is not asked again within the same opening.
+  const [threadSettled, setThreadSettled] = useState(false);
+  const [intakeSkipped, setIntakeSkipped] = useState(false);
   const [incognito, setIncognito] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   // The tailor-ready poke's landing (Nov 18, 2026): the same one-shot
@@ -189,10 +197,27 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   }, []);
 
   useEffect(() => {
-    if (!personaId || incognito) return;
+    if (!personaId) {
+      setThreadSettled(false);
+      return;
+    }
+    // An incognito thread is memory-only: it stands settled as it is,
+    // with the saved conversation paused untouched beneath it.
+    if (incognito) {
+      setThreadSettled(true);
+      return;
+    }
     const stored = loadHistory(personaId);
     setMessages(stored.map((m) => ({ id: genId(), role: m.role, content: m.content, timestamp: Date.now() })));
+    setThreadSettled(true);
   }, [personaId, incognito]);
+
+  // A new companion is a new opening: the intake's skip belongs to the
+  // opening it was given in, not to the next one. (A cleared thread
+  // re-opens the asking through handleClear, below.)
+  useEffect(() => {
+    setIntakeSkipped(false);
+  }, [personaId]);
 
   useEffect(() => {
     // With no companion open the season stands in, so the sheets opened from the permanent row
@@ -413,6 +438,8 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
       setStreamingContent('');
     }
     setMessages([]);
+    // The cleared thread is a fresh thread: the intake may ask again.
+    setIntakeSkipped(false);
     // Incognito's promise stands even here: the saved conversation is
     // paused, untouched — clearing an incognito thread clears only the
     // memory of it, never the record it paused.
@@ -767,6 +794,10 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
     };
     return <PersonaIntro persona={persona} onOpenHelp={() => leaveIntroTo('help')} onOpenPray={() => leaveIntroTo('church')} onDone={() => {
       setIntroActive(false);
+      // A conversation arriving with its own opening move — a first
+      // message, or the day's readings to reflect on — has no need of
+      // the intake: the asking steps aside for it.
+      if (pendingInitialMessage || pendingGospelContext) setIntakeSkipped(true);
       if (pendingInitialMessage) {
         const msg = pendingInitialMessage;
         setPendingInitialMessage(null);
@@ -786,6 +817,18 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
   const t = persona.theme;
   const WatermarkIcon = Church;
+
+  // The intake (Nov 19, 2026) stands where the bare empty state stood
+  // when a conversation begins — under its guards: the thread settled
+  // (so it never stands over a history still loading, and never over
+  // one that exists), the thread in fact empty, this opening not
+  // already asked or passed, and the companion one of the sixteen.
+  const showIntake =
+    threadSettled &&
+    !intakeSkipped &&
+    !isStreaming &&
+    messages.length === 0 &&
+    showsIntake(persona.id);
 
   // The conversation stands as a fixed full-screen surface, like the shell
   // below (Nov 19, 2026): in document flow the column's height rode on
@@ -859,7 +902,19 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       <PresetChips presets={persona.presets} onSelect={handlePreset} disabled={isStreaming} />
 
-      <ChatFeed messages={messages} isStreaming={isStreaming} streamingContent={streamingContent} persona={persona} crisisActive={false} onOpenTool={openToolLink} onReflectGospel={handleGospelReflect} />
+      {showIntake ? (
+        <CompanionIntake
+          persona={persona}
+          audience={audience}
+          onSeed={(text) => {
+            setIntakeSkipped(true);
+            handleSend(text);
+          }}
+          onSkip={() => setIntakeSkipped(true)}
+        />
+      ) : (
+        <ChatFeed messages={messages} isStreaming={isStreaming} streamingContent={streamingContent} persona={persona} crisisActive={false} onOpenTool={openToolLink} onReflectGospel={handleGospelReflect} />
+      )}
 
       <ChatInput onSend={handleSend} onStop={handleStop} isStreaming={isStreaming} persona={persona} remainingMessages={remainingMessages} />
 
