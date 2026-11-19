@@ -9,6 +9,7 @@ import {
   Music,
   Newspaper,
   FastForward,
+  ChevronRight,
   Pause,
   Play,
   RefreshCw,
@@ -20,7 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import type { Audience, PersonaTheme } from '@/types';
-import { PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
+import { PRINT_PLATE_CLASS, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import {
   TAILOR_FOCUSES,
   TAILOR_SEARCH_KINDS,
@@ -70,11 +71,34 @@ import {
   type TailorProfile,
 } from '@/lib/tailorProfile';
 
+/**
+ * What the Tailor panel hands the Gospel card when its reader wants
+ * to reflect further with a companion (Erik, Nov 19, 2026): the built
+ * devotional's own words — its reflection, its challenge, and the
+ * word from the tradition when one was found. Nothing of the
+ * morning's intake rides in it: no free-text sentence, no profile
+ * field, no passage rationale, no media pick. The card wraps these
+ * in the day's readings and walks the same road its own Reflect
+ * door walks.
+ */
+export interface TailorReflectRequest {
+  reflect: string;
+  challenge: string;
+  traditionQuote: { text: string; author: string } | null;
+}
+
 interface TailorTodayProps {
   t: PersonaTheme;
   audience: Audience;
   /** The readings bundle's date — the devotional built is for the Gospel on screen. */
   dateKey: string;
+  /**
+   * The foot-of-the-devotional Reflect door (Erik, Nov 19, 2026):
+   * carries the built devotional into a companion chat through the
+   * Gospel card. Absent, the plate does not render — a panel mounted
+   * without the card's road has no door pretending to lead anywhere.
+   */
+  onReflectWithCompanion?: (request: TailorReflectRequest) => void;
   /**
    * Panel mode (the Way-1 tiles, Nov 13, 2026): the tile on the Gospel card is
    * the door, so the panel opens straight on the intake form instead of
@@ -495,7 +519,7 @@ function TailorProfileEditor({
  * does the morning's own intake, kept there for tonight's Close the day
  * (the PM twin, Nov 14, 2026), which re-sends it transiently the same way.
  */
-export function TailorToday({ t, audience, dateKey, startOpen = false, profileOpenSignal = 0 }: TailorTodayProps) {
+export function TailorToday({ t, audience, dateKey, startOpen = false, profileOpenSignal = 0, onReflectWithCompanion }: TailorTodayProps) {
   const offered = tailorOffered();
 
   const [view, setView] = useState<'idle' | 'form' | 'building' | 'done' | 'error'>(startOpen ? 'form' : 'idle');
@@ -1198,6 +1222,49 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
               )}
             </span>
           </a>
+
+          {/* Reflect further, with a companion (Erik, Nov 19, 2026):
+              the tailored devotional's own Reflect door, at its foot,
+              wearing the same ruled plate as the Gospel card's doors.
+              It hands the card the devotional's words — reflection,
+              challenge, the word from the tradition — and the card
+              carries them into a chat with the day's readings, the
+              road its own Reflect door walks. The morning's sentence
+              and the profile never ride. */}
+          {onReflectWithCompanion && (
+            <button
+              data-tile="tailor-reflect"
+              onClick={() =>
+                onReflectWithCompanion({
+                  reflect: devotional.reflect,
+                  challenge: devotional.challenge,
+                  traditionQuote: devotional.traditionQuote,
+                })
+              }
+              aria-label="Reflect with a companion — take today's devotional further"
+              className={`${PRINT_PLATE_CLASS} mb-2`}
+              style={{ border: `1px solid ${t.border}`, backgroundColor: `${t.border}1F` }}
+            >
+              <span
+                className="text-[12px] font-bold uppercase tracking-wide flex-shrink-0"
+                style={{ fontFamily: PRINT_SERIF, color: t.textBright }}
+              >
+                Reflect with a companion
+              </span>
+              <span
+                aria-hidden="true"
+                className="flex-1"
+                style={{ borderBottom: `1px dotted ${t.textDim}` }}
+              />
+              <span
+                className="text-[12px] italic flex-shrink-0"
+                style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+              >
+                Take today&rsquo;s devotional further
+              </span>
+              <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+          )}
 
           <button
             onClick={() => setView('form')}

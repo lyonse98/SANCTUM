@@ -36,7 +36,7 @@ import {
   unmarkChallengeLived,
 } from '@/lib/challengesLived';
 import { ListenBar } from '@/components/ListenBar';
-import { TailorToday } from '@/components/TailorToday';
+import { TailorToday, type TailorReflectRequest } from '@/components/TailorToday';
 import { DailyGospelShareModal } from '@/components/DailyGospelShareModal';
 import type { Audience, PersonaTheme } from '@/types';
 
@@ -308,7 +308,10 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readings]);
 
-  const buildReflectionPrompt = (texts: ReadingTexts | null) => {
+  // The readings block both companion prompts open with: the day's
+  // readings, entire, in lectionary order — the card's own Reflect
+  // door and the Tailor panel's door share this head, word for word.
+  const buildReadingsLines = (texts: ReadingTexts | null): string[] => {
     const lines: string[] = [];
     const celebration = readings?.celebration ? ` — ${readings.celebration}` : '';
     lines.push(`Today the Church reads the following${celebration}:`);
@@ -328,6 +331,11 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
       lines.push(`"${quote.text}" — ${quote.author}${quote.source ? ', ' + quote.source : ''}`);
     }
 
+    return lines;
+  };
+
+  const buildReflectionPrompt = (texts: ReadingTexts | null) => {
+    const lines = buildReadingsLines(texts);
     lines.push(
       `\nReflect on these readings through your eyes. What do they mean for ${audience === 'women' ? 'a woman' : 'a man'} walking the road today? What truth do they uncover, and what do they ask of ${audience === 'women' ? 'her' : 'him'}?`,
     );
@@ -341,6 +349,37 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
     const texts = allTexts ?? (await loadAllTexts());
     setPreparing(false);
     onReflectWithCompanion(buildReflectionPrompt(texts));
+  };
+
+  /**
+   * The Tailor panel's Reflect prompt (Erik, Nov 19, 2026): the same
+   * readings head, then the built devotional's own words — its
+   * reflection, its challenge, the word from the tradition when one
+   * was found — and an ask to go further with them. The request the
+   * panel hands over carries nothing else: the morning's sentence,
+   * the profile, the passage and the media pick never ride into a chat.
+   */
+  const buildTailoredReflectionPrompt = (texts: ReadingTexts | null, request: TailorReflectRequest) => {
+    const lines = buildReadingsLines(texts);
+    lines.push('\nThis morning a devotional was tailored for my day from these readings. Its reflection:');
+    lines.push(`"${request.reflect}"`);
+    lines.push('\nIts challenge:');
+    lines.push(`"${request.challenge}"`);
+    if (request.traditionQuote) {
+      lines.push(`\nAnd a word from the tradition — ${request.traditionQuote.author}: "${request.traditionQuote.text}"`);
+    }
+    lines.push(
+      `\nHelp me reflect further on this devotional — what it asks of ${audience === 'women' ? 'a woman' : 'a man'} walking the road today, and how to live it.`,
+    );
+    return lines.join('\n');
+  };
+
+  const handleReflectTailoredWithCompanion = async (request: TailorReflectRequest) => {
+    if (!onReflectWithCompanion || preparing) return;
+    setPreparing(true);
+    const texts = allTexts ?? (await loadAllTexts());
+    setPreparing(false);
+    onReflectWithCompanion(buildTailoredReflectionPrompt(texts, request));
   };
 
   // Citations come from the lectionary, texts from the Bible fetch; a row
@@ -738,7 +777,7 @@ export function DailyQuote({ t, audience, onReflectWithCompanion, onOpenReminder
           {/* The panel — the existing Tailor intake, reused whole, in
               the space under the plates. */}
           {panel === 'tailor' && (
-            <TailorToday t={t} audience={audience} dateKey={readings.date} startOpen profileOpenSignal={profileOpenSignal} />
+            <TailorToday t={t} audience={audience} dateKey={readings.date} startOpen profileOpenSignal={profileOpenSignal} onReflectWithCompanion={onReflectWithCompanion ? handleReflectTailoredWithCompanion : undefined} />
           )}
 
           {/* Share is a flywheel piece (Nov 13, 2026): a full-width secondary
