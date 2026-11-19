@@ -28,6 +28,7 @@ import {
   TAILOR_SEARCH_KIND_LABELS,
   TAILOR_STATES,
   TAILOR_TONES,
+  tailorFocusLabel,
   type TailorFocus,
   type TailorSearchKind,
   type TailorState,
@@ -38,13 +39,20 @@ import { recordCoreAct } from '@/lib/daysPrayed';
 import { listenSpeedLabel, loadListenSpeed, nextListenSpeed, saveListenSpeed, type ListenSpeed } from '@/lib/listenSpeed';
 import {
   MEDIA_KIND_LABELS,
+  TAILOR_DAILY_BUILD_LIMIT,
+  TailorDailyLimitError,
   fetchTailorAudio,
   getOrBuildTailored,
+  intakeHash,
+  loadTailoredBuild,
   loadTodaysTailored,
   mediaActionLabel,
+  readTailorBuilds,
+  readTailorMeta,
   tailorAudioUrl,
   tailorCreditLine,
   tailorProgressLines,
+  type TailorBuildEntry,
   type TailorIntake,
   type TailoredDevotional,
 } from '@/lib/tailor';
@@ -496,6 +504,46 @@ export function TailorProfileEditor({
 }
 
 /**
+ * The day's builds, walked (Erik, Nov 19, 2026): when today holds more
+ * than one tailored devotional, a quiet row names them — the hour each
+ * was made and the morning it answered — and tapping one opens it. One
+ * build renders nothing: the row exists only when there is somewhere
+ * to walk to. The open build's chip stands pressed, in the intake's
+ * own chip language.
+ */
+export function TailorBuildSwitcher({
+  t,
+  builds,
+  openHash,
+  onOpen,
+}: {
+  t: PersonaTheme;
+  builds: TailorBuildEntry[];
+  openHash: string | null;
+  onOpen: (hash: string) => void;
+}) {
+  if (builds.length < 2) return null;
+  return (
+    <div className="mb-3">
+      <p className={PRINT_STAMP_CLASS} style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
+        Today&rsquo;s devotionals
+      </p>
+      <div className="mt-2">
+        <ChipRow
+          t={t}
+          options={builds.map((entry) => ({
+            id: entry.hash,
+            label: `${new Date(entry.builtAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · ${tailorFocusLabel(entry.focus)}`,
+          }))}
+          isOn={(id) => id === openHash}
+          onToggle={onOpen}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
  * Tailor Today — the personalized devotional (Nov 12, 2026). The free Listen
  * above is the Church's morning, the same for everyone; this is YOUR morning:
  * the same readings, entire and verbatim, one passage chosen for your stated
@@ -515,6 +563,15 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
   const [view, setView] = useState<'idle' | 'form' | 'building' | 'done' | 'error'>(startOpen ? 'form' : 'idle');
   const [devotional, setDevotional] = useState<TailoredDevotional | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // The day's builds (Erik, Nov 19, 2026): the index the switcher
+  // walks, and which of them stands open. The panel opens on the
+  // latest — the day's standing record, the one tonight keys off —
+  // and the day's earlier builds stay a tap away. The limit note is
+  // the cap's calm answer, said where the build button was.
+  const [builds, setBuilds] = useState<TailorBuildEntry[]>(() => readTailorBuilds(dateKey, audience));
+  const [openHash, setOpenHash] = useState<string | null>(null);
+  const [limitNote, setLimitNote] = useState(false);
 
   const [state, setState] = useState<TailorState>('steady');
   const [focus, setFocus] = useState<TailorFocus>('today');
@@ -553,13 +610,18 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
   }, [view]);
 
   // If today's build already exists on this device, the card offers it back —
-  // playing it again never touches the server.
+  // playing it again never touches the server. The build that opens is
+  // the latest — the day's standing record — and the index comes with
+  // it, so the day's earlier builds stand a tap away in the switcher.
   useEffect(() => {
     let active = true;
     void (async () => {
       const existing = await loadTodaysTailored(dateKey, audience);
-      if (active && existing) {
+      if (!active) return;
+      setBuilds(readTailorBuilds(dateKey, audience));
+      if (existing) {
         setDevotional(existing);
+        setOpenHash(readTailorMeta(dateKey, audience)?.hash ?? null);
         setView('done');
       }
     })();
@@ -572,11 +634,15 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
   // the word from the tradition — are copied to the share shelf's on-device
   // store, so the Gospel card can offer them without reopening this cache.
   // Only those pieces are copied (see lib/tailorShare); the morning's intake
-  // never leaves this component.
+  // never leaves this component. The shelf holds the standing (latest)
+  // build's pieces: walking to an earlier build does not re-shelve its
+  // passage and quote over the latest one's (Nov 19, 2026).
   useEffect(() => {
     if (!devotional) return;
+    const latest = readTailorMeta(dateKey, audience)?.hash;
+    if (openHash && latest && openHash !== latest) return;
     writeTailorShare(dateKey, audience, shareEntryFromDevotional(devotional));
-  }, [devotional, dateKey, audience]);
+  }, [devotional, dateKey, audience, openHash]);
 
   // The narration, fetched piece by piece (the build's audio plan): the
   // text package is already on screen, so the fetch rides behind it — the
@@ -614,6 +680,11 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
       setAudioFailed(true);
     }, AUDIO_STITCH_WATCHDOG_MS);
     void fetchTailorAudio(dateKey, audience, devotional, {
+      // The stitch belongs to the OPEN build (Nov 19, 2026): its bank
+      // and its merged package live under that build's own key, never
+      // the latest build's — walking the day's builds stitches each
+      // from its own bank.
+      buildHash: openHash ?? undefined,
       onProgress: (done, total) => {
         if (active) setAudioProgress({ done, total });
       },
@@ -765,6 +836,19 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
   // its lived-mark testimony moved to Tonight with the daily
   // challenge's — the day's challenges are answered at its close.
 
+  /** Walking the day's builds: open an earlier build's package — its
+   *  text, and its narration state, stitched from its own bank by the
+   *  audio effect that follows the open package. A build whose package
+   *  the cache has lost simply doesn't open; the standing one stays. */
+  const openBuild = async (hash: string) => {
+    if (hash === openHash) return;
+    const pkg = await loadTailoredBuild(dateKey, audience, hash);
+    if (!pkg) return;
+    setLimitNote(false);
+    setOpenHash(hash);
+    setDevotional(pkg);
+  };
+
   const build = async () => {
     const intake: TailorIntake = {
       state,
@@ -775,14 +859,26 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
     };
     setView('building');
     setError(null);
+    setLimitNote(false);
     try {
       const { devotional: built } = await getOrBuildTailored(dateKey, audience, intake);
       setDevotional(built);
+      setOpenHash(intakeHash(intake));
+      setBuilds(readTailorBuilds(dateKey, audience));
       setView('done');
       // A completed build is one of the day's core acts (Play 4): the
       // cumulative tally counts today. On-device only, like the tally.
       recordCoreAct('tailor');
-    } catch {
+    } catch (err) {
+      if (err instanceof TailorDailyLimitError) {
+        // The day already holds its three (Erik, Nov 19, 2026): no
+        // error face — the standing devotional simply stands, with
+        // the limit said once, calmly, where the button was.
+        setBuilds(readTailorBuilds(dateKey, audience));
+        setLimitNote(true);
+        setView(devotional ? 'done' : 'form');
+        return;
+      }
       // A calm line, here only — the free devotional above is never touched.
       setError('The tailored devotional could not be built just now. Everything above still stands.');
       setView('error');
@@ -918,6 +1014,16 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
             <p className="text-[13px] leading-relaxed mb-3" style={{ color: t.textMuted }}>{error}</p>
           )}
 
+          {/* The cap's calm answer inside the form too (Nov 19, 2026):
+              reached when the panel opened straight on the intake with
+              the day already full — the same sentence the done view
+              says where its button was. */}
+          {limitNote && (
+            <p className="text-[13px] leading-relaxed mb-3" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+              Three devotionals is today&rsquo;s limit.
+            </p>
+          )}
+
           <button
             onClick={build}
             className="w-full min-h-[48px] flex items-center justify-center gap-2 px-4 py-3 transition-opacity hover:opacity-80 active:opacity-60"
@@ -944,6 +1050,17 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
           <p className="text-[12px] font-medium mb-3 mt-1" style={{ fontFamily: PRINT_SERIF, color: t.accent }}>
             {tailorCreditLine(devotional)}
           </p>
+
+          {/* The day's builds, when there is more than one to walk
+              (Erik, Nov 19, 2026): a quiet row of hours and mornings,
+              the open one pressed. It renders nothing for a one-build
+              day — see TailorBuildSwitcher. */}
+          <TailorBuildSwitcher
+            t={t}
+            builds={builds}
+            openHash={openHash}
+            onOpen={(hash) => void openBuild(hash)}
+          />
 
           {/* The play bar — set as the day's program strip (Stage 2): the
               same solid accent disc and seek slider as Listen. While the
@@ -1204,14 +1321,27 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
             </button>
           )}
 
-          <button
-            onClick={() => setView('form')}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[12px] font-bold uppercase tracking-widest transition-opacity hover:opacity-70"
-            style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
-          >
-            <RefreshCw className="w-3 h-3" />
-            Rebuild for a different morning
-          </button>
+          {/* One more for today — or, at the day's three, the limit
+              said once in the button's place (Erik, Nov 19, 2026):
+              no error styling, nothing greyed — the day is simply
+              full, and its three stand above. */}
+          {builds.length >= TAILOR_DAILY_BUILD_LIMIT ? (
+            <p
+              className="w-full text-center py-1.5 text-[12px]"
+              style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+            >
+              Three devotionals is today&rsquo;s limit.
+            </p>
+          ) : (
+            <button
+              onClick={() => setView('form')}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[12px] font-bold uppercase tracking-widest transition-opacity hover:opacity-70"
+              style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
+            >
+              <RefreshCw className="w-3 h-3" />
+              Build another for today
+            </button>
+          )}
         </div>
       )}
     </div>
