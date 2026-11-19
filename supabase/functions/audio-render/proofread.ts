@@ -154,7 +154,9 @@ const GOSPEL_INTRO_PREFIX = "A reading from the holy Gospel according to ";
  * whole-script read (heads, first movement, second movement, in program
  * order) and returns the assembled script with the proofread texts — and
  * the audit script rebuilt from them. The Gospel text and the ritual
- * formulas are protected by construction.
+ * formulas are protected by construction. The spoken intro (Nov 19,
+ * 2026), when the day carries one, rides in mainA as its own paragraph
+ * and is ELIGIBLE — generated connective speech, not Scripture.
  */
 export async function proofreadAssembledScript<T extends AssembledScript>(
   assembled: T,

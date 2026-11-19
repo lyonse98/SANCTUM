@@ -281,6 +281,8 @@ interface ReflectionRow {
   /** The spoken bridge + carry (Nov 14, 2026) — null on every pre-bridge row. */
   spokenBridge: string | null;
   spokenCarry: string | null;
+  /** The spoken intro (Nov 19, 2026) — null on every pre-intro row. */
+  spokenIntro: string | null;
 }
 
 interface Bundle {
@@ -314,8 +316,18 @@ async function readReflection(dateISO: string, audience: NarratorAudience): Prom
   const filter = `date=eq.${dateISO}&audience=eq.${audience}`;
   let rows = await restSelect(
     "daily_reflections",
-    `${filter}&select=reflect,challenge,facet,scene,spoken_bridge,spoken_carry`,
+    `${filter}&select=reflect,challenge,facet,scene,spoken_bridge,spoken_carry,spoken_intro`,
   );
+  if (rows.length === 0) {
+    // Deploy-order guard (Nov 19, 2026): if the spoken-intro migration has
+    // not landed yet, the select above errors on the unknown column and
+    // reads as an absent row. Fall back to the bridge-era select; the day
+    // renders without an intro, exactly as it did before the intro existed.
+    rows = await restSelect(
+      "daily_reflections",
+      `${filter}&select=reflect,challenge,facet,scene,spoken_bridge,spoken_carry`,
+    );
+  }
   if (rows.length === 0) {
     // Deploy-order guard (Nov 14, 2026): if the spoken-bridge migration has
     // not landed yet, the select above errors on the unknown columns and
@@ -333,6 +345,7 @@ async function readReflection(dateISO: string, audience: NarratorAudience): Prom
     scene: typeof row.scene === "string" && row.scene.trim() ? row.scene : null,
     spokenBridge: typeof row.spoken_bridge === "string" && row.spoken_bridge.trim() ? row.spoken_bridge : null,
     spokenCarry: typeof row.spoken_carry === "string" && row.spoken_carry.trim() ? row.spoken_carry : null,
+    spokenIntro: typeof row.spoken_intro === "string" && row.spoken_intro.trim() ? row.spoken_intro : null,
   };
 }
 
@@ -799,6 +812,7 @@ async function runRender(
         scene: sceneOff ? null : bundle.reflection.scene,
         spokenBridge: bundle.reflection.spokenBridge,
         spokenCarry: bundle.reflection.spokenCarry,
+        spokenIntro: bundle.reflection.spokenIntro,
         tomorrowCelebration: bundle.tomorrowCelebration,
         tomorrowGospelCitation: bundle.tomorrowGospelCitation,
       });
@@ -844,6 +858,7 @@ async function runRender(
         sceneIncluded: assembled.sceneIncluded,
         bridgeIncluded: assembled.bridgeIncluded,
         carryIncluded: assembled.carryIncluded,
+        introIncluded: assembled.introIncluded,
         proofreadChanged: proof.changed,
         selections: assembled.selections,
         headAM: assembled.headAM,

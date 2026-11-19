@@ -132,4 +132,31 @@ describe('proofreadAssembledScript — the daily flow', () => {
     expect(changed).toBe(0);
     expect(out).toEqual(assembled);
   });
+
+  it('the spoken intro is eligible for the gate; the Gospel stays protected', async () => {
+    const INTRO = 'The the intro carries a doubled word.';
+    const assembled = assembleScript({
+      dateISO: '2026-10-30',
+      celebration: 'Friday of the 30th week of Ordinary Time',
+      gospelCitation: 'Luke 14:1-6',
+      gospelText: GOSPEL_TEXT,
+      reflect: 'A sound reflection.',
+      challenge: 'A sound challenge.',
+      facet: 'As a man',
+      scene: null,
+      spokenIntro: INTRO,
+      tomorrowCelebration: null,
+      tomorrowGospelCitation: null,
+    });
+    expect(assembled.introIncluded).toBe(true);
+    const seen: string[][] = [];
+    const model = fakeModel((p) => p.replace('The the', 'The'), seen);
+    const { assembled: out, changed } = await proofreadAssembledScript(assembled, GOSPEL_TEXT, model);
+    // The intro was sent (eligible) and its mechanics were fixed in place.
+    expect(seen.flat()).toContain(INTRO);
+    expect(changed).toBe(1);
+    expect(out.mainA).toContain('The intro carries a doubled word.');
+    expect(out.mainA).toContain(GOSPEL_TEXT);
+    expect(seen.flat()).not.toContain(GOSPEL_TEXT);
+  });
 });
