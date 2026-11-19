@@ -13,7 +13,12 @@ import { profileSignature, type TailorRequestProfile } from '@/lib/tailorProfile
 import { appendLetterThread } from '@/lib/letterThreads';
 
 /**
- * Tailor Today, client side (Nov 12, 2026). One build per user per day: the
+ * Tailor Today, client side (Nov 12, 2026). Up to three builds per user per
+ * day (Erik, Nov 19, 2026): the day can turn, and the devotional may turn
+ * with it — three is the cost cap, refused on the device before any call
+ * and backed by the function's own caller cap. Each distinct intake is
+ * its own build, kept beside the day's others; the LATEST build is the
+ * day's standing record, the one tonight's close and echoes key off. The
  * intake goes to the tailor-devotional function, which composes the devotional
  * in memory and returns the package in the response — the server stores
  * NOTHING (see the function's header; the privacy promise is the feature).
@@ -30,7 +35,9 @@ import { appendLetterThread } from '@/lib/letterThreads';
  * Storage (audio included), a small metadata line in localStorage so the
  * Gospel card knows today's tailored devotional exists without opening the
  * cache. Rebuilding is an explicit act and goes back to the server (which
- * caps builds per day); replaying never does.
+ * caps builds per day); replaying never does. The meta line also carries
+ * the day's build index — every build's hash, hour, and ask — so the
+ * panel can walk the day's builds, not just the latest.
  *
  * There is no companion lens (Erik, Nov 12, 2026): companions are text-only
  * and live in their chats. The tailoring is the narrator-side pipeline's —
@@ -136,6 +143,26 @@ export interface TailorMorningRecord {
   freeText: string;
 }
 
+/** How many distinct tailored devotionals one day may hold — the cost cap (Erik, Nov 19, 2026). */
+export const TAILOR_DAILY_BUILD_LIMIT = 3;
+
+/**
+ * One entry in the day's build index (Erik, Nov 19, 2026): a build the
+ * day holds, named by its intake hash and the hour it was made, with
+ * the ask it answered — enough for the panel's switcher to label it
+ * ("7:02 AM · Work") without opening its package. The index rides
+ * inside the meta line, under the same sanctum_ prefix, so the panic
+ * wipe takes it with everything else.
+ */
+export interface TailorBuildEntry {
+  hash: string;
+  /** When the build was made (epoch ms) — the switcher's hour. */
+  builtAt: number;
+  focus: TailorFocus;
+  state: TailorState;
+  tone: TailorTone;
+}
+
 export interface TailorMeta {
   hash: string;
   narratorName: string;
@@ -144,6 +171,8 @@ export interface TailorMeta {
   focus?: TailorFocus;
   /** The morning's intake, for tonight's close — on this device only. */
   morning?: TailorMorningRecord;
+  /** The day's builds in the order they were made — the latest is the standing record above. */
+  builds?: TailorBuildEntry[];
 }
 
 /** Validates a stored morning record, or null when it cannot be trusted. */
@@ -159,6 +188,45 @@ function readMorningRecord(raw: unknown): TailorMorningRecord | null {
   };
 }
 
+/**
+ * Validates a stored build index, or synthesizes the one entry a
+ * pre-index meta still names. A malformed entry drops the entry, never
+ * the meta — the same posture as the morning record's. A meta written
+ * before the day's builds were indexed still names its one build (the
+ * latest, in `hash`), and its morning record still knows what was
+ * asked, so the day reads as it always did: one build, standing.
+ */
+function readBuildEntries(raw: unknown, meta: TailorMeta): TailorBuildEntry[] | undefined {
+  if (Array.isArray(raw)) {
+    const seen = new Set<string>();
+    const entries: TailorBuildEntry[] = [];
+    for (const item of raw) {
+      if (!item || typeof item !== 'object') continue;
+      const e = item as Record<string, unknown>;
+      if (typeof e.hash !== 'string' || e.hash.length === 0 || seen.has(e.hash)) continue;
+      if (typeof e.builtAt !== 'number' || !Number.isFinite(e.builtAt)) continue;
+      if (!isTailorState(e.state) || !isTailorFocus(e.focus) || !isTailorTone(e.tone)) continue;
+      seen.add(e.hash);
+      entries.push({ hash: e.hash, builtAt: e.builtAt, focus: e.focus, state: e.state, tone: e.tone });
+      if (entries.length >= TAILOR_DAILY_BUILD_LIMIT) break;
+    }
+    if (entries.length > 0) return entries;
+  }
+  const morning = meta.morning;
+  if (morning) {
+    return [
+      {
+        hash: meta.hash,
+        builtAt: typeof meta.at === 'number' && Number.isFinite(meta.at) ? meta.at : 0,
+        focus: morning.focus,
+        state: morning.state,
+        tone: morning.tone,
+      },
+    ];
+  }
+  return undefined;
+}
+
 export function readTailorMeta(dateKey: string, audience: Audience): TailorMeta | null {
   try {
     const raw = localStorage.getItem(tailorMetaKey(dateKey, audience));
@@ -168,10 +236,17 @@ export function readTailorMeta(dateKey: string, audience: Audience): TailorMeta 
     // A malformed morning record drops the record, never the meta — the
     // focus echo and the cached build must survive a bad twin field.
     const morning = readMorningRecord((parsed as { morning?: unknown }).morning);
-    return morning ? { ...parsed, morning } : { ...parsed, morning: undefined };
+    const base = morning ? { ...parsed, morning } : { ...parsed, morning: undefined };
+    const builds = readBuildEntries((parsed as { builds?: unknown }).builds, base);
+    return builds ? { ...base, builds } : { ...base, builds: undefined };
   } catch {
     return null;
   }
+}
+
+/** The day's builds, in the order they were made — the index the panel's switcher walks. */
+export function readTailorBuilds(dateKey: string, audience: Audience): TailorBuildEntry[] {
+  return readTailorMeta(dateKey, audience)?.builds ?? [];
 }
 
 function writeTailorMeta(dateKey: string, audience: Audience, meta: TailorMeta): void {
@@ -374,6 +449,14 @@ export interface TailorDeps {
   onProgress?: (done: number, total: number) => void;
   /** The pause between piece retries — injectable so tests never wait on a real backoff. */
   sleep?: (ms: number) => Promise<void>;
+  /**
+   * The intake hash of the build being stitched, when it is not the
+   * day's latest (the panel stitching an earlier build it walked to).
+   * The piece bank and the merged package belong to THAT build's key —
+   * without it, the stitch follows the meta's standing (latest) build,
+   * as it always has.
+   */
+  buildHash?: string;
 }
 
 /** The function's address and public key — the one door both calls use. */
@@ -423,10 +506,29 @@ async function callTailorFunction(
 }
 
 /**
+ * A fourth DISTINCT build in one day, refused on the device before any
+ * server call (Erik, Nov 19, 2026): the day holds up to
+ * TAILOR_DAILY_BUILD_LIMIT tailored devotionals — the cost cap, with
+ * the function's own 3-a-day caller cap standing behind it as the hard
+ * backstop. The message is the house string code; the class is what
+ * the panel catches to answer calmly instead of failing.
+ */
+export class TailorDailyLimitError extends Error {
+  readonly code = 'tailor-daily-limit';
+  constructor() {
+    super('tailor-daily-limit');
+    this.name = 'TailorDailyLimitError';
+  }
+}
+
+/**
  * The day's tailored devotional: the device's cached build when this exact
  * intake was already built today (NO server call — a replay is free and
  * private), otherwise one build through the function, cached on-device with
- * its metadata line written for the card.
+ * its metadata line written for the card. A fresh build joins the day's
+ * build index and becomes the day's standing record — the meta's hash,
+ * focus, and morning record always name the LATEST build, the one
+ * tonight's close keys off.
  */
 export async function getOrBuildTailored(
   dateKey: string,
@@ -441,12 +543,23 @@ export async function getOrBuildTailored(
   if (cached && cached.date === dateKey) {
     return { devotional: cached, fromCache: true };
   }
+  // The day's cost cap, enforced here, before the call: a NEW distinct
+  // intake beyond the day's builds is refused on the device — the
+  // standing builds stay fully usable, and an intake the index already
+  // counts (its package lost from the cache, say) is not new and goes
+  // through. A replay never reaches this line: it was answered above.
+  const priorBuilds = readTailorBuilds(dateKey, audience);
+  const alreadyCounted = priorBuilds.some((entry) => entry.hash === hash);
+  if (!alreadyCounted && priorBuilds.length >= TAILOR_DAILY_BUILD_LIMIT) {
+    throw new TailorDailyLimitError();
+  }
   const built = await callTailorFunction(dateKey, audience, intake, deps.fetchImpl ?? fetch);
   await store.set(key, built);
+  const at = Date.now();
   writeTailorMeta(dateKey, audience, {
     hash,
     narratorName: built.narratorName,
-    at: Date.now(),
+    at,
     focus: intake.focus,
     // The morning record for tonight's close — this device only, capped
     // exactly as the build call caps the words it sends.
@@ -456,6 +569,11 @@ export async function getOrBuildTailored(
       tone: intake.tone,
       freeText: intake.freeText.replace(/\s+/g, ' ').trim().slice(0, 200),
     },
+    // The day's build index: this build joins the ones already standing
+    // (a re-made build the index already counted keeps its first hour).
+    builds: alreadyCounted
+      ? priorBuilds
+      : [...priorBuilds, { hash, builtAt: at, focus: intake.focus, state: intake.state, tone: intake.tone }],
   });
   // The morning's one sentence is also kept as a letter thread (Erik's
   // ruling, Nov 16, 2026): what was given for tailoring may tailor — a
@@ -470,7 +588,19 @@ export async function getOrBuildTailored(
   return { devotional: built, fromCache: false };
 }
 
-/** Loads today's existing build (if any) for the card's "play yours" state. */
+/** Loads one of the day's builds by its intake hash — the switcher's road to an earlier build. */
+export async function loadTailoredBuild(
+  dateKey: string,
+  audience: Audience,
+  hash: string,
+  deps: TailorDeps = {},
+): Promise<TailoredDevotional | null> {
+  const store = deps.store ?? defaultStore();
+  const found = await store.get(storeKey(dateKey, audience, hash));
+  return found && found.date === dateKey ? found : null;
+}
+
+/** Loads today's existing build (if any) for the card's "play yours" state — the latest, the day's standing record. */
 export async function loadTodaysTailored(
   dateKey: string,
   audience: Audience,
@@ -478,9 +608,7 @@ export async function loadTodaysTailored(
 ): Promise<TailoredDevotional | null> {
   const meta = readTailorMeta(dateKey, audience);
   if (!meta) return null;
-  const store = deps.store ?? defaultStore();
-  const found = await store.get(storeKey(dateKey, audience, meta.hash));
-  return found && found.date === dateKey ? found : null;
+  return loadTailoredBuild(dateKey, audience, meta.hash, deps);
 }
 
 // ── The audio plan, fetched and stitched on-device ───────────────────────────
@@ -644,10 +772,15 @@ export async function fetchTailorAudio(
 
     // The bank's home: the devotional's own store key, so the bank and the
     // package live and die together (the panic wipe takes the whole cache).
-    // Without a meta record there is no key to bank under — the stitch then
-    // runs in memory only, exactly as it did before banking existed.
+    // The build being stitched names the key — the panel passes its open
+    // build's hash, so one build's bank never serves or overwrites
+    // another's; without one, the meta's standing (latest) build is
+    // meant, as before. Without any key there is nothing to bank under —
+    // the stitch then runs in memory only, exactly as it did before
+    // banking existed.
     const meta = readTailorMeta(dateKey, audience);
-    const devKey = meta ? storeKey(dateKey, audience, meta.hash) : null;
+    const ownHash = deps.buildHash ?? meta?.hash ?? null;
+    const devKey = ownHash ? storeKey(dateKey, audience, ownHash) : null;
     const piecesKey = devKey ? `${devKey}:pieces` : null;
 
     const pieces = new Array<string | null>(total).fill(null);
