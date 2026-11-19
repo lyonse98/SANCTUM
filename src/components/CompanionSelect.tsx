@@ -109,14 +109,14 @@ export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }
         )}
 
         <p className="text-sm leading-relaxed text-center max-w-sm mx-auto mb-5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textMuted }}>
-          Each one has walked the road you're on. Answer three quick questions to find your fit, or pick a voice yourself.
+          Each one has walked the road you're on. Answer four quick questions to find your fit, or pick a voice yourself.
         </p>
 
         <p className="text-[13px] leading-relaxed text-center max-w-sm mx-auto -mt-3 mb-5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
           {COMPANION_PORTRAYAL_LINE}
         </p>
 
-        {/* The head of the page — the three-question quiz, on the plate. */}
+        {/* The head of the page — the four-question quiz, on the plate. */}
         <button
           onClick={() => setRouterOpen(true)}
           className={`${PRINT_PLATE_CLASS} mb-6`}
@@ -128,7 +128,7 @@ export function CompanionSelect({ audience, onSelect, onBack, theme, utilities }
               Not sure who to talk to?
             </span>
             <span className="block text-[13px] leading-relaxed mt-0.5" style={{ fontFamily: PRINT_SERIF, color: defaultTheme.textDim }}>
-              Answer three quick questions and we'll point you to the right companion.
+              Answer four quick questions and we'll point you to the right companion.
             </span>
           </span>
           <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: defaultTheme.accent }} strokeWidth={2.5} aria-hidden="true" />
