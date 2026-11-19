@@ -5,8 +5,6 @@ import {
   DEFAULT_EVENING_TIME,
   getPushState,
   loadPushReminder,
-  loadTailorReadyPing,
-  saveTailorReadyPing,
   sendTestPoke,
   subscribeToPush,
   syncParishReminders,
@@ -57,7 +55,6 @@ export function ReminderForm({ t }: ReminderFormProps) {
   const [savedDriveTime, setSavedDriveTime] = useState(initialParish.driveTime);
   const [draftDriveEnabled, setDraftDriveEnabled] = useState(initialParish.driveTime !== null);
   const [draftDriveTime, setDraftDriveTime] = useState(initialParish.driveTime ?? DEFAULT_DRIVE_TIME);
-  const [tailorReady, setTailorReady] = useState(() => loadTailorReadyPing());
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -83,7 +80,6 @@ export function ReminderForm({ t }: ReminderFormProps) {
     setSavedDriveTime(parish.driveTime);
     setDraftDriveEnabled(parish.driveTime !== null);
     setDraftDriveTime(parish.driveTime ?? DEFAULT_DRIVE_TIME);
-    setTailorReady(loadTailorReadyPing());
     setPushState(getPushState());
   };
 
@@ -253,30 +249,6 @@ export function ReminderForm({ t }: ReminderFormProps) {
     </div>
   );
 
-  /**
-   * The tailor-ready opt-in (Nov 18, 2026): one poke when a Tailor
-   * build's audio finishes rendering after he has put the phone down.
-   * A local choice — it saves the moment it is tapped.
-   */
-  const tailorReadySection = (
-    <label className="flex items-center gap-2 cursor-pointer">
-      <input
-        type="checkbox"
-        checked={tailorReady}
-        onChange={(e) => {
-          setTailorReady(e.target.checked);
-          saveTailorReadyPing(e.target.checked);
-        }}
-        disabled={busy}
-        className="w-4 h-4 flex-shrink-0"
-        style={{ accentColor: t.accent }}
-      />
-      <span className="text-[13px] font-bold" style={{ color: t.text }}>
-        Tell me when my tailored audio is ready
-      </span>
-    </label>
-  );
-
   const privacyNote = (
     <div
       className="flex items-start gap-2 mt-3 rounded-lg border px-3 py-2.5"
@@ -362,8 +334,6 @@ export function ReminderForm({ t }: ReminderFormProps) {
         {eveningSection}
 
         {driveSection}
-
-        {tailorReadySection}
 
         {(draftTime !== saved.localTime || draftEvening !== saved.eveningTime || draftDrive !== savedDriveTime) && (
           <button

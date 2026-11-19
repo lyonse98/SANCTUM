@@ -51,7 +51,7 @@ import {
   type TailoredDevotional,
 } from '@/lib/tailor';
 import { shareEntryFromDevotional, writeTailorShare } from '@/lib/tailorShare';
-import { requestTailorReadyPing } from '@/lib/push';
+import { loadTailorReadyPing, requestTailorReadyPing, saveTailorReadyPing } from '@/lib/push';
 import {
   EMPTY_TAILOR_PROFILE,
   SEASONS_OF_LIFE,
@@ -580,6 +580,11 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
   const [audioPreparing, setAudioPreparing] = useState(false);
   const [audioProgress, setAudioProgress] = useState<{ done: number; total: number } | null>(null);
   const [audioFailed, setAudioFailed] = useState(false);
+  // The tailor-ready opt-in (Nov 18, 2026), at home here since Nov 19,
+  // 2026 (Erik): its one home is this section, beside the narration it
+  // concerns — the same store, the same off-by-default, saved the
+  // moment it is tapped. The ping's decision stays the push helper's.
+  const [tailorReadyPing, setTailorReadyPing] = useState(() => loadTailorReadyPing());
   const audioAttemptedFor = useRef<TailoredDevotional | null>(null);
   useEffect(() => {
     if (!devotional || devotional.audioBase64 || !devotional.audioPlan) return;
@@ -1039,6 +1044,30 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, profileOp
               <RotateCcw className="w-4 h-4" />
             </button>
           </div>
+          )}
+
+          {/* The tailor-ready opt-in, standing with the narration
+              (Erik, Nov 19, 2026): shown while the narration prepares
+              and once the player stands — the two moments a man might
+              put the phone down and want the one poke when it lands.
+              It left the reminder form the same day; this is its only
+              home now. */}
+          {(devotional.audioBase64 || devotional.audioPlan) && (
+            <label className="flex items-center gap-2 cursor-pointer mb-3">
+              <input
+                type="checkbox"
+                checked={tailorReadyPing}
+                onChange={(e) => {
+                  setTailorReadyPing(e.target.checked);
+                  saveTailorReadyPing(e.target.checked);
+                }}
+                className="w-4 h-4 flex-shrink-0"
+                style={{ accentColor: t.accent }}
+              />
+              <span className="text-[12px]" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+                Tell me when my tailored audio is ready
+              </span>
+            </label>
           )}
 
           {/* The package, set as a page in Today's language (Stage 2):

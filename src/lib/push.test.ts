@@ -667,10 +667,17 @@ describe('the tailor-ready ping (Nov 18, 2026)', () => {
     expect(branch).not.toContain('INSERT');
   });
 
-  it('the form offers the opt-in beside the other reminder choices', () => {
+  it('the opt-in stands in the Tailor section, beside the narration — no longer in the form', () => {
+    // Moved (Erik, Nov 19, 2026): the toggle's one home is the Tailor
+    // section, where the narration prepares and plays; the reminder
+    // form no longer carries it. Same store, same default.
     const form = readFileSync(join(repoRoot, 'src/components/ReminderForm.tsx'), 'utf8');
-    expect(form).toContain('Tell me when my tailored audio is ready');
-    expect(form).toContain('saveTailorReadyPing');
+    expect(form).not.toContain('Tell me when my tailored audio is ready');
+    expect(form).not.toContain('saveTailorReadyPing');
+    const tailor = readFileSync(join(repoRoot, 'src/components/TailorToday.tsx'), 'utf8');
+    expect(tailor).toContain('Tell me when my tailored audio is ready');
+    expect(tailor).toContain('saveTailorReadyPing');
+    expect(tailor).toContain('loadTailorReadyPing');
   });
 
   it('the form offers the drive-home slot with its own copy', () => {
