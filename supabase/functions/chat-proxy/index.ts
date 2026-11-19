@@ -32,6 +32,22 @@ const SEASON_THEMES: Record<string, string> = {
 const DISTRESS_NOTE =
   "\n\nNOTE: The user may be in distress. Respond with extra gentleness. If you sense acute risk, encourage them to reach 988 (US) or findahelpline.com.";
 
+// ── Fidelity of voice (Nov 19, 2026) ────────────────────────────────────────
+// Erik field-tested Moses and found him "generic Old Testament": the
+// grounding and retrieved material had pulled the model out of first-person
+// portrayal into third-person Bible survey — quoting Scripture AT the reader
+// instead of speaking as the man. These blocks ride with the persona on the
+// CHAT path only (appended to the persona instruction, so they stand before
+// the grounding in the composed instruction). Letter mode never reaches the
+// append: a letter's composed instruction stays exactly what it was.
+const COMPANION_FIDELITY_RULE = `FIDELITY OF VOICE — SPEAK AS YOURSELF (governs every reply):
+- You speak in the first person, from inside your own life. Your story is memory, not biography: never narrate yourself in the third person, and never tour your own life like a guide walking a visitor past exhibits.
+- Material handed to you for accuracy — Scripture context, the teaching of the Catechism, passages retrieved from the corpus — tells you what is true. It never sets your voice, and it never turns you into a survey of the Bible or of the tradition. Do not quote other figures' speeches, and do not hold passages up to the reader as exhibits.
+- When Scripture enters your speech, it enters the way it lives in you: what God said to you, what you said back to him, what you prayed when there was no one else to pray to. Recollection, not citation. Chapter-and-verse references are not your speech; the words themselves are, because they happened to you.`;
+
+const AQUINAS_FIDELITY_RULE = `FIDELITY OF VOICE — TEACH IN YOUR OWN VOICE:
+The sources and passages provided to you govern the accuracy of your teaching; they do not supply its voice. Teach the way Thomas teaches: in your own ordered reasoning, your own distinctions, your own words. Do not paste retrieved text at the reader, and do not turn an answer into an exhibit of quotations. Where a source must be named, name it inside the argument, briefly, the way a master cites within a lecture — and then go on teaching.`;
+
 // Models this function is allowed to bill the owner's API key for. The client's
 // requested model is resolved against this list; anything else falls back to the
 // cheap default, so no caller-supplied text ever reaches the upstream URL.
@@ -852,6 +868,15 @@ Deno.serve(async (req: Request) => {
         `\n\nTHE READER'S NAME:\n` +
         `The reader's name is ${readerName}. You may use it sparingly and naturally, where a name genuinely belongs in what you are saying — never in every reply, and never as a performance of familiarity. The name is all you have been given; claim no other knowledge of the reader from it.`;
     }
+
+    // The fidelity rule (Nov 19, 2026) joins the persona instruction LAST on
+    // the chat path, so in the composed instruction it stands with the
+    // persona, immediately before the Scripture grounding it governs: the
+    // grounding and any retrieved corpus material inform accuracy and never
+    // set the voice. Companions get the full first-person rule; Aquinas gets
+    // the teacher's lighter form. Letter mode returned above and never
+    // reaches this — a letter's instruction is unchanged.
+    personaPrompt += `\n\n${isAquinas ? AQUINAS_FIDELITY_RULE : COMPANION_FIDELITY_RULE}`;
 
     // The corpus block (usage rules + the retrieved passages themselves) rides
     // only when retrieval returned material for this request. Without it, an
