@@ -100,29 +100,39 @@ describe('challengesLived — the journal of challenges taken up', () => {
   });
 });
 
-describe('challenges lived — the surfaces carry the testimony affordance', () => {
+describe('challenges lived — the surface carries the testimony affordance', () => {
+  // The affordance's home moved (Erik, Nov 19, 2026): the marks
+  // stood under the morning's challenges when this suite was
+  // written; they live in Tonight now, at the day's close, gated
+  // on the morning having been prayed with the app. The journal
+  // behavior pinned above is untouched — only the marking's home.
   const SRC = join(__dirname, '..');
   const read = (rel: string) => readFileSync(join(SRC, rel), 'utf8');
 
-  it('DailyQuote renders "I did this" and counts the day as a challenge act', () => {
-    const card = read('components/DailyQuote.tsx');
-    expect(card).toContain('I did this');
-    expect(card).toContain('This one was lived.');
-    expect(card).toContain("recordCoreAct('challenge')");
-    expect(card).toContain('markChallengeLived');
-    expect(card).toContain('unmarkChallengeLived');
-    expect(card).toContain("isChallengeLived(localDateKey, 'daily')");
-    expect(card).toContain("source: 'daily'");
+  it('Tonight renders "I did this" for the day\u2019s challenge and counts the day as a challenge act', () => {
+    const tonight = read('components/TonightClosing.tsx');
+    expect(tonight).toContain('I did this');
+    expect(tonight).toContain('This one was lived.');
+    expect(tonight).toContain("recordCoreAct('challenge')");
+    expect(tonight).toContain('markChallengeLived');
+    expect(tonight).toContain('unmarkChallengeLived');
+    expect(tonight).toContain("isChallengeLived(dateKey, 'daily')");
+    expect(tonight).toContain("source: 'daily'");
   });
 
-  it('TailorToday renders the same affordance for its built devotional, as source tailor', () => {
+  it('Tonight renders the same affordance for the tailored challenge, as source tailor', () => {
+    const tonight = read('components/TonightClosing.tsx');
+    expect(tonight).toContain("isChallengeLived(dateKey, 'tailor')");
+    expect(tonight).toContain("source: 'tailor'");
+    expect(tonight).toContain('loadTodaysTailored');
+  });
+
+  it('the morning surfaces no longer carry the mark', () => {
+    const card = read('components/DailyQuote.tsx');
     const tailor = read('components/TailorToday.tsx');
-    expect(tailor).toContain('I did this');
-    expect(tailor).toContain('This one was lived.');
-    expect(tailor).toContain("recordCoreAct('challenge')");
-    expect(tailor).toContain('markChallengeLived');
-    expect(tailor).toContain('unmarkChallengeLived');
-    expect(tailor).toContain("isChallengeLived(dateKey, 'tailor')");
-    expect(tailor).toContain("source: 'tailor'");
+    expect(card).not.toContain('I did this');
+    expect(tailor).not.toContain('I did this');
+    expect(card).not.toContain('markChallengeLived');
+    expect(tailor).not.toContain('markChallengeLived');
   });
 });
