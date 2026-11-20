@@ -83,6 +83,10 @@ const LITERAL_ALLOWLIST: Record<string, { literals: string[]; why: string }> = {
     literals: ['#991B1B'],
     why: 'semantic error red on the form’s failure notice',
   },
+  'components/AccessRequestPage.tsx': {
+    literals: ['#991B1B'],
+    why: 'semantic error red on the request form’s quiet inline notices (Nov 20, 2026) — the same house error red as the feedback form it rides',
+  },
   'components/ReminderForm.tsx': {
     literals: ['#991B1B'],
     why: 'semantic error red on the form’s failure notice',
