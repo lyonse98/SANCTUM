@@ -254,11 +254,13 @@ describe('the store — one row per person, replaced whole, aged out at 90 days'
 });
 
 describe('the copy — the promise names the tally wherever it stands', () => {
-  // The list is six long since Nov 20, 2026 — the access request (a
+  // The list is seven long since Nov 20, 2026 — the access request (a
   // name and a contact, from the request page) joined it as its own
-  // item. The tally still rides inside the analytics item, unchanged.
+  // item, and the testing-season access key (a name and a hashed key)
+  // as another. The tally still rides inside the analytics item,
+  // unchanged.
   it('the Terms server list names the counted boxes, inside the analytics item', () => {
-    expect(PRIVACY_SERVER_LIST).toHaveLength(6);
+    expect(PRIVACY_SERVER_LIST).toHaveLength(7);
     const row = PRIVACY_SERVER_LIST.find((item) => item.includes('usage events'));
     expect(row).toContain('a count of the boxes checked in it');
     expect(row).toContain('never as your words');

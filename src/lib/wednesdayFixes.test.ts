@@ -83,10 +83,15 @@ describe('W-4 — the privacy copy is plain, and literally true', () => {
 
   // Six since Nov 20, 2026: the access-request page keeps a name and a
   // contact on a server — a sixth kind of thing, named in its own item
-  // rather than stretched into the feedback clause.
-  it('the server list is six things — and all of them are whole', () => {
-    expect(PRIVACY_SERVER_INTRO).toBe('Six things can be held on a server, and nothing else:');
-    expect(PRIVACY_SERVER_LIST).toHaveLength(6);
+  // rather than stretched into the feedback clause. Seven since later
+  // the same day: the testing-season access key holds a name and a
+  // hashed form of the key on a server — an access-control record,
+  // named in its own item for the same reason, never stretched into
+  // the access-request item (which is answered and done; the key is
+  // checked at the doors for as long as it stands).
+  it('the server list is seven things — and all of them are whole', () => {
+    expect(PRIVACY_SERVER_INTRO).toBe('Seven things can be held on a server, and nothing else:');
+    expect(PRIVACY_SERVER_LIST).toHaveLength(7);
     const pushRow = PRIVACY_SERVER_LIST.find((item) => item.includes('notification subscription'));
     expect(pushRow).toContain('encryption keys');
     expect(pushRow).toContain('the track you chose');

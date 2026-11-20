@@ -144,6 +144,10 @@ describe('letters — chat days, store, eligibility', () => {
       audience: 'men',
       gospelCitation: 'Matthew 5:1-12',
       keyVerse: 'Blessed are the poor in spirit, for theirs is the kingdom of heaven.',
+      // accessToken (Nov 20, 2026) is an ENVELOPE credential, not a
+      // packet field: the gate checks it and nothing is composed from
+      // it. It rides as null here — this device was never given one.
+      accessToken: null,
     });
   });
 
@@ -166,9 +170,15 @@ describe('letters — chat days, store, eligibility', () => {
     expect(body.tailorState).toBe('anxious');
     expect(body.tailorFocus).toBe('family');
     expect(body.tailorTone).toBe('comfort');
-    // The allowlist is the whole payload: the four envelope keys plus the
-    // packet fields, and nothing else can ride.
+    // The allowlist is the whole payload: the envelope keys plus the
+    // packet fields, and nothing else can ride. The packet itself —
+    // the fields a letter may be composed from — is unchanged: the
+    // accessToken key below is the envelope's door key (Nov 20, 2026),
+    // checked at the function's gate and never handed to composition;
+    // letterPersonalization.test.ts pins that separation on the
+    // function side, where the packet reader still reads nine fields.
     expect(Object.keys(body).sort()).toEqual([
+      'accessToken',
       'audience',
       'gospelCitation',
       'issue',
@@ -194,7 +204,10 @@ describe('letters — chat days, store, eligibility', () => {
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
     // The star rides as its resolved phrasing — never the raw id.
     expect(body.northStar).toBe('"Be still, and know that I am God." — Psalm 46:10');
+    // accessToken rides as the envelope's door key (Nov 20, 2026) —
+    // outside the packet allowlist, as in the thread case above.
     expect(Object.keys(body).sort()).toEqual([
+      'accessToken',
       'audience',
       'gospelCitation',
       'keyVerse',

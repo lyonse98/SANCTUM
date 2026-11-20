@@ -34,7 +34,7 @@ describe('confession privacy — llm.ts never sends confession state', () => {
     expect(llm.toLowerCase()).not.toContain('confession');
   });
 
-  it('builds its chat-proxy payload with exactly the seven allowed fields', () => {
+  it('builds its chat-proxy payload with exactly the eight allowed fields', () => {
     const match = llm.match(/JSON\.stringify\(\{([\s\S]*?)\}\)/);
     expect(match, 'llm.ts should build the chat-proxy body with JSON.stringify').not.toBeNull();
     const block = match![1]
@@ -46,7 +46,22 @@ describe('confession privacy — llm.ts never sends confession state', () => {
     // anything about confession, and never conversation content. name
     // joined it the same day: the name the reader gave in Settings, kept
     // in its own store, riding as the name itself and nothing more.
-    expect([...fields].sort()).toEqual(['audience', 'distress', 'messages', 'name', 'northStar', 'personaId', 'season']);
+    // accessToken joined Nov 20, 2026, on a different footing from both:
+    // it is not profile data and nothing is composed from it — it is the
+    // device's door key for the testing season, which the function
+    // checks at the gate and discards. It carries no confession state,
+    // no profile field, and no conversation content, so the privacy
+    // invariant this file guards is untouched by its riding.
+    expect([...fields].sort()).toEqual([
+      'accessToken',
+      'audience',
+      'distress',
+      'messages',
+      'name',
+      'northStar',
+      'personaId',
+      'season',
+    ]);
   });
 
   it('the one profile field llm.ts reads is the North Star — nothing else from the store', () => {

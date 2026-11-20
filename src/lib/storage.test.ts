@@ -72,6 +72,7 @@ const KNOWN_KEYS = [
   'sanctum_tailor_ready_ping',
   'sanctum_profile_tally_token',
   'sanctum_profile_tally_sent',
+  'sanctum_access_token',
 ];
 
 beforeEach(() => {
