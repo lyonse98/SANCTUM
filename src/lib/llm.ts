@@ -2,6 +2,8 @@ import type { Audience, Message } from '@/types';
 import { loadAudience } from '@/lib/audience';
 import { loadTailorProfile, northStarLabel } from '@/lib/tailorProfile';
 import { loadReaderName } from '@/lib/readerName';
+import { ACCESS_BLOCKED_MESSAGE, isAccessRequired, loadAccessToken } from '@/lib/accessToken';
+import { ACCESS_URL } from '@/lib/accessRequest';
 import { SourcesTrailerParser, type ChatSource } from '@/lib/chatSources';
 
 interface StreamCallbacks {
@@ -107,6 +109,12 @@ export async function streamChat(
         audience,
         northStar,
         name,
+        // The access token (Nov 20, 2026): the credential this device
+        // holds for the testing season, read from its own store by the
+        // one helper that reads it. It is a door key, not a profile
+        // field — the function checks it and nothing is composed from
+        // it. Null when the device was never given one.
+        accessToken: loadAccessToken(),
       }),
       signal,
     });
@@ -114,6 +122,14 @@ export async function streamChat(
     if (!res.ok) {
       console.error(`chat-proxy request failed with status ${res.status}`);
       recordTiming();
+      // The access refusal is the one 403 that is not an expired
+      // session: the testing-season gate. It is answered with the calm
+      // line and the request page's address, carried as text.
+      const errorBody: unknown = await res.json().catch(() => null);
+      if (isAccessRequired(res.status, errorBody)) {
+        callbacks.onError(`${ACCESS_BLOCKED_MESSAGE} You can request access at ${ACCESS_URL}.`);
+        return;
+      }
       callbacks.onError(friendlyError(res.status));
       return;
     }

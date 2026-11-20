@@ -11,6 +11,7 @@ import {
 } from '@/data/tailorBank';
 import { profileSignature, type TailorRequestProfile } from '@/lib/tailorProfile';
 import { appendLetterThread } from '@/lib/letterThreads';
+import { isAccessRequired, loadAccessToken } from '@/lib/accessToken';
 
 /**
  * Tailor Today, client side (Nov 12, 2026). Up to three builds per user per
@@ -493,13 +494,21 @@ async function callTailorFunction(
       // The standing profile rides transiently, exactly like the morning's own
       // words: the function phrases from it and stores nothing (privacy pins).
       profile: intake.profile ?? null,
+      // The access token (Nov 20, 2026): the device's door key for the
+      // testing season, checked by the function before anything is
+      // built. Null when the device was never given one.
+      accessToken: loadAccessToken(),
     }),
     // A live build (search + composition + a full render) may take a minute
     // or two; the timeout is generous on purpose, and the card's failure
     // state is calm either way.
     signal: AbortSignal.timeout(300000),
   });
-  if (!res.ok) throw new Error(`tailor-http-${res.status}`);
+  if (!res.ok) {
+    const errorBody: unknown = await res.json().catch(() => null);
+    if (isAccessRequired(res.status, errorBody)) throw new TailorAccessRequiredError();
+    throw new Error(`tailor-http-${res.status}`);
+  }
   const parsed = parseTailorResponse(await res.json());
   if (!parsed) throw new Error('tailor-unusable');
   return parsed;
@@ -518,6 +527,22 @@ export class TailorDailyLimitError extends Error {
   constructor() {
     super('tailor-daily-limit');
     this.name = 'TailorDailyLimitError';
+  }
+}
+
+/**
+ * The testing-season gate's refusal (Nov 20, 2026): the function
+ * answered 403 access_required — this device holds no active token.
+ * The class is what the panels catch to show the calm line instead of
+ * a failure, exactly as the daily limit shows its note instead of an
+ * error face. Shared with the PM close (tailorPm.ts), whose door is
+ * the same function's.
+ */
+export class TailorAccessRequiredError extends Error {
+  readonly code = 'tailor-access-required';
+  constructor() {
+    super('tailor-access-required');
+    this.name = 'TailorAccessRequiredError';
   }
 }
 
@@ -675,6 +700,10 @@ async function callTailorPiece(
       },
       body: JSON.stringify({
         piece: { date: dateKey, audience, index: entry.index, text: entry.text, token: entry.token },
+        // The access token rides beside the piece (Nov 20, 2026): the
+        // function's gate stands ahead of the piece branch, in addition
+        // to the plan token inside it — a piece fetch must pass both.
+        accessToken: loadAccessToken(),
       }),
       // One narration piece is seconds of work on the far side; the margin
       // is for a cold start, not for a render that will never finish.

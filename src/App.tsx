@@ -30,6 +30,7 @@ import { ComeHomePage } from '@/components/ComeHomePage';
 import { isComeHomeArrival } from '@/lib/comeHome';
 import { AccessRequestPage } from '@/components/AccessRequestPage';
 import { isAccessArrival } from '@/lib/accessRequest';
+import { captureAccessTokenFromLocation } from '@/lib/accessToken';
 import { TermsModal, hasAcceptedTerms } from '@/components/TermsModal';
 import { TermsPage } from '@/components/TermsPage';
 import { CrisisModal } from '@/components/CrisisCard';
@@ -612,6 +613,18 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   // holds what the man chose to be reminded about, then clean the URL so a refresh
   // does not walk him there again. The Gospel case keeps the #daily-gospel fragment,
   // which the Today screen itself honours by scrolling the readings into view.
+  // The access token's arrival (Nov 20, 2026): a personal link carries
+  // ?k=<token>. The token is kept on this device and taken out of the
+  // address bar at once, so it does not linger in screenshots or ride
+  // along when the page is shared onward. This runs BEFORE the focus
+  // effect below — which rewrites the URL for its own landing — so the
+  // token is captured whatever else the link carried, and ahead of the
+  // come-home and access surfaces too: a token is kept even when the
+  // visit itself enters by one of those doors.
+  useEffect(() => {
+    captureAccessTokenFromLocation();
+  }, []);
+
   useEffect(() => {
     const focus = parseFocusParam(window.location.search);
     if (!focus) return;

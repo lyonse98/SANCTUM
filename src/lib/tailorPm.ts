@@ -1,5 +1,6 @@
 import type { Audience } from '@/types';
-import { tailorEndpoint, type TailorMorningRecord } from '@/lib/tailor';
+import { tailorEndpoint, TailorAccessRequiredError, type TailorMorningRecord } from '@/lib/tailor';
+import { isAccessRequired, loadAccessToken } from '@/lib/accessToken';
 
 /**
  * Close the day — the Tailor PM twin, client side (Nov 14, 2026).
@@ -133,11 +134,19 @@ export async function buildCloseOfDay(
         freeText: morning.freeText,
       },
       eveningState,
+      // The access token (Nov 20, 2026): the close spends through the
+      // same gated function as the morning build, so the same door key
+      // rides. Null when the device was never given one.
+      accessToken: loadAccessToken(),
     }),
     // One short generation — nothing like the morning build's minute.
     signal: AbortSignal.timeout(120000),
   });
-  if (!res.ok) throw new Error(`tailor-pm-http-${res.status}`);
+  if (!res.ok) {
+    const errorBody: unknown = await res.json().catch(() => null);
+    if (isAccessRequired(res.status, errorBody)) throw new TailorAccessRequiredError();
+    throw new Error(`tailor-pm-http-${res.status}`);
+  }
   const body = (await res.json()) as Record<string, unknown>;
   const evening = parsePmPackage(body.evening);
   if (body.ok !== true || !evening) throw new Error('tailor-pm-unusable');

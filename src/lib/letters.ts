@@ -6,6 +6,7 @@ import { pickKeyVerse } from './keyVerse';
 import { latestLetterThread } from './letterThreads';
 import { loadTailorProfile, northStarLabel } from './tailorProfile';
 import { loadReaderName } from './readerName';
+import { loadAccessToken } from './accessToken';
 import { getCurrentSeason } from '@/data/liturgicalCalendar';
 import type { Audience } from '@/types';
 
@@ -265,6 +266,11 @@ export async function fetchCompanionLetter(
           season: getCurrentSeason(contentDate()).name,
           audience,
           ...packet,
+          // The access token (Nov 20, 2026) rides OUTSIDE the packet:
+          // the packet is the nine allowlisted personalization fields
+          // and nothing else, ever — the token is a door key the
+          // function checks, not a field a letter is composed from.
+          accessToken: loadAccessToken(),
         }),
         signal: controller.signal,
       });
