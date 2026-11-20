@@ -3,7 +3,16 @@
 // function, so even a hand-crafted request cannot store unapproved event names or
 // free-text properties. No message text, no PII, no typed input is ever accepted.
 //
+// A second mode rides the same door: the counts-only profile tally
+// (see tally.ts). A body carrying `tally` is validated field by field
+// against the Tailor profile's own vocabularies and upserted — one row
+// per hashed token — into `profile_tallies` through the service role.
+// Ids only: no free text exists in the payload's shape, so none can be
+// stored by any caller, crafted or not.
+//
 // verify_jwt is false: no-auth app. The event is metadata only and rate-limited per IP.
+
+import { hashTallyToken, validateTallyPayload } from "./tally.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,7 +69,50 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ ok: false }), { status: 429, headers: jsonHeaders });
     }
 
-    const payload = await req.json() as { session?: unknown; name?: unknown; property?: unknown };
+    const body = await req.json() as Record<string, unknown>;
+
+    // ── Tally mode: a body carrying `tally` is a profile snapshot, not
+    // an event. Validate whole-or-nothing, hash the token, and upsert
+    // the one row that token owns — a new snapshot replaces the old, so
+    // the counts in profile_tally_counts are people, not submissions.
+    if (body && typeof body === "object" && "tally" in body) {
+      const tally = validateTallyPayload(body.tally);
+      if (!tally) {
+        return new Response(JSON.stringify({ ok: false }), { status: 400, headers: jsonHeaders });
+      }
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!supabaseUrl || !serviceKey) {
+        return new Response(JSON.stringify({ ok: false }), { status: 500, headers: jsonHeaders });
+      }
+      const tokenHash = await hashTallyToken(tally.tallyToken);
+      const res = await fetch(`${supabaseUrl}/rest/v1/profile_tallies?on_conflict=token_hash`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Prefer: "resolution=merge-duplicates,return=minimal",
+        },
+        body: JSON.stringify({
+          token_hash: tokenHash,
+          audience: tally.audience,
+          voices: tally.voices,
+          season_of_life: tally.seasonOfLife,
+          ongoing_battles: tally.ongoingBattles,
+          north_star: tally.northStar,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) {
+        // Best-effort, like the event path: a failed tally write is
+        // swallowed so the user never sees an analytics error.
+        return new Response(JSON.stringify({ ok: false }), { status: 200, headers: jsonHeaders });
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: jsonHeaders });
+    }
+
+    const payload = body as { session?: unknown; name?: unknown; property?: unknown };
     const session = typeof payload.session === "string" ? payload.session.trim() : "";
     const name = typeof payload.name === "string" ? payload.name.trim() : "";
     const property = typeof payload.property === "string" ? payload.property.trim() : "";
