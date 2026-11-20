@@ -1,4 +1,4 @@
-import { Church, ShieldCheck, HeartHandshake, Users, BookOpen, Lock, Zap } from 'lucide-react';
+import { Church, ShieldCheck, HeartHandshake, Users, BookOpen, Lock, Zap, Download } from 'lucide-react';
 import type { Audience, PersonaTheme } from '@/types';
 import { MISSION_LINE, MISSION_ATTRIBUTION, MISSION_SENTENCE } from '@/lib/mission';
 import { NARRATOR_DISCLOSURE_LINE, NARRATOR_DISCLOSURE_LINE_WOMEN } from '@/lib/privacyCopy';
@@ -202,6 +202,26 @@ export function AboutSanctumPage({ t, accent, audience, onClose }: AboutSanctumP
             to real help when {w ? 'she' : 'he'} needs more than a conversation. If you would like to see exactly what a
             companion is and is not allowed to say, the boundaries are the same ones written on this page.
           </p>
+          {/* The gatekeeper packet (Nov 20, 2026): the same boundaries and the
+              shape of a free parish pilot, set as two printed pages a priest
+              can be handed. Same text on both tracks — it is addressed to the
+              parish, not to the reader's track. */}
+          <a
+            href="/gatekeeper-packet.pdf"
+            download
+            className="mt-4 flex items-center gap-2.5 border px-3.5 py-3 transition-opacity hover:opacity-80 active:opacity-60"
+            style={{ backgroundColor: `${a}1A`, borderColor: `${a}3D` }}
+          >
+            <Download className="w-4 h-4 flex-shrink-0" style={{ color: a }} />
+            <span className="min-w-0">
+              <span className={`${PRINT_STAMP_CLASS} block`} style={{ fontFamily: PRINT_SERIF, color: t.textBright }}>
+                For parish leaders — the gatekeeper packet
+              </span>
+              <span className="block text-xs leading-relaxed mt-0.5" style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}>
+                Two pages, as a PDF: what Sanctum is, and what a free pilot asks of a parish — nothing.
+              </span>
+            </span>
+          </a>
         </div>
 
         {/* The voices the listener hears — named as what they are, beside the companion copy. */}
