@@ -120,6 +120,7 @@ import {
   stretchPcm,
 } from "./audioEngine.ts";
 import { tailorAccess } from "./tailorAccess.ts";
+import { ACCESS_REQUIRED_ERROR, checkAccessToken } from "./accessGate.ts";
 import {
   buildCorpusQuoteQuery,
   buildResponseBody,
@@ -1146,6 +1147,18 @@ Deno.serve(async (req: Request) => {
     payload = (await req.json()) as Record<string, unknown>;
   } catch {
     return jsonResponse({ ok: false, error: "Invalid request body." }, 400);
+  }
+
+  // The access gate (Nov 20, 2026): gate the spend, not the page. Every
+  // mode of this function bills the owner's key on the caller's behalf,
+  // so a personal access token is checked FIRST — before the piece,
+  // PM, and build branches, before any quota is consumed, before any
+  // model work. It stands IN ADDITION TO the piece mode's own HMAC
+  // token checks, never instead of them: a piece fetch must pass both.
+  // A caller without an active token is refused with the stable
+  // machine code and spends nothing.
+  if (!(await checkAccessToken(payload.accessToken))) {
+    return jsonResponse({ ok: false, error: ACCESS_REQUIRED_ERROR }, 403);
   }
 
   // The piece mode: a device fetching one signed plan piece. The token is

@@ -10,6 +10,7 @@ import {
   retrieveCorpus,
   type CorpusResult,
 } from "./corpus.ts";
+import { ACCESS_REQUIRED_ERROR, checkAccessToken } from "./accessGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -709,6 +710,16 @@ Deno.serve(async (req: Request) => {
       payload = await req.json();
     } catch {
       return errorResponse("Invalid request body.", 400);
+    }
+
+    // The access gate (Nov 20, 2026): gate the spend, not the page.
+    // This function bills the owner's key on the caller's behalf, so a
+    // personal access token is checked FIRST — before message
+    // validation, before quota is consumed, before any model work, and
+    // identically for chat and letter mode. A caller without an active
+    // token is refused with the stable machine code and spends nothing.
+    if (!(await checkAccessToken(payload.accessToken))) {
+      return errorResponse(ACCESS_REQUIRED_ERROR, 403);
     }
 
     // Letter mode carries no conversation: the caller supplies no text, so
