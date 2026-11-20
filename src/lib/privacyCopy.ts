@@ -20,11 +20,12 @@ export const PRIVACY_SERVER_LIST: string[] = [
   'Anonymous usage events \u2014 which screen, which tool, which companion \u2014 and, if you keep a Tailor profile, a count of the boxes checked in it: your season of life, your ongoing battles, your North Star, and the voices you named, held only as totals counted across all readers and never as your words \u2014 only if you turn analytics on in Settings. They never include message text, an email, or an identity, and analytics is off by default.',
   'A notification subscription, only if you turn on the daily reminder: an anonymous address for this device\u2019s notifications, the encryption keys that let this device receive them, the part of Sanctum you chose to be reminded about, the track you chose, the reminder time or times you chose, any parish reminder times you set (days and times only — never your parish\u2019s name), and your timezone. It carries no name and no identity, and it is used for that reminder and nothing else.',
   'A feedback note, only if you choose to send one, along with the name of the screen you sent it from \u2014 and an email address, only if you choose to add one so you can be answered.',
+  'An access request, only if you send one from the request page: the name you give and the way you asked to be reached, kept only so you can be answered. It is the one place a name is ever asked for, and it is asked only there.',
   'A tailored devotional, only if you ask Tailor Today to write one for your morning — or to close your day at night: the devotional text Sanctum generated — its reflection, challenge, passage, tradition quote, and media pick, or at night its night reflection, closing prayer, and carry line — kept unattributed, with none of your answers and nothing that identifies you, so its quality can be reviewed. It is deleted within 90 days.',
 ];
 
 export const PRIVACY_SERVER_INTRO =
-  'Five things can be held on a server, and nothing else:';
+  'Six things can be held on a server, and nothing else:';
 
 export const PRIVACY_THIRD_PARTY =
   'The daily readings and Scripture text are fetched from outside Catholic and Bible data services. Those services see the request the way any website visit is seen.';
