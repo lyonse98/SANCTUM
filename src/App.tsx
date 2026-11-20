@@ -28,6 +28,8 @@ function TabFallback() {
 import { WelcomeBackPrompt } from '@/components/WelcomeBackPrompt';
 import { ComeHomePage } from '@/components/ComeHomePage';
 import { isComeHomeArrival } from '@/lib/comeHome';
+import { AccessRequestPage } from '@/components/AccessRequestPage';
+import { isAccessArrival } from '@/lib/accessRequest';
 import { TermsModal, hasAcceptedTerms } from '@/components/TermsModal';
 import { TermsPage } from '@/components/TermsPage';
 import { CrisisModal } from '@/components/CrisisCard';
@@ -165,6 +167,12 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   // no track choice is asked at that door. Leaving it walks the ordinary
   // road in, through the gate like everyone else.
   const [comeHomeActive, setComeHomeActive] = useState(() => isComeHomeArrival(window.location.search));
+  // The access-request door (Erik, Nov 20, 2026): while the app is in a
+  // small testing season, the public link (the Instagram bio) arrives as
+  // ?access=1 and opens its own surface BEFORE the welcome gate — the
+  // link asks instead of admitting, and Erik sends the app link
+  // personally to the people he lets in. The app itself gains no gate.
+  const [accessActive] = useState(() => isAccessArrival(window.location.search));
   const [churchTab, setChurchTab] = useState<ChurchTab | null>(null);
   const [churchPray, setChurchPray] = useState<PraySection | null>(null);
   const [forceExamen, setForceExamen] = useState(false);
@@ -627,6 +635,10 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         }}
       />
     );
+  }
+
+  if (accessActive) {
+    return <AccessRequestPage t={seasonTheme} accent={seasonAccent} />;
   }
 
   if (!termsAccepted) {
