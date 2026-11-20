@@ -81,9 +81,12 @@ describe('W-4 — the privacy copy is plain, and literally true', () => {
     expect(PRIVACY_PARAGRAPH).not.toContain('AI provider');
   });
 
-  it('the server list is still five things — and now all of them are whole', () => {
-    expect(PRIVACY_SERVER_INTRO).toBe('Five things can be held on a server, and nothing else:');
-    expect(PRIVACY_SERVER_LIST).toHaveLength(5);
+  // Six since Nov 20, 2026: the access-request page keeps a name and a
+  // contact on a server — a sixth kind of thing, named in its own item
+  // rather than stretched into the feedback clause.
+  it('the server list is six things — and all of them are whole', () => {
+    expect(PRIVACY_SERVER_INTRO).toBe('Six things can be held on a server, and nothing else:');
+    expect(PRIVACY_SERVER_LIST).toHaveLength(6);
     const pushRow = PRIVACY_SERVER_LIST.find((item) => item.includes('notification subscription'));
     expect(pushRow).toContain('encryption keys');
     expect(pushRow).toContain('the track you chose');
