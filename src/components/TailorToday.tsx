@@ -35,11 +35,13 @@ import {
   type TailorTone,
 } from '@/data/tailorBank';
 import { tailorOffered } from '@/lib/tailorAccess';
+import { AccessBlockedNote } from '@/components/AccessBlockedNote';
 import { recordCoreAct } from '@/lib/daysPrayed';
 import { listenSpeedLabel, loadListenSpeed, nextListenSpeed, saveListenSpeed, type ListenSpeed } from '@/lib/listenSpeed';
 import {
   MEDIA_KIND_LABELS,
   TAILOR_DAILY_BUILD_LIMIT,
+  TailorAccessRequiredError,
   TailorDailyLimitError,
   fetchTailorAudio,
   getOrBuildTailored,
@@ -571,6 +573,10 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
   const [view, setView] = useState<'idle' | 'form' | 'building' | 'done' | 'error'>(startOpen ? 'form' : 'idle');
   const [devotional, setDevotional] = useState<TailoredDevotional | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The testing-season gate's answer (Nov 20, 2026): not a failure —
+  // this device holds no active token, so the panel shows the calm
+  // line with its request link where the error would have stood.
+  const [accessBlocked, setAccessBlocked] = useState(false);
 
   // The day's builds (Erik, Nov 19, 2026): the index the switcher
   // walks, and which of them stands open. The panel opens on the
@@ -867,6 +873,7 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
     };
     setView('building');
     setError(null);
+    setAccessBlocked(false);
     setLimitNote(false);
     try {
       const { devotional: built } = await getOrBuildTailored(dateKey, audience, intake);
@@ -885,6 +892,14 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
         setBuilds(readTailorBuilds(dateKey, audience));
         setLimitNote(true);
         setView(devotional ? 'done' : 'form');
+        return;
+      }
+      if (err instanceof TailorAccessRequiredError) {
+        // The gate's refusal (Nov 20, 2026): no error face either —
+        // the calm line stands where the error would have, with the
+        // request link, and the free devotional above is untouched.
+        setAccessBlocked(true);
+        setView('error');
         return;
       }
       // A calm line, here only — the free devotional above is never touched.
@@ -1017,6 +1032,10 @@ export function TailorToday({ t, audience, dateKey, startOpen = false, onReflect
               </div>
             )}
           </div>
+
+          {view === 'error' && accessBlocked && (
+            <AccessBlockedNote t={t} className="mb-3" />
+          )}
 
           {view === 'error' && error && (
             <p className="text-[13px] leading-relaxed mb-3" style={{ color: t.textMuted }}>{error}</p>

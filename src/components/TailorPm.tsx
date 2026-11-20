@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ChevronRight, Loader2, MoonStar } from 'lucide-react';
 import { PRINT_PLATE_CLASS, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
-import type { TailorMorningRecord } from '@/lib/tailor';
+import { TailorAccessRequiredError, type TailorMorningRecord } from '@/lib/tailor';
+import { AccessBlockedNote } from '@/components/AccessBlockedNote';
 import {
   EVENING_STATES,
   buildCloseOfDay,
@@ -42,6 +43,10 @@ export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
   );
   const [building, setBuilding] = useState<EveningState | null>(null);
   const [failed, setFailed] = useState(false);
+  // The testing-season gate's answer (Nov 20, 2026): not a failure —
+  // this device holds no active token, so the close shows the calm
+  // line with its request link where the failure would have stood.
+  const [accessBlocked, setAccessBlocked] = useState(false);
 
   // The Kept shelf's page for this day (incentives build, Nov 16, 2026):
   // a close already on the device — including one written before the
@@ -56,6 +61,7 @@ export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
     if (building || built) return;
     setBuilding(eveningState);
     setFailed(false);
+    setAccessBlocked(false);
     try {
       const evening = await buildCloseOfDay(dateKey, audience, morning, eveningState);
       setBuilt(evening);
@@ -63,8 +69,12 @@ export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
       recordCoreAct('tonight');
       // And the day is kept: its carry line becomes the day's page.
       recordKeptDay(dateKey, evening.carry);
-    } catch {
-      setFailed(true);
+    } catch (err) {
+      if (err instanceof TailorAccessRequiredError) {
+        setAccessBlocked(true);
+      } else {
+        setFailed(true);
+      }
     } finally {
       setBuilding(null);
     }
@@ -171,6 +181,7 @@ export function TailorPm({ t, audience, dateKey, morning }: TailorPmProps) {
               Writing tonight&rsquo;s close&hellip;
             </p>
           )}
+          {accessBlocked && <AccessBlockedNote t={t} className="mt-2.5" />}
           {failed && (
             <p
               className="text-[13px] italic mt-2.5"
