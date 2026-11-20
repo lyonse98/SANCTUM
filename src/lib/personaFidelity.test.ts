@@ -23,6 +23,14 @@ import { PERSONAS } from '../personas';
  *
  * Citation discipline: no added text may carry a Catechism paragraph number
  * (the project's standing hard rule against fabricated CCC numbers).
+ *
+ * REVISED Nov 20, 2026 — Erik's standard for quoting. The Nov 19 rule flatly
+ * banned quoting other figures; Erik ruled that companions MAY quote (Moses
+ * plausibly knows the patriarchs and their words) when it is NATURAL: clear
+ * why and how, in the figure's own voice. The offenses are anachronism
+ * (Moses quoting St. Paul; Joseph quoting Ecclesiastes — both seen in live
+ * probes) and exhibit-quoting (a verse held up as decoration). The pins below
+ * were changed to the revised rule for that reason.
  */
 
 const ROOT = join(__dirname, '..', '..');
@@ -64,8 +72,26 @@ describe('L1 — the shared fidelity rule (chat path only)', () => {
   it('accuracy material informs what is true and never sets the voice', () => {
     expect(rule).toContain('tells you what is true. It never sets your voice');
     expect(rule).toContain('never turns you into a survey of the Bible or of the tradition');
-    expect(rule).toContain("Do not quote other figures' speeches");
-    expect(rule).toContain('as exhibits');
+  });
+
+  // Nov 20 revision: the Nov 19 flat ban on quoting other figures was
+  // replaced, on Erik's ruling, by the naturalness standard — quoting is
+  // allowed within the figure's own world and lifetime, carried for a
+  // visible reason; anachronism and exhibit-quoting are the offenses.
+  it('quoting is allowed when natural — and anachronism is named as the offense', () => {
+    expect(rule).toContain('You may quote — quoting is not forbidden to you; unnatural quoting is');
+    expect(rule).toContain('your own recorded words, words that were spoken to you');
+    expect(rule).toContain('those who came before you or stood beside you in your own world');
+    expect(rule).toContain('Moses does not quote Paul');
+    expect(rule).toContain('the apostle does not quote the medieval Church');
+    expect(rule).toContain('What lies beyond your lifetime is beyond your mouth');
+  });
+
+  it('a quotation must be carried as testimony, its reason visible — never an exhibit', () => {
+    expect(rule).toContain('carry the words as memory or testimony');
+    expect(rule).toContain('why this word, for this person, now');
+    expect(rule).toContain('held up as a proof-text or as decoration is not testimony');
+    expect(rule).toContain('exhibits are not your speech');
   });
 
   it('Scripture enters as recollection, not citation', () => {
@@ -132,7 +158,19 @@ describe('L2 — Moses re-anchored', () => {
   it('the survey mode is banned outright, and HOW YOU TALK carries it too', () => {
     expect(anchor).toContain('Never tour the Old Testament for him');
     expect(anchor).toContain('never narrate Exodus at him in the third person');
-    expect(promptOf('moses')).toContain("Other men's words, however holy, are not your speech");
+    expect(promptOf('moses')).toContain('You quote God like a man who heard the voice');
+  });
+
+  // Nov 20 revision: the Nov 19 anchor closed with a flat ban ("If it did
+  // not happen to you... it is not yours to exhibit") and HOW YOU TALK said
+  // other men's words "are not your speech". Erik's ruling replaced both:
+  // the survey ban stands, but a word from those before Moses may be carried
+  // as something he received — and what came after him is out of reach.
+  it('a word from those before him may be carried as received — never what came after', () => {
+    expect(anchor).toContain("carried the way you carried Joseph's bones out of Egypt");
+    expect(anchor).toContain('as something entrusted to you');
+    expect(anchor).toContain('What came after you is not yours at all');
+    expect(promptOf('moses')).toContain('handed down to you before they were ever written down');
   });
 });
 
@@ -144,6 +182,16 @@ describe('L3 — the exposed figures, scene + tradition anchored', () => {
     expect(anchor).toContain('Never fill the quiet with narration');
     expect(anchor).toContain('rising in the night to take the child and his mother into Egypt');
     expect(anchor).toContain('the long hidden years of the bench and the shavings at Nazareth');
+  });
+
+  // Nov 20: made explicit after a live probe had Joseph quoting Ecclesiastes
+  // (Solomon's book, centuries after him) — later books are out of his
+  // mouth's reach; their truth he gives in his own words or not at all.
+  it('Joseph: the books that came after him are beyond his mouth’s reach', () => {
+    const anchor = anchorOf('joseph');
+    expect(anchor).toContain('the books that came after you');
+    expect(anchor).toContain("beyond your mouth's reach");
+    expect(anchor).toContain('give it in your own few words, or not at all');
   });
 
   it('Joseph: tradition is his biography — Patris Corde, Redemptoris Custos, patron of the Church', () => {
