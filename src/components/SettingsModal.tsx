@@ -4,6 +4,7 @@ import { useFeedback } from '@/components/FeedbackProvider';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '@/lib/analytics';
 import { PRIVACY_PARAGRAPH, analyticsCopy } from '@/lib/privacyCopy';
 import { eraseTailorProfile, hasTailorProfile } from '@/lib/tailorProfile';
+import { sendEmptyProfileTally } from '@/lib/profileTally';
 import { READING_SIZES, loadReadingSize, saveReadingSize, type ReadingSize } from '@/lib/readingSize';
 import { READER_NAME_MAX, loadReaderName, saveReaderName } from '@/lib/readerName';
 import { loadPatronSaint, patronFeastLabel, savePatronSaint } from '@/lib/patronSaint';
@@ -770,6 +771,9 @@ export function SettingsModal({ open, t, audience, onAudienceChange, onClose, on
         confirmLabel="Erase profile"
         onConfirm={() => {
           eraseTailorProfile(audience);
+          // One final empty tally snapshot, so the counts stop
+          // carrying a profile that no longer exists.
+          void sendEmptyProfileTally(audience);
           setTailorProfileExists(false);
           setEraseProfileConfirmOpen(false);
         }}

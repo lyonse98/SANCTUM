@@ -38,6 +38,7 @@ import type { ChurchTab, PraySection } from '@/components/PocketChurchPage';
 import { ReminderModal } from '@/components/ReminderModal';
 import { FOCUS_ROUTES, parseFocusParam } from '@/lib/pushCore';
 import { deactivatePushOnPanic, resyncPushTimezoneIfNeeded, syncParishReminders } from '@/lib/push';
+import { maybeSendDailyProfileTally } from '@/lib/profileTally';
 import { contentDate, contentDateKey } from '@/lib/dayBoundary';
 import { LeftForYou } from '@/components/LeftForYou';
 import { recordCompanionChatDay } from '@/lib/letters';
@@ -535,6 +536,14 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
   useEffect(() => {
     if (termsAccepted) trackNow('app_open', 'today');
   }, [termsAccepted]);
+
+  // The counts-only profile tally (Nov 20, 2026): once per content
+  // day, after the gate, refresh this track's snapshot — if counts are
+  // on and a profile with tallied picks stands. Ids only, silent,
+  // best-effort; the module owns the gates.
+  useEffect(() => {
+    if (termsAccepted) void maybeSendDailyProfileTally(audience);
+  }, [termsAccepted, audience]);
 
   // Timezone re-sync (Play 3): if this device travelled since the reminder
   // was set, quietly re-upsert the subscription in the device's current

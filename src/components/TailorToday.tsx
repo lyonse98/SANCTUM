@@ -73,6 +73,7 @@ import {
   voicesShownInPicker,
   type TailorProfile,
 } from '@/lib/tailorProfile';
+import { sendEmptyProfileTally, sendProfileTally } from '@/lib/profileTally';
 
 /**
  * What the Tailor panel hands the Gospel card when its reader wants
@@ -461,6 +462,10 @@ export function TailorProfileEditor({
         <button
           onClick={() => {
             saveTailorProfile(audience, draft);
+            // The counts-only tally follows the save (Nov 20, 2026):
+            // if the reader turned counts on, the new picks replace
+            // the snapshot the server holds. Ids only, fire-and-forget.
+            void sendProfileTally(audience, draft);
             onSaved(draft);
             setSavedNote(true);
             setConfirmingErase(false);
@@ -478,6 +483,9 @@ export function TailorProfileEditor({
                 return;
               }
               eraseTailorProfile(audience);
+              // One final empty tally snapshot, so the counts stop
+              // carrying a profile that no longer exists.
+              void sendEmptyProfileTally(audience);
               setDraft({ ...EMPTY_TAILOR_PROFILE });
               onSaved({ ...EMPTY_TAILOR_PROFILE });
               setConfirmingErase(false);

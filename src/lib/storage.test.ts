@@ -70,6 +70,8 @@ const KNOWN_KEYS = [
   'sanctum_come_home',
   'sanctum_parish_reminders',
   'sanctum_tailor_ready_ping',
+  'sanctum_profile_tally_token',
+  'sanctum_profile_tally_sent',
 ];
 
 beforeEach(() => {
