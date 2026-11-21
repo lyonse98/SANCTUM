@@ -116,7 +116,7 @@ export function MoreOfSanctum({ t, onNavigate, onBringSomeoneHome }: MoreOfSanct
               className="text-[12px] italic min-w-0 truncate"
               style={{ fontFamily: PRINT_SERIF, color: t.textDim }}
             >
-              For a friend who has been away
+              For a friend away
             </span>
             <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} strokeWidth={2.5} aria-hidden="true" />
           </button>
