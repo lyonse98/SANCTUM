@@ -139,23 +139,31 @@ export function ChatInput({ onSend, onStop, isStreaming, persona, remainingMessa
         )}
       </div>
 
-      <div className="flex justify-between items-center max-w-2xl mx-auto mt-1">
-        {/* Cap as rhythm (Play 9b, Nov 16, 2026): the count is stated in
-            the companions' keeping-hours frame, in the theme's quiet ink
-            at every value — no amber, no red, no escalation as it runs
-            down, and at zero the same line, not a wall. */}
-        {remainingMessages <= 5 && (
-          <span className="text-[12px] tabular-nums" style={{ color: t.textDim }}>
-            {capRemainingLine(remainingMessages)}
-          </span>
-        )}
-        <span
-          className="text-[12px] tabular-nums ml-auto"
-          style={{ color: overLimit ? '#B91C1C' : t.textDim }}
-        >
-          {charCount}/{MAX_CHARS}
-        </span>
-      </div>
+      {/* The meta row earns its place only when it says something
+          (Nov 20, 2026): the character count while you're actually
+          writing, the cap line when the keeping hours run low. An idle
+          "0/800" under an empty box is furniture, not information. */}
+      {(charCount > 0 || remainingMessages <= 5) && (
+        <div className="flex justify-between items-center max-w-2xl mx-auto mt-1">
+          {/* Cap as rhythm (Play 9b, Nov 16, 2026): the count is stated in
+              the companions' keeping-hours frame, in the theme's quiet ink
+              at every value — no amber, no red, no escalation as it runs
+              down, and at zero the same line, not a wall. */}
+          {remainingMessages <= 5 && (
+            <span className="text-[12px] tabular-nums" style={{ color: t.textDim }}>
+              {capRemainingLine(remainingMessages)}
+            </span>
+          )}
+          {charCount > 0 && (
+            <span
+              className="text-[12px] tabular-nums ml-auto"
+              style={{ color: overLimit ? '#B91C1C' : t.textDim }}
+            >
+              {charCount}/{MAX_CHARS}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

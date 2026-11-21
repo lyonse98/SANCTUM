@@ -1,11 +1,15 @@
 import {
   Eye,
   EyeOff,
+  MoreVertical,
   Trash2,
   Settings as SettingsIcon,
   ChevronDown,
   Shield,
   Home,
+  HeartHandshake,
+  MessageSquare,
+  Info,
 } from 'lucide-react';
 import { COMPANION_PORTRAYAL_SHORT } from '@/lib/privacyCopy';
 import { PRINT_SERIF } from '@/lib/print';
@@ -24,8 +28,19 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onPanic: () => void;
   onGoHome: () => void;
+  onFindHelp: () => void;
+  onFeedback: () => void;
+  onOpenAbout: () => void;
 }
 
+// The chat header, slimmed (Nov 20, 2026, Erik): the page is the
+// conversation. The bar carries only who you're speaking with (with the
+// switcher), the incognito state, and one "more actions" menu — every
+// other door (home, find help, clear, emergency disconnect, settings,
+// feedback, about) lives in that menu, named in words instead of five
+// cryptic icon buttons competing with the chat. The old persistent
+// disclaimer bar is gone: the portrayal tag rides the name line, and
+// the not-a-therapist + 988 line sits once, quietly, under the input.
 export function Header({
   persona,
   onSwitchPersona,
@@ -36,29 +51,64 @@ export function Header({
   onOpenSettings,
   onPanic,
   onGoHome,
+  onFindHelp,
+  onFeedback,
+  onOpenAbout,
 }: HeaderProps) {
   const t = persona.theme;
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!switcherOpen) return;
+    if (!switcherOpen && !menuOpen) return;
     const handler = (e: MouseEvent) => {
-      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
+      if (switcherOpen && switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
         setSwitcherOpen(false);
+      }
+      if (menuOpen && menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [switcherOpen]);
+  }, [switcherOpen, menuOpen]);
 
   const handlePick = (p: Persona) => {
     setSwitcherOpen(false);
     if (p.id !== persona.id) onSelectPersona(p);
   };
 
+  const menuItem = (
+    label: string,
+    Icon: typeof Home,
+    action: () => void,
+    ariaLabel?: string,
+  ) => (
+    <button
+      key={label}
+      onClick={() => {
+        setMenuOpen(false);
+        action();
+      }}
+      aria-label={ariaLabel ?? label}
+      className="w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left"
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = t.cardHover;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'transparent';
+      }}
+    >
+      <Icon className="w-4 h-4 flex-shrink-0" style={{ color: t.textMuted }} />
+      <span className="text-[13px] font-medium" style={{ color: t.text }}>
+        {label}
+      </span>
+    </button>
+  );
+
   return (
-    <>
     <header
       className="sticky top-0 z-30 backdrop-blur-md border-b"
       style={{ backgroundColor: `${t.bg}F2`, borderColor: `${t.border}99` }}
@@ -66,7 +116,10 @@ export function Header({
       <div className="flex items-center justify-between px-4 py-3 max-w-2xl mx-auto">
         <div className="relative flex items-center gap-3 group" ref={switcherRef}>
           <button
-            onClick={() => setSwitcherOpen((p) => !p)}
+            onClick={() => {
+              setMenuOpen(false);
+              setSwitcherOpen((p) => !p);
+            }}
             className="flex items-center gap-3"
             title="Switch companion"
           >
@@ -158,34 +211,6 @@ export function Header({
 
         <div className="flex items-center gap-1">
           <button
-            onClick={onGoHome}
-            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90 border"
-            style={{
-              backgroundColor: t.card,
-              color: t.textMuted,
-              borderColor: `${t.border}99`,
-            }}
-            aria-label="Back to home"
-            title="Back to home"
-          >
-            <Home className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={onPanic}
-            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90 border"
-            style={{
-              backgroundColor: t.card,
-              color: t.textMuted,
-              borderColor: `${t.border}99`,
-            }}
-            aria-label="Emergency disconnect"
-            title="Emergency disconnect — wipes all data and exits"
-          >
-            <Shield className="w-4 h-4" />
-          </button>
-
-          <button
             onClick={onToggleIncognito}
             className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90 border"
             style={
@@ -207,46 +232,63 @@ export function Header({
             {incognito ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
 
-          <button
-            onClick={onClear}
-            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90 border"
-            style={{
-              backgroundColor: t.card,
-              color: t.textMuted,
-              borderColor: `${t.border}99`,
-            }}
-            aria-label="Clear this conversation"
-            title="Clear this conversation"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => {
+                setSwitcherOpen(false);
+                setMenuOpen((p) => !p);
+              }}
+              className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90 border"
+              style={{
+                backgroundColor: t.card,
+                color: t.textMuted,
+                borderColor: `${t.border}99`,
+              }}
+              aria-label="More actions"
+              title="More actions"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
 
-          <button
-            onClick={onOpenSettings}
-            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90 border relative"
-            style={{
-              backgroundColor: t.card,
-              color: t.textMuted,
-              borderColor: `${t.border}99`,
-            }}
-            aria-label="Settings"
-            title="Settings"
-          >
-            <SettingsIcon className="w-4 h-4" />
-          </button>
+            {menuOpen && (
+              <div
+                className="absolute top-full right-0 mt-2 w-64 rounded-xl border shadow-2xl overflow-hidden animate-fade-in z-40"
+                style={{ backgroundColor: t.bg, borderColor: t.border }}
+              >
+                <div className="py-1">
+                  {menuItem('Back to home', Home, onGoHome)}
+                  {menuItem('Find a priest or director', HeartHandshake, onFindHelp)}
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onClear();
+                    }}
+                    aria-label="Clear this conversation"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = t.cardHover;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 flex-shrink-0" style={{ color: t.textMuted }} />
+                    <span className="text-[13px] font-medium" style={{ color: t.text }}>
+                      Clear this conversation
+                    </span>
+                  </button>
+                  {menuItem('Emergency disconnect', Shield, onPanic)}
+                </div>
+                <div className="py-1 border-t" style={{ borderColor: `${t.border}66` }}>
+                  {menuItem('Settings', SettingsIcon, onOpenSettings)}
+                  {menuItem('Send feedback', MessageSquare, onFeedback)}
+                  {menuItem('About Sanctum', Info, onOpenAbout)}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Persistent disclaimer bar */}
-      <div
-        className="px-4 py-1 border-t text-center"
-        style={{ borderColor: `${t.border}66`, backgroundColor: `${t.bg}80` }}
-      >
-        <p className="text-[13px] leading-relaxed" style={{ color: t.textDim }}>
-          For historical, philosophical, and personal reflection only. Not licensed therapy, spiritual direction, or Sacramental Absolution.
-        </p>
-      </div>
     </header>
-    </>
   );
 }

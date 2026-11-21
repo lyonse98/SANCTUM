@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
 import {
   Church,
-  HeartHandshake,
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { SettingsModal } from '@/components/SettingsModal';
@@ -901,6 +900,9 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         onOpenSettings={() => setSettingsOpen(true)}
         onPanic={() => setPanicConfirmOpen(true)}
         onGoHome={() => handleChangeView('today')}
+        onFindHelp={() => handleChangeView('help')}
+        onFeedback={() => feedback?.openFeedback('chat')}
+        onOpenAbout={() => setShowAbout(true)}
       />
 
       {incognito && (
@@ -914,27 +916,13 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
         </div>
       )}
 
-      <div className="px-4 py-1.5 flex flex-wrap items-center justify-center gap-2">
-        <span
-          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[12px] font-bold uppercase tracking-widest"
-          style={{
-            backgroundColor: `${season.accentColor}15`,
-            borderColor: `${season.accentColor}40`,
-            color: season.accentColor,
-          }}
-        >
-          <span className="w-1 h-1 rounded-full" style={{ backgroundColor: season.accentColor }} />
-          {season.name}
-        </span>
-        <span
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[12px] font-bold uppercase tracking-wider"
-          style={{ backgroundColor: t.accentRgba(0.06), borderColor: t.accentRgba(0.2), color: t.textDim }}
-        >
-          Not Stored · Sent to AI for Reply
-        </span>
-      </div>
-
-      <PresetChips presets={persona.presets} onSelect={handlePreset} disabled={isStreaming} />
+      {/* Starter prompts belong to the start of a conversation only
+          (Nov 20, 2026, Erik): once you're talking, the page is the
+          conversation — no chips row, no season/privacy pills standing
+          between the header and the words. */}
+      {!showIntake && messages.length === 0 && (
+        <PresetChips presets={persona.presets} onSelect={handlePreset} disabled={isStreaming} />
+      )}
 
       {showIntake ? (
         <CompanionIntake
@@ -952,39 +940,20 @@ function AppContent({ onThemeChange }: { onThemeChange: (theme: PersonaTheme | u
 
       <ChatInput onSend={handleSend} onStop={handleStop} isStreaming={isStreaming} persona={persona} remainingMessages={remainingMessages} />
 
+      {/* One quiet line under the input (Nov 20, 2026, Erik): the two
+          safety facts — not a therapist, and 988 — plus the Terms door.
+          Everything else that used to stand here (find help, feedback,
+          about) lives in the header's "more actions" menu now. */}
       <div
         className="px-4 py-2 border-t text-center"
         style={{ borderColor: `${t.border}4D`, backgroundColor: `${t.bg}80`, paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
       >
-        <p className="text-[13px] leading-relaxed" style={{ color: t.textDim }}>
-          Sanctum — a spiritual companion, not a licensed therapist. In crisis? Call or text 988 (US).{' '}
+        <p className="text-[12px] leading-relaxed" style={{ color: t.textDim }}>
+          Not a therapist. In crisis? Call or text 988 (US).{' '}
           <button onClick={() => setShowTerms(true)} className="underline decoration-dotted hover:opacity-70 transition-opacity" style={{ color: t.textDim }}>
             Terms &amp; Privacy
           </button>
         </p>
-        <button
-          onClick={() => handleChangeView('help')}
-          className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider mt-1.5 transition-opacity hover:opacity-70"
-          style={{ color: t.accent }}
-        >
-          <HeartHandshake className="w-3 h-3" />
-          Find a priest, director, or therapist
-        </button>
-        <button
-          onClick={() => feedback?.openFeedback('chat')}
-          className="text-[12px] underline decoration-dotted hover:opacity-70 transition-opacity mt-1 inline-block"
-          style={{ color: t.textDim }}
-        >
-          Send Feedback
-        </button>
-        <span className="text-[12px] mx-1.5" style={{ color: t.textDim }}>·</span>
-        <button
-          onClick={() => setShowAbout(true)}
-          className="text-[12px] underline decoration-dotted hover:opacity-70 transition-opacity mt-1 inline-block"
-          style={{ color: t.textDim }}
-        >
-          About Sanctum
-        </button>
       </div>
 
       <SettingsModal
