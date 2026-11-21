@@ -13,7 +13,7 @@ export function PresetChips({ presets, onSelect, disabled }: PresetChipsProps) {
       className="px-4 py-2.5 border-b"
       style={{ borderColor: 'color-mix(in srgb, var(--p-border) 30%, transparent)' }}
     >
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 [touch-action:pan-x]">
         {presets.map((chip) => (
           <button
             key={chip.id}

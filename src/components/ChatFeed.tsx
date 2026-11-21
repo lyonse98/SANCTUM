@@ -113,13 +113,33 @@ interface ChatFeedProps {
  * is the conversation's own, unchanged.
  */
 export function ChatFeed({ messages, isStreaming, streamingContent, persona, crisisActive, onCrisisDismiss, onOpenTool, onReflectGospel }: ChatFeedProps) {
-  const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Whether the reader is riding the bottom of the conversation. The
+  // feed follows new words ONLY while this holds (Nov 20, 2026, Erik's
+  // scrolling frustration): the old behaviour scrolled on every
+  // streamed token, so trying to scroll up mid-reply fought the page —
+  // the feed kept pulling back down. Sending your own message re-sticks
+  // you to the bottom; scrolling up to re-read unsticks, and the feed
+  // leaves you where you are until you return to the bottom yourself.
+  const stickRef = useRef(true);
   const t = persona.theme;
   const [shareContent, setShareContent] = useState<string | null>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = scrollRef.current;
+    if (!el) return;
+    const last = messages[messages.length - 1];
+    if (last?.role === 'user') stickRef.current = true;
+    if (stickRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [messages, streamingContent]);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+  };
 
   if (messages.length === 0 && !isStreaming) {
     return (
@@ -161,7 +181,11 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto chat-scroll px-5 py-5 space-y-6 max-w-2xl mx-auto w-full">
+    <div
+      ref={scrollRef}
+      onScroll={handleScroll}
+      className="flex-1 min-h-0 overflow-y-auto chat-scroll px-5 py-5 space-y-6 max-w-2xl mx-auto w-full"
+    >
       {crisisActive && (
         <CrisisCard theme={persona.theme} dismissable onDismiss={onCrisisDismiss} />
       )}
@@ -197,7 +221,6 @@ export function ChatFeed({ messages, isStreaming, streamingContent, persona, cri
           )}
         </div>
       )}
-      <div ref={endRef} />
       <ShareCardModal
         open={shareContent !== null}
         content={shareContent ?? ''}
@@ -289,9 +312,20 @@ function GospelContextCard({
           Today&rsquo;s Readings &middot; Context
         </span>
       </div>
+      {/* Clipped with a fade, NOT a nested scroller (Nov 20, 2026): a
+          scroll box inside the conversation stole drags — a finger
+          starting on this card scrolled the card (or jammed at its
+          end) instead of the conversation. The full readings live on
+          Today; this card is context, and a drag anywhere in the feed
+          now scrolls the feed. */}
       <div
-        className="text-[12px] leading-relaxed whitespace-pre-wrap max-h-36 overflow-y-auto chat-scroll pr-1"
-        style={{ fontFamily: PRINT_SERIF, color: t.textMuted }}
+        className="text-[12px] leading-relaxed whitespace-pre-wrap max-h-36 overflow-hidden pr-1"
+        style={{
+          fontFamily: PRINT_SERIF,
+          color: t.textMuted,
+          maskImage: 'linear-gradient(180deg, black 72%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(180deg, black 72%, transparent 100%)',
+        }}
       >
         {message.content}
       </div>

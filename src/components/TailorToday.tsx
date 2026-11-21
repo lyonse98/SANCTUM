@@ -414,7 +414,7 @@ export function TailorProfileEditor({
             and nothing here presses anyone to choose. */}
         <div
           ref={northStarPagerRef}
-          className="flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [touch-action:pan-x]"
         >
           {[
             { id: '', label: 'None', text: 'No North Star. Sanctum aims each day without one, as it always has.', citation: '' },

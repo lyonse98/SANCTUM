@@ -210,6 +210,23 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Home is the one button that stays visible (Nov 20, 2026,
+              Erik): it's the way out of the conversation, and a way out
+              shouldn't be buried in a menu. */}
+          <button
+            onClick={onGoHome}
+            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90 border"
+            style={{
+              backgroundColor: t.card,
+              color: t.textMuted,
+              borderColor: `${t.border}99`,
+            }}
+            aria-label="Back to home"
+            title="Back to home"
+          >
+            <Home className="w-4 h-4" />
+          </button>
+
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => {
@@ -266,7 +283,6 @@ export function Header({
                       {incognito ? 'On' : 'Off'}
                     </span>
                   </button>
-                  {menuItem('Back to home', Home, onGoHome)}
                   {menuItem('Find a priest or director', HeartHandshake, onFindHelp)}
                   <button
                     onClick={() => {
