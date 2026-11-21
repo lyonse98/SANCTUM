@@ -10,7 +10,7 @@ import {
   retrieveCorpus,
   type CorpusResult,
 } from "./corpus.ts";
-import { ACCESS_REQUIRED_ERROR, checkAccessToken } from "./accessGate.ts";
+import { ACCESS_REQUIRED_ERROR, checkAccessToken, hashAccessToken } from "./accessGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -700,6 +700,57 @@ async function nonStreamGemini(model: string, apiKey: string, body: unknown): Pr
 }
 
 Deno.serve(async (req: Request) => {
+  // TEMP DIAGNOSTIC (Nov 20, 2026): gate probe — reports this deployment's
+  // own environment styles, the hash it computes for a supplied token, the
+  // raw verdict call, and the gate helper's own verdict. Removed with the
+  // gate fix. Guarded by a fixed probe word; reports styles only.
+  {
+    const probeParams = new URL(req.url).searchParams;
+    if (probeParams.get("gateprobe") === "probe-7f3a-sanctum") {
+      const style = (v: string | undefined): string =>
+        !v
+          ? "missing"
+          : v.startsWith("sb_publishable_")
+          ? "sb_publishable"
+          : v.startsWith("sb_secret_")
+          ? "sb_secret"
+          : v.split(".").length === 3
+          ? "jwt"
+          : "other";
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const anon = Deno.env.get("SUPABASE_ANON_KEY");
+      const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      const t = probeParams.get("t") ?? "";
+      const h = t ? await hashAccessToken(t) : "";
+      let rpc: unknown = null;
+      try {
+        const r = await fetch(`${supabaseUrl}/rest/v1/rpc/check_access_token`, {
+          method: "POST",
+          headers: {
+            apikey: anon ?? "",
+            Authorization: `Bearer ${anon ?? ""}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ p_token_hash: h }),
+        });
+        rpc = { status: r.status, body: (await r.text()).slice(0, 120) };
+      } catch (e) {
+        rpc = { error: String(e) };
+      }
+      const gateVerdict = t ? await checkAccessToken(t) : null;
+      return new Response(
+        JSON.stringify({
+          urlHost: supabaseUrl.replace("https://", "").split(".")[0],
+          anonStyle: style(anon),
+          serviceStyle: style(service),
+          hashOfT: h,
+          rpcWithAnon: rpc,
+          gateVerdict,
+        }),
+        { headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
