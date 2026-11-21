@@ -60,7 +60,10 @@ export const FOCUS_ROUTES: Record<PushFocus, FocusRoute> = {
   rule: { tab: 'today' },
   mass: { tab: 'today' },
   confession: { tab: 'church', churchTab: 'confession' },
-  drivehome: { tab: 'today', todayExamen: true },
+  // The drive-home poke's landing changed with its purpose (Nov 20, 2026):
+  // it once opened Tonight, to close the day on the ride home; now it
+  // sends the man to the Tailor build, to make his devotional for the road.
+  drivehome: { tab: 'today', todayTailor: true },
   tailor: { tab: 'today', todayTailor: true },
 };
 
@@ -71,8 +74,11 @@ export const FOCUS_ROUTES: Record<PushFocus, FocusRoute> = {
  * an old subscription still holds, this is where its tap goes. The newer
  * pokes (Nov 18, 2026) carry their own landings: the Mass poke also points
  * at the Gospel (the readings are what a man takes to Mass), the Confession
- * poke opens Pocket Church's Confession door, the drive-home poke opens
- * Tonight, and the tailor-ready poke opens the Tailor panel.
+ * poke opens Pocket Church's Confession door, and the tailor-ready poke
+ * opens the Tailor panel. The drive-home poke's URL still carries its own
+ * focus — its slot, its marker — but since Nov 20, 2026 the route it
+ * resolves to is the Tailor panel: the poke now sends a man to tailor his
+ * devotional for the drive home, so its tap lands where its words promise.
  */
 export function deepLinkUrlForFocus(focus: string): string {
   switch (focus) {
@@ -101,12 +107,20 @@ export interface PushPayload {
  * poke's: a lock screen is a public place, so each says what is coming and
  * nothing personal, ever. The Mass and Confession pokes name no parish
  * (the server has never been told it); the tailor-ready poke names no
- * content of the build it announces.
+ * content of the build it announces. The drive-home poke is the one poke
+ * with a title of its own (Nov 20, 2026): it no longer closes the day —
+ * it sends the man to tailor his devotional for the road — and its words
+ * say exactly that, and nothing about where he is going or why.
  */
 export const MASS_PUSH_BODY = 'Mass at your parish is coming up.';
 export const CONFESSION_PUSH_BODY = 'Confession time at your parish is coming up.';
-export const DRIVE_HOME_PUSH_BODY = 'Time to close the day.';
+export const DRIVE_HOME_PUSH_TITLE = 'The drive home';
+export const DRIVE_HOME_PUSH_BODY = 'Tailor your devotional for the road.';
 export const TAILOR_READY_PUSH_BODY = 'Your tailored devotional is ready to listen to.';
+
+const SLOT_PUSH_TITLES: Partial<Record<PushFocus, string>> = {
+  drivehome: DRIVE_HOME_PUSH_TITLE,
+};
 
 const SLOT_PUSH_BODIES: Partial<Record<PushFocus, string>> = {
   mass: MASS_PUSH_BODY,
@@ -118,7 +132,7 @@ const SLOT_PUSH_BODIES: Partial<Record<PushFocus, string>> = {
 /** Builds exactly what the service worker is allowed to show. No other text ever ships. */
 export function buildPushPayload(focus: string): PushPayload {
   const safe: PushFocus = isPushFocus(focus) ? focus : DEFAULT_PUSH_FOCUS;
-  return { title: PUSH_TITLE, body: SLOT_PUSH_BODIES[safe] ?? PUSH_BODY, url: deepLinkUrlForFocus(safe), focus: safe };
+  return { title: SLOT_PUSH_TITLES[safe] ?? PUSH_TITLE, body: SLOT_PUSH_BODIES[safe] ?? PUSH_BODY, url: deepLinkUrlForFocus(safe), focus: safe };
 }
 
 /** Reads the focus out of a page URL's query string (`?focus=examen`); null when absent or unknown. */
@@ -338,12 +352,77 @@ export function isWeeklyDue(
 }
 
 /**
+ * The Confession "evening before" lead (Erik, Nov 20, 2026): instead of a
+ * count of minutes before the Confession hour, one poke at 7:00 PM local
+ * on the day BEFORE the parish's Confession day — the night to examine,
+ * before the morning to confess. Lead-minutes arithmetic cannot express
+ * it, so the lead travels as a SENTINEL: conf_lead_min = -1, accepted by
+ * the sync RPC only for Confession, and special-cased here and in the
+ * dispatcher. It is never passed to evaluateWeeklyDue (whose own guard
+ * refuses a lead of zero or less, so even a wiring mistake cannot turn
+ * the sentinel into a time).
+ *
+ * Due inside the same quarter-hour window as the daily slots, asked of
+ * 19:00 on the eve. The returned `localDateKey` is the CONFESSION day's
+ * date — the same marker the minutes leads write — so the slot's dedupe
+ * is per Confession day across lead choices: a man who changes his lead
+ * midweek is never poked twice for the same Confession. The Confession
+ * hour itself plays no part: the eve is fixed by the day alone. 7 PM
+ * exists on both daylight-saving transition days (the jumps happen at
+ * 2 AM), so no hour is ever skipped or doubled; the marker stands guard
+ * regardless.
+ */
+export const CONFESSION_EVENING_BEFORE_LEAD = -1;
+export const CONFESSION_EVENING_BEFORE_TIME = '19:00';
+
+export function evaluateConfessionEveDue(
+  now: Date,
+  timeZone: string,
+  confDay: number,
+  lastSentOn: string | null,
+): DueEvaluation {
+  if (!Number.isInteger(confDay) || confDay < 0 || confDay > 6) return { due: false, localDateKey: '' };
+  let local: LocalNow;
+  try {
+    local = localNowParts(now, timeZone);
+  } catch {
+    return { due: false, localDateKey: '' }; // an unparseable timezone never sends
+  }
+
+  const target = localTimeToMinutes(CONFESSION_EVENING_BEFORE_TIME);
+  const sinceTarget = (local.minutes - target + 1440) % 1440;
+  if (sinceTarget >= DISPATCH_WINDOW_MINUTES) {
+    return { due: false, localDateKey: local.dateKey };
+  }
+
+  // Inside the window the wall clock is between 19:00 and 19:14, so the
+  // evening in question is today's; the Confession day it belongs to is
+  // tomorrow's date — which must be the parish's Confession day.
+  const confessionDateKey = shiftDateKey(local.dateKey, 1);
+  if (dayOfWeekOfDateKey(confessionDateKey) !== confDay) {
+    return { due: false, localDateKey: local.dateKey };
+  }
+  return { due: lastSentOn !== confessionDateKey, localDateKey: confessionDateKey };
+}
+
+export function isConfessionEveDue(
+  now: Date,
+  timeZone: string,
+  confDay: number,
+  lastSentOn: string | null,
+): boolean {
+  return evaluateConfessionEveDue(now, timeZone, confDay, lastSentOn).due;
+}
+
+/**
  * The drive-home slot (Erik, Nov 18, 2026): a third daily poke at its own
- * hour, opening Tonight for the ride home. Due-matching is the daily
- * question asked of the drive hour with the drive slot's own marker — and
- * deliberately WITHOUT the morning/evening pair's same-time guard: slots
- * of different purposes are independent, so a drive hour that happens to
- * equal the evening hour still fires for its own reason.
+ * hour. It opened Tonight at first; since Nov 20, 2026 it sends the man
+ * to tailor his devotional for the drive home, and its tap opens the
+ * Tailor build. Due-matching is unchanged — the daily question asked of
+ * the drive hour with the drive slot's own marker — and deliberately
+ * WITHOUT the morning/evening pair's same-time guard: slots of different
+ * purposes are independent, so a drive hour that happens to equal the
+ * evening hour still fires for its own reason.
  */
 export interface PushDriveTiming extends PushSubscriptionTiming {
   /** 'HH:MM', the optional drive-home hour; null when no drive-home reminder is set. */

@@ -4,6 +4,7 @@ import type { Audience } from '@/types';
 import { isValidLocalTime } from '@/lib/pushCore';
 import { detectPlatform, isStandaloneDisplay } from '@/lib/install';
 import {
+  isConfessionLead,
   isReminderLead,
   loadParishReminders,
   loadUsualMass,
@@ -240,6 +241,10 @@ export function buildParishSyncBody(input: {
     typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 6 ? value : null;
   const time = (value: string | null): string | null => (isValidLocalTime(value) ? value : null);
   const lead = (value: number | null): number | null => (isReminderLead(value) ? value : null);
+  // The Confession lead has one more lawful value than the Mass lead: the
+  // evening-before sentinel (-1), which the SQL accepts for p_conf_lead
+  // alone. A sentinel found in the Mass lead still goes as null.
+  const confLead = (value: number | null): number | null => (isConfessionLead(value) ? value : null);
   return {
     p_endpoint: input.endpoint,
     p_mass_day: input.mass ? massDayOfWeek(input.mass) : null,
@@ -247,7 +252,7 @@ export function buildParishSyncBody(input: {
     p_mass_lead: lead(input.reminders.massReminderLead),
     p_conf_day: day(input.reminders.confessionDay),
     p_conf_time: time(input.reminders.confessionTime),
-    p_conf_lead: lead(input.reminders.confessionReminderLead),
+    p_conf_lead: confLead(input.reminders.confessionReminderLead),
     p_drive_time: time(input.reminders.driveTime),
   };
 }

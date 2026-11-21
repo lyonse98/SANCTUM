@@ -29,6 +29,7 @@ import {
 } from './patronSaint';
 import { SAINTS } from '@/data/saints';
 import {
+  CONFESSION_EVENING_BEFORE_LEAD,
   EMPTY_PARISH_REMINDERS,
   formatMassTime,
   loadParishReminders,
@@ -330,6 +331,28 @@ describe('the parish reminder settings (Nov 18, 2026)', () => {
       driveTime: '25:00',
     }));
     expect(loadParishReminders()).toEqual(EMPTY_PARISH_REMINDERS);
+  });
+
+  it('the evening-before sentinel round-trips the Confession lead — and is not a Mass lead (Nov 20, 2026)', () => {
+    expect(CONFESSION_EVENING_BEFORE_LEAD).toBe(-1);
+    saveParishReminders({
+      confessionDay: 6,
+      confessionTime: '15:30',
+      massReminderLead: 60,
+      confessionReminderLead: CONFESSION_EVENING_BEFORE_LEAD,
+      driveTime: null,
+    });
+    expect(loadParishReminders().confessionReminderLead).toBe(CONFESSION_EVENING_BEFORE_LEAD);
+    // The same value in the Mass lead is no lead at all — it reads back unset.
+    saveParishReminders({
+      confessionDay: 6,
+      confessionTime: '15:30',
+      massReminderLead: CONFESSION_EVENING_BEFORE_LEAD as never,
+      confessionReminderLead: 30,
+      driveTime: null,
+    });
+    expect(loadParishReminders().massReminderLead).toBeNull();
+    expect(loadParishReminders().confessionReminderLead).toBe(30);
   });
 
   it('an all-empty save clears the key entirely', () => {

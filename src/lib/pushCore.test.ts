@@ -1,8 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import { describe, it, expect } from 'vitest';
 import {
+  CONFESSION_EVENING_BEFORE_LEAD,
+  CONFESSION_EVENING_BEFORE_TIME,
   CONFESSION_PUSH_BODY,
   DRIVE_HOME_PUSH_BODY,
+  DRIVE_HOME_PUSH_TITLE,
   MASS_PUSH_BODY,
   PUSH_BODY,
   PUSH_FOCUS_KEYS,
@@ -10,10 +13,12 @@ import {
   TAILOR_READY_PUSH_BODY,
   buildPushPayload,
   deepLinkUrlForFocus,
+  evaluateConfessionEveDue,
   evaluateDriveDue,
   evaluateDue,
   evaluateEveningDue,
   evaluateWeeklyDue,
+  isConfessionEveDue,
   isDriveDue,
   isDue,
   isEveningDue,
@@ -45,11 +50,17 @@ describe('push payload — the copy rule', () => {
     expect(buildPushPayload('mass').body).toBe(MASS_PUSH_BODY);
     expect(buildPushPayload('confession').body).toBe('Confession time at your parish is coming up.');
     expect(buildPushPayload('confession').body).toBe(CONFESSION_PUSH_BODY);
-    expect(buildPushPayload('drivehome').body).toBe('Time to close the day.');
+    expect(buildPushPayload('drivehome').body).toBe('Tailor your devotional for the road.');
     expect(buildPushPayload('drivehome').body).toBe(DRIVE_HOME_PUSH_BODY);
     expect(buildPushPayload('tailor').body).toBe('Your tailored devotional is ready to listen to.');
     expect(buildPushPayload('tailor').body).toBe(TAILOR_READY_PUSH_BODY);
+  });
+
+  it('the drive-home poke alone carries its own title (Nov 20, 2026) — every other poke is titled Sanctum', () => {
+    expect(buildPushPayload('drivehome').title).toBe('The drive home');
+    expect(buildPushPayload('drivehome').title).toBe(DRIVE_HOME_PUSH_TITLE);
     for (const focus of PUSH_FOCUS_KEYS) {
+      if (focus === 'drivehome') continue;
       expect(buildPushPayload(focus).title).toBe('Sanctum');
     }
   });
@@ -77,8 +88,10 @@ describe('deep links', () => {
     expect(FOCUS_ROUTES.mass).toEqual({ tab: 'today' });
     // The Confession poke opens Pocket Church's Confession door.
     expect(FOCUS_ROUTES.confession).toEqual({ tab: 'church', churchTab: 'confession' });
-    // The drive-home poke opens Tonight; the tailor-ready poke opens the Tailor panel.
-    expect(FOCUS_ROUTES.drivehome).toEqual({ tab: 'today', todayExamen: true });
+    // The drive-home poke opens the Tailor panel (Nov 20, 2026 — it once
+    // opened Tonight, when closing the day was its purpose); the
+    // tailor-ready poke opens the Tailor panel too.
+    expect(FOCUS_ROUTES.drivehome).toEqual({ tab: 'today', todayTailor: true });
     expect(FOCUS_ROUTES.tailor).toEqual({ tab: 'today', todayTailor: true });
   });
 
@@ -322,6 +335,75 @@ describe('weekly due matching — the parish pokes (Nov 18, 2026)', () => {
     expect(isWeeklyDue(now, LA, SUNDAY, '25:00', 60, null)).toBe(false);
     expect(isWeeklyDue(now, LA, SUNDAY, '09:30', 0, null)).toBe(false);
     expect(isWeeklyDue(now, 'Not/AZone', SUNDAY, '09:30', 60, null)).toBe(false);
+  });
+});
+
+describe('confession evening-before due matching — the sentinel lead (Nov 20, 2026)', () => {
+  // November in Los Angeles is PST (UTC-8). Nov 13, 2026 is a Friday,
+  // Nov 14 a Saturday, Nov 15 a Sunday.
+  const SATURDAY = 6;
+  const SUNDAY = 0;
+
+  it('the sentinel is -1 and the eve hour is 7:00 PM', () => {
+    expect(CONFESSION_EVENING_BEFORE_LEAD).toBe(-1);
+    expect(CONFESSION_EVENING_BEFORE_TIME).toBe('19:00');
+  });
+
+  it('is due inside the quarter-hour after 7 PM on the day before Confession', () => {
+    // Saturday Confession: the eve is Friday. 03:05 UTC Nov 14 = 19:05 PST Fri Nov 13.
+    const result = evaluateConfessionEveDue(new Date('2026-11-14T03:05:00Z'), LA, SATURDAY, null);
+    expect(result.due).toBe(true);
+    // The marker is the CONFESSION day's date — Saturday's, not the Friday the poke lands on.
+    expect(result.localDateKey).toBe('2026-11-14');
+    expect(isConfessionEveDue(new Date('2026-11-14T03:14:00Z'), LA, SATURDAY, null)).toBe(true);
+  });
+
+  it('is not due before 7 PM, or once the window has passed', () => {
+    // 18:55 local Friday (02:55 UTC) — the eve hour has not come.
+    expect(isConfessionEveDue(new Date('2026-11-14T02:55:00Z'), LA, SATURDAY, null)).toBe(false);
+    // 19:15 local Friday (03:15 UTC) — the window has closed.
+    expect(isConfessionEveDue(new Date('2026-11-14T03:15:00Z'), LA, SATURDAY, null)).toBe(false);
+    // 7 PM on the Confession day itself (Sat 19:05 local, 03:05 UTC Nov 15) is a day late.
+    expect(isConfessionEveDue(new Date('2026-11-15T03:05:00Z'), LA, SATURDAY, null)).toBe(false);
+  });
+
+  it('an evening whose tomorrow is not the Confession day never fires', () => {
+    // Thursday Nov 12, 19:05 local (03:05 UTC Nov 13): tomorrow is Friday, not Saturday.
+    expect(isConfessionEveDue(new Date('2026-11-13T03:05:00Z'), LA, SATURDAY, null)).toBe(false);
+    // The same Friday eve, asked about a Sunday Confession, is quiet too.
+    expect(isConfessionEveDue(new Date('2026-11-14T03:05:00Z'), LA, SUNDAY, null)).toBe(false);
+  });
+
+  it('a Sunday Confession is reminded on Saturday evening', () => {
+    // 03:05 UTC Nov 15 = 19:05 PST Sat Nov 14 — the eve of Sunday.
+    const result = evaluateConfessionEveDue(new Date('2026-11-15T03:05:00Z'), LA, SUNDAY, null);
+    expect(result.due).toBe(true);
+    expect(result.localDateKey).toBe('2026-11-15');
+  });
+
+  it('the sent marker is the Confession date — shared with the minutes leads, so the two never double-poke', () => {
+    const eve = new Date('2026-11-14T03:05:00Z'); // Friday 19:05 local, for Saturday's Confession
+    // A poke already sent for this Confession day — by either lead shape — refuses another.
+    expect(isConfessionEveDue(eve, LA, SATURDAY, '2026-11-14')).toBe(false);
+    // Last week's Confession marker does not block this week's eve.
+    expect(isConfessionEveDue(eve, LA, SATURDAY, '2026-11-07')).toBe(true);
+    // The eve's own date as a marker (a shape no writer produces) does not block it either:
+    // the guard is the event's date, never the day the poke happened to land on.
+    expect(isConfessionEveDue(eve, LA, SATURDAY, '2026-11-13')).toBe(true);
+  });
+
+  it('the sentinel can never be read as a weekly lead', () => {
+    // evaluateWeeklyDue refuses a lead of zero or less outright, so even a
+    // wiring mistake cannot turn -1 into a time before the event.
+    const now = new Date('2026-11-14T23:05:00Z'); // Saturday 15:05 local
+    expect(isWeeklyDue(now, LA, SATURDAY, '15:30', CONFESSION_EVENING_BEFORE_LEAD, null)).toBe(false);
+  });
+
+  it('never sends for a malformed Confession day or timezone', () => {
+    const eve = new Date('2026-11-14T03:05:00Z');
+    expect(isConfessionEveDue(eve, LA, 7, null)).toBe(false);
+    expect(isConfessionEveDue(eve, LA, -1, null)).toBe(false);
+    expect(isConfessionEveDue(eve, 'Not/AZone', SATURDAY, null)).toBe(false);
   });
 });
 

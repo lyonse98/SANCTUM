@@ -83,6 +83,39 @@ export function isReminderLead(value: unknown): value is ReminderLead {
 }
 
 /**
+ * The Confession-only "evening before" lead (Erik, Nov 20, 2026): one poke
+ * at 7:00 PM local on the day BEFORE the parish's Confession day — the
+ * night to examine, before the morning to confess. No count of minutes
+ * before the Confession hour can say that, so the lead is carried as a
+ * SENTINEL, -1, in the same field everywhere it travels: this store, the
+ * sync body, the server's conf_lead_min column, and the dispatcher's
+ * due-check (which special-cases it in pushCore). It is never a Mass
+ * lead, and it is never arithmetic: any code that finds it where minutes
+ * were expected must treat it as unset, which is exactly what
+ * isReminderLead does with it.
+ */
+export const CONFESSION_EVENING_BEFORE_LEAD = -1 as const;
+export type ConfessionLead = ReminderLead | typeof CONFESSION_EVENING_BEFORE_LEAD;
+
+export function isConfessionLead(value: unknown): value is ConfessionLead {
+  return isReminderLead(value) || value === CONFESSION_EVENING_BEFORE_LEAD;
+}
+
+/** The Mass reminder's lead choices, as the reader sees them: off, or minutes ahead. */
+export const MASS_LEAD_OPTIONS: readonly { value: ReminderLead | null; label: string }[] = [
+  { value: null, label: 'Off' },
+  { value: 30, label: '30 min' },
+  { value: 60, label: '1 hr' },
+  { value: 120, label: '2 hrs' },
+];
+
+/** The Confession reminder's lead choices — the Mass choices, plus the evening before. */
+export const CONFESSION_LEAD_OPTIONS: readonly { value: ConfessionLead | null; label: string }[] = [
+  ...MASS_LEAD_OPTIONS,
+  { value: CONFESSION_EVENING_BEFORE_LEAD, label: 'The evening before' },
+];
+
+/**
  * The parish reminder settings (Erik, Nov 18, 2026): the parish's weekly
  * Confession day and hour, how long before Mass and Confession a poke
  * may come, and the optional drive-home hour. All of it lives on this
@@ -97,8 +130,11 @@ export interface ParishReminders {
   confessionTime: string | null;
   /** Minutes before the usual Mass a poke may come, or null for no Mass reminder. */
   massReminderLead: ReminderLead | null;
-  /** Minutes before Confession a poke may come, or null for no Confession reminder. */
-  confessionReminderLead: ReminderLead | null;
+  /**
+   * Minutes before Confession a poke may come — or the evening-before
+   * sentinel (CONFESSION_EVENING_BEFORE_LEAD) — or null for no reminder.
+   */
+  confessionReminderLead: ConfessionLead | null;
   /** 'HH:MM' of the optional drive-home reminder, or null when it is off. */
   driveTime: string | null;
 }
@@ -129,7 +165,7 @@ export function loadParishReminders(): ParishReminders {
       confessionDay: cleanDayOfWeek(parsed.confessionDay),
       confessionTime: cleanTime(parsed.confessionTime),
       massReminderLead: isReminderLead(parsed.massReminderLead) ? parsed.massReminderLead : null,
-      confessionReminderLead: isReminderLead(parsed.confessionReminderLead) ? parsed.confessionReminderLead : null,
+      confessionReminderLead: isConfessionLead(parsed.confessionReminderLead) ? parsed.confessionReminderLead : null,
       driveTime: cleanTime(parsed.driveTime),
     };
   } catch {
@@ -144,7 +180,7 @@ export function saveParishReminders(reminders: ParishReminders): void {
       confessionDay: cleanDayOfWeek(reminders.confessionDay),
       confessionTime: cleanTime(reminders.confessionTime),
       massReminderLead: isReminderLead(reminders.massReminderLead) ? reminders.massReminderLead : null,
-      confessionReminderLead: isReminderLead(reminders.confessionReminderLead) ? reminders.confessionReminderLead : null,
+      confessionReminderLead: isConfessionLead(reminders.confessionReminderLead) ? reminders.confessionReminderLead : null,
       driveTime: cleanTime(reminders.driveTime),
     };
     if (Object.values(clean).every((v) => v === null)) {

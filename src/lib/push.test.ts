@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { CONFESSION_EVENING_BEFORE_LEAD } from './usualMass';
 import {
   DEFAULT_EVENING_TIME,
   VAPID_PUBLIC_KEY,
@@ -567,6 +568,23 @@ describe('RPC contract — the parish sync body (Nov 18, 2026)', () => {
     expect(body.p_conf_lead).toBeNull();
     expect(body.p_drive_time).toBeNull();
   });
+
+  it('the evening-before sentinel rides the Confession lead — and only the Confession lead (Nov 20, 2026)', () => {
+    const body = buildParishSyncBody({
+      endpoint: 'https://push.example/abc',
+      mass,
+      reminders: { ...reminders, confessionReminderLead: -1 as never },
+    });
+    expect(body.p_conf_lead).toBe(-1);
+    expect(body.p_conf_lead).toBe(CONFESSION_EVENING_BEFORE_LEAD);
+    // Found in the Mass lead, the same value is not a lead at all: null.
+    const massSentinel = buildParishSyncBody({
+      endpoint: 'https://push.example/abc',
+      mass,
+      reminders: { ...reminders, massReminderLead: -1 as never },
+    });
+    expect(massSentinel.p_mass_lead).toBeNull();
+  });
 });
 
 describe('RPC contract — the parish reminders migration (Nov 18, 2026)', () => {
@@ -619,6 +637,82 @@ describe('RPC contract — the parish reminders migration (Nov 18, 2026)', () =>
 
   it('leaves the existing upsert overloads alone', () => {
     expect(sql).not.toContain('FUNCTION public.upsert_push_subscription(');
+  });
+});
+
+describe('RPC contract — the Confession evening-before migration (Nov 20, 2026)', () => {
+  const sql = readFileSync(
+    join(repoRoot, 'supabase/migrations/20261120160000_confession_evening_before_lead.sql'),
+    'utf8',
+  );
+  const original = readFileSync(
+    join(repoRoot, 'supabase/migrations/20261118140000_parish_reminders.sql'),
+    'utf8',
+  );
+
+  it('replaces the sync function — the applied parish migration itself is never edited', () => {
+    expect(sql).toContain('CREATE OR REPLACE FUNCTION public.upsert_parish_reminders(');
+    expect(sql).toContain(
+      'GRANT EXECUTE ON FUNCTION public.upsert_parish_reminders(text, int, text, int, int, text, int, text) TO anon, authenticated',
+    );
+    // The Nov 18 file still validates exactly as it did when it was applied.
+    expect(original).toContain('p_conf_lead NOT IN (30, 60, 120)');
+    expect(original).not.toContain('120, -1');
+  });
+
+  it('accepts the sentinel for the Confession lead alone; the Mass lead is unchanged', () => {
+    expect(sql).toContain('p_conf_lead NOT IN (30, 60, 120, -1)');
+    expect(sql).toContain('p_mass_lead NOT IN (30, 60, 120)');
+    expect(sql).not.toContain('p_mass_lead NOT IN (30, 60, 120, -1)');
+    expect(sql).toContain(`'invalid_conf_lead'`);
+  });
+
+  it('the sync update still writes the slots and never a sent marker', () => {
+    const updateAt = sql.indexOf('UPDATE public.push_subscriptions');
+    const update = sql.slice(updateAt, sql.indexOf('WHERE endpoint', updateAt));
+    expect(update).toContain('conf_lead_min = p_conf_lead');
+    expect(update).not.toContain('last_sent_on');
+  });
+
+  it('the dispatcher special-cases the sentinel before the weekly question', () => {
+    const fn = readFileSync(join(repoRoot, 'supabase/functions/push-dispatch/index.ts'), 'utf8');
+    expect(fn).toContain('CONFESSION_EVENING_BEFORE_LEAD');
+    expect(fn).toContain('evaluateConfessionEveDue(now, sub.tz, sub.conf_day, sub.conf_last_sent_on)');
+    expect(fn.indexOf('evaluateConfessionEveDue')).toBeLessThan(fn.indexOf('evaluateWeeklyDue(now, sub.tz, sub.conf_day'));
+  });
+});
+
+describe('the parish reminders stand in both places (Nov 20, 2026)', () => {
+  const form = readFileSync(join(repoRoot, 'src/components/ReminderForm.tsx'), 'utf8');
+  const settings = readFileSync(join(repoRoot, 'src/components/SettingsModal.tsx'), 'utf8');
+
+  it('the reminder form carries the whole parish section — Mass, Confession, both leads', () => {
+    expect(form).toContain('Your parish');
+    expect(form).toContain('Parish Confession');
+    expect(form).toContain('Mass reminder');
+    expect(form).toContain('Confession reminder');
+    expect(form).toContain('Keep these parish reminders');
+  });
+
+  it('both surfaces write the same stores and sync the same way — one source of truth, two doors', () => {
+    for (const surface of [form, settings]) {
+      expect(surface).toContain('loadParishReminders');
+      expect(surface).toContain('saveParishReminders');
+      expect(surface).toContain('loadUsualMass');
+      expect(surface).toContain('saveUsualMass');
+      expect(surface).toContain('syncParishReminders');
+      expect(surface).toContain('the parish name never leaves this phone');
+    }
+  });
+
+  it('the evening-before lead is offered in both places, from the one shared option list', () => {
+    for (const surface of [form, settings]) {
+      expect(surface).toContain('CONFESSION_LEAD_OPTIONS');
+      expect(surface).toContain('CONFESSION_EVENING_BEFORE_LEAD');
+      expect(surface).toContain('One poke at 7:00 PM the evening before Confession day.');
+    }
+    const store = readFileSync(join(repoRoot, 'src/lib/usualMass.ts'), 'utf8');
+    expect(store).toContain("label: 'The evening before'");
   });
 });
 
@@ -683,7 +777,10 @@ describe('the tailor-ready ping (Nov 18, 2026)', () => {
   it('the form offers the drive-home slot with its own copy', () => {
     const form = readFileSync(join(repoRoot, 'src/components/ReminderForm.tsx'), 'utf8');
     expect(form).toContain('Drive-home reminder');
-    expect(form).toContain('For the ride home — opens Tonight, to close the day.');
+    // Repurposed (Nov 20, 2026): the poke sends the man to tailor his
+    // devotional for the drive — the form says so, in those words.
+    expect(form).toContain('For the ride home — a poke to tailor your devotional for the road.');
+    expect(form).not.toContain('opens Tonight, to close the day');
   });
 });
 

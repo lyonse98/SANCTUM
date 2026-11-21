@@ -22,7 +22,11 @@
   each with its own hour and sent marker, evaluated independently like the evening
   slot: a weekly poke before the reader's usual Mass and before his parish's
   Confession time (the server holds only a day, a time, and a lead — never a
-  parish name), and a daily drive-home poke opening Tonight. It also accepts
+  parish name), and a daily drive-home poke. The Confession lead may also be the
+  evening-before sentinel (Nov 20, 2026): one poke at 19:00 local on the day
+  before the Confession day. The drive-home poke was repurposed the same day:
+  it no longer opens Tonight — it sends the man to tailor his devotional for
+  the drive home, and its tap opens the Tailor build. It also accepts
   { "action": "tailor-ready", "endpoint": "…" } from the app when a Tailor
   build's audio finishes rendering in the background: one fixed poke ("Your
   tailored devotional is ready to listen to."), rate-limited to three a day
@@ -42,6 +46,8 @@ import {
 } from "jsr:@negrel/webpush@0.5.0";
 import {
   buildPushPayload,
+  CONFESSION_EVENING_BEFORE_LEAD,
+  evaluateConfessionEveDue,
   evaluateDriveDue,
   evaluateDue,
   evaluateEveningDue,
@@ -446,15 +452,28 @@ Deno.serve(async (req: Request) => {
         mass_last_sent_on: massEvaluation?.localDateKey,
       });
 
-      const confEvaluation = sub.conf_day !== null && sub.conf_time && sub.conf_lead_min !== null
-        ? evaluateWeeklyDue(now, sub.tz, sub.conf_day, sub.conf_time.slice(0, 5), sub.conf_lead_min, sub.conf_last_sent_on)
-        : null;
+      // The Confession slot has two shapes (Nov 20, 2026): the minutes
+      // leads ask the weekly question of the Confession hour, while the
+      // evening-before sentinel (conf_lead_min = -1) asks the eve
+      // question of the Confession DAY alone — one poke at 19:00 local
+      // the day before, the Confession hour playing no part. Both write
+      // the same marker: the Confession day's date.
+      const confEvaluation = sub.conf_day === null || sub.conf_lead_min === null
+        ? null
+        : sub.conf_lead_min === CONFESSION_EVENING_BEFORE_LEAD
+          ? evaluateConfessionEveDue(now, sub.tz, sub.conf_day, sub.conf_last_sent_on)
+          : sub.conf_time
+            ? evaluateWeeklyDue(now, sub.tz, sub.conf_day, sub.conf_time.slice(0, 5), sub.conf_lead_min, sub.conf_last_sent_on)
+            : null;
       await deliverSlot(confEvaluation?.due ?? false, "confession", {
         conf_last_sent_on: confEvaluation?.localDateKey,
       });
 
       // The drive-home poke: a daily slot with its own marker, and no
       // same-time guard against the other slots — its purpose differs.
+      // Since Nov 20, 2026 its payload sends the man to the Tailor build
+      // (see pushCore); only the words and the landing changed, not the
+      // hour, the marker, or the due question.
       const driveEvaluation = evaluateDriveDue(
         {
           tz: sub.tz,

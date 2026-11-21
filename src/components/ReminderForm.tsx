@@ -12,12 +12,27 @@ import {
   updatePushPreferences,
   type PushState,
 } from '@/lib/push';
-import { loadParishReminders, saveParishReminders } from '@/lib/usualMass';
+import {
+  CONFESSION_EVENING_BEFORE_LEAD,
+  CONFESSION_LEAD_OPTIONS,
+  MASS_LEAD_OPTIONS,
+  USUAL_MASS_PARISH_MAX,
+  loadParishReminders,
+  loadUsualMass,
+  saveParishReminders,
+  saveUsualMass,
+  type ConfessionLead,
+  type ReminderLead,
+  type UsualMassDay,
+} from '@/lib/usualMass';
 import { DEFAULT_FOCUS, focusLabel } from '@/lib/reminderFocus';
 import { InstallInstructions } from '@/components/InstallInstructions';
 
 /** The hour the form offers when a man first adds the drive-home reminder. */
 const DEFAULT_DRIVE_TIME = '17:30';
+
+/** Day-of-week names in the server's numbering: index 0 is Sunday. */
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 interface ReminderFormProps {
   t: PersonaTheme;
@@ -44,6 +59,7 @@ function formatTime(localTime: string): string {
 export function ReminderForm({ t }: ReminderFormProps) {
   const initial = loadPushReminder();
   const initialParish = loadParishReminders();
+  const initialMass = loadUsualMass();
   const timeFieldId = useId();
   const eveningTimeFieldId = useId();
   const driveTimeFieldId = useId();
@@ -55,6 +71,17 @@ export function ReminderForm({ t }: ReminderFormProps) {
   const [savedDriveTime, setSavedDriveTime] = useState(initialParish.driveTime);
   const [draftDriveEnabled, setDraftDriveEnabled] = useState(initialParish.driveTime !== null);
   const [draftDriveTime, setDraftDriveTime] = useState(initialParish.driveTime ?? DEFAULT_DRIVE_TIME);
+  // The parish reminder drafts (Nov 20, 2026): the usual Mass, the
+  // parish's Confession hour, and the two leads — the same settings
+  // Settings carries, drafted here from the same stores.
+  const [draftMassParish, setDraftMassParish] = useState(initialMass?.parish ?? '');
+  const [draftMassTime, setDraftMassTime] = useState(initialMass?.time ?? '');
+  const [draftMassDay, setDraftMassDay] = useState<UsualMassDay>(initialMass?.day ?? 'sunday');
+  const [draftConfDay, setDraftConfDay] = useState<number | null>(initialParish.confessionDay);
+  const [draftConfTime, setDraftConfTime] = useState(initialParish.confessionTime ?? '');
+  const [draftMassLead, setDraftMassLead] = useState<ReminderLead | null>(initialParish.massReminderLead);
+  const [draftConfLead, setDraftConfLead] = useState<ConfessionLead | null>(initialParish.confessionReminderLead);
+  const [parishKept, setParishKept] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -70,6 +97,35 @@ export function ReminderForm({ t }: ReminderFormProps) {
     setSavedDriveTime(draftDrive);
   };
 
+  /**
+   * Keeps the parish drafts in their stores — the very stores Settings
+   * edits, so the two surfaces can never diverge: a change made in either
+   * place is the change, not a copy of it. The drive draft rides along as
+   * the record's drive hour, as it does in the drive save itself. The
+   * usual Mass is written only whole (name and time together), exactly as
+   * Settings writes it; a half-filled Mass changes nothing.
+   */
+  const persistParishDraft = () => {
+    saveParishReminders({
+      confessionDay: draftConfDay,
+      confessionTime: draftConfTime || null,
+      massReminderLead: draftMassLead,
+      confessionReminderLead: draftConfLead,
+      driveTime: draftDrive,
+    });
+    setSavedDriveTime(draftDrive);
+    if (draftMassParish.trim() && draftMassTime) {
+      saveUsualMass({ parish: draftMassParish, time: draftMassTime, day: draftMassDay });
+    }
+  };
+
+  /** The parish section's own save: the stores, the kept note, the sync. */
+  const handleSaveParish = () => {
+    persistParishDraft();
+    setParishKept(true);
+    void syncParishReminders();
+  };
+
   const refresh = () => {
     const next = loadPushReminder();
     setSaved(next);
@@ -80,14 +136,25 @@ export function ReminderForm({ t }: ReminderFormProps) {
     setSavedDriveTime(parish.driveTime);
     setDraftDriveEnabled(parish.driveTime !== null);
     setDraftDriveTime(parish.driveTime ?? DEFAULT_DRIVE_TIME);
+    const mass = loadUsualMass();
+    setDraftMassParish(mass?.parish ?? '');
+    setDraftMassTime(mass?.time ?? '');
+    setDraftMassDay(mass?.day ?? 'sunday');
+    setDraftConfDay(parish.confessionDay);
+    setDraftConfTime(parish.confessionTime ?? '');
+    setDraftMassLead(parish.massReminderLead);
+    setDraftConfLead(parish.confessionReminderLead);
+    setParishKept(false);
     setPushState(getPushState());
   };
 
   const handleEnable = async () => {
     setBusy(true);
     setMessage(null);
-    // The drive draft goes to its store first, so the subscription save's
-    // own parish sync carries it to the server in the same motion.
+    // The parish and drive drafts go to their stores first, so the
+    // subscription save's own parish sync carries them to the server in
+    // the same motion.
+    persistParishDraft();
     persistDriveDraft();
     const result = await subscribeToPush(DEFAULT_FOCUS, draftTime, draftEvening);
     setBusy(false);
@@ -109,6 +176,7 @@ export function ReminderForm({ t }: ReminderFormProps) {
     setBusy(false);
     setMessage({ ok: result.ok, text: result.message });
     if (result.ok) {
+      persistParishDraft();
       persistDriveDraft();
       void syncParishReminders();
       refresh();
@@ -204,9 +272,11 @@ export function ReminderForm({ t }: ReminderFormProps) {
 
   /**
    * The optional drive-home poke (Nov 18, 2026): its own hour, its own
-   * landing — Tonight, to close the day on the ride home. Independent of
-   * the other slots by design: it may share an hour with the evening
-   * reminder and still fire for its own purpose.
+   * purpose. Since Nov 20, 2026 the poke sends the man to tailor his
+   * devotional for the drive home — its tap opens the Tailor build, so
+   * the devotional is made for the road before the road begins.
+   * Independent of the other slots by design: it may share an hour with
+   * the evening reminder and still fire for its own purpose.
    */
   const driveSection = (
     <div>
@@ -242,10 +312,197 @@ export function ReminderForm({ t }: ReminderFormProps) {
             style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
           />
           <p className="text-[13px] leading-relaxed mt-2" style={{ color: t.textMuted }}>
-            For the ride home — opens Tonight, to close the day.
+            For the ride home — a poke to tailor your devotional for the road.
           </p>
         </div>
       )}
+    </div>
+  );
+
+  /**
+   * The parish reminders (Erik, Nov 20, 2026): the usual Mass, the
+   * parish's Confession hour, and how far ahead of each a poke may come.
+   * They stand in Settings already; they stand here too, because this is
+   * the reminder sheet — one store, two doors. Every control below reads
+   * and writes the same on-device stores Settings uses and syncs through
+   * the same parish sync, so the two surfaces cannot diverge. Days,
+   * times, and leads are all the server ever hears; the parish's name
+   * stays on this phone, here as there.
+   */
+  const leadButton = (
+    label: string,
+    selected: boolean,
+    onPick: () => void,
+  ) => (
+    <button
+      key={label}
+      onClick={onPick}
+      disabled={busy}
+      aria-pressed={selected}
+      className="py-2 px-3 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all disabled:opacity-60"
+      style={
+        selected
+          ? { backgroundColor: t.accentRgba(0.14), borderColor: t.accentRgba(0.4), color: t.accent }
+          : { backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.textMuted }
+      }
+    >
+      {label}
+    </button>
+  );
+
+  const parishSection = (
+    <div>
+      <p className="text-[13px] font-bold mb-1" style={{ color: t.text }}>
+        Your parish
+      </p>
+      <p className="text-[13px] leading-relaxed mb-3" style={{ color: t.textMuted }}>
+        Your usual Mass and your parish&rsquo;s Confession hour, and how far ahead of each a
+        poke may come. The same settings as in Settings, kept on this device only — the
+        parish name never leaves this phone.
+      </p>
+
+      <label
+        className="block text-[12px] uppercase tracking-widest font-bold mb-2"
+        style={{ color: t.textDim }}
+      >
+        Parish name
+      </label>
+      <input
+        type="text"
+        value={draftMassParish}
+        maxLength={USUAL_MASS_PARISH_MAX}
+        onChange={(e) => { setDraftMassParish(e.target.value); setParishKept(false); }}
+        disabled={busy}
+        placeholder="Parish name"
+        aria-label="Parish name"
+        className="w-full text-sm rounded-lg px-3 py-2.5 border focus:outline-none transition-colors disabled:opacity-60 mb-3"
+        style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
+      />
+
+      <label
+        className="block text-[12px] uppercase tracking-widest font-bold mb-2"
+        style={{ color: t.textDim }}
+      >
+        Usual Mass
+      </label>
+      <div className="flex gap-2 mb-3">
+        <input
+          type="time"
+          value={draftMassTime}
+          onChange={(e) => { setDraftMassTime(e.target.value); setParishKept(false); }}
+          disabled={busy}
+          aria-label="Mass time"
+          className="text-sm rounded-lg px-3 py-2.5 border focus:outline-none transition-colors disabled:opacity-60"
+          style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
+        />
+        <div className="grid grid-cols-2 gap-2 flex-1">
+          {([
+            { id: 'sunday', label: 'Sunday' },
+            { id: 'saturday', label: 'Sat vigil' },
+          ] as const).map((opt) => {
+            const selected = draftMassDay === opt.id;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => { setDraftMassDay(opt.id); setParishKept(false); }}
+                disabled={busy}
+                aria-pressed={selected}
+                className="py-2 px-2 rounded-lg border text-[12px] font-bold uppercase tracking-wide transition-all disabled:opacity-60"
+                style={
+                  selected
+                    ? { backgroundColor: t.accentRgba(0.14), borderColor: t.accentRgba(0.4), color: t.accent }
+                    : { backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.textMuted }
+                }
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <label
+        className="block text-[12px] uppercase tracking-widest font-bold mb-2"
+        style={{ color: t.textDim }}
+      >
+        Parish Confession
+      </label>
+      <div className="flex gap-2 mb-3">
+        <select
+          value={draftConfDay === null ? '' : String(draftConfDay)}
+          onChange={(e) => { setDraftConfDay(e.target.value === '' ? null : Number(e.target.value)); setParishKept(false); }}
+          disabled={busy}
+          aria-label="Confession day"
+          className="text-sm rounded-lg px-3 py-2.5 border focus:outline-none transition-colors disabled:opacity-60 flex-1"
+          style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
+        >
+          <option value="">No set day</option>
+          {WEEKDAY_NAMES.map((name, i) => (
+            <option key={name} value={i}>{name}</option>
+          ))}
+        </select>
+        <input
+          type="time"
+          value={draftConfTime}
+          onChange={(e) => { setDraftConfTime(e.target.value); setParishKept(false); }}
+          disabled={busy}
+          aria-label="Confession time"
+          className="text-sm rounded-lg px-3 py-2.5 border focus:outline-none transition-colors disabled:opacity-60"
+          style={{ backgroundColor: `${t.border}40`, borderColor: `${t.border}80`, color: t.text }}
+        />
+      </div>
+
+      <label
+        className="block text-[12px] uppercase tracking-widest font-bold mb-2"
+        style={{ color: t.textDim }}
+      >
+        Mass reminder
+      </label>
+      <div className="flex flex-wrap gap-2 mb-3">
+        {MASS_LEAD_OPTIONS.map((opt) =>
+          leadButton(opt.label, draftMassLead === opt.value, () => { setDraftMassLead(opt.value); setParishKept(false); }),
+        )}
+      </div>
+
+      <label
+        className="block text-[12px] uppercase tracking-widest font-bold mb-2"
+        style={{ color: t.textDim }}
+      >
+        Confession reminder
+      </label>
+      <div className="flex flex-wrap gap-2">
+        {CONFESSION_LEAD_OPTIONS.map((opt) =>
+          leadButton(opt.label, draftConfLead === opt.value, () => { setDraftConfLead(opt.value); setParishKept(false); }),
+        )}
+      </div>
+      {draftConfLead === CONFESSION_EVENING_BEFORE_LEAD && (
+        <p className="text-[13px] leading-relaxed mt-2" style={{ color: t.textMuted }}>
+          One poke at 7:00 PM the evening before Confession day.
+        </p>
+      )}
+
+      {(draftMassLead !== null || draftConfLead !== null) && (
+        <p className="text-[13px] leading-relaxed mt-3" style={{ color: t.textMuted }}>
+          {pushState === 'subscribed'
+            ? 'Rides your Sanctum notifications — the parish name never leaves this phone.'
+            : 'Reminders begin once notifications are on. They ride your Sanctum notifications — the parish name never leaves this phone.'}
+        </p>
+      )}
+      {parishKept && (
+        <p className="text-[13px] leading-relaxed mt-3" style={{ color: t.textMuted }}>
+          Reminder settings kept on this device.
+        </p>
+      )}
+
+      <button
+        onClick={handleSaveParish}
+        disabled={busy}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-all active:scale-[0.98] disabled:opacity-50 mt-3"
+        style={{ backgroundColor: t.accentRgba(0.14), borderColor: t.accentRgba(0.4), color: t.accent }}
+      >
+        <Check className="w-3.5 h-3.5" />
+        <span className="text-xs font-bold uppercase tracking-wide">Keep these parish reminders</span>
+      </button>
     </div>
   );
 
@@ -335,6 +592,8 @@ export function ReminderForm({ t }: ReminderFormProps) {
 
         {driveSection}
 
+        {parishSection}
+
         {(draftTime !== saved.localTime || draftEvening !== saved.eveningTime || draftDrive !== savedDriveTime) && (
           <button
             onClick={() => void handleSaveTimes()}
@@ -389,6 +648,8 @@ export function ReminderForm({ t }: ReminderFormProps) {
         {eveningSection}
 
         {driveSection}
+
+        {parishSection}
 
         {/* One sentence of warning before the phone's own ask appears
             (audit W-7, Nov 16, 2026): the permission prompt is never the
