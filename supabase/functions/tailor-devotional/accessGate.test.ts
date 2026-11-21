@@ -18,7 +18,7 @@ import {
 // ordering block, which is each handler's own.
 
 const TOKEN = "test-token-0123456789abcdef";
-const ENV = { supabaseUrl: "https://example.supabase.co", serviceKey: "service-key" };
+const ENV = { supabaseUrl: "https://example.supabase.co", apiKey: "anon-key" };
 
 beforeAll(() => {
   // The module reads Deno.env for its defaults in production; the test

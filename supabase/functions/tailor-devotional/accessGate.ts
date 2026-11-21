@@ -44,7 +44,7 @@ export async function hashAccessToken(token: string): Promise<string> {
 export interface AccessGateDeps {
   fetchImpl?: typeof fetch;
   supabaseUrl?: string;
-  serviceKey?: string;
+  apiKey?: string;
 }
 
 /**
@@ -58,9 +58,15 @@ export async function checkAccessToken(rawToken: unknown, deps: AccessGateDeps =
 
   const fetchImpl = deps.fetchImpl ?? fetch;
   const supabaseUrl = deps.supabaseUrl ?? Deno.env.get("SUPABASE_URL");
-  const serviceKey = deps.serviceKey ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) {
-    console.error("access gate misconfigured: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  // The verdict door needs no privilege — the hash is the credential —
+  // so the call presents the PUBLIC key, the one key style the
+  // database API accepts in every generation. (On Nov 20, 2026 the
+  // service key injected into the functions became a style the
+  // database API rejects outright, and every service-key call failed
+  // while public-key calls kept working.)
+  const apiKey = deps.apiKey ?? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !apiKey) {
+    console.error("access gate misconfigured: missing SUPABASE_URL or an API key");
     return false;
   }
 
@@ -75,8 +81,8 @@ export async function checkAccessToken(rawToken: unknown, deps: AccessGateDeps =
     const res = await fetchImpl(`${supabaseUrl}/rest/v1/rpc/check_access_token`, {
       method: "POST",
       headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
+        apikey: apiKey,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ p_token_hash: tokenHash }),
