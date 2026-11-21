@@ -2,6 +2,7 @@ import { BookOpen } from 'lucide-react';
 import { PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import type { Audience, PersonaTheme } from '@/types';
 import { CatechismQA } from '@/components/CatechismQA';
+import { SCRIPTURE_TRANSLATION_LINE } from '@/lib/scripture';
 
 interface PocketCatechismProps {
   t: PersonaTheme;
@@ -29,6 +30,12 @@ export function PocketCatechism({ t, audience }: PocketCatechismProps) {
 
       <p className="text-[12px] leading-relaxed mb-3" style={{ color: t.textDim }}>
         The Catechism as a question surface — ask, and the answer is grounded in the text itself.
+      </p>
+
+      {/* The translation, named on the page (Pocket Church audit, Nov 20,
+          2026, item 6) — the same Douay-Rheims the bank quotes. */}
+      <p className="text-[12px] italic leading-relaxed mb-3" style={{ color: t.textDim }}>
+        {SCRIPTURE_TRANSLATION_LINE}
       </p>
 
       <CatechismQA t={t} audience={audience} />

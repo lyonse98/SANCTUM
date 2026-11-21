@@ -181,3 +181,54 @@ export const DUTIES_OF_STATE_WOMEN: DutyOfState[] = [
 export function getDutiesOfState(audience: Audience): DutyOfState[] {
   return audience === 'women' ? DUTIES_OF_STATE_WOMEN : DUTIES_OF_STATE;
 }
+
+/**
+ * The sacrament itself, taught plainly (Pocket Church audit, Nov 20, 2026,
+ * item 1): the examination below prepares a man or woman to look at their
+ * life, but a priest also needs the penitent to know what a mortal sin is,
+ * that mortal sins are confessed in kind and number, and what actually
+ * happens inside the confessional. Same words for both tracks — the
+ * doctrine does not change with the reader. Pastoral, never legalistic:
+ * every paragraph ends by handing the reader back to the priest.
+ */
+export interface TeachingBlock {
+  title: string;
+  /** Plain paragraphs, in order. */
+  paragraphs?: string[];
+  /** An ordered walk-through, where the teaching is a sequence. */
+  steps?: string[];
+}
+
+export const SACRAMENT_TEACHING: TeachingBlock[] = [
+  {
+    title: 'Mortal sin and venial sin',
+    paragraphs: [
+      'A mortal sin is a grave wrong, done with full knowledge that it is gravely wrong, and with deliberate consent — all three together (CCC 1857–1859). One of the three missing, and the sin is not mortal, however grave the act. Mortal sin breaks our friendship with God; it must be confessed before receiving Communion.',
+      'Venial sins are the lesser wounds — real sins, but they strain that friendship without breaking it. Confessing them is not required, and the Church warmly recommends it: they are forgiven, and we grow stronger against them (CCC 1458). When you are unsure which kind a sin was, tell the priest plainly and let him help you see it.',
+    ],
+  },
+  {
+    title: 'In kind and number',
+    paragraphs: [
+      'Confess mortal sins in kind and number: what you did, and how many times, as honestly as you can remember (CCC 1456). Not the story, not the details — the kind and the count. If you forget a mortal sin in good faith, it is forgiven with the rest; when you remember it, simply name it at your next confession.',
+    ],
+  },
+  {
+    title: 'What happens in the confessional',
+    steps: [
+      'The priest greets you, and together you make the Sign of the Cross.',
+      '“Bless me, Father, for I have sinned” — and say how long it has been since your last confession. Years away is no obstacle; tell him, and he will be glad you came.',
+      'Confess your sins — mortal sins in kind and number, and any venial sins you want to lay down.',
+      'Listen. The priest may offer counsel, and he will give you a penance.',
+      'Pray the Act of Contrition aloud — it is printed below, and no priest minds if you read it.',
+      'The priest gives absolution: Christ forgiving you, through him. Listen for those words.',
+      'He dismisses you in peace. Then go and do your penance, and thank God.',
+    ],
+  },
+  {
+    title: 'If you struggle with scruples',
+    paragraphs: [
+      'If you find yourself confessing the same already-forgiven sins again and again, or unable to rest in the absolution you heard, bring that itself to one priest — and take his direction over any page, including this one. A page cannot know you. A confessor can.',
+    ],
+  },
+];

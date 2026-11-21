@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, RotateCcw, CircleDot } from 'lucide-react';
 import { PRINT_CHOSEN_FILL_ALPHA, PRINT_SERIF, PRINT_STAMP_CLASS } from '@/lib/print';
 import type { PersonaTheme } from '@/types';
+import { PRAYERS } from '@/data/prayers';
 
 interface RosaryPrayerProps {
   t: PersonaTheme;
@@ -13,36 +14,58 @@ interface Mystery {
   name: string;
   scripture: string;
   fruit: string;
+  /** One or two plain lines to actually contemplate, drawn from the cited Scripture. */
+  meditation: string;
 }
 
-const MYSTERIES: Record<MysterySet, Mystery[]> = {
+export const MYSTERIES: Record<MysterySet, Mystery[]> = {
   joyful: [
-    { name: 'The Annunciation', scripture: 'Luke 1:26–38', fruit: 'Humility' },
-    { name: 'The Visitation', scripture: 'Luke 1:39–56', fruit: 'Love of neighbor' },
-    { name: 'The Nativity', scripture: 'Luke 2:1–20', fruit: 'Poverty of spirit' },
-    { name: 'The Presentation', scripture: 'Luke 2:22–40', fruit: 'Obedience' },
-    { name: 'The Finding in the Temple', scripture: 'Luke 2:41–52', fruit: 'Joy in finding Jesus' },
+    { name: 'The Annunciation', scripture: 'Luke 1:26–38', fruit: 'Humility',
+      meditation: 'The angel waits for her answer. Mary asks one question, then gives God her whole life in a sentence: “Be it done unto me according to thy word.”' },
+    { name: 'The Visitation', scripture: 'Luke 1:39–56', fruit: 'Love of neighbor',
+      meditation: 'Mary hurries to Elizabeth, and the child in Elizabeth’s womb leaps. Her answer to praise is the Magnificat — she points everything back to God.' },
+    { name: 'The Nativity', scripture: 'Luke 2:1–20', fruit: 'Poverty of spirit',
+      meditation: 'The Son of God is born in a stable and laid in a feeding trough. Shepherds — the lowest men in the county — are the first ones told.' },
+    { name: 'The Presentation', scripture: 'Luke 2:22–40', fruit: 'Obedience',
+      meditation: 'Forty days old, and already Simeon calls Him a light — and tells His mother a sword will pierce her soul. She offers Him anyway.' },
+    { name: 'The Finding in the Temple', scripture: 'Luke 2:41–52', fruit: 'Joy in finding Jesus',
+      meditation: 'Three days of searching end in the Temple, where the boy is about His Father’s business. Mary does not understand — and keeps it all in her heart.' },
   ],
   sorrowful: [
-    { name: 'The Agony in the Garden', scripture: 'Matthew 26:36–46', fruit: 'Sorrow for sin' },
-    { name: 'The Scourging at the Pillar', scripture: 'John 19:1', fruit: 'Purity' },
-    { name: 'The Crowning with Thorns', scripture: 'Matthew 27:27–31', fruit: 'Courage' },
-    { name: 'The Carrying of the Cross', scripture: 'John 19:17', fruit: 'Patience' },
-    { name: 'The Crucifixion', scripture: 'Luke 23:33–46', fruit: 'Perseverance' },
+    { name: 'The Agony in the Garden', scripture: 'Matthew 26:36–46', fruit: 'Sorrow for sin',
+      meditation: 'He asks that the cup pass, sweats blood, and then surrenders: “Not as I will, but as thou wilt.” His friends sleep through it.' },
+    { name: 'The Scourging at the Pillar', scripture: 'John 19:1', fruit: 'Purity',
+      meditation: 'Pilate has Him whipped — an innocent man torn open to quiet a crowd. He says nothing in His own defense.' },
+    { name: 'The Crowning with Thorns', scripture: 'Matthew 27:27–31', fruit: 'Courage',
+      meditation: 'A crown of thorns, a reed for a scepter, soldiers spitting and mocking. The King is crowned with contempt — and does not call down heaven.' },
+    { name: 'The Carrying of the Cross', scripture: 'John 19:17', fruit: 'Patience',
+      meditation: 'He carries the wood of His own execution through the streets. Every step is a choice to keep going toward the hill.' },
+    { name: 'The Crucifixion', scripture: 'Luke 23:33–46', fruit: 'Perseverance',
+      meditation: 'Nailed between criminals, He forgives His killers, gives His mother to John, and breathes His last trusting the Father: “Into thy hands I commend my spirit.”' },
   ],
   glorious: [
-    { name: 'The Resurrection', scripture: 'John 20:1–18', fruit: 'Faith' },
-    { name: 'The Ascension', scripture: 'Acts 1:6–11', fruit: 'Hope' },
-    { name: 'The Descent of the Holy Spirit', scripture: 'Acts 2:1–13', fruit: 'Wisdom' },
-    { name: 'The Assumption', scripture: 'Revelation 12:1', fruit: 'Grace of a happy death' },
-    { name: 'The Coronation', scripture: 'Revelation 12:1', fruit: 'Trust in Mary\'s intercession' },
+    { name: 'The Resurrection', scripture: 'John 20:1–18', fruit: 'Faith',
+      meditation: 'The tomb is empty before dawn. Mary Magdalene hears her name — “Mary” — and the grief breaks: He is alive, and He calls her by name.' },
+    { name: 'The Ascension', scripture: 'Acts 1:6–11', fruit: 'Hope',
+      meditation: 'Forty days after rising, He ascends before their eyes, promising the Spirit. They return to Jerusalem not crushed, but waiting in prayer.' },
+    { name: 'The Descent of the Holy Spirit', scripture: 'Acts 2:1–13', fruit: 'Wisdom',
+      meditation: 'Wind and fire in an upper room, and the men who hid behind locked doors preach in the open street. Three thousand are baptized that day.' },
+    { name: 'The Assumption', scripture: 'Revelation 12:1', fruit: 'Grace of a happy death',
+      meditation: 'A woman clothed with the sun. Where Mary has gone — body and soul into heaven — is where her Son means to bring all of us.' },
+    { name: 'The Coronation', scripture: 'Revelation 12:1', fruit: 'Trust in Mary\'s intercession',
+      meditation: 'Mary reigns not by grasping but by having said yes. The handmaid is queen, and her crown is her Son’s gift, not her ambition.' },
   ],
   luminous: [
-    { name: 'The Baptism of Jesus', scripture: 'Matthew 3:13–17', fruit: 'Openness to the Holy Spirit' },
-    { name: 'The Wedding at Cana', scripture: 'John 2:1–11', fruit: 'To Jesus through Mary' },
-    { name: 'The Proclamation of the Kingdom', scripture: 'Mark 1:14–15', fruit: 'Repentance' },
-    { name: 'The Transfiguration', scripture: 'Matthew 17:1–8', fruit: 'Desire for holiness' },
-    { name: 'The Institution of the Eucharist', scripture: 'Matthew 26:26–29', fruit: 'Adoration' },
+    { name: 'The Baptism of Jesus', scripture: 'Matthew 3:13–17', fruit: 'Openness to the Holy Spirit',
+      meditation: 'Jesus wades into the Jordan He does not need, and heaven opens: “This is my beloved Son.” He begins His work by standing with sinners.' },
+    { name: 'The Wedding at Cana', scripture: 'John 2:1–11', fruit: 'To Jesus through Mary',
+      meditation: '“They have no wine.” At His mother’s word, water becomes wine — the first sign, given at a wedding feast, before the hour had come.' },
+    { name: 'The Proclamation of the Kingdom', scripture: 'Mark 1:14–15', fruit: 'Repentance',
+      meditation: '“The time is accomplished: repent, and believe the gospel.” The Kingdom is not a place on a map; it starts wherever a man turns back to God.' },
+    { name: 'The Transfiguration', scripture: 'Matthew 17:1–8', fruit: 'Desire for holiness',
+      meditation: 'On the mountain His face shines like the sun, and the Father repeats the word from the Jordan: “Hear ye him.” Glory, shown briefly, to carry them through the Cross.' },
+    { name: 'The Institution of the Eucharist', scripture: 'Matthew 26:26–29', fruit: 'Adoration',
+      meditation: '“This is my body… this is my blood.” The night before He dies, He gives Himself as food — and tells them to do this in His memory.' },
   ],
 };
 
@@ -61,46 +84,65 @@ function defaultMysterySet(): MysterySet {
   return 'luminous';
 }
 
-const OUR_FATHER =
-  'Our Father, who art in heaven,\nhallowed be Thy name;\nThy kingdom come;\nThy will be done on earth\nas it is in heaven.\n\nGive us this day our daily bread;\nand forgive us our trespasses,\nas we forgive those who trespass\nagainst us;\nand lead us not into temptation,\nbut deliver us from evil.\n\nAmen.';
+/**
+ * The prayer texts are read off the one shared shelf (src/data/prayers.ts) —
+ * the same texts the Prayer Library prints — so the Rosary can never drift
+ * into a second, divergent copy. That drift is exactly what the Pocket
+ * Church audit found (Nov 20, 2026): the Rosary's own Hail, Holy Queen was
+ * truncated while the library's copy was complete. One shelf, one text.
+ */
+const shelfText = (title: string) => PRAYERS.find((p) => p.title === title)?.text ?? '';
 
-const HAIL_MARY =
-  'Hail Mary, full of grace,\nthe Lord is with thee.\nBlessed art thou among women,\nand blessed is the fruit of\nthy womb, Jesus.\n\nHoly Mary, Mother of God,\npray for us sinners,\nnow and at the hour of our death.\n\nAmen.';
-
-const GLORY_BE =
-  'Glory be to the Father,\nand to the Son,\nand to the Holy Spirit.\n\nAs it was in the beginning,\nis now, and ever shall be,\nworld without end.\n\nAmen.';
+const OUR_FATHER = shelfText('Our Father');
+const HAIL_MARY = shelfText('Hail Mary');
+const GLORY_BE = shelfText('Glory Be');
+const APOSTLES_CREED = shelfText('Apostles\' Creed');
+const HAIL_HOLY_QUEEN = shelfText('Hail, Holy Queen');
 
 const FATIMA_PRAYER =
   'O my Jesus, forgive us our sins,\nsave us from the fires of hell,\nlead all souls to Heaven,\nespecially those most in need\nof Thy mercy.';
 
-const HAIL_HOLY_QUEEN =
-  'Hail, Holy Queen, Mother of Mercy,\nour life, our sweetness, and our hope.\nTo thee do we cry, poor banished children of Eve;\nto thee do we send up our sighs,\nmourning and weeping in this valley of tears.\n\nTurn then, most gracious Advocate,\nthine eyes of mercy toward us,\nand after this our exile,\nshow unto us the blessed fruit of thy womb, Jesus.\n\nO clement, O loving, O sweet Virgin Mary!';
+/** The Rosary's traditional ending: the versicle after the Salve Regina and
+ *  the concluding prayer (the collect for the feast of the Holy Rosary). */
+const CONCLUDING_PRAYER =
+  'V. Pray for us, O holy Mother of God.\nR. That we may be made worthy of the promises of Christ.\n\nLet us pray.\n\nO God, whose only-begotten Son, by His life, death, and resurrection, has purchased for us the rewards of eternal life, grant, we beseech Thee, that meditating upon these mysteries of the most holy Rosary of the Blessed Virgin Mary, we may imitate what they contain and obtain what they promise, through the same Christ our Lord.\n\nAmen.';
 
-const APOSTLES_CREED =
-  'I believe in God, the Father almighty,\nCreator of heaven and earth,\nand in Jesus Christ, his only Son, our Lord,\nwho was conceived by the Holy Spirit,\nborn of the Virgin Mary,\nsuffered under Pontius Pilate,\nwas crucified, died and was buried;\nhe descended into hell;\non the third day he rose again from the dead;\nhe ascended into heaven,\nand is seated at the right hand of God\nthe Father almighty;\nfrom there he will come to judge\nthe living and the dead.\n\nI believe in the Holy Spirit,\nthe holy catholic Church,\nthe communion of saints,\nthe forgiveness of sins,\nthe resurrection of the body,\nand life everlasting.\n\nAmen.';
+/** What each of the three introductory Hail Marys is offered for. */
+const INTRO_HAIL_MARY_FOR = ['faith', 'hope', 'love'];
 
 type Phase =
   | { kind: 'creed' }
   | { kind: 'our-father-intro' }
+  | { kind: 'intro-hail-mary'; index: number }
+  | { kind: 'intro-glory-be' }
   | { kind: 'decade'; decadeIndex: number; beadIndex: number }
-  | { kind: 'closing' };
+  | { kind: 'hail-holy-queen' }
+  | { kind: 'concluding' };
 
+/** Creed, Our Father, three Hail Marys, Glory Be, five decades of eleven
+ *  steps, the Hail, Holy Queen, and the concluding prayer. */
 function totalSteps(): number {
-  return 1 + 1 + 5 * 11 + 1;
+  return 1 + 1 + 3 + 1 + 5 * 11 + 1 + 1;
 }
 
 function stepFromPhase(phase: Phase): number {
   if (phase.kind === 'creed') return 0;
   if (phase.kind === 'our-father-intro') return 1;
-  if (phase.kind === 'closing') return totalSteps() - 1;
-  return 2 + phase.decadeIndex * 11 + phase.beadIndex;
+  if (phase.kind === 'intro-hail-mary') return 1 + phase.index;
+  if (phase.kind === 'intro-glory-be') return 5;
+  if (phase.kind === 'hail-holy-queen') return totalSteps() - 2;
+  if (phase.kind === 'concluding') return totalSteps() - 1;
+  return 6 + phase.decadeIndex * 11 + phase.beadIndex;
 }
 
 function phaseFromStep(step: number): Phase {
   if (step === 0) return { kind: 'creed' };
   if (step === 1) return { kind: 'our-father-intro' };
-  if (step >= totalSteps() - 1) return { kind: 'closing' };
-  const relative = step - 2;
+  if (step >= 2 && step <= 4) return { kind: 'intro-hail-mary', index: step - 1 };
+  if (step === 5) return { kind: 'intro-glory-be' };
+  if (step === totalSteps() - 2) return { kind: 'hail-holy-queen' };
+  if (step >= totalSteps() - 1) return { kind: 'concluding' };
+  const relative = step - 6;
   const decadeIndex = Math.floor(relative / 11);
   const beadIndex = relative % 11;
   return { kind: 'decade', decadeIndex, beadIndex };
@@ -109,7 +151,16 @@ function phaseFromStep(step: number): Phase {
 function prayerForPhase(phase: Phase): { title: string; text: string; sub?: string } {
   if (phase.kind === 'creed') return { title: 'Apostles\' Creed', text: APOSTLES_CREED, sub: 'Begin with the sign of the cross.' };
   if (phase.kind === 'our-father-intro') return { title: 'Our Father', text: OUR_FATHER, sub: 'Then three Hail Marys for faith, hope, and love.' };
-  if (phase.kind === 'closing') return { title: 'Hail, Holy Queen', text: HAIL_HOLY_QUEEN, sub: 'Finish with the sign of the cross.' };
+  if (phase.kind === 'intro-hail-mary') {
+    return {
+      title: `Hail Mary ${phase.index} of 3`,
+      text: HAIL_MARY,
+      sub: `For ${INTRO_HAIL_MARY_FOR[phase.index - 1]}.`,
+    };
+  }
+  if (phase.kind === 'intro-glory-be') return { title: 'Glory Be', text: GLORY_BE };
+  if (phase.kind === 'hail-holy-queen') return { title: 'Hail, Holy Queen', text: HAIL_HOLY_QUEEN };
+  if (phase.kind === 'concluding') return { title: 'Concluding Prayer', text: CONCLUDING_PRAYER, sub: 'Finish with the sign of the cross.' };
   const { beadIndex } = phase;
   if (beadIndex === 0) return { title: 'Our Father', text: OUR_FATHER };
   if (beadIndex >= 1 && beadIndex <= 10) return { title: `Hail Mary ${beadIndex} of 10`, text: HAIL_MARY };
@@ -172,7 +223,8 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
         ))}
       </div>
 
-      {/* Mystery name banner (during decades) — a ruled inset. */}
+      {/* Mystery name banner (during decades) — a ruled inset, now carrying
+          the meditation itself, not only the mystery's name (audit item 4). */}
       {currentMystery && (
         <div
           className="px-4 py-3 mb-4 border text-center animate-fade-in"
@@ -186,6 +238,9 @@ export function RosaryPrayer({ t }: RosaryPrayerProps) {
           </p>
           <p className="text-[12px] mt-1" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
             {currentMystery.scripture} · Fruit: {currentMystery.fruit}
+          </p>
+          <p className="text-[13px] leading-relaxed mt-2" style={{ fontFamily: PRINT_SERIF, color: t.text }}>
+            {currentMystery.meditation}
           </p>
         </div>
       )}

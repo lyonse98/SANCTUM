@@ -8,7 +8,7 @@ import {
   saveExaminationLens,
   type ExaminationLens,
 } from '@/lib/beatitudes';
-import { getCommandments, getDutiesOfState } from '@/lib/confession';
+import { getCommandments, getDutiesOfState, SACRAMENT_TEACHING } from '@/lib/confession';
 import { HELP_SECTIONS } from '@/lib/realHelp';
 import { ConfirmEraseSheet } from '@/components/ConfirmEraseSheet';
 import { PRAYERS } from '@/data/prayers';
@@ -102,6 +102,37 @@ export function ConfessionGuide({ t, audience }: ConfessionGuideProps) {
           Conscience to help you prepare for the Sacrament of Reconciliation with a validly ordained priest.
           Sanctum cannot hear confessions, offer counsel as clergy, or grant absolution.
         </p>
+      </div>
+
+      {/* The sacrament taught before the examination begins (Pocket Church
+          audit, Nov 20, 2026, item 1): what a mortal sin is, kind and
+          number, the rite's own steps, and a word for the scrupulous. The
+          examination prepares a confession only if the penitent knows what
+          a confession is. */}
+      <div className="mb-4 px-3 py-3 border" style={{ backgroundColor: `${t.border}14`, borderColor: t.border }}>
+        <p className={`${PRINT_STAMP_CLASS} mb-2`} style={{ color: t.accent }}>
+          The Sacrament, Plainly
+        </p>
+        {SACRAMENT_TEACHING.map((block) => (
+          <div key={block.title} className="mb-3 last:mb-0">
+            <p className="text-[12px] font-bold mb-1" style={{ color: t.textBright }}>{block.title}</p>
+            {block.paragraphs?.map((paragraph) => (
+              <p key={paragraph.slice(0, 24)} className="text-[13px] leading-relaxed mb-1.5 last:mb-0" style={{ color: t.textMuted }}>
+                {paragraph}
+              </p>
+            ))}
+            {block.steps && (
+              <ol className="space-y-1.5">
+                {block.steps.map((step, i) => (
+                  <li key={step.slice(0, 24)} className="flex items-start gap-2">
+                    <span className="text-[12px] font-bold flex-shrink-0 mt-px" style={{ color: t.accent }}>{i + 1}.</span>
+                    <span className="text-[13px] leading-relaxed" style={{ color: t.textMuted }}>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* The lens choice — the law, or the blessings. Two options only; the rest

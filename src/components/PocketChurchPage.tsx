@@ -9,7 +9,9 @@ import { PrayerLibrary } from '@/components/PrayerLibrary';
 import { ConfessionGuide } from '@/components/ConfessionGuide';
 import { PocketCatechism } from '@/components/PocketCatechism';
 import { RosaryPrayer } from '@/components/RosaryPrayer';
+import { StationsOfTheCross } from '@/components/StationsOfTheCross';
 import { Novenas } from '@/components/Novenas';
+import { SCRIPTURE_TRANSLATION_LINE } from '@/lib/scripture';
 import { markFirstValue } from '@/lib/reminderCard';
 
 interface PocketChurchPageProps {
@@ -41,8 +43,9 @@ interface PocketChurchPageProps {
  */
 export type ChurchTab = 'pray' | 'confession' | 'ask';
 
-/** Inside the Pray door: the Rosary first, then the novenas, then the prayer library. */
-export type PraySection = 'rosary' | 'novenas' | 'prayers';
+/** Inside the Pray door: the Rosary first, then the Stations, the novenas,
+ *  and the prayer library. (Stations added Nov 20, 2026 — audit item 3.) */
+export type PraySection = 'rosary' | 'stations' | 'novenas' | 'prayers';
 
 const TABS: { id: ChurchTab; label: string }[] = [
   { id: 'pray', label: 'Pray' },
@@ -139,11 +142,12 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
         <div className="w-full">
           {activeTab === 'pray' && (
             <div>
-              {/* Inside Pray: the Rosary first, the novenas beside it, the library last. */}
+              {/* Inside Pray: the Rosary first, the Stations beside it, then the novenas, the library last. */}
               <div className="flex gap-2 mb-4">
                 {(
                   [
                     { id: 'rosary', label: 'The Rosary' },
+                    { id: 'stations', label: 'Stations' },
                     { id: 'novenas', label: 'Novenas' },
                     { id: 'prayers', label: 'Prayer Library' },
                   ] as { id: PraySection; label: string }[]
@@ -172,11 +176,18 @@ export function PocketChurchPage({ onBack, initialTab, onConsumeTab, initialPray
               </div>
               {praySection === 'rosary' ? (
                 <RosaryPrayer t={t} />
+              ) : praySection === 'stations' ? (
+                <StationsOfTheCross t={t} />
               ) : praySection === 'novenas' ? (
                 <Novenas t={t} audience={audience} />
               ) : (
                 <PrayerLibrary t={t} />
               )}
+              {/* The translation, named on the page (audit item 6): a reader
+                  should never have to ask which Bible he is reading. */}
+              <p className="text-[12px] italic text-center mt-4" style={{ fontFamily: PRINT_SERIF, color: t.textDim }}>
+                {SCRIPTURE_TRANSLATION_LINE}
+              </p>
             </div>
           )}
           {activeTab === 'confession' && <ConfessionGuide t={t} audience={audience} />}

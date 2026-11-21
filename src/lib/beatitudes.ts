@@ -4,8 +4,13 @@
  * I break it"), the Beatitudes examine him from the blessing side ("where did I
  * refuse the blessed life"). Same tool, same privacy: everything stays on-device.
  *
- * Verse text follows the translation the app already quotes (see src/data/quotes.ts),
- * with "meek" kept in 5:5 — the word Catholic men know this beatitude by.
+ * Verse text is Douay-Rheims (public domain) — the translation the app
+ * names wherever it quotes Scripture (see src/lib/scripture.ts) — verified
+ * against the Douay-Rheims text when the Pocket Church audit's item 6 was
+ * built (Nov 20, 2026). The references keep the modern verse numbers the
+ * app cites everywhere else; Douay-Rheims, following the Vulgate, numbers
+ * the meek and the mourning a verse apart (5:4 and 5:5 exchanged) — the
+ * words under each reference here are that beatitude's own.
  */
 
 export interface Beatitude {
@@ -25,7 +30,7 @@ export const BEATITUDES: Beatitude[] = [
   {
     name: 'The Poor in Spirit',
     ref: 'Matthew 5:3',
-    verse: 'Blessed are the poor in spirit, for theirs is the Kingdom of Heaven.',
+    verse: 'Blessed are the poor in spirit: for theirs is the kingdom of heaven.',
     framing: 'The saint starts empty-handed. Pride is refusing to need God — and refusing to need anyone.',
     questions: [
       'Have I tried to carry everything myself rather than bring it to God in prayer?',
@@ -36,7 +41,7 @@ export const BEATITUDES: Beatitude[] = [
   {
     name: 'Those Who Mourn',
     ref: 'Matthew 5:4',
-    verse: 'Blessed are those who mourn, for they shall be comforted.',
+    verse: 'Blessed are they that mourn: for they shall be comforted.',
     framing: 'Blessed are the men who let sin grieve them instead of going numb to it.',
     questions: [
       'Have I felt real sorrow for my sins — or have I excused, minimized, or laughed them off?',
@@ -47,7 +52,7 @@ export const BEATITUDES: Beatitude[] = [
   {
     name: 'The Meek',
     ref: 'Matthew 5:5',
-    verse: 'Blessed are the meek, for they shall inherit the earth.',
+    verse: 'Blessed are the meek: for they shall possess the land.',
     framing: 'Meekness is strength under control — power that does not have to prove itself.',
     questions: [
       'Have I lashed out in anger at my wife, my children, or anyone weaker than me?',
@@ -58,7 +63,7 @@ export const BEATITUDES: Beatitude[] = [
   {
     name: 'Those Who Hunger for Righteousness',
     ref: 'Matthew 5:6',
-    verse: 'Blessed are those who hunger and thirst for righteousness, for they shall be satisfied.',
+    verse: 'Blessed are they that hunger and thirst after justice: for they shall have their fill.',
     framing: 'The blessed man is hungry — for God, for holiness, for things set right.',
     questions: [
       'Have I let my prayer life starve while I fed every other appetite?',
@@ -69,7 +74,7 @@ export const BEATITUDES: Beatitude[] = [
   {
     name: 'The Merciful',
     ref: 'Matthew 5:7',
-    verse: 'Blessed are the merciful, for they shall obtain mercy.',
+    verse: 'Blessed are the merciful: for they shall obtain mercy.',
     framing: 'The mercy a man receives is measured by the mercy he hands out.',
     questions: [
       'Am I holding a grudge — against my wife, my father, a friend, a man at work?',
@@ -80,7 +85,7 @@ export const BEATITUDES: Beatitude[] = [
   {
     name: 'The Pure in Heart',
     ref: 'Matthew 5:8',
-    verse: 'Blessed are the pure in heart, for they shall see God.',
+    verse: 'Blessed are the clean of heart: for they shall see God.',
     framing: 'Purity is a single heart — what a man watches, wants, and worships all pointing one way.',
     questions: [
       'Have I looked at anything — on a screen, in the street, in my memory — that I would hide from my wife?',
@@ -91,7 +96,7 @@ export const BEATITUDES: Beatitude[] = [
   {
     name: 'The Peacemakers',
     ref: 'Matthew 5:9',
-    verse: 'Blessed are the peacemakers, for they shall be called children of God.',
+    verse: 'Blessed are the peacemakers: for they shall be called the children of God.',
     framing: 'A peacemaker walks toward the conflict he has been avoiding, and tells the truth with love.',
     questions: [
       'Is there a rift I keep stepping around — with my wife, my parents, a brother, a friend?',
@@ -102,7 +107,7 @@ export const BEATITUDES: Beatitude[] = [
   {
     name: 'The Persecuted',
     ref: 'Matthew 5:10',
-    verse: 'Blessed are those who have been persecuted for righteousness’ sake, for theirs is the Kingdom of Heaven.',
+    verse: 'Blessed are they that suffer persecution for justice’ sake: for theirs is the kingdom of heaven.',
     framing: 'Blessed is the man who pays a price for doing right, and pays it without bitterness.',
     questions: [
       'Have I hidden my faith — at work, among friends — to stay comfortable and liked?',
@@ -123,7 +128,7 @@ export const BEATITUDES_WOMEN: Beatitude[] = [
   {
     name: 'The Poor in Spirit',
     ref: 'Matthew 5:3',
-    verse: 'Blessed are the poor in spirit, for theirs is the Kingdom of Heaven.',
+    verse: 'Blessed are the poor in spirit: for theirs is the kingdom of heaven.',
     framing: 'The saint starts empty-handed. Pride is refusing to need God — and refusing to need anyone.',
     questions: [
       'Have I tried to carry everything myself rather than bring it to God in prayer?',
@@ -134,7 +139,7 @@ export const BEATITUDES_WOMEN: Beatitude[] = [
   {
     name: 'Those Who Mourn',
     ref: 'Matthew 5:4',
-    verse: 'Blessed are those who mourn, for they shall be comforted.',
+    verse: 'Blessed are they that mourn: for they shall be comforted.',
     framing: 'Blessed are the women who let sin grieve them instead of going numb to it.',
     questions: [
       'Have I felt real sorrow for my sins — or have I excused, minimized, or laughed them off?',
@@ -145,7 +150,7 @@ export const BEATITUDES_WOMEN: Beatitude[] = [
   {
     name: 'The Meek',
     ref: 'Matthew 5:5',
-    verse: 'Blessed are the meek, for they shall inherit the earth.',
+    verse: 'Blessed are the meek: for they shall possess the land.',
     framing: 'Meekness is strength under control — power that does not have to prove itself.',
     questions: [
       'Have I lashed out in anger at my husband, my children, or anyone weaker than me?',
@@ -156,7 +161,7 @@ export const BEATITUDES_WOMEN: Beatitude[] = [
   {
     name: 'Those Who Hunger for Righteousness',
     ref: 'Matthew 5:6',
-    verse: 'Blessed are those who hunger and thirst for righteousness, for they shall be satisfied.',
+    verse: 'Blessed are they that hunger and thirst after justice: for they shall have their fill.',
     framing: 'The blessed woman is hungry — for God, for holiness, for things set right.',
     questions: [
       'Have I let my prayer life starve while I fed every other appetite?',
@@ -167,7 +172,7 @@ export const BEATITUDES_WOMEN: Beatitude[] = [
   {
     name: 'The Merciful',
     ref: 'Matthew 5:7',
-    verse: 'Blessed are the merciful, for they shall obtain mercy.',
+    verse: 'Blessed are the merciful: for they shall obtain mercy.',
     framing: 'The mercy a woman receives is measured by the mercy she hands out.',
     questions: [
       'Am I holding a grudge — against my husband, my mother, a friend, a woman at work?',
@@ -178,7 +183,7 @@ export const BEATITUDES_WOMEN: Beatitude[] = [
   {
     name: 'The Pure in Heart',
     ref: 'Matthew 5:8',
-    verse: 'Blessed are the pure in heart, for they shall see God.',
+    verse: 'Blessed are the clean of heart: for they shall see God.',
     framing: 'Purity is a single heart — what a woman watches, wants, and worships all pointing one way.',
     questions: [
       'Have I looked at anything — on a screen, in the street, in my memory — that I would hide from my husband?',
@@ -189,7 +194,7 @@ export const BEATITUDES_WOMEN: Beatitude[] = [
   {
     name: 'The Peacemakers',
     ref: 'Matthew 5:9',
-    verse: 'Blessed are the peacemakers, for they shall be called children of God.',
+    verse: 'Blessed are the peacemakers: for they shall be called the children of God.',
     framing: 'A peacemaker walks toward the conflict she has been avoiding, and tells the truth with love.',
     questions: [
       'Is there a rift I keep stepping around — with my husband, my parents, a sister, a friend?',
@@ -200,7 +205,7 @@ export const BEATITUDES_WOMEN: Beatitude[] = [
   {
     name: 'The Persecuted',
     ref: 'Matthew 5:10',
-    verse: 'Blessed are those who have been persecuted for righteousness’ sake, for theirs is the Kingdom of Heaven.',
+    verse: 'Blessed are they that suffer persecution for justice’ sake: for theirs is the kingdom of heaven.',
     framing: 'Blessed is the woman who pays a price for doing right, and pays it without bitterness.',
     questions: [
       'Have I hidden my faith — at work, among friends — to stay comfortable and liked?',
