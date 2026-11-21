@@ -1,39 +1,42 @@
-import { ChevronRight, Church, HeartHandshake, Users, type LucideIcon } from 'lucide-react';
+import { ChevronRight, Church, HeartHandshake, type LucideIcon } from 'lucide-react';
 import { PRINT_PLATE_CLASS, PRINT_SERIF } from '@/lib/print';
 import type { PersonaTheme, TabId } from '@/types';
 
 interface MoreOfSanctumProps {
   t: PersonaTheme;
-  /** The three destinations — Today is home, never a row here. */
+  /** The two destinations — Today is home, never a row here. */
   onNavigate: (view: TabId) => void;
   /**
    * The come-home door's sender entry (Erik, Nov 18, 2026): a fourth
-   * plate under the three destinations, opening the share sheet.
+   * plate under the destinations, opening the share sheet.
    * Optional — the block stands complete without it.
    */
   onBringSomeoneHome?: () => void;
 }
 
 interface MoreEntry {
-  key: 'companions' | 'church' | 'help';
+  key: 'church' | 'help';
   label: string;
   hint: string;
   icon: LucideIcon;
 }
 
 const ENTRIES: MoreEntry[] = [
-  { key: 'companions', label: 'Companions', hint: 'Talk through today with a saint', icon: Users },
   { key: 'church', label: 'Pocket Church', hint: 'Pray · Confession · Ask', icon: Church },
   { key: 'help', label: 'Real Help', hint: 'Priests, counselors, crisis lines', icon: HeartHandshake },
 ];
 
 /**
  * More of Sanctum (Erik, Nov 13, 2026 — Option B, "Foot of Today"): the
- * three destinations as a block at the foot of Today, under the day itself
+ * destinations as a block at the foot of Today, under the day itself
  * and above the utilities line. The rows are the old menu sheet's GO rows,
  * unchanged in structure and weight — Real Help rendered exactly like the
  * others, neither hidden nor alarmed; the crisis content itself stays at
- * the top inside Real Help, as it already is. Stage 1 of the printed-page
+ * the top inside Real Help, as it already is. A Companions row stood
+ * first here until Nov 20, 2026, when the companion's own plate took the
+ * top of Today and the row became a duplicate (Erik's ruling) — the
+ * companions are reached from the plate and the tab now, not from a
+ * contents line at the foot of the page. Stage 1 of the printed-page
  * re-skin (Nov 14, 2026) set them as a book's contents — the name, a
  * dotted leader, and the hint where the page number would sit — but as
  * bare lines they did not read as tappable (Erik's revision, Nov 14,

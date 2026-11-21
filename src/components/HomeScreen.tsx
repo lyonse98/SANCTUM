@@ -38,7 +38,7 @@ interface HomeScreenProps {
   onConsumeForceTonight?: () => void;
   /** The housekeeping actions, fired from the utilities line at the foot of the page. */
   utilities: UtilityActions;
-  /** The More of Sanctum rows walk to the three destinations. */
+  /** The More of Sanctum rows walk to the two destinations. */
   onNavigate: (view: TabId) => void;
   /** Play 6c: Today's scroll position when it was last left, restored on return. */
   initialScrollTop?: number;
@@ -67,7 +67,7 @@ interface HomeScreenProps {
  * hour the audio day already keeps) or whenever a reminder's tap asks for it.
  * It is a shape, not a tool: nothing on it is checked or scored. The page
  * closes with the More of Sanctum block (Erik, Nov 13, 2026 — Option B,
- * "Foot of Today"): the three destinations as rows under the day itself,
+ * "Foot of Today"): the destinations as rows under the day itself,
  * Real Help among them at full weight, and the utilities line last of all.
  */
 export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpenReminder, forceTonight, onConsumeForceTonight, utilities, onNavigate, initialScrollTop, onScrollTopChange, onOpenNovenas, onOpenCompanion, tailorOpen, onConsumeTailorOpen }: HomeScreenProps) {
@@ -347,10 +347,12 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
           </div>
         )}
 
-        {/* More of Sanctum — the three destinations live at the foot of
+        {/* More of Sanctum — the destinations live at the foot of
             Today now (Option B): under the day, above the housekeeping.
             This block replaced the old one-line Real Help link; Real Help
-            is its third row, at the same weight as the others. */}
+            stands at the same weight as Pocket Church. (A Companions row
+            stood here until Nov 20, 2026 — the companion's plate at the
+            top of the page carries that door now.) */}
         <div className="w-full mb-6">
           <MoreOfSanctum t={seasonTheme} onNavigate={onNavigate} onBringSomeoneHome={() => setComeHomeSheetOpen(true)} />
         </div>

@@ -127,21 +127,24 @@ describe('the Today stack — Gospel, reminder, Tonight, More, utilities (in tha
   });
 });
 
-describe('More of Sanctum — the three destinations at the foot of Today', () => {
+describe('More of Sanctum — the destinations at the foot of Today', () => {
   function renderMore() {
     return renderToString(createElement(MoreOfSanctum, { t: theme, onNavigate: vi.fn() }));
   }
 
-  it('holds Companions, Pocket Church, Real Help, in that order, under its heading', () => {
+  it('holds Pocket Church and Real Help, in that order, under its heading — and no Companions row', () => {
     const html = renderMore();
     expect(html).toContain('More of Sanctum');
     const order = [...html.matchAll(/data-more-entry="([a-z-]+)"/g)].map((m) => m[1]);
-    expect(order).toEqual(['companions', 'church', 'help']);
+    expect(order).toEqual(['church', 'help']);
+    // The Companions row retired Nov 20, 2026 (Erik's ruling): the
+    // companion's plate at the top of Today carries that door now, and
+    // the foot of the page does not say it twice.
+    expect(html).not.toContain('data-more-entry="companions"');
   });
 
   it('each row carries its one-line descriptor', () => {
     const html = renderMore();
-    expect(html).toContain('Talk through today with a saint');
     expect(html).toContain('Pray · Confession · Ask');
     expect(html).toContain('Priests, counselors, crisis lines');
   });
@@ -154,7 +157,6 @@ describe('More of Sanctum — the three destinations at the foot of Today', () =
       const tag = html.slice(buttonStart, html.indexOf('>', buttonStart));
       return /class="([^"]*)"/.exec(tag)?.[1];
     };
-    expect(rowClass('help')).toBe(rowClass('companions'));
     expect(rowClass('help')).toBe(rowClass('church'));
     // No alarm styling on the row: the crisis content lives inside Real Help itself.
     const helpStart = html.indexOf('data-more-entry="help"');
