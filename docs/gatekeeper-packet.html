@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sanctum — For Priests and Parish Leaders</title>
+<!--
+  The gatekeeper packet, v2 (Nov 20, 2026). Two printed pages for priests
+  and parish leaders, built from this HTML via WeasyPrint into
+  public/gatekeeper-packet.pdf (the About page's download). V2 leads with
+  the elevator pitch and the priest-review ask, states the honest status
+  (no review completed, no pilot run), names the five server-held things,
+  corrects the audio claim (narrated AI voice; companions text-only; no
+  audio Rosary), promises no per-parish counts, splits the pilot into now
+  vs the later parish phase, and keeps the economics specific. The
+  founder-thesis line stays out — individual-facing only, never in
+  priest/parish-facing material.
+-->
+<style>
+  @page one {
+    size: Letter;
+    margin: 0.65in 0.88in 0.85in;
+    @bottom-left {
+      content: "SANCTUM · SANCTUMDAILY.APP";
+      font-family: "Liberation Serif", "Times New Roman", serif;
+      font-size: 7.5pt;
+      letter-spacing: 0.18em;
+      color: #8a8a8a;
+    }
+    @bottom-right {
+      content: "PAGE 1 OF 2";
+      font-family: "Liberation Serif", "Times New Roman", serif;
+      font-size: 7.5pt;
+      letter-spacing: 0.18em;
+      color: #8a8a8a;
+    }
+  }
+  @page two {
+    size: Letter;
+    margin: 0.65in 0.88in 0.85in;
+    @bottom-left {
+      content: "SANCTUM · SANCTUMDAILY.APP";
+      font-family: "Liberation Serif", "Times New Roman", serif;
+      font-size: 7.5pt;
+      letter-spacing: 0.18em;
+      color: #8a8a8a;
+    }
+    @bottom-right {
+      content: "PAGE 2 OF 2";
+      font-family: "Liberation Serif", "Times New Roman", serif;
+      font-size: 7.5pt;
+      letter-spacing: 0.18em;
+      color: #8a8a8a;
+    }
+  }
+  body {
+    font-family: "Liberation Serif", "Times New Roman", serif;
+    font-size: 9.7pt;
+    line-height: 1.38;
+    color: #1c1c1c;
+    margin: 0;
+  }
+  .page-one { page: one; }
+  .page-two { page: two; page-break-before: always; }
+  .eyebrow {
+    font-size: 9pt;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #555;
+    margin: 0 0 0.5em;
+  }
+  h1 {
+    font-size: 26pt;
+    font-weight: normal;
+    margin: 0 0 0.15em;
+    line-height: 1.1;
+  }
+  .subtitle {
+    font-size: 11pt;
+    line-height: 1.45;
+    margin: 0 0 0.4em;
+  }
+  .subtitle-note {
+    font-size: 10pt;
+    color: #444;
+    margin: 0;
+  }
+  h2 {
+    font-size: 9.5pt;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin: 0.85em 0 0.38em;
+  }
+  p {
+    text-align: justify;
+    margin: 0 0 0.45em;
+  }
+  .pitch { font-style: italic; }
+  .closing {
+    font-style: italic;
+    color: #444;
+    margin-top: 1.4em;
+    text-align: left;
+  }
+</style>
+</head>
+<body>
+
+<section class="page-one">
+  <p class="eyebrow">For Priests and Parish Leaders</p>
+  <h1>Sanctum</h1>
+  <p class="subtitle">A daily devotional for the people in your pews — what it is, what it is not, and what it asks of a parish: nothing.</p>
+  <p class="subtitle-note">Two pages: this one, and the shape of a free pilot.</p>
+
+  <h2>The Ask, in Thirty Seconds</h2>
+  <p class="pitch">Father, your people live on their phones between Sundays. Sanctum meets them there with the day’s Gospel every morning — and everything in it hands them back to you: to Mass, to Confession, to this parish. It asks nothing of your office and collects nothing from your people; what they write is never stored on a server, and prayer is free forever. A layman in San Diego built it, it’s live today — and before it reaches any parish, I’m asking a priest to review it and tell me what’s unsound. That review is what I’m asking for.</p>
+  <p><strong>What I am asking of you:</strong> read this, try the app for two weeks, and say plainly what’s sound and what isn’t. That review is the gate. No pilot and no parish conversation happen before it. <strong>No priest review has been completed yet, and no pilot has run</strong> — this page is the first step, not a report on one.</p>
+
+  <h2>What Sanctum Is</h2>
+  <p>A daily devotional that lives on a phone. Each morning it opens on the day’s Gospel, with a short reflection and one small challenge for the day. It holds a pocket church of prayers and the Rosary, preparation for Confession, the Catechism set as a place to ask questions, and companions — figures from Scripture and the saints — to talk with. A devotional can also be tailored to the day a person is actually having. The daily Gospel, reflection and tailored devotional are narrated as well as written, in an AI voice. The evening Examen lives on Today. There is <strong>no account</strong>, no sign-up, and nothing to buy. A person opens it and prays.</p>
+
+  <h2>What It Is Not</h2>
+  <p>Not a parish-management app. Not a substitute for a priest or the sacraments. It will not hear a confession, counsel a marriage, or stand in for a priest. Prayer is never paywalled, for parishioners or for anyone.</p>
+
+  <h2>What It Keeps — The Privacy Posture</h2>
+  <p><strong>Nothing a user writes is stored on a server.</strong> No conversation is kept, no name is asked, there is no advertising, and nothing about a person is sold. What someone writes lives only on their own phone, and one tap wipes the whole of it. The parish name never leaves the phone.</p>
+  <p>The few things held remotely are named plainly inside the app: a scrambled anti-abuse counter; a reminder subscription, only for those who ask for a morning reminder; a feedback note, only for those who send one; anonymous usage counts, only for those who turn them on; and — for the tailored devotional — the written text alone, with none of the person’s answers and nothing that identifies them, deleted within ninety days.</p>
+
+  <h2>The Companions — Portrayal, Not Pretense</h2>
+  <p>The companions are <strong>portrayals, and they are framed as portrayals</strong>. A companion never claims to be the saint. It cannot absolve, it promises no intercession, and it offers no private revelation. Companions are <strong>text-only</strong>. A companion prays <em>with</em> the person, and it points — deliberately, and by design — to a priest, to the sacraments, and to real community. A person in crisis is handed to 988 and to real help, not kept in a conversation.</p>
+
+  <h2>Where It Points — Outward</h2>
+  <p>Everything in Sanctum leans outward: toward Sunday Mass, toward Confession, toward the parish and the people in it. It is a porch, not a house — it stays with a person on the ordinary nights in between, and it keeps handing them back to the Church’s real life. Mass times in the app are an outbound link to masstimes.org for any ZIP code; Sanctum keeps no Mass-time database of its own.</p>
+</section>
+
+<section class="page-two">
+  <p class="eyebrow">A Free Pilot for One Parish — If the Review Is Sound</p>
+  <h1 style="font-size: 22pt;">The Pilot</h1>
+  <p class="subtitle">What a pilot asks of a parish, what the parish receives back, and the terms Sanctum stands on if it is ever paid for.</p>
+
+  <h2>What a Pilot Asks of a Parish</h2>
+  <p><strong>Nothing.</strong> No cost during the pilot. No data — the parish hands over nothing, and receives no one’s information. No admin work: there is no dashboard to keep, no content for the parish office to write or maintain, and nothing new asked of the pastor’s week.</p>
+
+  <h2>How It Runs — Now</h2>
+  <p>A QR code in the bulletin — and a link, for those who prefer one — opens Sanctum on a parishioner’s phone. No account, no app-store download. A launch week introduces it: a short line in the bulletin, and a word from the ambo if the pastor wishes to give one. A parishioner can pick their parish’s patron in their own profile, the way the app keeps a feast, so the parish’s day is marked for them.</p>
+
+  <h2>Later — Only When a Parish Wants Them</h2>
+  <p>The pastor’s own sixty-second message in the morning; the parish’s Confession times inside the Confession door; announcements drawn from the bulletin itself. None of these are built yet. They are the parish phase, and a pilot does not depend on them.</p>
+
+  <h2>What the Parish Receives Back — Honestly</h2>
+  <p><strong>No per-parish report exists, and this pilot does not promise one.</strong> The parish name never leaves a parishioner’s phone, by design, so Sanctum cannot count <em>your</em> people separately from anyone else’s — and it will not pretend to. What exists today, for opted-in users only, are Sanctum-wide anonymous counts (how many prayed, which burdens are most carried) — never words, never names, nothing anyone wrote. A pilot is judged the old-fashioned way: by what the pastor sees in his pews and hears from his people over the season.</p>
+
+  <h2>The Standing Economics</h2>
+  <p>If Sanctum ever becomes a paid thing for parishes, it will be <strong>one flat license</strong> — priced under the website bill it replaces, with the figure set after a pilot, with the pilot parish. Nothing more exotic than that. No per-person fees, no challenge credits, no percentage of donations, ever. Prayer will never be metered, and it will never be paywalled. The devotional itself remains free to every person who opens it, whether their parish takes part or not.</p>
+
+  <h2>The Next Step</h2>
+  <p>A conversation. Sanctum was built by <strong>Erik Lyons</strong>, a layman in San Diego. Reach him through the Feedback door inside the app — or simply tell the person who handed you this page that you would like to talk. Contact: [Erik to fill].</p>
+  <p class="closing">Sanctum · sanctumdaily.app — access is by request while the app is in a small testing season.</p>
+</section>
+
+</body>
+</html>
