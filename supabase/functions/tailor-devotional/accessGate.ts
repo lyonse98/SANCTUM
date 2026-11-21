@@ -66,24 +66,27 @@ export async function checkAccessToken(rawToken: unknown, deps: AccessGateDeps =
 
   try {
     const tokenHash = await hashAccessToken(rawToken);
-    const res = await fetchImpl(
-      `${supabaseUrl}/rest/v1/access_tokens?token_hash=eq.${tokenHash}&select=status`,
-      {
-        method: "GET",
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-        },
+    // The verdict comes from a security-definer database function, not
+    // a direct table read: on Nov 20, 2026 the direct read failed from
+    // inside the functions while the identical query succeeded from
+    // everywhere else. The function answers true/false for a hash and
+    // nothing more; the table itself stays locked down, and the answer
+    // no longer depends on which role the caller presents as.
+    const res = await fetchImpl(`${supabaseUrl}/rest/v1/rpc/check_access_token`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({ p_token_hash: tokenHash }),
+    });
     if (!res.ok) {
       console.error("access gate lookup failed with status", res.status);
       return false;
     }
-    const rows = (await res.json()) as unknown;
-    if (!Array.isArray(rows) || rows.length !== 1) return false;
-    const row = rows[0] as { status?: unknown } | null;
-    return row?.status === "active";
+    const verdict = (await res.json()) as unknown;
+    return verdict === true;
   } catch (err) {
     console.error("access gate lookup error:", err instanceof Error ? err.message : String(err));
     return false;

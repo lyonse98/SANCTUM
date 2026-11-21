@@ -24,11 +24,11 @@ beforeAll(() => {
   (globalThis as Record<string, unknown>).Deno = { env: { get: () => undefined } };
 });
 
-function lookupFetch(rows: unknown, status = 200) {
+function lookupFetch(verdict: unknown, status = 200) {
   return vi.fn(async () => ({
     ok: status >= 200 && status < 300,
     status,
-    json: async () => rows,
+    json: async () => verdict,
   })) as unknown as typeof fetch;
 }
 
@@ -61,28 +61,33 @@ describe("hashAccessToken", () => {
 });
 
 describe("checkAccessToken", () => {
-  it("passes an active token — and looks up the HASH, never the raw token", async () => {
-    const fetchImpl = lookupFetch([{ status: "active" }]);
+  it("passes an active token — and sends the HASH to the verdict door, never the raw token", async () => {
+    const fetchImpl = lookupFetch(true);
     await expect(checkAccessToken(TOKEN, { ...ENV, fetchImpl })).resolves.toBe(true);
-    const url = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-    expect(url).toContain(`token_hash=eq.${await hashAccessToken(TOKEN)}`);
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      { body?: string },
+    ];
+    expect(url).toContain("/rest/v1/rpc/check_access_token");
+    expect(init.body).toContain(await hashAccessToken(TOKEN));
+    expect(init.body).not.toContain(TOKEN);
     expect(url).not.toContain(TOKEN);
   });
 
-  it("refuses a revoked token", async () => {
-    const fetchImpl = lookupFetch([{ status: "revoked" }]);
-    await expect(checkAccessToken(TOKEN, { ...ENV, fetchImpl })).resolves.toBe(false);
+  it("refuses a token the door answers false for (revoked or unknown)", async () => {
+    await expect(checkAccessToken(TOKEN, { ...ENV, fetchImpl: lookupFetch(false) })).resolves.toBe(false);
   });
 
-  it("refuses an unknown token (no row) and an ambiguous one (two rows)", async () => {
-    await expect(checkAccessToken(TOKEN, { ...ENV, fetchImpl: lookupFetch([]) })).resolves.toBe(false);
-    await expect(
-      checkAccessToken(TOKEN, { ...ENV, fetchImpl: lookupFetch([{ status: "active" }, { status: "active" }]) }),
-    ).resolves.toBe(false);
+  it("refuses a non-boolean answer from the door", async () => {
+    await expect(checkAccessToken(TOKEN, { ...ENV, fetchImpl: lookupFetch("true") })).resolves.toBe(false);
+    await expect(checkAccessToken(TOKEN, { ...ENV, fetchImpl: lookupFetch(null) })).resolves.toBe(false);
+    await expect(checkAccessToken(TOKEN, { ...ENV, fetchImpl: lookupFetch([{ status: "active" }]) })).resolves.toBe(
+      false,
+    );
   });
 
   it("refuses a missing or malformed token WITHOUT any lookup", async () => {
-    const fetchImpl = lookupFetch([{ status: "active" }]);
+    const fetchImpl = lookupFetch(true);
     await expect(checkAccessToken(undefined, { ...ENV, fetchImpl })).resolves.toBe(false);
     await expect(checkAccessToken("short", { ...ENV, fetchImpl })).resolves.toBe(false);
     expect(fetchImpl).not.toHaveBeenCalled();
@@ -94,7 +99,7 @@ describe("checkAccessToken", () => {
       throw new Error("network down");
     }) as unknown as typeof fetch;
     await expect(checkAccessToken(TOKEN, { ...ENV, fetchImpl: throwing })).resolves.toBe(false);
-    await expect(checkAccessToken(TOKEN, { fetchImpl: lookupFetch([{ status: "active" }]) })).resolves.toBe(false);
+    await expect(checkAccessToken(TOKEN, { fetchImpl: lookupFetch(true) })).resolves.toBe(false);
   });
 
   it("the refusal code is the stable machine string", () => {
