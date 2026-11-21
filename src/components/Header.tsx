@@ -35,12 +35,12 @@ interface HeaderProps {
 
 // The chat header, slimmed (Nov 20, 2026, Erik): the page is the
 // conversation. The bar carries only who you're speaking with (with the
-// switcher), the incognito state, and one "more actions" menu — every
-// other door (home, find help, clear, emergency disconnect, settings,
-// feedback, about) lives in that menu, named in words instead of five
-// cryptic icon buttons competing with the chat. The old persistent
-// disclaimer bar is gone: the portrayal tag rides the name line, and
-// the not-a-therapist + 988 line sits once, quietly, under the input.
+// switcher) and one "more actions" menu — every door (incognito, home,
+// find help, clear, emergency disconnect, settings, feedback, about)
+// lives in that menu, named in words instead of five cryptic icon
+// buttons competing with the chat. The old persistent disclaimer bar
+// is gone: the portrayal tag rides the name line, and the
+// not-a-therapist + 988 line sits once, quietly, under the input.
 export function Header({
   persona,
   onSwitchPersona,
@@ -210,28 +210,6 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-1">
-          <button
-            onClick={onToggleIncognito}
-            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90 border"
-            style={
-              incognito
-                ? {
-                    backgroundColor: t.accentRgba(0.15),
-                    color: t.accent,
-                    borderColor: t.accentRgba(0.4),
-                  }
-                : {
-                    backgroundColor: t.card,
-                    color: t.textMuted,
-                    borderColor: `${t.border}99`,
-                  }
-            }
-            aria-label={incognito ? 'Incognito mode on' : 'Incognito mode off'}
-            title={incognito ? 'Incognito ON — history not saved' : 'Incognito OFF'}
-          >
-            {incognito ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => {
@@ -256,6 +234,38 @@ export function Header({
                 style={{ backgroundColor: t.bg, borderColor: t.border }}
               >
                 <div className="py-1">
+                  {/* Incognito lives in the menu too (Nov 20, 2026, Erik):
+                      the bar carries nothing but the companion and the
+                      menu. Its state is written in the item, and while
+                      it's on, the not-saved banner under the header is
+                      the standing cue. */}
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onToggleIncognito();
+                    }}
+                    aria-label={incognito ? 'Incognito mode on' : 'Incognito mode off'}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = t.cardHover;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  >
+                    {incognito
+                      ? <EyeOff className="w-4 h-4 flex-shrink-0" style={{ color: t.accent }} />
+                      : <Eye className="w-4 h-4 flex-shrink-0" style={{ color: t.textMuted }} />}
+                    <span className="text-[13px] font-medium flex-1" style={{ color: t.text }}>
+                      Incognito mode
+                    </span>
+                    <span
+                      className="text-[12px] font-bold uppercase tracking-wider"
+                      style={{ color: incognito ? t.accent : t.textDim }}
+                    >
+                      {incognito ? 'On' : 'Off'}
+                    </span>
+                  </button>
                   {menuItem('Back to home', Home, onGoHome)}
                   {menuItem('Find a priest or director', HeartHandshake, onFindHelp)}
                   <button
