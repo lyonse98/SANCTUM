@@ -37,14 +37,6 @@
   If the key is unset, the build omits the plan entirely and the text
   package stands alone, exactly as the interim builds did.
 
-  DEPLOY BRIDGE: plans issued before the expiry landed carry the old
-  bare-signature tokens (no expiry segment). Verification still honors
-  those when the caller (index.ts) allows it for a plan dated today or
-  yesterday, so a deploy can never strand a plan mid-stitch; every plan
-  issued after the deploy carries an expiry, and the bridge empties
-  itself within a day. The legacy path comes out once no pre-expiry
-  plan can still be live.
-
   This module is pure (crypto.subtle aside): index.ts wires it to the
   request, and vitest pins the splitting and the token discipline here.
 */
@@ -156,23 +148,6 @@ export async function signPieceToken(
   return `${expires}.${await signPayload(secret, payload)}`;
 }
 
-/**
- * The pre-expiry token shape (bare signature, no expiry segment), kept
- * only so verification can honor the deploy bridge described in the
- * header — and so the tests can mint the old plans the bridge exists for.
- * Nothing in the build path signs this way anymore.
- */
-export async function signPieceTokenLegacy(
-  secret: string,
-  dateISO: string,
-  audience: NarratorAudience,
-  index: number,
-  text: string,
-): Promise<string> {
-  const payload = `${dateISO}|${audience}|${index}|${await sha256Hex(text)}`;
-  return signPayload(secret, payload);
-}
-
 /** Constant-time string equality — token comparison must not leak by timing. */
 export function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -186,12 +161,6 @@ export function timingSafeEqual(a: string, b: string): boolean {
 export interface PieceTokenVerifyOptions {
   /** The clock, unix seconds — injectable so the tests can pin time. */
   nowSeconds?: number;
-  /**
-   * Honor a pre-expiry (bare-signature) token — the deploy bridge in the
-   * header. The caller decides the window (index.ts: a plan dated today
-   * or yesterday); this module only checks the old signature.
-   */
-  allowLegacy?: boolean;
 }
 
 /**
@@ -218,10 +187,6 @@ export async function verifyPieceToken(
     if (!(expires > nowSeconds)) return false;
     const payload = `${dateISO}|${audience}|${index}|${await sha256Hex(text)}|${expires}`;
     const expected = `${expires}.${await signPayload(secret, payload)}`;
-    return timingSafeEqual(expected, token);
-  }
-  if (options.allowLegacy && /^[0-9a-f]{64}$/.test(token)) {
-    const expected = await signPieceTokenLegacy(secret, dateISO, audience, index, text);
     return timingSafeEqual(expected, token);
   }
   return false;

@@ -5,7 +5,6 @@ import {
   pieceTokenExpiry,
   sha256Hex,
   signPieceToken,
-  signPieceTokenLegacy,
   verifyPieceToken,
 } from './audioPlan.ts';
 import { TAILOR_PIECE_MAX_CHARS } from './renderPieces.ts';
@@ -144,16 +143,6 @@ describe('piece tokens', () => {
     expect(await verifyPieceToken(KEY, '2020-01-01', 'men', 0, TEXT, token)).toBe(false);
   });
 
-  // The deploy bridge: bare-signature tokens from before the expiry are
-  // honored only when the caller allows them, and only on their own terms.
-  it('honors a legacy token only under the bridge flag', async () => {
-    const legacy = await signPieceTokenLegacy(KEY, DATE, 'men', 3, TEXT);
-    expect(legacy).toMatch(/^[0-9a-f]{64}$/);
-    expect(await verifyPieceToken(KEY, DATE, 'men', 3, TEXT, legacy, { nowSeconds: NOW })).toBe(false);
-    expect(await verifyPieceToken(KEY, DATE, 'men', 3, TEXT, legacy, { nowSeconds: NOW, allowLegacy: true })).toBe(true);
-    expect(await verifyPieceToken(KEY, DATE, 'men', 3, `${TEXT} Amen.`, legacy, { allowLegacy: true })).toBe(false);
-    expect(await verifyPieceToken('another-key', DATE, 'men', 3, TEXT, legacy, { allowLegacy: true })).toBe(false);
-  });
 });
 
 describe('buildAudioPlan', () => {

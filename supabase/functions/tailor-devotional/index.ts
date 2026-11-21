@@ -989,17 +989,9 @@ async function handlePieceRequest(req: Request, raw: unknown): Promise<Response>
     return jsonResponse({ ok: false, error: "That audio piece could not be read." }, 400);
   }
   const secret = Deno.env.get("AUDIO_RENDER_KEY") ?? "";
-  // The deploy bridge (audioPlan.ts): a bare-signature token from before
-  // the expiry is honored only for a plan dated today or yesterday, so a
-  // plan mid-stitch at deploy time finishes — and no older capture gains
-  // a day from it.
-  const today = losAngelesToday();
-  const allowLegacy = piece.dateISO <= today && piece.dateISO >= addDaysISO(today, -1);
   const authorized =
     secret.length > 0 &&
-    (await verifyPieceToken(secret, piece.dateISO, piece.audience, piece.index, piece.text, piece.token, {
-      allowLegacy,
-    }));
+    (await verifyPieceToken(secret, piece.dateISO, piece.audience, piece.index, piece.text, piece.token));
   if (!authorized) {
     return jsonResponse({ ok: false, error: "That audio piece is not authorized." }, 403);
   }
