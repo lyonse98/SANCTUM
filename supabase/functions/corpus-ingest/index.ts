@@ -406,6 +406,47 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
+  // TEMPORARY DIAGNOSTIC (Nov 20, 2026 — access-gate outage): reports,
+  // from inside a live function, which credential styles this
+  // deployment holds and what the database API answers to each.
+  // Styles only — never key values. Removed once the outage is
+  // understood; the nonce keeps it from being a public surface.
+  const probeUrl = new URL(req.url);
+  if (req.method === "GET" && probeUrl.searchParams.get("gateprobe") === "probe-7f3a-sanctum") {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const style = (k: string): string =>
+      !k
+        ? "missing"
+        : k.startsWith("eyJ")
+          ? "jwt"
+          : k.startsWith("sb_publishable_")
+            ? "sb_publishable"
+            : k.startsWith("sb_secret_")
+              ? "sb_secret"
+              : "other";
+    const tokenHash = probeUrl.searchParams.get("h") ?? "";
+    const attempt = async (key: string) => {
+      try {
+        const res = await fetch(`${supabaseUrl}/rest/v1/rpc/check_access_token`, {
+          method: "POST",
+          headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ p_token_hash: tokenHash }),
+        });
+        return { status: res.status, body: (await res.text()).slice(0, 120) };
+      } catch (err) {
+        return { status: -1, body: err instanceof Error ? err.message.slice(0, 120) : String(err).slice(0, 120) };
+      }
+    };
+    return jsonResponse({
+      urlHost: supabaseUrl.replace(/^https?:\/\//, "").split(".")[0] || "missing",
+      anonStyle: style(anonKey),
+      serviceStyle: style(serviceKey),
+      rpcWithAnon: await attempt(anonKey),
+      rpcWithService: await attempt(serviceKey),
+    });
+  }
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed." }, 405);
   }
