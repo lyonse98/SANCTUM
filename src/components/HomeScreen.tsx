@@ -9,6 +9,7 @@ import { SeasonBackdrop } from '@/components/SeasonBackdrop';
 import { TodayHero } from '@/components/TodayHero';
 import { TonightClosing } from '@/components/TonightClosing';
 import { PatronPlate } from '@/components/PatronPlate';
+import { CompanionPlate } from '@/components/CompanionPlate';
 import { patronFeastOn } from '@/lib/patronSaint';
 import { parishPatronFeastOn } from '@/lib/parishPatron';
 import { BringSomeoneHome } from '@/components/BringSomeoneHome';
@@ -171,6 +172,17 @@ export function HomeScreen({ audience, onReflectWithCompanion, onOpenHelp, onOpe
 
         <div className="w-full mb-6">
           <TodayHero t={seasonTheme} accent={seasonAccent} audience={audience} onOpenHelp={onOpenHelp} />
+        </div>
+
+        {/* Your companion — directly under the masthead (Erik, Nov 20,
+            2026): companions are half of this app, so the other half
+            stands in the room with the day instead of waiting at the
+            foot of the page. The pinned companion's plate, one tap
+            into the conversation; the door itself when nobody is
+            pinned. The Gospel below stays the day's anchor — this is
+            the presence beside it, not a rival to it. */}
+        <div className="w-full mb-5">
+          <CompanionPlate t={seasonTheme} audience={audience} onOpenCompanion={onOpenCompanion} onNavigate={onNavigate} />
         </div>
 
         {/* Your patron — on their feast day only (Erik, Nov 18, 2026):
